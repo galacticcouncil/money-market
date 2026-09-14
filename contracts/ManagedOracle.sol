@@ -44,7 +44,11 @@ contract ManagedOracle is AggregatorV3Interface, Ownable {
         emit PriceUpdated(1, initialPrice, block.timestamp);
     }
 
-    function setPrice(int256 price) external onlyOwner {
+    function setPrice(int256 price) external virtual onlyOwner {
+        _setPrice(price);
+    }
+
+    function _setPrice(int256 price) internal returns (uint80 roundId) {
         currentRound.roundId++;
         currentRound.answer = price;
         currentRound.startedAt = block.timestamp;
@@ -52,6 +56,8 @@ contract ManagedOracle is AggregatorV3Interface, Ownable {
         currentRound.answeredInRound = currentRound.roundId;
 
         emit PriceUpdated(currentRound.roundId, price, block.timestamp);
+
+        return currentRound.roundId;
     }
 
     function latestRoundData()
