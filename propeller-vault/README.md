@@ -235,17 +235,22 @@ independent human audit and a fork-test suite; everything else is tracked in the
   (`IParaSwapAugustus`) routing to the Substrate router. Not yet deployed on mainnet; tests
   use a mock. Gating dependency for `compound`'s live swaps (the loop itself no longer needs
   it — HOLLAR↔aPRIME goes straight through `pallet_route::sell`).
-- Synthetic reserve registration, Propeller-scoped HOLLAR discount, PRIME ceiling /
+- Synthetic reserve registration, PRIME ceiling /
   collateral supply-cap raises, deployer whitelist — all governance, shipped as an
   `aave-v3-deploy/tasks/proposals/propeller.ts` batch (mirrors `prime.ts` / `hdcl.ts`).
+- **Main-vault HOLLAR discount**: `PropellerDiscount` and opt-in vault refresh hooks
+  are implemented locally. The technical committee and governance can set 0-100%
+  off Main interest; governance controls enrollment. SubLoop stays undiscounted.
+  Installation is a separate governance batch, not part of `propeller.ts`.
+  See [policy, deployment and tests](docs/main-borrow-discount.md).
 
 ### Open — not yet shipped
 - **Independent human audit** — the in-repo review is AI-assisted and says so. Launch blocker.
-- **Fork tests** — zero. Aave, the AaveOracle, the 0x0401 router precompile and HydraAugustus
-  are all exercised only against mocks. Launch blocker.
-- **REQ-DISCOUNT (redemption discount mechanism)** — unimplemented. The real net carry from
-  the loop alone is ~8.6% (`maxLtv · loopLeverage · spread`); any higher headline number
-  assumes a redemption-discount mechanism that doesn't exist in the code yet.
+- **End-to-end fork tests** — the discount suite exercises the deployed HOLLAR debt
+  token, but collateral/router/withdrawal flows still need full fork coverage. Launch blocker.
+- **REQ-DISCOUNT** — Main borrowing-interest discount implemented; not a redemption
+  discount. Deployment, governance approval and discount-aware frontend integration
+  remain pending. Neither the historical yield estimates nor a fixed APY are guaranteed.
 - **PRIME mirror oracle** still owned by the looper hot key (fine for testnet; needs
   governance ownership + an updater role before mainnet).
 

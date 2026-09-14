@@ -14,6 +14,7 @@ import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "./interfaces/IAave
 import {ISwapper} from "./interfaces/ISwapper.sol";
 import {IYieldSource} from "./interfaces/IYieldSource.sol";
 import {ISyntheticToken} from "./interfaces/ISyntheticToken.sol";
+import {IHollarDiscountDebtToken, IPropellerDiscount} from "./interfaces/IPropellerDiscount.sol";
 
 /// @title CollateralVault
 /// @notice One per supported volatile collateral (ETH, tBTC, DOT…). An ERC4626
@@ -126,6 +127,11 @@ contract CollateralVault is
     ///         them (which would leave `repaid` short of `debtShare` forever and pin
     ///         the FIFO head).
     uint256 public totalQueuedDebt;
+
+    /// @notice Optional Main-debt discount adapter. Zero preserves legacy behavior.
+    address public discountController;
+
+    event DiscountControllerUpdated(address indexed previousController, address indexed newController);
 
     event Deposited(address indexed user, uint256 assets, uint256 shares);
     event RedeemRequested(uint256 indexed requestId, address indexed owner, uint256 shares);
@@ -445,6 +451,7 @@ contract CollateralVault is
         }
         queueHead = head;
         _retireExhaustedHead();
+        _refreshDiscount();
     }
 
     /// @dev Retire the FIFO head when the source is exhausted but the head is still
@@ -702,6 +709,14 @@ contract CollateralVault is
         IERC20(address(synthetic)).forceApprove(address(pool), amt);
         pool.supply(address(synthetic), amt, address(this), 0);
         try pool.setUserUseReserveAsCollateral(address(synthetic), true) {} catch {}
+        // The first borrow precedes synth supply, so GHO initially caches zero.
+        _refreshDiscount();
+    }
+
+    function _refreshDiscount() internal {
+        if (discountController != address(0)) {
+            IHollarDiscountDebtToken(address(hollarDebtToken)).rebalanceUserDiscountPercent(address(this));
+        }
     }
 
     /// @dev The collateral reserve's max LTV (bps) — bits 0-15 of the Aave
@@ -739,6 +754,24 @@ contract CollateralVault is
 
     function setTvlCap(uint256 newCap) external onlyRole(ADMIN_ROLE) {
         tvlCap = newCap;
+    }
+
+    /// @notice Opt into an approved adapter, or detach without leaving a cached
+    ///         discount behind. Enrollment remains a separate governance action.
+    function setDiscountController(address controller) external onlyRole(ADMIN_ROLE) nonReentrant {
+        if (controller != address(0)) {
+            IPropellerDiscount policy = IPropellerDiscount(controller);
+            require(
+                address(policy.debtToken()) == address(hollarDebtToken) && policy.synthetic() == address(synthetic),
+                "discount market"
+            );
+        }
+        address previous = discountController;
+        discountController = controller;
+        if (previous != address(0) || controller != address(0)) {
+            IHollarDiscountDebtToken(address(hollarDebtToken)).rebalanceUserDiscountPercent(address(this));
+        }
+        emit DiscountControllerUpdated(previous, controller);
     }
 
     /// @notice Repoint the vault to a new yield source. Allowed only when the
@@ -824,5 +857,5 @@ contract CollateralVault is
 
     function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
-    uint256[39] private __gap;
+    uint256[38] private __gap;
 }
