@@ -7,13 +7,14 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "./interfaces/IAavePool.sol";
+import {IAavePool} from "./interfaces/IAavePool.sol";
 import {ISwapper} from "./interfaces/ISwapper.sol";
 import {IYieldSource} from "./interfaces/IYieldSource.sol";
 import {ISyntheticToken} from "./interfaces/ISyntheticToken.sol";
+import {IHollarDiscountDebtToken, IPropellerDiscount} from "./interfaces/IPropellerDiscount.sol";
+import {IPropellerFeeController} from "./interfaces/IPropellerFeeController.sol";
 
 /// @title CollateralVault
 /// @notice One per supported volatile collateral (ETH, tBTC, DOT…). An ERC4626
@@ -127,6 +128,14 @@ contract CollateralVault is
     ///         the FIFO head).
     uint256 public totalQueuedDebt;
 
+    /// @notice Optional Main-debt discount adapter. Zero preserves legacy behavior.
+    address public discountController;
+
+    event DiscountControllerUpdated(address indexed previousController, address indexed newController);
+    IPropellerFeeController public feeController;
+
+    event FeeControllerUpdated(address indexed previousController, address indexed newController);
+
     event Deposited(address indexed user, uint256 assets, uint256 shares);
     event RedeemRequested(uint256 indexed requestId, address indexed owner, uint256 shares);
     event RedeemSettled(uint256 indexed requestId, uint256 collateral);
@@ -168,7 +177,9 @@ contract CollateralVault is
         uint256 _tvlCap,
         address _admin
     ) external initializer {
-        if (_collateral == address(0) || _pool == address(0) || _admin == address(0)) revert ZeroAddress();
+        if (_collateral == address(0) || _pool == address(0) || _admin == address(0)) {
+            revert ZeroAddress();
+        }
 
         __ERC20_init(name_, symbol_);
         __AccessControl_init();
@@ -254,12 +265,7 @@ contract CollateralVault is
 
     /// @notice ERC4626 deposit. Pulls `assets` collateral, opens/extends the
     ///         leveraged position, mints shares to `receiver`.
-    function deposit(uint256 assets, address receiver)
-        external
-        nonReentrant
-        whenNotPaused
-        returns (uint256 shares)
-    {
+    function deposit(uint256 assets, address receiver) external nonReentrant whenNotPaused returns (uint256 shares) {
         if (receiver == address(0)) revert ZeroAddress();
         if (depositsPaused) revert DepositsArePaused();
         if (assets == 0) revert ZeroAmount();
@@ -272,7 +278,7 @@ contract CollateralVault is
         _mint(receiver, shares);
 
         // 1. Supply the collateral to the Main Aave position.
-        (uint256 collBefore8, , , , , ) = pool.getUserAccountData(address(this));
+        (uint256 collBefore8,,,,,) = pool.getUserAccountData(address(this));
         collateral.safeTransferFrom(msg.sender, address(this), assets);
         collateral.forceApprove(address(pool), 0);
         collateral.forceApprove(address(pool), assets);
@@ -284,7 +290,7 @@ contract CollateralVault is
         //    existing position, incl. the synthetic, inflates collBase8) →
         //    Aave error 36 COLLATERAL_CANNOT_COVER_NEW_BORROW.
         //    (collateral USD 8dp → HOLLAR 18dp @ $1.)
-        (uint256 collAfter8, , , , , ) = pool.getUserAccountData(address(this));
+        (uint256 collAfter8,,,,,) = pool.getUserAccountData(address(this));
         uint256 borrowHollar = ((collAfter8 - collBefore8) * _maxLtvBps()) / BPS * 1e10;
 
         pool.borrow(address(hollar), borrowHollar, VARIABLE_RATE, 0, address(this));
@@ -445,6 +451,7 @@ contract CollateralVault is
         }
         queueHead = head;
         _retireExhaustedHead();
+        _refreshDiscount();
     }
 
     /// @dev Retire the FIFO head when the source is exhausted but the head is still
@@ -546,31 +553,36 @@ contract CollateralVault is
         whenNotPaused
     {
         if (amountIn == 0) revert ZeroAmount();
+        IPropellerFeeController controller = feeController;
+        if (address(controller) == address(0)) revert ZeroAddress();
+        uint256 collateralBefore = collateral.balanceOf(address(this));
+        uint256 inputBefore = IERC20(tokenIn).balanceOf(address(this));
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
+        if (IERC20(tokenIn).balanceOf(address(this)) != inputBefore + amountIn) revert PrincipalShortfall();
         // permissionless: enforce an oracle-fair floor so a caller-supplied
         // route/minOut can only tighten the swap, never force a lossy fill.
-        uint256 floor = (_fairCollateralOut(tokenIn, amountIn) * (BPS - compoundSlippageBps)) / BPS;
+        uint256 floor =
+            (controller.quoteCollateral(address(this), tokenIn, amountIn) * (BPS - compoundSlippageBps)) / BPS;
         if (minCollateralOut < floor) minCollateralOut = floor;
-        IERC20(tokenIn).forceApprove(address(swapper), 0);
-        IERC20(tokenIn).forceApprove(address(swapper), amountIn);
-        uint256 out = swapper.sell(tokenIn, address(collateral), amountIn, minCollateralOut, route);
-        if (out < floor) revert PrincipalShortfall(); // defense-in-depth vs a lying swapper
-        collateral.forceApprove(address(pool), 0);
-        collateral.forceApprove(address(pool), out);
-        pool.supply(address(collateral), out, address(this), 0); // → aToken grows → share price ↑
+        if (tokenIn != address(collateral)) {
+            IERC20(tokenIn).forceApprove(address(swapper), amountIn);
+            swapper.sell(tokenIn, address(collateral), amountIn, minCollateralOut, route);
+            IERC20(tokenIn).forceApprove(address(swapper), 0);
+            if (IERC20(tokenIn).balanceOf(address(this)) != inputBefore) revert PrincipalShortfall();
+        }
+        // Measure receipts, excluding existing idle collateral and settled claims.
+        uint256 out = collateral.balanceOf(address(this)) - collateralBefore;
+        if (out == 0 || out < minCollateralOut) revert PrincipalShortfall();
+        collateral.forceApprove(address(controller), out);
+        out -= controller.collectFee(out, msg.sender);
+        collateral.forceApprove(address(controller), 0);
+        if (out != 0) {
+            collateral.forceApprove(address(pool), out);
+            pool.supply(address(collateral), out, address(this), 0);
+            collateral.forceApprove(address(pool), 0);
+        }
+        if (collateral.balanceOf(address(this)) != collateralBefore) revert PrincipalShortfall();
         emit Harvested(out);
-    }
-
-    /// @dev oracle-fair collateral output for `amountIn` of `tokenIn`, via the
-    ///      market's AaveOracle (USD 8dp), decimal-corrected. Mirrors
-    ///      SubLoop._oracleRate — manipulation-resistant (not pool spot).
-    function _fairCollateralOut(address tokenIn, uint256 amountIn) internal view returns (uint256) {
-        address oracle = IPoolAddressesProvider(pool.ADDRESSES_PROVIDER()).getPriceOracle();
-        uint256 pIn = IAaveOracle(oracle).getAssetPrice(tokenIn); // USD 8dp
-        uint256 pColl = IAaveOracle(oracle).getAssetPrice(address(collateral)); // USD 8dp
-        uint8 dIn = IERC20Metadata(tokenIn).decimals();
-        uint8 dColl = IERC20Metadata(address(collateral)).decimals();
-        return (amountIn * pIn * (10 ** dColl)) / (pColl * (10 ** dIn));
     }
 
     /// @notice Rebalance the Main position back to the reserve's max LTV after a
@@ -582,7 +594,7 @@ contract CollateralVault is
         // without a separate oracle ref. (Requires the synth to actually count
         // as collateral — i.e. a reserve LTV > 0 and the use-as-collateral flag
         // on; _supplySynth enforces the flag.)
-        (uint256 collBase8, uint256 debtBase8, , , , ) = pool.getUserAccountData(address(this));
+        (uint256 collBase8, uint256 debtBase8,,,,) = pool.getUserAccountData(address(this));
         uint256 synthValue8 = syntheticSupplied / 1e10;
         uint256 ethValue8 = collBase8 > synthValue8 ? collBase8 - synthValue8 : 0;
         if (ethValue8 == 0) {
@@ -666,7 +678,7 @@ contract CollateralVault is
                 deleverTarget += repay8 * 1e10;
             }
         }
-        (uint256 c2, uint256 d2, , , , ) = pool.getUserAccountData(address(this));
+        (uint256 c2, uint256 d2,,,,) = pool.getUserAccountData(address(this));
         uint256 ev2 = c2 > syntheticSupplied / 1e10 ? c2 - syntheticSupplied / 1e10 : 0;
         emit Rebalanced(ltvBefore, ev2 == 0 ? 0 : (d2 * BPS) / ev2);
     }
@@ -702,6 +714,14 @@ contract CollateralVault is
         IERC20(address(synthetic)).forceApprove(address(pool), amt);
         pool.supply(address(synthetic), amt, address(this), 0);
         try pool.setUserUseReserveAsCollateral(address(synthetic), true) {} catch {}
+        // The first borrow precedes synth supply, so GHO initially caches zero.
+        _refreshDiscount();
+    }
+
+    function _refreshDiscount() internal {
+        if (discountController != address(0)) {
+            IHollarDiscountDebtToken(address(hollarDebtToken)).rebalanceUserDiscountPercent(address(this));
+        }
     }
 
     /// @dev The collateral reserve's max LTV (bps) — bits 0-15 of the Aave
@@ -739,6 +759,30 @@ contract CollateralVault is
 
     function setTvlCap(uint256 newCap) external onlyRole(ADMIN_ROLE) {
         tvlCap = newCap;
+    }
+
+    /// @notice Opt into an approved adapter, or detach without leaving a cached
+    ///         discount behind. Enrollment remains a separate governance action.
+    function setDiscountController(address controller) external onlyRole(ADMIN_ROLE) nonReentrant {
+        if (controller != address(0)) {
+            IPropellerDiscount policy = IPropellerDiscount(controller);
+            require(
+                address(policy.debtToken()) == address(hollarDebtToken) && policy.synthetic() == address(synthetic),
+                "discount market"
+            );
+        }
+        address previous = discountController;
+        discountController = controller;
+        if (previous != address(0) || controller != address(0)) {
+            IHollarDiscountDebtToken(address(hollarDebtToken)).rebalanceUserDiscountPercent(address(this));
+        }
+        emit DiscountControllerUpdated(previous, controller);
+    }
+
+    function setFeeController(address controller) external onlyRole(ADMIN_ROLE) nonReentrant {
+        if (controller == address(0)) revert ZeroAddress();
+        emit FeeControllerUpdated(address(feeController), controller);
+        feeController = IPropellerFeeController(controller);
     }
 
     /// @notice Repoint the vault to a new yield source. Allowed only when the
@@ -824,5 +868,5 @@ contract CollateralVault is
 
     function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
-    uint256[39] private __gap;
+    uint256[37] private __gap;
 }
