@@ -7,6 +7,7 @@ import {CollateralVault} from "../src/CollateralVault.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {Harvester} from "../src/Harvester.sol";
+import {PropellerFeeController} from "../src/PropellerFeeController.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
@@ -36,6 +37,7 @@ contract HarvestTest is Test {
     SubLoop loop;
     CollateralVault vault;
     Harvester harvester;
+    PropellerFeeController fees;
 
     function setUp() public {
         eth = new MockERC20("ETH", "ETH", 18);
@@ -106,6 +108,10 @@ contract HarvestTest is Test {
         loop.setTranches(10_000_000e18, 10_000_000e6);
         vault.setCompoundSlippageBps(100); // 1% vs oracle-fair
         harvester.addVault(address(vault));
+        fees = new PropellerFeeController(address(this), address(0xFEE));
+        harvester.setFeeController(address(fees));
+        vault.setFeeController(address(fees));
+        fees.registerVault(address(vault), address(harvester));
     }
 
     function _depositAndRamp() internal returns (uint256 shares) {

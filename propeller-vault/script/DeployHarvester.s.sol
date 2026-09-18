@@ -32,5 +32,6 @@ contract DeployHarvester is Script {
         Harvester h = new Harvester(subLoop, prime, gov);
         vm.stopBroadcast();
         console2.log("Harvester:", address(h));
+        console2.log("Fresh deployment: wire SubLoop/vault registry, then DeployFees before deposits.");
     }
 }

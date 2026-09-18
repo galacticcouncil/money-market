@@ -7,6 +7,7 @@ import {CollateralVault} from "../src/CollateralVault.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {Harvester} from "../src/Harvester.sol";
+import {PropellerFeeController} from "../src/PropellerFeeController.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
@@ -104,6 +105,10 @@ contract PermissionlessKeeperTest is Test {
         loop.setHarvester(address(harvester));
         loop.setTranches(10_000_000e18, 10_000_000e6);
         vault.setCompoundSlippageBps(100); // 1% vs oracle-fair
+        PropellerFeeController fees = new PropellerFeeController(address(this), address(0xFEE));
+        harvester.setFeeController(address(fees));
+        vault.setFeeController(address(fees));
+        fees.registerVault(address(vault), address(harvester));
     }
 
     // ── every opened op is callable by a non-role address ────────────────────

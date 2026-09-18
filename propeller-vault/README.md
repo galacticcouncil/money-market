@@ -107,11 +107,17 @@ seeded). Anyone can call:
   silently stranding a vault's cut.
 - **`CollateralVault.compound()`**: swaps its PRIME cut into *that vault's own collateral*
   (ETH for the ETH vault, tBTC for the tBTC vault — never cross-contaminated) at an
-  oracle-fair floor (`_fairCollateralOut`, AaveOracle-priced, so even a malicious caller-
-  supplied route/minOut can only tighten the fill, never worsen it), then **supplies that ETH
-  straight into the Main Aave position** — growing the vault's aToken balance.
+  oracle-fair floor (controller `quoteCollateral`, AaveOracle-priced, so even a malicious caller-
+  supplied route/minOut can only tighten the fill, never worsen it). It measures actual
+  collateral receipts, accrues the vault's protocol fee (initially **5%**) in a separate
+  controller, then **supplies the remainder into the Main Aave position**.
 
-Since `totalAssets() == collateralAToken.balanceOf(vault)` and `exchangeRate() =
+Governance configures fees independently per vault. Anyone can trigger payment of accrued
+underlying collateral to the current treasury recipient. Fees apply after swaps and before
+Main borrowing interest; direct caller-funded compound contributions are untaxed.
+See [protocol fee policy, wiring and claims](docs/protocol-fees.md).
+
+Since `totalAssets() == collateralAToken.balanceOf(vault) + collateral.balanceOf(vault)` and `exchangeRate() =
 totalAssets/totalSupply`, growing the aToken balance **without minting new shares** directly
 raises the ETH-per-pETH-share price. This is the entire "deposit ETH, earn more ETH"
 mechanism — depositors never receive PRIME, HOLLAR, or any token but their own collateral;
@@ -194,18 +200,22 @@ your ETH's borrowing power ─► HOLLAR ─────┘
         requestRedeem → (async, gradual unwind) → pokeSettle → claim: you receive > 1 ETH per ETH deposited
 ```
 
-## Status: core flows implemented, tested, and formally specified
+## Status: core flows and test coverage
 
-`forge test`: **72 tests across 22 suites** (71 pass, 1 skip — incl. a 6-property fuzzed
-invariant suite over `Handler.sol`), all green against Aave-faithful mocks (`MockPool` models
-8dp USD base + bps thresholds + WAD HF + isolation mode; `MockDispatch` etches the real
-SCALE-encoded router-sell precompile so route semantics match mainnet, not a stub — and the
-live `pallet_route::sell` encoding is pinned byte-for-byte against runtime metadata).
+`forge test` covers the core flows, borrowing discount, protocol fees and a six-property
+invariant suite over `Handler.sol`. `MockPool` models Aave accounting, and `MockDispatch`
+simulates router execution with SCALE encodings pinned against runtime metadata. These
+are mock integrations, not execution of the native Substrate runtime.
+
+Optional pinned forks exercise deployed HOLLAR debt and Aave supply code with explicitly
+controlled inputs. See [fee validation limits](docs/protocol-fees.md). Existing formal
+artifacts do not prove the newly added fee implementation.
 
 **Mainnet readiness** — see `AUDIT.md` (living finding ledger), `DEPLOYMENT.md` (runbook),
 `deployments/` (address registry), `x-ray/` (pre-audit report) and
-`../PROPELLER-MAINNET-HANDOVER.md` (what has already gone wrong). The two blockers are an
-independent human audit and a fork-test suite; everything else is tracked in the ledger.
+`../PROPELLER-MAINNET-HANDOVER.md` (what has already gone wrong). Production activation
+requires independent review, resolution of applicable audit findings, and a full native
+asset/DEX deployment rehearsal. Adding fees and discounts does not resolve those blockers.
 
 - **deposit** → Main leg (supply collateral → borrow HOLLAR → mint+supply synthetic → seed
   the shared loop)

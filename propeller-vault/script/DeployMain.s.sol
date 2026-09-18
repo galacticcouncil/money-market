@@ -94,5 +94,7 @@ contract DeployMain is Script {
         console.log("Harvester:", address(harvester));
         console.log("synth:", synth);
         console.log("swapper:", swapper);
+        console.log("Before deposits: complete source/vault roles and Harvester registry.");
+        console.log("Then use DeployFees to deploy the controller and print governance wiring.");
     }
 }
