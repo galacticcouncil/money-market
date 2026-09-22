@@ -293,7 +293,12 @@ forge test            # uses MockSwapper / MockPool / MockDispatch
 forge test --fork-url $RPC_HYDRATION   # fork tests against live Aave + PRIME
 ```
 
-Libs are reused from `../hdcl-vault/lib` (see `foundry.toml`).
+Libs are reused from `../bil-vault/lib` (see `foundry.toml`). Initialize the pinned
+submodules from the repository root before building:
+
+```sh
+git submodule update --init bil-vault/lib/forge-std bil-vault/lib/openzeppelin-contracts bil-vault/lib/openzeppelin-contracts-upgradeable bil-vault/lib/solmate
+```
 
 Formal spec (Lean 4, separate Lake project, ignored by the Foundry build):
 ```sh

@@ -148,6 +148,14 @@ export default {
       eHydrationNetwork.chopsticks,
       222222
     ),
+    [eHydrationNetwork.gigahdx]: getCommonNetworkConfig(
+      eHydrationNetwork.gigahdx,
+      222222
+    ),
+    [eHydrationNetwork.bil]: getCommonNetworkConfig(
+      eHydrationNetwork.bil,
+      222222
+    ),
     [eBaseNetwork.base]: getCommonNetworkConfig(eBaseNetwork.base, 8453),
     [eBaseNetwork.baseGoerli]: getCommonNetworkConfig(
       eBaseNetwork.baseGoerli,

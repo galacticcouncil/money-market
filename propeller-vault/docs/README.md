@@ -18,9 +18,10 @@ establish a safe production TVL.
   merged into `propeller` as `5c1bac4`.
 - [PR #46: original integration](https://github.com/galacticcouncil/money-market/pull/46)
   remains open, now targeting `hydration`. The entire current `feat/bil` tip is
-  already an ancestor of `hydration`. The base change exposes existing conflicts
-  in `.gitignore` and `HDCL-MAINNET-DEPLOY-PLAN.md`; these are not resolved by the
-  Propeller feature-branch consolidation.
+  already an ancestor of `hydration`. The latest `hydration` base is merged into
+  `propeller`: ignore rules retain both branches' exclusions, and the superseded
+  HDCL deployment plan is replaced by the existing BIL plan. Propeller's build
+  paths now use the renamed `bil-vault/lib` submodules with unchanged pins.
 - [PR #53 audit](../audit/propeller-audit-ys-propeller-fixes-20260731.md)
   is historical review evidence, not approval of this checkpoint.
 

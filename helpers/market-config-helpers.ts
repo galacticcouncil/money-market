@@ -37,7 +37,8 @@ import { ZERO_ADDRESS } from "./constants";
 import { getTestnetReserveAddressFromSymbol, POOL_DATA_PROVIDER } from ".";
 import { ENABLE_REWARDS } from "./env";
 import HydrationConfig from "../markets/hydration";
-import HDCLConfig from "../markets/hdcl";
+import BILConfig from "../markets/bil";
+import GIGAHDXConfig from "../markets/gigahdx";
 
 declare var hre: HardhatRuntimeEnvironment;
 
@@ -55,7 +56,8 @@ export enum ConfigNames {
   Base = "Base",
   baseGoerli = "base-goerli",
   Hydration = "Hydration",
-  HDCL = "HDCL",
+  BIL = "BIL",
+  GIGAHDX = "GIGAHDX",
 }
 
 export const getParamPerNetwork = <T>(
@@ -125,8 +127,10 @@ export const loadPoolConfig = (configName: ConfigNames): PoolConfiguration => {
       return BaseConfig;
     case ConfigNames.Hydration:
       return HydrationConfig;
-    case ConfigNames.HDCL:
-      return HDCLConfig;
+    case ConfigNames.BIL:
+      return BILConfig;
+    case ConfigNames.GIGAHDX:
+      return GIGAHDXConfig;
     default:
       throw new Error(
         `Unsupported pool configuration: ${configName} is not one of the supported configs ${Object.values(

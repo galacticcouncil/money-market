@@ -3,10 +3,10 @@ src = "src"
 out = "out"
 test = "test"
 script = "script"
-# Reuse the sibling hdcl-vault's already-installed libs (forge-std, OZ, OZ-upgradeable)
+# Reuse the sibling bil-vault's already-installed libs (forge-std, OZ, OZ-upgradeable)
 # so this module compiles without a separate `forge install`. Vendor independently
 # before audit if a clean dependency boundary is wanted.
-libs = ["../hdcl-vault/lib"]
+libs = ["../bil-vault/lib"]
 solc_version = "0.8.22"
 optimizer = true
 # The combined fee/discount vault has little EIP-170 headroom. Keep the runtime
