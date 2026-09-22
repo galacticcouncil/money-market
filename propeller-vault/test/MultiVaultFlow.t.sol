@@ -7,6 +7,7 @@ import {CollateralVault} from "../src/CollateralVault.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {Harvester} from "../src/Harvester.sol";
+import {PropellerFeeController} from "../src/PropellerFeeController.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
@@ -35,6 +36,7 @@ contract MultiVaultFlowTest is Test {
     CollateralVault ethVault;
     CollateralVault tbtcVault;
     Harvester harvester;
+    PropellerFeeController fees;
 
     address constant ETH_USER = address(0xE0);
     address constant BTC_USER = address(0xB0);
@@ -100,6 +102,12 @@ contract MultiVaultFlowTest is Test {
         tbtcVault.setCompoundSlippageBps(100);
         harvester.addVault(address(ethVault));
         harvester.addVault(address(tbtcVault));
+        fees = new PropellerFeeController(address(this), address(0xFEE));
+        harvester.setFeeController(address(fees));
+        ethVault.setFeeController(address(fees));
+        tbtcVault.setFeeController(address(fees));
+        fees.registerVault(address(ethVault), address(harvester));
+        fees.registerVault(address(tbtcVault), address(harvester));
     }
 
     function _deployVault(string memory n, string memory s, address coll, address aTok)
@@ -165,6 +173,16 @@ contract MultiVaultFlowTest is Test {
         assertEq(aTbtc.balanceOf(address(ethVault)), 0, "no tBTC in the ETH vault");
         assertEq(aEth.balanceOf(address(tbtcVault)), 0, "no ETH in the tBTC vault");
 
+        uint256 ethFee = fees.claimableProtocolFees(address(eth));
+        uint256 tbtcFee = fees.claimableProtocolFees(address(tbtc));
+        assertGt(ethFee, 0);
+        assertGt(tbtcFee, 0);
+        fees.claimProtocolFees(address(eth));
+        assertEq(eth.balanceOf(address(0xFEE)), ethFee);
+        assertEq(fees.claimableProtocolFees(address(tbtc)), tbtcFee);
+        fees.claimProtocolFees(address(tbtc));
+        assertEq(tbtc.balanceOf(address(0xFEE)), tbtcFee);
+
         // pro-rata by loop shares: USD gains split 2250 : 4800
         uint256 ethGainUsd = ethGain * 3_000 / 1e10; // 8dp USD
         uint256 tbtcGainUsd = tbtcGain * 60_000 / 1e10; // 8dp USD
@@ -209,7 +227,7 @@ contract MultiVaultFlowTest is Test {
     /// AND each vault's Main debt). harvest must skim only
     /// gross − loop borrow cost, and the economic net per deposit (compounded
     /// gain minus the vault's own accrued Main interest) must land on the model
-    ///   net ≈ mainLtv · loopLeverage · (primeYield − borrowRate)
+    ///   net = (1 - fee) * loopCarry - Main interest
     /// — the number the UI quotes. tBTC's % beats ETH's (80% vs 75% LTV).
     function test_netCarryAfterHollarBorrowCost() public {
         uint256 PRIME_APY_BPS = 650; // 6.5% PRIME supply
@@ -261,18 +279,20 @@ contract MultiVaultFlowTest is Test {
         harvester.harvest(minOuts);
 
         // ── economic net per deposit = compounded gain − own Main interest,
-        //    must match mainLtv·loopLeverage·spread
+        //    must apply the protocol fee BEFORE subtracting Main interest.
         uint256 spreadBps = PRIME_APY_BPS - BORROW_APY_BPS; // 210
         // ETH: deposit $3000 at 75%
         uint256 ethGainUsd8 = (aEth.balanceOf(address(ethVault)) - 1e18) * 3_000 / 1e10;
         uint256 ethNetUsd8 = ethGainUsd8 - ethMainInt / 1e10;
         uint256 ethModel8 = (3_000e8 * 7_500 / 10_000) * loopLevWad / 1e18 * spreadBps / 10_000;
-        assertApproxEqRel(ethNetUsd8, ethModel8, 0.02e18, "ETH net = ltv*leverage*spread");
+        ethModel8 = (ethModel8 + ethMainInt / 1e10) * 9_500 / 10_000 - ethMainInt / 1e10;
+        assertApproxEqRel(ethNetUsd8, ethModel8, 0.02e18, "ETH net after harvest fee and Main interest");
         // tBTC: deposit $6000 at 80%
         uint256 tbtcGainUsd8 = (aTbtc.balanceOf(address(tbtcVault)) - 0.1e18) * 60_000 / 1e10;
         uint256 tbtcNetUsd8 = tbtcGainUsd8 - tbtcMainInt / 1e10;
         uint256 tbtcModel8 = (6_000e8 * 8_000 / 10_000) * loopLevWad / 1e18 * spreadBps / 10_000;
-        assertApproxEqRel(tbtcNetUsd8, tbtcModel8, 0.02e18, "tBTC net = ltv*leverage*spread");
+        tbtcModel8 = (tbtcModel8 + tbtcMainInt / 1e10) * 9_500 / 10_000 - tbtcMainInt / 1e10;
+        assertApproxEqRel(tbtcNetUsd8, tbtcModel8, 0.02e18, "tBTC net after harvest fee and Main interest");
 
         // tBTC's net %-yield > ETH's (higher LTV), both ≈ ltv·6.17·2.1%
         // (ETH ~9.7%, tBTC ~10.4% at these rates)
@@ -328,7 +348,9 @@ contract MultiVaultFlowTest is Test {
         // frictionless gain was ~0.2316 ETH; with the ramp-fee hole (~1% of
         // the carry) and the 30 bps compound haircut it lands just below
         assertLt(ethGain, 0.2316e18, "swap costs reduce the realized gain");
-        assertGt(ethGain, (0.2316e18 * 95) / 100, "costs stay ~1-2%, not material");
+        uint256 grossEthGain = ethGain + fees.claimableProtocolFees(address(eth));
+        assertGt(grossEthGain, (0.2316e18 * 95) / 100, "swap costs stay ~1-2% before protocol fee");
+        assertEq(ethGain, grossEthGain - grossEthGain * 500 / 10_000);
 
         // ── exit pays the unwind leg's fee: settles a hair under the snapshot,
         //    but still well above the deposited principal

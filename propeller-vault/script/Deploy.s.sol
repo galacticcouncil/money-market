@@ -89,6 +89,7 @@ contract Deploy is Script {
         console.log(" - synth.grantRole(MINTER_ROLE, ethVault)");
         console.log(" - subLoop: registerVault, setHarvester, setTranches, configureDca");
         console.log(" - ethVault.setCompoundSlippageBps; harvester.addVault");
+        console.log(" - DeployFees: deploy and execute printed governance wiring before deposits");
         console.log(" - governance: register synth reserve LTV>0, HOLLAR discount, raise caps");
     }
 }
