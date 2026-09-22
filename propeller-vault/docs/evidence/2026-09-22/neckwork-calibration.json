@@ -1,0 +1,3243 @@
+{
+  "window": {
+    "from": "2026-08-23T00:00:00.000Z",
+    "toExclusive": "2026-09-22T00:00:00.000Z"
+  },
+  "coverage": {
+    "requestedHistoricalHours": 2160,
+    "receivedHistoricalPrimeHours": 2153,
+    "last30PrimeHours": 720,
+    "last30HollarHours": 720,
+    "expectedLast30Hours": 720,
+    "activity": {
+      "requestedFrom": "2026-08-23",
+      "requestedTo": "2026-09-21",
+      "fetched": 1114,
+      "unique": 1114,
+      "exhausted": true,
+      "maxRows": 5000,
+      "oldest": "2026-08-23 01:19:30",
+      "note": "Asset-level economic actions; includes lending-wrapper conversions. Not every row is a pool swap."
+    },
+    "indexer": {
+      "blockHeight": 14904151,
+      "blockTimestamp": "2026-09-22 11:40:48",
+      "lagSeconds": 48,
+      "chainBlockHeight": 14904167,
+      "blocksBehindHead": 16,
+      "chainHeadSampled": true,
+      "rawFinalizedRangeCount": 12876,
+      "rawFinalizedFromBlock": 0,
+      "rawFinalizedToBlock": 12872103
+    },
+    "missingApiSeries": [
+      "daily-1003",
+      "daily-1002",
+      "daily-1044"
+    ]
+  },
+  "prime": {
+    "economicActions": 1076,
+    "excludedWrappers": 33,
+    "excludedUnresolved": 5,
+    "totalPrimeSoldRaw": "245848013607",
+    "totalPrimeBoughtRaw": "298934150472",
+    "sellUsd": 259064.3190404878,
+    "buyUsd": 315121.4831549892,
+    "meanSellUsdPerDay": 8635.477301349594,
+    "medianSellUsdPerDay": 338.5358823506547,
+    "p90SellUsdPerDay": 27713.36650256118,
+    "maxSellUsdPerDay": 129002.37053447698,
+    "meanBuyUsdPerDay": 10504.04943849964,
+    "medianGapMinutes": 6.2,
+    "p90GapMinutes": 127.00000000000001,
+    "medianMaterialGapHours": 0.01,
+    "p90MaterialGapHours": 4.5063333333333535,
+    "observedDaily": {
+      "2026-08-23": {
+        "buyUsd": 69608.64418855857,
+        "sellUsd": 27435.601685535737,
+        "count": 22
+      },
+      "2026-08-24": {
+        "buyUsd": 20330.805995736977,
+        "sellUsd": 10869.927739268842,
+        "count": 30
+      },
+      "2026-08-25": {
+        "buyUsd": 0,
+        "sellUsd": 179.44053584926422,
+        "count": 8
+      },
+      "2026-08-26": {
+        "buyUsd": 244.69382509790478,
+        "sellUsd": 123.915541271267,
+        "count": 8
+      },
+      "2026-08-27": {
+        "buyUsd": 9991.322779657212,
+        "sellUsd": 1321.5902624030928,
+        "count": 127
+      },
+      "2026-08-28": {
+        "buyUsd": 68888.01876072849,
+        "sellUsd": 40987.80909427512,
+        "count": 245
+      },
+      "2026-08-29": {
+        "buyUsd": 0,
+        "sellUsd": 732.3841646439348,
+        "count": 171
+      },
+      "2026-08-30": {
+        "buyUsd": 0,
+        "sellUsd": 346.3297309080872,
+        "count": 7
+      },
+      "2026-08-31": {
+        "buyUsd": 0,
+        "sellUsd": 642.4158589751905,
+        "count": 8
+      },
+      "2026-09-01": {
+        "buyUsd": 2.425720083648657,
+        "sellUsd": 133.05839561806877,
+        "count": 9
+      },
+      "2026-09-02": {
+        "buyUsd": 40007.902847680605,
+        "sellUsd": 62.06799323644226,
+        "count": 8
+      },
+      "2026-09-03": {
+        "buyUsd": 0,
+        "sellUsd": 236.57953887596153,
+        "count": 9
+      },
+      "2026-09-04": {
+        "buyUsd": 150.36049939605152,
+        "sellUsd": 10395.977538269644,
+        "count": 9
+      },
+      "2026-09-05": {
+        "buyUsd": 0,
+        "sellUsd": 347.8494687612874,
+        "count": 7
+      },
+      "2026-09-06": {
+        "buyUsd": 0,
+        "sellUsd": 259.9233233232405,
+        "count": 7
+      },
+      "2026-09-07": {
+        "buyUsd": 0,
+        "sellUsd": 330.74203379322216,
+        "count": 6
+      },
+      "2026-09-08": {
+        "buyUsd": 32721.889417142513,
+        "sellUsd": 515.2521927205936,
+        "count": 57
+      },
+      "2026-09-09": {
+        "buyUsd": 28.068780510395925,
+        "sellUsd": 592.6008065129199,
+        "count": 26
+      },
+      "2026-09-10": {
+        "buyUsd": 1136.9936077155935,
+        "sellUsd": 109.94166352406711,
+        "count": 26
+      },
+      "2026-09-11": {
+        "buyUsd": 25039.127046089252,
+        "sellUsd": 129002.37053447698,
+        "count": 176
+      },
+      "2026-09-12": {
+        "buyUsd": 0,
+        "sellUsd": 133.1550145388835,
+        "count": 16
+      },
+      "2026-09-13": {
+        "buyUsd": 0,
+        "sellUsd": 239.21440167435298,
+        "count": 6
+      },
+      "2026-09-14": {
+        "buyUsd": 0,
+        "sellUsd": 293.7896825691769,
+        "count": 8
+      },
+      "2026-09-15": {
+        "buyUsd": 23385.70321798262,
+        "sellUsd": 57.494500866893375,
+        "count": 9
+      },
+      "2026-09-16": {
+        "buyUsd": 127.93752828422282,
+        "sellUsd": 1377.1422668591683,
+        "count": 23
+      },
+      "2026-09-17": {
+        "buyUsd": 22473.410573315858,
+        "sellUsd": 30213.24985579013,
+        "count": 16
+      },
+      "2026-09-18": {
+        "buyUsd": 634.4451096564153,
+        "sellUsd": 62.43049791109044,
+        "count": 9
+      },
+      "2026-09-19": {
+        "buyUsd": 349.7332573528979,
+        "sellUsd": 223.44062261026363,
+        "count": 6
+      },
+      "2026-09-20": {
+        "buyUsd": 0,
+        "sellUsd": 73.16140353590862,
+        "count": 3
+      },
+      "2026-09-21": {
+        "buyUsd": 0,
+        "sellUsd": 1765.4626918890426,
+        "count": 14
+      }
+    },
+    "lastIndexedPrice": 1.061270028261,
+    "moneyMarketOracle": 1.0505,
+    "referenceWarning": "Indexed USD prices come from market routing; not independent PRIME subscription/redemption NAV."
+  },
+  "hollar": {
+    "minHourlyClose": 0.997271311392,
+    "maxHourlyClose": 1.000202859622,
+    "hsmArbitrageBurn": 139346.05565832072,
+    "hsmArbitrageMint": 53289.42573684497,
+    "hsmArbDays": 7,
+    "note": "HSM trade and arbitrage series may overlap; never add their gross volumes blindly."
+  },
+  "poolHistoryChecks": [
+    {
+      "poolId": 105,
+      "assetId": 21,
+      "currentFromHistory": 194183.070743,
+      "pinnedOnchain": 194185.096987,
+      "relativeDifference": -0.00001043460096294968,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 105,
+      "assetId": 23,
+      "currentFromHistory": 184059.578381,
+      "pinnedOnchain": 184059.578381,
+      "relativeDifference": 0,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 105,
+      "assetId": 222,
+      "currentFromHistory": 225647.95950270194,
+      "pinnedOnchain": 225645.93152283234,
+      "relativeDifference": 0.000008987442653651811,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 110,
+      "assetId": 222,
+      "currentFromHistory": 924261.0961750079,
+      "pinnedOnchain": 924230.4187002868,
+      "relativeDifference": 0.0000331924529861638,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 110,
+      "assetId": 1003,
+      "currentFromHistory": 858244.568905,
+      "pinnedOnchain": 858270.421693,
+      "relativeDifference": -0.000030121960802320658,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 111,
+      "assetId": 222,
+      "currentFromHistory": 1044918.8991830104,
+      "pinnedOnchain": 1053572.1708842132,
+      "relativeDifference": -0.00821326904823283,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 111,
+      "assetId": 1002,
+      "currentFromHistory": 1017817.942225,
+      "pinnedOnchain": 1009152.887535,
+      "relativeDifference": 0.008586463752946027,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 112,
+      "assetId": 222,
+      "currentFromHistory": 75835.56588918185,
+      "pinnedOnchain": 75835.56588918185,
+      "relativeDifference": 0,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 112,
+      "assetId": 1000745,
+      "currentFromHistory": 54526.77261241672,
+      "pinnedOnchain": 54526.77261241672,
+      "relativeDifference": 0,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 113,
+      "assetId": 222,
+      "currentFromHistory": 56150.09589689275,
+      "pinnedOnchain": 56150.09589689275,
+      "relativeDifference": 0,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 113,
+      "assetId": 1000625,
+      "currentFromHistory": 39959.74323086847,
+      "pinnedOnchain": 39959.74323086847,
+      "relativeDifference": 0,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 143,
+      "assetId": 43,
+      "currentFromHistory": 318640.520915,
+      "pinnedOnchain": 318640.520915,
+      "relativeDifference": 0,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 143,
+      "assetId": 222,
+      "currentFromHistory": 735939.6801894153,
+      "pinnedOnchain": 735939.6801894153,
+      "relativeDifference": 0,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 146,
+      "assetId": 46,
+      "currentFromHistory": 211245.8442815461,
+      "pinnedOnchain": 211224.8442815461,
+      "relativeDifference": 0.00009942012300423464,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 146,
+      "assetId": 222,
+      "currentFromHistory": 711628.1669834481,
+      "pinnedOnchain": 711657.2227734508,
+      "relativeDifference": -0.00004082834976293359,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 10044,
+      "assetId": 222,
+      "currentFromHistory": 617695.7403456289,
+      "pinnedOnchain": 617699.324054483,
+      "relativeDifference": -0.000005801704347829784,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 10044,
+      "assetId": 1044,
+      "currentFromHistory": 521267.757361,
+      "pinnedOnchain": 521273.943394,
+      "relativeDifference": -0.00001186714409651124,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 10055,
+      "assetId": 55,
+      "currentFromHistory": 297423.37483748276,
+      "pinnedOnchain": 297423.37483748276,
+      "relativeDifference": 0,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    },
+    {
+      "poolId": 10055,
+      "assetId": 222,
+      "currentFromHistory": 301830.09335414466,
+      "pinnedOnchain": 301830.09335414466,
+      "relativeDifference": 0,
+      "latestAmountConsistent": true,
+      "note": "Different collection blocks: large discrepancies reject the history, small differences are not exact reconciliation."
+    }
+  ],
+  "verifiedRoutes": [
+    {
+      "key": "route-13917685-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13917685/2",
+      "success": true,
+      "assetIn": 43,
+      "assetOut": 222,
+      "valueUsd": 39830.98738996359,
+      "pools": [
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 43,
+          "assetOut": 222
+        }
+      ]
+    },
+    {
+      "key": "route-14706146-3",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/14706146/3",
+      "success": true,
+      "assetIn": 43,
+      "assetOut": 222,
+      "valueUsd": 25002.683598668613,
+      "pools": [
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 43,
+          "assetOut": 222
+        }
+      ]
+    },
+    {
+      "key": "route-13752490-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13752490/2",
+      "success": true,
+      "assetIn": 22,
+      "assetOut": 43,
+      "valueUsd": 24998.62371115,
+      "pools": [
+        {
+          "type": "Aave",
+          "id": null,
+          "assetIn": 22,
+          "assetOut": 1003
+        },
+        {
+          "type": "Stableswap",
+          "id": 110,
+          "assetIn": 1003,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-14120560-3",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/14120560/3",
+      "success": true,
+      "assetIn": 1002,
+      "assetOut": 43,
+      "valueUsd": 20008.38307888,
+      "pools": [
+        {
+          "type": "Stableswap",
+          "id": 111,
+          "assetIn": 1002,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-13752350-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13752350/2",
+      "success": true,
+      "assetIn": 22,
+      "assetOut": 43,
+      "valueUsd": 17999.046501690726,
+      "pools": [
+        {
+          "type": "Aave",
+          "id": null,
+          "assetIn": 22,
+          "assetOut": 1003
+        },
+        {
+          "type": "Stableswap",
+          "id": 110,
+          "assetIn": 1003,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-14364974-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/14364974/2",
+      "success": true,
+      "assetIn": 10,
+      "assetOut": 43,
+      "valueUsd": 14005.003337892,
+      "pools": [
+        {
+          "type": "Aave",
+          "id": null,
+          "assetIn": 10,
+          "assetOut": 1002
+        },
+        {
+          "type": "Stableswap",
+          "id": 111,
+          "assetIn": 1002,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-14365212-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/14365212/2",
+      "success": true,
+      "assetIn": 10,
+      "assetOut": 43,
+      "valueUsd": 14005.003337892,
+      "pools": [
+        {
+          "type": "Aave",
+          "id": null,
+          "assetIn": 10,
+          "assetOut": 1002
+        },
+        {
+          "type": "Stableswap",
+          "id": 111,
+          "assetIn": 1002,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-13912319-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13912319/2",
+      "success": true,
+      "assetIn": 22,
+      "assetOut": 43,
+      "valueUsd": 10998.526296556782,
+      "pools": [
+        {
+          "type": "Aave",
+          "id": null,
+          "assetIn": 22,
+          "assetOut": 1003
+        },
+        {
+          "type": "Stableswap",
+          "id": 110,
+          "assetIn": 1003,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-13911998-3",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13911998/3",
+      "success": true,
+      "assetIn": 22,
+      "assetOut": 43,
+      "valueUsd": 9994.11752737,
+      "pools": [
+        {
+          "type": "Aave",
+          "id": null,
+          "assetIn": 22,
+          "assetOut": 1003
+        },
+        {
+          "type": "Stableswap",
+          "id": 110,
+          "assetIn": 1003,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-14120654-3",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/14120654/3",
+      "success": true,
+      "assetIn": 1002,
+      "assetOut": 43,
+      "valueUsd": 10004.19153944,
+      "pools": [
+        {
+          "type": "Stableswap",
+          "id": 111,
+          "assetIn": 1002,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-13924445-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13924445/2",
+      "success": true,
+      "assetIn": 10,
+      "assetOut": 43,
+      "valueUsd": 10001.95933041,
+      "pools": [
+        {
+          "type": "Aave",
+          "id": null,
+          "assetIn": 10,
+          "assetOut": 1002
+        },
+        {
+          "type": "Stableswap",
+          "id": 111,
+          "assetIn": 1002,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-13866776-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13866776/2",
+      "success": true,
+      "assetIn": 1003,
+      "assetOut": 43,
+      "valueUsd": 10001.296634900002,
+      "pools": [
+        {
+          "type": "Stableswap",
+          "id": 110,
+          "assetIn": 1003,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-13752199-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13752199/2",
+      "success": true,
+      "assetIn": 1003,
+      "assetOut": 43,
+      "valueUsd": 9999.47118978,
+      "pools": [
+        {
+          "type": "Stableswap",
+          "id": 110,
+          "assetIn": 1003,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-13924151-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13924151/2",
+      "success": true,
+      "assetIn": 10,
+      "assetOut": 43,
+      "valueUsd": 10001.95933041,
+      "pools": [
+        {
+          "type": "Aave",
+          "id": null,
+          "assetIn": 10,
+          "assetOut": 1002
+        },
+        {
+          "type": "Stableswap",
+          "id": 111,
+          "assetIn": 1002,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-13923493-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13923493/2",
+      "success": true,
+      "assetIn": 1003,
+      "assetOut": 43,
+      "valueUsd": 9998.15046039,
+      "pools": [
+        {
+          "type": "Stableswap",
+          "id": 110,
+          "assetIn": 1003,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-14636980-3",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/14636980/3",
+      "success": true,
+      "assetIn": 1003,
+      "assetOut": 43,
+      "valueUsd": 10002.75242051,
+      "pools": [
+        {
+          "type": "Stableswap",
+          "id": 110,
+          "assetIn": 1003,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-14480789-4",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/14480789/4",
+      "success": true,
+      "assetIn": 1002,
+      "assetOut": 43,
+      "valueUsd": 8009.669256834789,
+      "pools": [
+        {
+          "type": "Stableswap",
+          "id": 111,
+          "assetIn": 1002,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-14480667-3",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/14480667/3",
+      "success": true,
+      "assetIn": 1002,
+      "assetOut": 43,
+      "valueUsd": 8002.236400559999,
+      "pools": [
+        {
+          "type": "Stableswap",
+          "id": 111,
+          "assetIn": 1002,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-13752361-2",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13752361/2",
+      "success": true,
+      "assetIn": 1003,
+      "assetOut": 43,
+      "valueUsd": 6999.614639122,
+      "pools": [
+        {
+          "type": "Stableswap",
+          "id": 110,
+          "assetIn": 1003,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "key": "route-13755618-4",
+      "url": "https://hydration-explorer.neckwork.net/api/explorer/trade/13755618/4",
+      "success": true,
+      "assetIn": 10,
+      "assetOut": 43,
+      "valueUsd": 5269.969584772352,
+      "pools": [
+        {
+          "type": "Aave",
+          "id": null,
+          "assetIn": 10,
+          "assetOut": 1002
+        },
+        {
+          "type": "Stableswap",
+          "id": 111,
+          "assetIn": 1002,
+          "assetOut": 222
+        },
+        {
+          "type": "Stableswap",
+          "id": 143,
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    }
+  ],
+  "poolReserveHistory": {
+    "105": {
+      "source": "https://hydration-explorer.neckwork.net/api/explorer/pool/105",
+      "last30": {
+        "poolId": 105,
+        "points": 30,
+        "first": "2026-08-23",
+        "last": "2026-09-21",
+        "assets": {
+          "21": {
+            "symbol": "USDC",
+            "points": 30,
+            "min": 149310.462054,
+            "max": 207825.81554,
+            "first": 159367.964187,
+            "last": 194194.701436,
+            "netReserveIncrease": 34826.737249,
+            "sumPositiveSampleChanges": 163154.31765100005,
+            "sumNegativeSampleChanges": 128327.58040200005,
+            "unchangedPairs": 0
+          },
+          "23": {
+            "symbol": "USDT",
+            "points": 30,
+            "min": 142009.130845,
+            "max": 201071.838318,
+            "first": 163141.118283,
+            "last": 184070.607121,
+            "netReserveIncrease": 20929.48883800002,
+            "sumPositiveSampleChanges": 92851.96536599993,
+            "sumNegativeSampleChanges": 71922.47652799991,
+            "unchangedPairs": 1
+          },
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 30,
+            "min": 209746.7329053064,
+            "max": 281249.80378990155,
+            "first": 281249.80378990155,
+            "last": 225625.18605289602,
+            "netReserveIncrease": -55624.61773700552,
+            "sumPositiveSampleChanges": 151070.01431257618,
+            "sumNegativeSampleChanges": 206694.6320495817,
+            "unchangedPairs": 0
+          }
+        },
+        "issuanceChanges": [],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      },
+      "last90": {
+        "poolId": 105,
+        "points": 90,
+        "first": "2026-06-24",
+        "last": "2026-09-21",
+        "assets": {
+          "21": {
+            "symbol": "USDC",
+            "points": 90,
+            "min": 134251.305301,
+            "max": 213761.406498,
+            "first": 147206.519336,
+            "last": 194194.701436,
+            "netReserveIncrease": 46988.182100000005,
+            "sumPositiveSampleChanges": 393444.89350600005,
+            "sumNegativeSampleChanges": 346456.7114060001,
+            "unchangedPairs": 4
+          },
+          "23": {
+            "symbol": "USDT",
+            "points": 90,
+            "min": 142009.130845,
+            "max": 207877.960922,
+            "first": 157981.785571,
+            "last": 184070.607121,
+            "netReserveIncrease": 26088.821550000022,
+            "sumPositiveSampleChanges": 251698.27750499998,
+            "sumNegativeSampleChanges": 225609.45595499995,
+            "unchangedPairs": 8
+          },
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 90,
+            "min": 195059.3527300218,
+            "max": 310386.4339045678,
+            "first": 298223.64000747673,
+            "last": 225625.18605289602,
+            "netReserveIncrease": -72598.4539545807,
+            "sumPositiveSampleChanges": 418047.63548272534,
+            "sumNegativeSampleChanges": 490646.0894373063,
+            "unchangedPairs": 1
+          }
+        },
+        "issuanceChanges": [],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      }
+    },
+    "110": {
+      "source": "https://hydration-explorer.neckwork.net/api/explorer/pool/110",
+      "last30": {
+        "poolId": 110,
+        "points": 30,
+        "first": "2026-08-23",
+        "last": "2026-09-21",
+        "assets": {
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 30,
+            "min": 886860.2981167964,
+            "max": 1170284.2124488172,
+            "first": 1114747.577710834,
+            "last": 886860.2981167964,
+            "netReserveIncrease": -227887.27959403768,
+            "sumPositiveSampleChanges": 371455.472737937,
+            "sumNegativeSampleChanges": 599342.7523319747,
+            "unchangedPairs": 0
+          },
+          "1003": {
+            "symbol": "aUSDC",
+            "points": 30,
+            "min": 687825.204659,
+            "max": 916663.7347,
+            "first": 859759.733788,
+            "last": 898059.772181,
+            "netReserveIncrease": 38300.038393000024,
+            "sumPositiveSampleChanges": 449742.7846279999,
+            "sumNegativeSampleChanges": 411442.74623499985,
+            "unchangedPairs": 0
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-08-24",
+            "delta": -584.3079649445135
+          },
+          {
+            "date": "2026-08-25",
+            "delta": -12504.60885304818
+          },
+          {
+            "date": "2026-08-26",
+            "delta": -3474.233606322203
+          },
+          {
+            "date": "2026-08-27",
+            "delta": 255.21278359089047
+          },
+          {
+            "date": "2026-08-28",
+            "delta": 4228.5402627564035
+          },
+          {
+            "date": "2026-08-29",
+            "delta": -289.79662212124094
+          },
+          {
+            "date": "2026-08-30",
+            "delta": -206.35017286753282
+          },
+          {
+            "date": "2026-08-31",
+            "delta": 1366.2956971055828
+          },
+          {
+            "date": "2026-09-01",
+            "delta": -89.35984227317385
+          },
+          {
+            "date": "2026-09-02",
+            "delta": 1803.3826446807943
+          },
+          {
+            "date": "2026-09-03",
+            "delta": -82.14253259729594
+          },
+          {
+            "date": "2026-09-04",
+            "delta": -8.760682285996154
+          },
+          {
+            "date": "2026-09-05",
+            "delta": -72702.02322208392
+          },
+          {
+            "date": "2026-09-06",
+            "delta": -480.338342563482
+          },
+          {
+            "date": "2026-09-07",
+            "delta": -28686.67808154458
+          },
+          {
+            "date": "2026-09-08",
+            "delta": -31970.476430943236
+          },
+          {
+            "date": "2026-09-09",
+            "delta": -10949.899036468472
+          },
+          {
+            "date": "2026-09-10",
+            "delta": -31004.181727912743
+          },
+          {
+            "date": "2026-09-11",
+            "delta": -2153.597567918012
+          },
+          {
+            "date": "2026-09-12",
+            "delta": -90
+          },
+          {
+            "date": "2026-09-13",
+            "delta": 2496.5394608620554
+          },
+          {
+            "date": "2026-09-14",
+            "delta": 23.955361281288788
+          },
+          {
+            "date": "2026-09-15",
+            "delta": -1147.9846338245552
+          },
+          {
+            "date": "2026-09-16",
+            "delta": -88.94079087302089
+          },
+          {
+            "date": "2026-09-17",
+            "delta": 3785.1889172710944
+          },
+          {
+            "date": "2026-09-18",
+            "delta": 1048.778613511473
+          },
+          {
+            "date": "2026-09-19",
+            "delta": -1225.7797211885918
+          },
+          {
+            "date": "2026-09-20",
+            "delta": -50
+          },
+          {
+            "date": "2026-09-21",
+            "delta": -6145.52095254045
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      },
+      "last90": {
+        "poolId": 110,
+        "points": 90,
+        "first": "2026-06-24",
+        "last": "2026-09-21",
+        "assets": {
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 90,
+            "min": 886860.2981167964,
+            "max": 1411756.6894483457,
+            "first": 1411756.6894483457,
+            "last": 886860.2981167964,
+            "netReserveIncrease": -524896.3913315493,
+            "sumPositiveSampleChanges": 1038061.3676639365,
+            "sumNegativeSampleChanges": 1562957.758995486,
+            "unchangedPairs": 0
+          },
+          "1003": {
+            "symbol": "aUSDC",
+            "points": 90,
+            "min": 687825.204659,
+            "max": 938472.131182,
+            "first": 809506.582837,
+            "last": 898059.772181,
+            "netReserveIncrease": 88553.18934399995,
+            "sumPositiveSampleChanges": 1280101.8017209996,
+            "sumNegativeSampleChanges": 1191548.612377,
+            "unchangedPairs": 0
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-06-25",
+            "delta": -12537.124307464343
+          },
+          {
+            "date": "2026-06-26",
+            "delta": -6516.967419360299
+          },
+          {
+            "date": "2026-06-27",
+            "delta": -3977.950986994896
+          },
+          {
+            "date": "2026-06-28",
+            "delta": -90.60481989337131
+          },
+          {
+            "date": "2026-06-29",
+            "delta": 2518.6148562580347
+          },
+          {
+            "date": "2026-06-30",
+            "delta": -97.9888258385472
+          },
+          {
+            "date": "2026-07-01",
+            "delta": -4523.760240652598
+          },
+          {
+            "date": "2026-07-02",
+            "delta": -3718.992368005216
+          },
+          {
+            "date": "2026-07-03",
+            "delta": 14796.253659026697
+          },
+          {
+            "date": "2026-07-04",
+            "delta": -3877.9739849851467
+          },
+          {
+            "date": "2026-07-05",
+            "delta": -63205.172721083276
+          },
+          {
+            "date": "2026-07-06",
+            "delta": -79.00000000046566
+          },
+          {
+            "date": "2026-07-07",
+            "delta": 15143.13970240485
+          },
+          {
+            "date": "2026-07-08",
+            "delta": -4540.614942933433
+          },
+          {
+            "date": "2026-07-09",
+            "delta": -3737.443590109702
+          },
+          {
+            "date": "2026-07-10",
+            "delta": -110
+          },
+          {
+            "date": "2026-07-11",
+            "delta": -222
+          },
+          {
+            "date": "2026-07-12",
+            "delta": -122
+          },
+          {
+            "date": "2026-07-13",
+            "delta": -105886.42675532238
+          },
+          {
+            "date": "2026-07-14",
+            "delta": -113.00000000023283
+          },
+          {
+            "date": "2026-07-15",
+            "delta": -105
+          },
+          {
+            "date": "2026-07-16",
+            "delta": 1955.226337227039
+          },
+          {
+            "date": "2026-07-17",
+            "delta": -178.5829509650357
+          },
+          {
+            "date": "2026-07-18",
+            "delta": -109.99999999976717
+          },
+          {
+            "date": "2026-07-19",
+            "delta": -219.4621269723866
+          },
+          {
+            "date": "2026-07-20",
+            "delta": -55089.27703450923
+          },
+          {
+            "date": "2026-07-21",
+            "delta": -3171.6243731300347
+          },
+          {
+            "date": "2026-07-22",
+            "delta": -5873.767911938019
+          },
+          {
+            "date": "2026-07-23",
+            "delta": -80
+          },
+          {
+            "date": "2026-07-24",
+            "delta": 577.2365895484108
+          },
+          {
+            "date": "2026-07-25",
+            "delta": -79.73044474469498
+          },
+          {
+            "date": "2026-07-26",
+            "delta": -109.99999999976717
+          },
+          {
+            "date": "2026-07-27",
+            "delta": -50
+          },
+          {
+            "date": "2026-07-28",
+            "delta": -79506.56105724676
+          },
+          {
+            "date": "2026-07-29",
+            "delta": 5639.875216990011
+          },
+          {
+            "date": "2026-07-30",
+            "delta": 88574.55073857773
+          },
+          {
+            "date": "2026-07-31",
+            "delta": -80
+          },
+          {
+            "date": "2026-08-01",
+            "delta": 776.5303815023508
+          },
+          {
+            "date": "2026-08-02",
+            "delta": -8323.02610194683
+          },
+          {
+            "date": "2026-08-03",
+            "delta": -608
+          },
+          {
+            "date": "2026-08-04",
+            "delta": -608
+          },
+          {
+            "date": "2026-08-05",
+            "delta": 2680.6339995807502
+          },
+          {
+            "date": "2026-08-06",
+            "delta": 7033.742889546556
+          },
+          {
+            "date": "2026-08-07",
+            "delta": -5438.540708129993
+          },
+          {
+            "date": "2026-08-08",
+            "delta": 4234.858237532666
+          },
+          {
+            "date": "2026-08-09",
+            "delta": -4603.404419025872
+          },
+          {
+            "date": "2026-08-10",
+            "delta": 61.595637971768156
+          },
+          {
+            "date": "2026-08-11",
+            "delta": -1227.3704969566315
+          },
+          {
+            "date": "2026-08-12",
+            "delta": -640
+          },
+          {
+            "date": "2026-08-13",
+            "delta": 355.9718367299065
+          },
+          {
+            "date": "2026-08-14",
+            "delta": -1123.7665990779642
+          },
+          {
+            "date": "2026-08-15",
+            "delta": -684
+          },
+          {
+            "date": "2026-08-16",
+            "delta": -750.9859518602025
+          },
+          {
+            "date": "2026-08-17",
+            "delta": -535.2853342639282
+          },
+          {
+            "date": "2026-08-18",
+            "delta": -5367.616181044839
+          },
+          {
+            "date": "2026-08-19",
+            "delta": -7074.87803615327
+          },
+          {
+            "date": "2026-08-20",
+            "delta": -1703.3077136687934
+          },
+          {
+            "date": "2026-08-21",
+            "delta": 1892.5550734417047
+          },
+          {
+            "date": "2026-08-22",
+            "delta": 4862.191345637664
+          },
+          {
+            "date": "2026-08-23",
+            "delta": -1637.6766901516821
+          },
+          {
+            "date": "2026-08-24",
+            "delta": -584.3079649445135
+          },
+          {
+            "date": "2026-08-25",
+            "delta": -12504.60885304818
+          },
+          {
+            "date": "2026-08-26",
+            "delta": -3474.233606322203
+          },
+          {
+            "date": "2026-08-27",
+            "delta": 255.21278359089047
+          },
+          {
+            "date": "2026-08-28",
+            "delta": 4228.5402627564035
+          },
+          {
+            "date": "2026-08-29",
+            "delta": -289.79662212124094
+          },
+          {
+            "date": "2026-08-30",
+            "delta": -206.35017286753282
+          },
+          {
+            "date": "2026-08-31",
+            "delta": 1366.2956971055828
+          },
+          {
+            "date": "2026-09-01",
+            "delta": -89.35984227317385
+          },
+          {
+            "date": "2026-09-02",
+            "delta": 1803.3826446807943
+          },
+          {
+            "date": "2026-09-03",
+            "delta": -82.14253259729594
+          },
+          {
+            "date": "2026-09-04",
+            "delta": -8.760682285996154
+          },
+          {
+            "date": "2026-09-05",
+            "delta": -72702.02322208392
+          },
+          {
+            "date": "2026-09-06",
+            "delta": -480.338342563482
+          },
+          {
+            "date": "2026-09-07",
+            "delta": -28686.67808154458
+          },
+          {
+            "date": "2026-09-08",
+            "delta": -31970.476430943236
+          },
+          {
+            "date": "2026-09-09",
+            "delta": -10949.899036468472
+          },
+          {
+            "date": "2026-09-10",
+            "delta": -31004.181727912743
+          },
+          {
+            "date": "2026-09-11",
+            "delta": -2153.597567918012
+          },
+          {
+            "date": "2026-09-12",
+            "delta": -90
+          },
+          {
+            "date": "2026-09-13",
+            "delta": 2496.5394608620554
+          },
+          {
+            "date": "2026-09-14",
+            "delta": 23.955361281288788
+          },
+          {
+            "date": "2026-09-15",
+            "delta": -1147.9846338245552
+          },
+          {
+            "date": "2026-09-16",
+            "delta": -88.94079087302089
+          },
+          {
+            "date": "2026-09-17",
+            "delta": 3785.1889172710944
+          },
+          {
+            "date": "2026-09-18",
+            "delta": 1048.778613511473
+          },
+          {
+            "date": "2026-09-19",
+            "delta": -1225.7797211885918
+          },
+          {
+            "date": "2026-09-20",
+            "delta": -50
+          },
+          {
+            "date": "2026-09-21",
+            "delta": -6145.52095254045
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      }
+    },
+    "111": {
+      "source": "https://hydration-explorer.neckwork.net/api/explorer/pool/111",
+      "last30": {
+        "poolId": 111,
+        "points": 30,
+        "first": "2026-08-23",
+        "last": "2026-09-21",
+        "assets": {
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 30,
+            "min": 1016858.789757596,
+            "max": 1284482.1519276565,
+            "first": 1267223.9951241936,
+            "last": 1016858.789757596,
+            "netReserveIncrease": -250365.20536659763,
+            "sumPositiveSampleChanges": 398056.1818220094,
+            "sumNegativeSampleChanges": 648421.387188607,
+            "unchangedPairs": 0
+          },
+          "1002": {
+            "symbol": "aUSDT",
+            "points": 30,
+            "min": 851584.39149,
+            "max": 1045829.973976,
+            "first": 868140.885326,
+            "last": 1045829.973976,
+            "netReserveIncrease": 177689.08864999993,
+            "sumPositiveSampleChanges": 620395.18936,
+            "sumNegativeSampleChanges": 442706.10071,
+            "unchangedPairs": 0
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-08-24",
+            "delta": -1059.6350262360647
+          },
+          {
+            "date": "2026-08-25",
+            "delta": -11208.35981638264
+          },
+          {
+            "date": "2026-08-26",
+            "delta": -544.8585687633604
+          },
+          {
+            "date": "2026-08-27",
+            "delta": -736.7098812751938
+          },
+          {
+            "date": "2026-08-28",
+            "delta": 2246.934192398796
+          },
+          {
+            "date": "2026-08-29",
+            "delta": -1012.1415046614129
+          },
+          {
+            "date": "2026-08-30",
+            "delta": -973.569047199795
+          },
+          {
+            "date": "2026-08-31",
+            "delta": 112858.44138987432
+          },
+          {
+            "date": "2026-09-01",
+            "delta": -1008.1107305232435
+          },
+          {
+            "date": "2026-09-02",
+            "delta": -1497.6464545773342
+          },
+          {
+            "date": "2026-09-03",
+            "delta": -1075.6722212545574
+          },
+          {
+            "date": "2026-09-04",
+            "delta": -1005.3799957940355
+          },
+          {
+            "date": "2026-09-05",
+            "delta": -76175.96326293377
+          },
+          {
+            "date": "2026-09-06",
+            "delta": -624.2813208824955
+          },
+          {
+            "date": "2026-09-07",
+            "delta": -3362.0459859096445
+          },
+          {
+            "date": "2026-09-08",
+            "delta": -741.0093510188162
+          },
+          {
+            "date": "2026-09-09",
+            "delta": 14647.81253580004
+          },
+          {
+            "date": "2026-09-10",
+            "delta": -3342.259999926202
+          },
+          {
+            "date": "2026-09-11",
+            "delta": -8102.124100996181
+          },
+          {
+            "date": "2026-09-12",
+            "delta": -1253.5157224284485
+          },
+          {
+            "date": "2026-09-13",
+            "delta": 343.86841130349785
+          },
+          {
+            "date": "2026-09-14",
+            "delta": -1058.2461406658404
+          },
+          {
+            "date": "2026-09-15",
+            "delta": -61701.5623044509
+          },
+          {
+            "date": "2026-09-16",
+            "delta": -629.5572695482988
+          },
+          {
+            "date": "2026-09-17",
+            "delta": 299.60882595344447
+          },
+          {
+            "date": "2026-09-18",
+            "delta": -28443.49066223437
+          },
+          {
+            "date": "2026-09-19",
+            "delta": 1035.8664494792465
+          },
+          {
+            "date": "2026-09-20",
+            "delta": -87.04195983125828
+          },
+          {
+            "date": "2026-09-21",
+            "delta": -945.4007656124886
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      },
+      "last90": {
+        "poolId": 111,
+        "points": 90,
+        "first": "2026-06-24",
+        "last": "2026-09-21",
+        "assets": {
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 90,
+            "min": 1016858.789757596,
+            "max": 1406055.0769121153,
+            "first": 1406055.0769121153,
+            "last": 1016858.789757596,
+            "netReserveIncrease": -389196.28715451935,
+            "sumPositiveSampleChanges": 1298101.3379872125,
+            "sumNegativeSampleChanges": 1687297.625141732,
+            "unchangedPairs": 0
+          },
+          "1002": {
+            "symbol": "aUSDT",
+            "points": 90,
+            "min": 831000.253417,
+            "max": 1085269.576786,
+            "first": 971492.483449,
+            "last": 1045829.973976,
+            "netReserveIncrease": 74337.49052699993,
+            "sumPositiveSampleChanges": 1566203.1382089998,
+            "sumNegativeSampleChanges": 1491865.647682,
+            "unchangedPairs": 0
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-06-25",
+            "delta": -15160.804155558813
+          },
+          {
+            "date": "2026-06-26",
+            "delta": -248.10782347852364
+          },
+          {
+            "date": "2026-06-27",
+            "delta": -184.8628754275851
+          },
+          {
+            "date": "2026-06-28",
+            "delta": -823.9146382943727
+          },
+          {
+            "date": "2026-06-29",
+            "delta": -9152.259758909699
+          },
+          {
+            "date": "2026-06-30",
+            "delta": -14740.820068476722
+          },
+          {
+            "date": "2026-07-01",
+            "delta": -13045.678424483165
+          },
+          {
+            "date": "2026-07-02",
+            "delta": -2222.196702138055
+          },
+          {
+            "date": "2026-07-03",
+            "delta": 20715.396140167024
+          },
+          {
+            "date": "2026-07-04",
+            "delta": -2100.1056765238754
+          },
+          {
+            "date": "2026-07-05",
+            "delta": -185825.6870482331
+          },
+          {
+            "date": "2026-07-06",
+            "delta": -6569.9382659951225
+          },
+          {
+            "date": "2026-07-07",
+            "delta": 17475.135462274775
+          },
+          {
+            "date": "2026-07-08",
+            "delta": -9627.59729231242
+          },
+          {
+            "date": "2026-07-09",
+            "delta": 42682.93369191745
+          },
+          {
+            "date": "2026-07-10",
+            "delta": -42
+          },
+          {
+            "date": "2026-07-11",
+            "delta": -4191.813910627738
+          },
+          {
+            "date": "2026-07-12",
+            "delta": -30.78533559339121
+          },
+          {
+            "date": "2026-07-13",
+            "delta": -5.769558775238693
+          },
+          {
+            "date": "2026-07-14",
+            "delta": -56
+          },
+          {
+            "date": "2026-07-15",
+            "delta": -237.4647116912529
+          },
+          {
+            "date": "2026-07-16",
+            "delta": -2448.828319840599
+          },
+          {
+            "date": "2026-07-17",
+            "delta": 119270.72007641476
+          },
+          {
+            "date": "2026-07-18",
+            "delta": 125.50407221866772
+          },
+          {
+            "date": "2026-07-19",
+            "delta": 1365.273966981098
+          },
+          {
+            "date": "2026-07-20",
+            "delta": -42545.737768994644
+          },
+          {
+            "date": "2026-07-21",
+            "delta": -14176.91823682189
+          },
+          {
+            "date": "2026-07-22",
+            "delta": -12223.436429835856
+          },
+          {
+            "date": "2026-07-23",
+            "delta": -10092.225334461778
+          },
+          {
+            "date": "2026-07-24",
+            "delta": -102.38050397951156
+          },
+          {
+            "date": "2026-07-25",
+            "delta": -98.28528382070363
+          },
+          {
+            "date": "2026-07-26",
+            "delta": -665.7468777694739
+          },
+          {
+            "date": "2026-07-27",
+            "delta": -35096.425928774755
+          },
+          {
+            "date": "2026-07-28",
+            "delta": -72025.8193334667
+          },
+          {
+            "date": "2026-07-29",
+            "delta": -51859.26920825476
+          },
+          {
+            "date": "2026-07-30",
+            "delta": 188241.71479895385
+          },
+          {
+            "date": "2026-07-31",
+            "delta": -2074.4274702509865
+          },
+          {
+            "date": "2026-08-01",
+            "delta": 1070.4386419788934
+          },
+          {
+            "date": "2026-08-02",
+            "delta": -650.263565831352
+          },
+          {
+            "date": "2026-08-03",
+            "delta": 28723.8253910318
+          },
+          {
+            "date": "2026-08-04",
+            "delta": -526.2602840703912
+          },
+          {
+            "date": "2026-08-05",
+            "delta": -34984.626423990354
+          },
+          {
+            "date": "2026-08-06",
+            "delta": -7258.17278426839
+          },
+          {
+            "date": "2026-08-07",
+            "delta": -6439.552428440191
+          },
+          {
+            "date": "2026-08-08",
+            "delta": -21638.72891861666
+          },
+          {
+            "date": "2026-08-09",
+            "delta": -1405.9078170894645
+          },
+          {
+            "date": "2026-08-10",
+            "delta": -1168.4151355256326
+          },
+          {
+            "date": "2026-08-11",
+            "delta": -1772.263565831352
+          },
+          {
+            "date": "2026-08-12",
+            "delta": -1650.263565831352
+          },
+          {
+            "date": "2026-08-13",
+            "delta": -2925.8116306820884
+          },
+          {
+            "date": "2026-08-14",
+            "delta": -3274.7221012501977
+          },
+          {
+            "date": "2026-08-15",
+            "delta": -1651.444075236097
+          },
+          {
+            "date": "2026-08-16",
+            "delta": -8178.184525084216
+          },
+          {
+            "date": "2026-08-17",
+            "delta": -1617.6330564268865
+          },
+          {
+            "date": "2026-08-18",
+            "delta": -1796.387616707012
+          },
+          {
+            "date": "2026-08-19",
+            "delta": -16583.803636362776
+          },
+          {
+            "date": "2026-08-20",
+            "delta": -1585.0421805791557
+          },
+          {
+            "date": "2026-08-21",
+            "delta": -8419.887260354124
+          },
+          {
+            "date": "2026-08-22",
+            "delta": -31760.932634156896
+          },
+          {
+            "date": "2026-08-23",
+            "delta": -1527.7371760928072
+          },
+          {
+            "date": "2026-08-24",
+            "delta": -1059.6350262360647
+          },
+          {
+            "date": "2026-08-25",
+            "delta": -11208.35981638264
+          },
+          {
+            "date": "2026-08-26",
+            "delta": -544.8585687633604
+          },
+          {
+            "date": "2026-08-27",
+            "delta": -736.7098812751938
+          },
+          {
+            "date": "2026-08-28",
+            "delta": 2246.934192398796
+          },
+          {
+            "date": "2026-08-29",
+            "delta": -1012.1415046614129
+          },
+          {
+            "date": "2026-08-30",
+            "delta": -973.569047199795
+          },
+          {
+            "date": "2026-08-31",
+            "delta": 112858.44138987432
+          },
+          {
+            "date": "2026-09-01",
+            "delta": -1008.1107305232435
+          },
+          {
+            "date": "2026-09-02",
+            "delta": -1497.6464545773342
+          },
+          {
+            "date": "2026-09-03",
+            "delta": -1075.6722212545574
+          },
+          {
+            "date": "2026-09-04",
+            "delta": -1005.3799957940355
+          },
+          {
+            "date": "2026-09-05",
+            "delta": -76175.96326293377
+          },
+          {
+            "date": "2026-09-06",
+            "delta": -624.2813208824955
+          },
+          {
+            "date": "2026-09-07",
+            "delta": -3362.0459859096445
+          },
+          {
+            "date": "2026-09-08",
+            "delta": -741.0093510188162
+          },
+          {
+            "date": "2026-09-09",
+            "delta": 14647.81253580004
+          },
+          {
+            "date": "2026-09-10",
+            "delta": -3342.259999926202
+          },
+          {
+            "date": "2026-09-11",
+            "delta": -8102.124100996181
+          },
+          {
+            "date": "2026-09-12",
+            "delta": -1253.5157224284485
+          },
+          {
+            "date": "2026-09-13",
+            "delta": 343.86841130349785
+          },
+          {
+            "date": "2026-09-14",
+            "delta": -1058.2461406658404
+          },
+          {
+            "date": "2026-09-15",
+            "delta": -61701.5623044509
+          },
+          {
+            "date": "2026-09-16",
+            "delta": -629.5572695482988
+          },
+          {
+            "date": "2026-09-17",
+            "delta": 299.60882595344447
+          },
+          {
+            "date": "2026-09-18",
+            "delta": -28443.49066223437
+          },
+          {
+            "date": "2026-09-19",
+            "delta": 1035.8664494792465
+          },
+          {
+            "date": "2026-09-20",
+            "delta": -87.04195983125828
+          },
+          {
+            "date": "2026-09-21",
+            "delta": -945.4007656124886
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      }
+    },
+    "112": {
+      "source": "https://hydration-explorer.neckwork.net/api/explorer/pool/112",
+      "last30": {
+        "poolId": 112,
+        "points": 30,
+        "first": "2026-08-23",
+        "last": "2026-09-21",
+        "assets": {
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 30,
+            "min": 75835.56588918185,
+            "max": 80882.3809696443,
+            "first": 76426.1577619898,
+            "last": 75835.56588918185,
+            "netReserveIncrease": -590.591872807956,
+            "sumPositiveSampleChanges": 5005.029502530102,
+            "sumNegativeSampleChanges": 5595.621375338058,
+            "unchangedPairs": 17
+          },
+          "1000745": {
+            "symbol": "sUSDS",
+            "points": 30,
+            "min": 50021.82840626138,
+            "max": 54535.061119034566,
+            "first": 54522.55169213716,
+            "last": 54526.77261241672,
+            "netReserveIncrease": 4.220920279556594,
+            "sumPositiveSampleChanges": 4517.453633052741,
+            "sumNegativeSampleChanges": 4513.232712773184,
+            "unchangedPairs": 23
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-08-26",
+            "delta": -17.349040274508297
+          },
+          {
+            "date": "2026-08-27",
+            "delta": -7.66655647198786
+          },
+          {
+            "date": "2026-08-31",
+            "delta": 0.4907971441571135
+          },
+          {
+            "date": "2026-09-04",
+            "delta": 0.5225319118762854
+          },
+          {
+            "date": "2026-09-07",
+            "delta": 0.5791983718518168
+          },
+          {
+            "date": "2026-09-11",
+            "delta": -500.0000061595056
+          },
+          {
+            "date": "2026-09-15",
+            "delta": -10.973608966509346
+          },
+          {
+            "date": "2026-09-17",
+            "delta": 1.0774770831048954
+          },
+          {
+            "date": "2026-09-18",
+            "delta": -9.844580619130284
+          },
+          {
+            "date": "2026-09-21",
+            "delta": -27.99866782609024
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      },
+      "last90": {
+        "poolId": 112,
+        "points": 90,
+        "first": "2026-06-24",
+        "last": "2026-09-21",
+        "assets": {
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 90,
+            "min": 55510.83713891814,
+            "max": 90688.10958386782,
+            "first": 90678.1367183857,
+            "last": 75835.56588918185,
+            "netReserveIncrease": -14842.570829203847,
+            "sumPositiveSampleChanges": 55036.02794749959,
+            "sumNegativeSampleChanges": 69878.59877670344,
+            "unchangedPairs": 48
+          },
+          "1000745": {
+            "symbol": "sUSDS",
+            "points": 90,
+            "min": 49806.02251191181,
+            "max": 73573.0328734585,
+            "first": 56622.449842378905,
+            "last": 54526.77261241672,
+            "netReserveIncrease": -2095.677229962188,
+            "sumPositiveSampleChanges": 47676.55229975008,
+            "sumNegativeSampleChanges": 49772.22952971227,
+            "unchangedPairs": 65
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-06-28",
+            "delta": -0.026676485751522705
+          },
+          {
+            "date": "2026-06-29",
+            "delta": 9.827982986724237
+          },
+          {
+            "date": "2026-06-30",
+            "delta": -9.827982986724237
+          },
+          {
+            "date": "2026-07-05",
+            "delta": -16346.656877375906
+          },
+          {
+            "date": "2026-07-08",
+            "delta": -0.026580091420328245
+          },
+          {
+            "date": "2026-07-16",
+            "delta": 13.849715285527054
+          },
+          {
+            "date": "2026-07-17",
+            "delta": -0.026496557606151327
+          },
+          {
+            "date": "2026-07-18",
+            "delta": -0.11426014694734477
+          },
+          {
+            "date": "2026-07-19",
+            "delta": -0.02609824953833595
+          },
+          {
+            "date": "2026-07-25",
+            "delta": 0.0794951026327908
+          },
+          {
+            "date": "2026-07-28",
+            "delta": 0.7206329494074453
+          },
+          {
+            "date": "2026-08-06",
+            "delta": 0.8754406810039654
+          },
+          {
+            "date": "2026-08-09",
+            "delta": -110.01317973042023
+          },
+          {
+            "date": "2026-08-13",
+            "delta": -18.28078984329477
+          },
+          {
+            "date": "2026-08-26",
+            "delta": -17.349040274508297
+          },
+          {
+            "date": "2026-08-27",
+            "delta": -7.66655647198786
+          },
+          {
+            "date": "2026-08-31",
+            "delta": 0.4907971441571135
+          },
+          {
+            "date": "2026-09-04",
+            "delta": 0.5225319118762854
+          },
+          {
+            "date": "2026-09-07",
+            "delta": 0.5791983718518168
+          },
+          {
+            "date": "2026-09-11",
+            "delta": -500.0000061595056
+          },
+          {
+            "date": "2026-09-15",
+            "delta": -10.973608966509346
+          },
+          {
+            "date": "2026-09-17",
+            "delta": 1.0774770831048954
+          },
+          {
+            "date": "2026-09-18",
+            "delta": -9.844580619130284
+          },
+          {
+            "date": "2026-09-21",
+            "delta": -27.99866782609024
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      }
+    },
+    "113": {
+      "source": "https://hydration-explorer.neckwork.net/api/explorer/pool/113",
+      "last30": {
+        "poolId": 113,
+        "points": 30,
+        "first": "2026-08-23",
+        "last": "2026-09-21",
+        "assets": {
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 30,
+            "min": 53334.68985303505,
+            "max": 61712.86159256239,
+            "first": 53355.4996034933,
+            "last": 56150.09589689275,
+            "netReserveIncrease": 2794.5962933994524,
+            "sumPositiveSampleChanges": 12504.91749567663,
+            "sumNegativeSampleChanges": 9710.321202277177,
+            "unchangedPairs": 20
+          },
+          "1000625": {
+            "symbol": "sUSDe",
+            "points": 30,
+            "min": 35956.19756652445,
+            "max": 42659.50915622142,
+            "first": 42632.32926348714,
+            "last": 39959.74323086847,
+            "netReserveIncrease": -2672.5860326186666,
+            "sumPositiveSampleChanges": 7348.867513283149,
+            "sumNegativeSampleChanges": 10021.453545901815,
+            "unchangedPairs": 22
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-08-27",
+            "delta": 2.369937181894784
+          },
+          {
+            "date": "2026-09-11",
+            "delta": -528.5090236468823
+          },
+          {
+            "date": "2026-09-21",
+            "delta": -18.217213479976635
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      },
+      "last90": {
+        "poolId": 113,
+        "points": 90,
+        "first": "2026-06-24",
+        "last": "2026-09-21",
+        "assets": {
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 90,
+            "min": 47138.52020257797,
+            "max": 89002.448214148,
+            "first": 88896.2275235264,
+            "last": 56150.09589689275,
+            "netReserveIncrease": -32746.131626633643,
+            "sumPositiveSampleChanges": 77161.15359867824,
+            "sumNegativeSampleChanges": 109907.28522531188,
+            "unchangedPairs": 29
+          },
+          "1000625": {
+            "symbol": "sUSDe",
+            "points": 90,
+            "min": 31351.918203704576,
+            "max": 47449.0410477063,
+            "first": 41667.0854386242,
+            "last": 39959.74323086847,
+            "netReserveIncrease": -1707.3422077557261,
+            "sumPositiveSampleChanges": 62953.184905920454,
+            "sumNegativeSampleChanges": 64660.52711367619,
+            "unchangedPairs": 31
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-06-26",
+            "delta": -15.602122925745789
+          },
+          {
+            "date": "2026-07-05",
+            "delta": -34075.22272803105
+          },
+          {
+            "date": "2026-07-09",
+            "delta": -14.393515309973736
+          },
+          {
+            "date": "2026-07-15",
+            "delta": 5.005566313004238
+          },
+          {
+            "date": "2026-07-18",
+            "delta": -0.11419882871268783
+          },
+          {
+            "date": "2026-07-21",
+            "delta": -28.46869004445034
+          },
+          {
+            "date": "2026-07-28",
+            "delta": -26.303501511283685
+          },
+          {
+            "date": "2026-07-29",
+            "delta": -0.09814762012683786
+          },
+          {
+            "date": "2026-08-20",
+            "delta": -11.199938875026419
+          },
+          {
+            "date": "2026-08-21",
+            "delta": -92.45519160413824
+          },
+          {
+            "date": "2026-08-27",
+            "delta": 2.369937181894784
+          },
+          {
+            "date": "2026-09-11",
+            "delta": -528.5090236468823
+          },
+          {
+            "date": "2026-09-21",
+            "delta": -18.217213479976635
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      }
+    },
+    "143": {
+      "source": "https://hydration-explorer.neckwork.net/api/explorer/pool/143",
+      "last30": {
+        "poolId": 143,
+        "points": 30,
+        "first": "2026-08-23",
+        "last": "2026-09-21",
+        "assets": {
+          "43": {
+            "symbol": "PRIME",
+            "points": 30,
+            "min": 315550.239214,
+            "max": 428737.152132,
+            "first": 428737.152132,
+            "last": 317284.473248,
+            "netReserveIncrease": -111452.678884,
+            "sumPositiveSampleChanges": 44004.99376500014,
+            "sumNegativeSampleChanges": 155457.67264900013,
+            "unchangedPairs": 0
+          },
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 30,
+            "min": 619304.4729693664,
+            "max": 739217.6335722783,
+            "first": 619304.4729693664,
+            "last": 737377.9824348919,
+            "netReserveIncrease": 118073.50946552551,
+            "sumPositiveSampleChanges": 164621.8008496121,
+            "sumNegativeSampleChanges": 46548.291384086595,
+            "unchangedPairs": 0
+          }
+        },
+        "issuanceChanges": [],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      },
+      "last90": {
+        "poolId": 143,
+        "points": 90,
+        "first": "2026-06-24",
+        "last": "2026-09-21",
+        "assets": {
+          "43": {
+            "symbol": "PRIME",
+            "points": 90,
+            "min": 281939.682313,
+            "max": 460995.950039,
+            "first": 317332.964752,
+            "last": 317284.473248,
+            "netReserveIncrease": -48.491503999975976,
+            "sumPositiveSampleChanges": 287907.1153030002,
+            "sumNegativeSampleChanges": 287955.6068070002,
+            "unchangedPairs": 0
+          },
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 90,
+            "min": 585293.6452536512,
+            "max": 769308.8293075729,
+            "first": 732008.2499472285,
+            "last": 737377.9824348919,
+            "netReserveIncrease": 5369.732487663394,
+            "sumPositiveSampleChanges": 304247.0973044215,
+            "sumNegativeSampleChanges": 298877.3648167581,
+            "unchangedPairs": 0
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-07-30",
+            "delta": 4992.9032679568045
+          },
+          {
+            "date": "2026-08-02",
+            "delta": -237.04238664591685
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      }
+    },
+    "146": {
+      "source": "https://hydration-explorer.neckwork.net/api/explorer/pool/146",
+      "last30": {
+        "poolId": 146,
+        "points": 30,
+        "first": "2026-08-23",
+        "last": "2026-09-21",
+        "assets": {
+          "46": {
+            "symbol": "apyUSD",
+            "points": 30,
+            "min": 183113.36727733436,
+            "max": 520291.1721249561,
+            "first": 520291.1721249561,
+            "last": 183113.36727733436,
+            "netReserveIncrease": -337177.8048476217,
+            "sumPositiveSampleChanges": 292365.394067693,
+            "sumNegativeSampleChanges": 629543.1989153147,
+            "unchangedPairs": 1
+          },
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 30,
+            "min": 288227.10893223283,
+            "max": 750644.6395512365,
+            "first": 288227.10893223283,
+            "last": 750644.6395512365,
+            "netReserveIncrease": 462417.5306190037,
+            "sumPositiveSampleChanges": 862407.6114594183,
+            "sumNegativeSampleChanges": 399990.08084041474,
+            "unchangedPairs": 1
+          }
+        },
+        "issuanceChanges": [],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      },
+      "last90": {
+        "poolId": 146,
+        "points": 90,
+        "first": "2026-06-24",
+        "last": "2026-09-21",
+        "assets": {
+          "46": {
+            "symbol": "apyUSD",
+            "points": 90,
+            "min": 183113.36727733436,
+            "max": 701258.1019883493,
+            "first": 686885.1103785962,
+            "last": 183113.36727733436,
+            "netReserveIncrease": -503771.7431012619,
+            "sumPositiveSampleChanges": 441735.7122816495,
+            "sumNegativeSampleChanges": 945507.4553829114,
+            "unchangedPairs": 5
+          },
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 90,
+            "min": 56952.288178847666,
+            "max": 750644.6395512365,
+            "first": 72146.73929242934,
+            "last": 750644.6395512365,
+            "netReserveIncrease": 678497.9002588072,
+            "sumPositiveSampleChanges": 1267588.0582478647,
+            "sumNegativeSampleChanges": 589090.1579890577,
+            "unchangedPairs": 4
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-06-28",
+            "delta": 7.785869675688446
+          },
+          {
+            "date": "2026-07-05",
+            "delta": 5.508207813487388
+          },
+          {
+            "date": "2026-07-14",
+            "delta": 10.915635555749759
+          },
+          {
+            "date": "2026-07-22",
+            "delta": 9.427656447514892
+          },
+          {
+            "date": "2026-07-26",
+            "delta": 4.441625888692215
+          },
+          {
+            "date": "2026-08-04",
+            "delta": 10.411162381060421
+          },
+          {
+            "date": "2026-08-13",
+            "delta": -71.72327758627944
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      }
+    },
+    "10044": {
+      "source": "https://hydration-explorer.neckwork.net/api/explorer/pool/10044",
+      "last30": {
+        "poolId": 10044,
+        "points": 30,
+        "first": "2026-08-23",
+        "last": "2026-09-21",
+        "assets": {
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 30,
+            "min": 605808.8667179479,
+            "max": 698273.5662371984,
+            "first": 641243.0919893888,
+            "last": 615702.9085291404,
+            "netReserveIncrease": -25540.1834602484,
+            "sumPositiveSampleChanges": 109074.80405212601,
+            "sumNegativeSampleChanges": 134614.9875123744,
+            "unchangedPairs": 0
+          },
+          "1044": {
+            "symbol": "aEURC",
+            "points": 30,
+            "min": 492046.980074,
+            "max": 530685.077387,
+            "first": 493037.664313,
+            "last": 521267.754309,
+            "netReserveIncrease": 28230.089995999995,
+            "sumPositiveSampleChanges": 77085.76036799984,
+            "sumNegativeSampleChanges": 48855.67037199985,
+            "unchangedPairs": 0
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-08-24",
+            "delta": 20010.303239015862
+          },
+          {
+            "date": "2026-08-25",
+            "delta": 36091.20726059168
+          },
+          {
+            "date": "2026-08-26",
+            "delta": -1397.943508516997
+          },
+          {
+            "date": "2026-08-27",
+            "delta": -1417.593289787881
+          },
+          {
+            "date": "2026-08-28",
+            "delta": 1594.72664531786
+          },
+          {
+            "date": "2026-08-29",
+            "delta": -1782.68356083869
+          },
+          {
+            "date": "2026-08-30",
+            "delta": -243.4402592764236
+          },
+          {
+            "date": "2026-08-31",
+            "delta": -2675.530571208801
+          },
+          {
+            "date": "2026-09-01",
+            "delta": -31.44860829017125
+          },
+          {
+            "date": "2026-09-02",
+            "delta": -489.17823019088246
+          },
+          {
+            "date": "2026-09-03",
+            "delta": -14.285714285681024
+          },
+          {
+            "date": "2026-09-04",
+            "delta": 19.018506310647354
+          },
+          {
+            "date": "2026-09-05",
+            "delta": -10.714285714551806
+          },
+          {
+            "date": "2026-09-06",
+            "delta": -10.714285714086145
+          },
+          {
+            "date": "2026-09-07",
+            "delta": -27241.708019342273
+          },
+          {
+            "date": "2026-09-08",
+            "delta": 2575.99693329609
+          },
+          {
+            "date": "2026-09-09",
+            "delta": -164.20966025232337
+          },
+          {
+            "date": "2026-09-10",
+            "delta": 3799.9789521801285
+          },
+          {
+            "date": "2026-09-11",
+            "delta": -4133.888119062409
+          },
+          {
+            "date": "2026-09-12",
+            "delta": -10.714285714086145
+          },
+          {
+            "date": "2026-09-13",
+            "delta": 8319.653694400098
+          },
+          {
+            "date": "2026-09-14",
+            "delta": 11593.260701605352
+          },
+          {
+            "date": "2026-09-15",
+            "delta": 1294.1793243889697
+          },
+          {
+            "date": "2026-09-16",
+            "delta": -10099.002574002836
+          },
+          {
+            "date": "2026-09-17",
+            "delta": -36370.022079091985
+          },
+          {
+            "date": "2026-09-18",
+            "delta": 965.6521933227777
+          },
+          {
+            "date": "2026-09-19",
+            "delta": -1199.8377496534958
+          },
+          {
+            "date": "2026-09-20",
+            "delta": -191.33004576480016
+          },
+          {
+            "date": "2026-09-21",
+            "delta": 7837.068343394669
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      },
+      "last90": {
+        "poolId": 10044,
+        "points": 90,
+        "first": "2026-06-24",
+        "last": "2026-09-21",
+        "assets": {
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 90,
+            "min": 496338.1726048856,
+            "max": 698273.5662371984,
+            "first": 648439.0884559276,
+            "last": 615702.9085291404,
+            "netReserveIncrease": -32736.179926787154,
+            "sumPositiveSampleChanges": 351851.60497090616,
+            "sumNegativeSampleChanges": 384587.7848976933,
+            "unchangedPairs": 0
+          },
+          "1044": {
+            "symbol": "aEURC",
+            "points": 90,
+            "min": 391124.575081,
+            "max": 530685.077387,
+            "first": 478440.896701,
+            "last": 521267.754309,
+            "netReserveIncrease": 42826.85760799999,
+            "sumPositiveSampleChanges": 240059.9257509999,
+            "sumNegativeSampleChanges": 197233.0681429999,
+            "unchangedPairs": 1
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-06-25",
+            "delta": 15225.295498387655
+          },
+          {
+            "date": "2026-06-26",
+            "delta": -1152.2231598736253
+          },
+          {
+            "date": "2026-06-27",
+            "delta": -1100.851609916892
+          },
+          {
+            "date": "2026-06-28",
+            "delta": -1043.202504533343
+          },
+          {
+            "date": "2026-06-29",
+            "delta": -1178.1120615541004
+          },
+          {
+            "date": "2026-06-30",
+            "delta": -28847.441529832082
+          },
+          {
+            "date": "2026-07-01",
+            "delta": -26089.393154523103
+          },
+          {
+            "date": "2026-07-02",
+            "delta": -288.9937348298263
+          },
+          {
+            "date": "2026-07-03",
+            "delta": 616.29708618531
+          },
+          {
+            "date": "2026-07-04",
+            "delta": -769.845476906281
+          },
+          {
+            "date": "2026-07-05",
+            "delta": 962.4004657652695
+          },
+          {
+            "date": "2026-07-06",
+            "delta": -102900.73415551765
+          },
+          {
+            "date": "2026-07-07",
+            "delta": -49508.25739610579
+          },
+          {
+            "date": "2026-07-08",
+            "delta": -1785.6111429518787
+          },
+          {
+            "date": "2026-07-09",
+            "delta": -1752.8161796418717
+          },
+          {
+            "date": "2026-07-10",
+            "delta": -1556.6096601635218
+          },
+          {
+            "date": "2026-07-11",
+            "delta": 99.12029034574516
+          },
+          {
+            "date": "2026-07-12",
+            "delta": -1135.0657560972031
+          },
+          {
+            "date": "2026-07-13",
+            "delta": -44696.94035288389
+          },
+          {
+            "date": "2026-07-14",
+            "delta": -3092.6381601816975
+          },
+          {
+            "date": "2026-07-15",
+            "delta": -2104.8307242464507
+          },
+          {
+            "date": "2026-07-16",
+            "delta": 48268.31450276566
+          },
+          {
+            "date": "2026-07-17",
+            "delta": 11893.705429241876
+          },
+          {
+            "date": "2026-07-18",
+            "delta": 7802.753014712012
+          },
+          {
+            "date": "2026-07-19",
+            "delta": 6779.999628355959
+          },
+          {
+            "date": "2026-07-20",
+            "delta": 6038.879710379406
+          },
+          {
+            "date": "2026-07-21",
+            "delta": 7325.893889423809
+          },
+          {
+            "date": "2026-07-22",
+            "delta": 4716.830861681956
+          },
+          {
+            "date": "2026-07-23",
+            "delta": 4517.517452472239
+          },
+          {
+            "date": "2026-07-24",
+            "delta": 3970.884625330218
+          },
+          {
+            "date": "2026-07-25",
+            "delta": 2452.8454502522945
+          },
+          {
+            "date": "2026-07-26",
+            "delta": 23190.18088078103
+          },
+          {
+            "date": "2026-07-27",
+            "delta": 67539.72991865361
+          },
+          {
+            "date": "2026-07-28",
+            "delta": 4828.443330497947
+          },
+          {
+            "date": "2026-07-29",
+            "delta": 10190.510812843218
+          },
+          {
+            "date": "2026-07-30",
+            "delta": -21631.390093869297
+          },
+          {
+            "date": "2026-07-31",
+            "delta": -1939.6682773143984
+          },
+          {
+            "date": "2026-08-01",
+            "delta": 3741.582187285647
+          },
+          {
+            "date": "2026-08-02",
+            "delta": 19825.96039168164
+          },
+          {
+            "date": "2026-08-03",
+            "delta": 6565.161417207448
+          },
+          {
+            "date": "2026-08-04",
+            "delta": -174.278540964704
+          },
+          {
+            "date": "2026-08-05",
+            "delta": -18284.935614141636
+          },
+          {
+            "date": "2026-08-06",
+            "delta": 24124.481234167237
+          },
+          {
+            "date": "2026-08-07",
+            "delta": 579.4944616011344
+          },
+          {
+            "date": "2026-08-08",
+            "delta": 14380.76876866282
+          },
+          {
+            "date": "2026-08-09",
+            "delta": 4393.875589638017
+          },
+          {
+            "date": "2026-08-10",
+            "delta": -3663.742314803181
+          },
+          {
+            "date": "2026-08-11",
+            "delta": -829.1331804806832
+          },
+          {
+            "date": "2026-08-12",
+            "delta": -146.0228023638483
+          },
+          {
+            "date": "2026-08-13",
+            "delta": 2845.8813036731444
+          },
+          {
+            "date": "2026-08-14",
+            "delta": -360.1255980376154
+          },
+          {
+            "date": "2026-08-15",
+            "delta": 1409.9941210804973
+          },
+          {
+            "date": "2026-08-16",
+            "delta": 12767.793028482934
+          },
+          {
+            "date": "2026-08-17",
+            "delta": 2435.309177652467
+          },
+          {
+            "date": "2026-08-18",
+            "delta": 3185.4720410399605
+          },
+          {
+            "date": "2026-08-19",
+            "delta": -4746.8039527237415
+          },
+          {
+            "date": "2026-08-20",
+            "delta": -617.546045990428
+          },
+          {
+            "date": "2026-08-21",
+            "delta": 3835.618778738426
+          },
+          {
+            "date": "2026-08-22",
+            "delta": 1627.7612075377256
+          },
+          {
+            "date": "2026-08-23",
+            "delta": 1446.901200926397
+          },
+          {
+            "date": "2026-08-24",
+            "delta": 20010.303239015862
+          },
+          {
+            "date": "2026-08-25",
+            "delta": 36091.20726059168
+          },
+          {
+            "date": "2026-08-26",
+            "delta": -1397.943508516997
+          },
+          {
+            "date": "2026-08-27",
+            "delta": -1417.593289787881
+          },
+          {
+            "date": "2026-08-28",
+            "delta": 1594.72664531786
+          },
+          {
+            "date": "2026-08-29",
+            "delta": -1782.68356083869
+          },
+          {
+            "date": "2026-08-30",
+            "delta": -243.4402592764236
+          },
+          {
+            "date": "2026-08-31",
+            "delta": -2675.530571208801
+          },
+          {
+            "date": "2026-09-01",
+            "delta": -31.44860829017125
+          },
+          {
+            "date": "2026-09-02",
+            "delta": -489.17823019088246
+          },
+          {
+            "date": "2026-09-03",
+            "delta": -14.285714285681024
+          },
+          {
+            "date": "2026-09-04",
+            "delta": 19.018506310647354
+          },
+          {
+            "date": "2026-09-05",
+            "delta": -10.714285714551806
+          },
+          {
+            "date": "2026-09-06",
+            "delta": -10.714285714086145
+          },
+          {
+            "date": "2026-09-07",
+            "delta": -27241.708019342273
+          },
+          {
+            "date": "2026-09-08",
+            "delta": 2575.99693329609
+          },
+          {
+            "date": "2026-09-09",
+            "delta": -164.20966025232337
+          },
+          {
+            "date": "2026-09-10",
+            "delta": 3799.9789521801285
+          },
+          {
+            "date": "2026-09-11",
+            "delta": -4133.888119062409
+          },
+          {
+            "date": "2026-09-12",
+            "delta": -10.714285714086145
+          },
+          {
+            "date": "2026-09-13",
+            "delta": 8319.653694400098
+          },
+          {
+            "date": "2026-09-14",
+            "delta": 11593.260701605352
+          },
+          {
+            "date": "2026-09-15",
+            "delta": 1294.1793243889697
+          },
+          {
+            "date": "2026-09-16",
+            "delta": -10099.002574002836
+          },
+          {
+            "date": "2026-09-17",
+            "delta": -36370.022079091985
+          },
+          {
+            "date": "2026-09-18",
+            "delta": 965.6521933227777
+          },
+          {
+            "date": "2026-09-19",
+            "delta": -1199.8377496534958
+          },
+          {
+            "date": "2026-09-20",
+            "delta": -191.33004576480016
+          },
+          {
+            "date": "2026-09-21",
+            "delta": 7837.068343394669
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      }
+    },
+    "10055": {
+      "source": "https://hydration-explorer.neckwork.net/api/explorer/pool/10055",
+      "last30": {
+        "poolId": 10055,
+        "points": 30,
+        "first": "2026-08-23",
+        "last": "2026-09-21",
+        "assets": {
+          "55": {
+            "symbol": "BIL",
+            "points": 30,
+            "min": 288471.37296546495,
+            "max": 311681.09450488474,
+            "first": 294368.59652090044,
+            "last": 297408.37483748276,
+            "netReserveIncrease": 3039.7783165823203,
+            "sumPositiveSampleChanges": 44655.90698713297,
+            "sumNegativeSampleChanges": 41616.12867055065,
+            "unchangedPairs": 1
+          },
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 30,
+            "min": 287281.8328877715,
+            "max": 310824.31096590945,
+            "first": 304766.3735631484,
+            "last": 301845.45984052896,
+            "netReserveIncrease": -2920.9137226194143,
+            "sumPositiveSampleChanges": 42340.32938106259,
+            "sumNegativeSampleChanges": 45261.243103682005,
+            "unchangedPairs": 1
+          }
+        },
+        "issuanceChanges": [],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      },
+      "last90": {
+        "poolId": 10055,
+        "points": 52,
+        "first": "2026-08-01",
+        "last": "2026-09-21",
+        "assets": {
+          "55": {
+            "symbol": "BIL",
+            "points": 52,
+            "min": 288471.37296546495,
+            "max": 311681.09450488474,
+            "first": 298233.9205884063,
+            "last": 297408.37483748276,
+            "netReserveIncrease": -825.5457509235712,
+            "sumPositiveSampleChanges": 48934.2568365644,
+            "sumNegativeSampleChanges": 49759.80258748797,
+            "unchangedPairs": 2
+          },
+          "222": {
+            "symbol": "HOLLAR",
+            "points": 52,
+            "min": 287281.8328877715,
+            "max": 311479.44132334425,
+            "first": 300867.0768201542,
+            "last": 301845.45984052896,
+            "netReserveIncrease": 978.3830203747493,
+            "sumPositiveSampleChanges": 55276.85246866435,
+            "sumNegativeSampleChanges": 54298.4694482896,
+            "unchangedPairs": 1
+          }
+        },
+        "issuanceChanges": [
+          {
+            "date": "2026-08-02",
+            "delta": 2011.3875583637273
+          },
+          {
+            "date": "2026-08-05",
+            "delta": 2727.155543806264
+          },
+          {
+            "date": "2026-08-13",
+            "delta": -2727.155543806264
+          },
+          {
+            "date": "2026-08-21",
+            "delta": -2011.3875583637273
+          }
+        ],
+        "caveat": "Sampled state, forward-filled by upstream. Reserve changes are net of swaps, LP actions and transfers, not measured arbitrage or guaranteed refill. Unchanged issuance cannot exclude offsetting intraday LP actions."
+      }
+    }
+  },
+  "interpretation": {
+    "observedFlowIsNotCapacity": true,
+    "tradeGapIsNotArbitrageLatency": true,
+    "observedSellsAreNotAllArbitrage": true,
+    "wrapperConversionsExcluded": true,
+    "endpointActionsNotAllPoolLegs": true,
+    "externalProviderCommitmentVerified": false
+  },
+  "calibrationScenarios": {
+    "observedMeanPrimeFlow": {
+      "primeDailyCapacity": 8635.477301349594
+    },
+    "observedP90PrimeFlow": {
+      "primeDailyCapacity": 27713.36650256118
+    },
+    "observedPeakPrimeFlow": {
+      "primeDailyCapacity": 129002.37053447698
+    }
+  },
+  "sourceSha256": "2d911c010c0d0ba277f1b2198a6f0e66f08172726af567d3eef83349e71dbcc1"
+}
