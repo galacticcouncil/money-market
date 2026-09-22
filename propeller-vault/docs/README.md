@@ -1,0 +1,93 @@
+# Propeller Status and Resources
+
+As of 2026-09-22: **research checkpoint, not a release candidate**. This branch
+includes Main borrowing discounts, per-vault harvest fees, accounting fixes,
+withdrawal controls, keeper/readiness changes, regression tests and economic
+research. It does not implement the proposed Main-interest servicing policy or
+establish a safe production TVL.
+
+## Branches and Reviews
+
+- Latest checkpoint: `fix/propeller-accounting-readiness`, based on `7a7f2cf`.
+- [PR #57: Main discounts and fees](https://github.com/galacticcouncil/money-market/pull/57)
+  remains open against `propeller`; this branch includes those commits and adds
+  readiness work. Pushing this branch does not update or merge that PR.
+- [PR #53: accounting and yield-source changes](https://github.com/galacticcouncil/money-market/pull/53)
+  merged into `propeller` as `5c1bac4`.
+- [PR #46: original integration](https://github.com/galacticcouncil/money-market/pull/46)
+  remains open, targeting `feat/bil`.
+- [PR #53 audit](../audit/propeller-audit-ys-propeller-fixes-20260731.md)
+  is historical review evidence, not approval of this checkpoint.
+
+## Resource Map
+
+| Area | Resources |
+| --- | --- |
+| Architecture | [Vault README](../README.md), [contracts](../src/) |
+| Main discount | [Policy and implementation](main-borrow-discount.md) |
+| Harvest fees | [Per-vault fee specification](protocol-fees.md) |
+| Principal and emergencies | [Principal policy and accounting limitations](principal-safety.md) |
+| Deployment | [Deployment guide](../DEPLOYMENT.md), [scripts](../script/), [governance proposal task](../../tasks/proposals/propeller.ts) |
+| Deployment verification | [Readiness checks](../../scripts/propeller/verify-readiness.ts) |
+| Keeper operations | [Keeper runbook and rounding policy](../looper/README.md) |
+| Tests | [Solidity tests](../test/), [keeper tests](../looper/test/) |
+| Formal verification | [Lean](../formal/README.md), [Verity bridge](../formal/bridge/README.md); assumptions and scope apply |
+| Testnet | [lark-4 deployment record](../deployments/lark-4.md); historical, not production addresses |
+| Native and long-term testing | [90-day stresses and fork evidence](market-stress-90d.md) |
+| Main interest | [Policy comparison](interest-policy-comparison.md); proposed, not implemented |
+| Peg stress | [Finite-funding/no-refill model](hollar-peg-liquidity.md) |
+| Arbitrage and calibration | [Coupled model checkpoint](coupled-liquidity-checkpoint.md), [model scripts](../../scripts/propeller/) |
+| Public evidence | [Pinned market fixture](../../scripts/propeller/fixtures/market-20260922.json), [calibration and preliminary outputs](evidence/2026-09-22/) |
+
+## Confirmed Policy
+
+- Protect original deposited-token principal, not its USD value. Never write off
+  unpaid claims; block new deposits while underfunded. Governance funds residual
+  HOLLAR shortfalls. Preserving a claim does not provide repayment liquidity.
+- Compounded yield may cover emergency losses. All affected holders must be
+  included fairly. Detailed manual recovery accounting is deferred; the ordinary
+  FIFO queue is not itself a fair emergency-distribution mechanism.
+- Configurable withdrawal delay defaults to 12 hours **before starting unwinds**.
+  Emergency freeze stops withdrawals and settled claims. Safety operations remain
+  separately available.
+- Technical Committee controls Main HOLLAR discounts; PRIME-loop debt remains
+  undiscounted. Governance sets per-vault fees, initially 5% of harvested
+  collateral after swaps and before Main servicing. Fees accrue in collateral,
+  permissionlessly claimable to the configured recipient.
+
+## Verification at This Checkpoint
+
+- Solidity: **231 passed, zero failed, three skipped**, rerun on 2026-09-22.
+  Optional fork/Verity suites were skipped; this is not a fresh native fork run.
+- Keeper tests/build, native-rounding unit tests and standalone readiness
+  TypeScript check passed. All five JavaScript model/calibration test files
+  passed against the checked-in snapshot, including 24 coupled-model tests and
+  five history-calibration tests.
+- Previous `hdx.tarn` Chopsticks rehearsal deployed the contracts and exercised
+  small real-route lifecycles using a **fork-only adapter and explicit external
+  donor funding**. It did not verify the production HydraAugustus adapter or
+  prove exits are self-financing.
+- CollateralVault runtime measured 24,510 bytes, only 66 bytes below EIP-170.
+  Recheck size and deployment gas for every subsequent build/configuration.
+
+The Forge worktree uses symlinked dependencies. This environment's test command
+was `FOUNDRY_ALLOW_PATHS='["/home/mrq/git/money-market/hdcl-vault/lib"]' forge test
+--offline --evm-version london`, run in `propeller-vault`. Use your own dependency
+path when reproducing it; this is not a portable deployment configuration.
+
+## Release Gates Still Open
+
+1. Select and implement Main-interest servicing and settlement-cost funding.
+   More collateral increases borrowing headroom, not HOLLAR repayment proceeds.
+2. Verify Main protection under accrued debt, keeper outages and source losses;
+   rehearse emergency pause and governance-funded recovery with all holders.
+3. Deploy and test the production swap adapter, routes, approvals, slippage,
+   custody, governance wiring and exact deployable artifacts on a fresh fork.
+4. Resolve the independent PRIME-reference/oracle discrepancy and finish the
+   calibrated six-TVL, 90-day bull/bear/seesaw liquidity campaign, including
+   arbitrage/settlement outages, LP withdrawals and shared money-market cash.
+5. Set justified TVL/ramp/pause budgets, arrange funded backstops and redundant
+   keeper monitoring, then obtain independent review of the exact candidate.
+
+No production deployment, automatic recovery transfer, PR merge or production
+configuration approval is implied by publishing these resources.

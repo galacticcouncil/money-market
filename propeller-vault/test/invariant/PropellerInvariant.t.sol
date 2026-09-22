@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../../src/CollateralVault.sol";
+import {RoundingReserveFixture} from "../helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../../src/SubLoop.sol";
 import {SyntheticToken} from "../../src/SyntheticToken.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
@@ -109,10 +110,16 @@ contract PropellerInvariantTest is Test {
         loop.configureDca(222, 43, 1043, 143, 10_000);
 
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
+        RoundingReserveFixture.fund(vault);
         loop.registerVault(address(vault));
         loop.setTranches(10_000_000e18, 10_000_000e6);
 
         handler = new Handler(vault, loop, pool, eth, prime);
+        eth.mint(address(this), 1e18);
+        eth.approve(address(vault), 1e18);
+        vault.deposit(1e18, address(this));
+        // Ensure every fuzz sequence starts with real public funds at risk.
+        handler.deposit(1e18);
         // permissionless: handler calls keeper ops without any grant
 
         targetContract(address(handler));
@@ -142,10 +149,27 @@ contract PropellerInvariantTest is Test {
     /// INV-6: redemption escrow — vault holds exactly the open-request shares.
     function invariant_escrow() public view {
         assertEq(vault.balanceOf(address(vault)), handler.ghostEscrowed(), "INV-6 escrow matches");
+        assertEq(vault.balanceOf(address(vault)), vault.pendingWithdrawalShares() + vault.totalQueuedShares());
+        assertLe(vault.queueHead(), vault.queueUnwind());
+        assertLe(vault.queueUnwind(), vault.queueTail());
     }
 
     /// INV-7: the synthetic is never borrowed (no synth debt exists).
     function invariant_noSynthBorrow() public view {
         assertEq(synthDebt.totalSupply(), 0, "INV-7 synthetic not borrowable");
+    }
+
+    function invariant_principalClaimsPreserved() public view {
+        assertGt(handler.successfulDeposits(), 0, "non-vacuous funded sequence");
+        assertEq(
+            vault.totalQueuedCollateral() + handler.ghostClaimed(),
+            handler.ghostRequested(),
+            "unpaid collateral promises cannot disappear"
+        );
+    }
+
+    function invariant_roundingReserveIsRingFenced() public view {
+        assertGe(eth.balanceOf(address(vault)), vault.roundingReserve());
+        assertEq(vault.totalAssets() + vault.roundingReserve(), aEth.balanceOf(address(vault)) + eth.balanceOf(address(vault)));
     }
 }

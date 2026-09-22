@@ -8,7 +8,8 @@ import {
   type Chain,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { CONFIG } from './config.js';
+import { CONFIG, ROUNDING_POLICIES } from './config.js';
+import { roundingAlert } from './rounding-policy.js';
 
 // ─── Hydration chain definition ──────────────────────────────────────────────
 
@@ -26,15 +27,31 @@ const hydration: Chain = {
 const SUBLOOP_ABI = [
   view('healthFactor', 'uint256'),
   view('targetHf', 'uint256'),
-  view('deLeverTrigger', 'uint256'),
+  view('deleverDebtTarget', 'uint256'),
+  view('unwindTargetEquity', 'uint256'),
+  view('paused', 'bool'),
+  view('emergencyPaused', 'bool'),
   nonpayable('pokeBorrow'), // permissionless ramp (lever one tranche)
   nonpayable('pokeRepay'), // permissionless unwind servicing
   nonpayable('deLever'), // permissionless safety de-lever
 ] as const;
 
 const VAULT_ABI = [
+  view('roundingReserve', 'uint256'),
+  view('asset', 'address'),
   view('queueHead', 'uint256'),
   view('queueTail', 'uint256'),
+  view('queueUnwind', 'uint256'),
+  view('paused', 'bool'),
+  view('deleverTarget', 'uint256'),
+  {
+    name: 'unwindEligibleAt', type: 'function', stateMutability: 'view',
+    inputs: [{ name: 'requestId', type: 'uint256' }], outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'startUnwinds', type: 'function', stateMutability: 'nonpayable',
+    inputs: [{ name: 'maxRequests', type: 'uint256' }], outputs: [],
+  },
   nonpayable('pokeSettle'), // settle the redeem queue
   nonpayable('rebalance'), // keep the LTV band
   nonpayable('maintainPeg'), // top up the synthetic floor
@@ -114,11 +131,14 @@ export class PropellerLooper {
     this.cycle++;
     console.log(`\n[${new Date().toISOString()}] maintainer cycle #${this.cycle}`);
 
-    const [hf, target, trigger] = (await Promise.all([
+    const [hf, target, unwind, safetyDebt, paused, emergency] = (await Promise.all([
       this.read(SUBLOOP_ABI, this.subLoop, 'healthFactor'),
       this.read(SUBLOOP_ABI, this.subLoop, 'targetHf'),
-      this.read(SUBLOOP_ABI, this.subLoop, 'deLeverTrigger'),
-    ])) as [bigint, bigint, bigint];
+      this.read(SUBLOOP_ABI, this.subLoop, 'unwindTargetEquity'),
+      this.read(SUBLOOP_ABI, this.subLoop, 'deleverDebtTarget'),
+      this.read(SUBLOOP_ABI, this.subLoop, 'paused'),
+      this.read(SUBLOOP_ABI, this.subLoop, 'emergencyPaused'),
+    ])) as [bigint, bigint, bigint, bigint, boolean, boolean];
 
     const leverage = await this.readLeverage();
     console.log(
@@ -126,49 +146,84 @@ export class PropellerLooper {
         (leverage !== null ? `   leverage ${leverage.toFixed(2)}×` : ''),
     );
 
-    // ── fast: ramp / safety ────────────────────────────────────────────
-    // delever only if HF fell BELOW the floor (genuinely under-collateralised);
-    // never during the normal ramp (pokeBorrow stops at the floor). deLever is a
-    // stub today — calling it is a safe no-op until its spiral is implemented.
-    if (hf < target) {
-      await this.poke(SUBLOOP_ABI, this.subLoop, 'deLever', 'deLever (HF below floor)');
-    } else if (hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n) {
-      await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeBorrow', 'pokeBorrow (ramp)');
-    } else {
-      console.log('  HF in band — no ramp.');
-    }
-    void trigger; // reserved for future deLever gating once implemented
-
-    // ── fast: service withdrawals (only when a redeem queue is non-empty) ──
-    // pokeRepay is on the SHARED SubLoop, so it fires at most once per cycle no
-    // matter how many vaults have pending requests; pokeSettle is per-vault.
+    // Main rebalances create repayment work even when no user has redeemed.
     const pending: Address[] = [];
+    const frozen = new Set<Address>();
+    let waiting = false;
+    let started = false;
+    let now: bigint | undefined;
     for (const vault of this.vaults) {
-      const [head, tail] = (await Promise.all([
+      const policy = ROUNDING_POLICIES.get(vault.toLowerCase());
+      if (policy) {
+        // Monitoring failure must not prevent Main debt or synthetic maintenance.
+        try {
+          const reserve = await this.read(VAULT_ABI, vault, 'roundingReserve') as bigint;
+          const asset = await this.read(VAULT_ABI, vault, 'asset') as Address;
+          const raw = await this.read([{
+            name: 'balanceOf', type: 'function', stateMutability: 'view',
+            inputs: [{ name: 'account', type: 'address' }], outputs: [{ type: 'uint256' }],
+          }], asset, 'balanceOf', [vault]) as bigint;
+          const alert = roundingAlert(reserve, raw, policy.minimum);
+          if (alert) console.error(`[ALERT] ${vault}: ${alert}; refill target=${policy.target}`);
+        } catch (error) {
+          console.error(`[ALERT] ${vault}: rounding monitor failed: ${shortErr(error)}`);
+        }
+      }
+      const [head, tail, next, delever, vaultPaused] = (await Promise.all([
         this.read(VAULT_ABI, vault, 'queueHead'),
         this.read(VAULT_ABI, vault, 'queueTail'),
-      ])) as [bigint, bigint];
-      if (tail > head) pending.push(vault);
-    }
-    if (pending.length) {
-      await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeRepay', 'pokeRepay (free unwind equity)');
-      for (const vault of pending) {
-        await this.poke(VAULT_ABI, vault, 'pokeSettle', `pokeSettle ${short(vault)}`);
+        this.read(VAULT_ABI, vault, 'queueUnwind'),
+        this.read(VAULT_ABI, vault, 'deleverTarget'),
+        this.read(VAULT_ABI, vault, 'paused'),
+      ])) as [bigint, bigint, bigint, bigint, boolean];
+      if (vaultPaused || emergency) frozen.add(vault);
+      waiting ||= tail > next;
+      let starting = false;
+      if (tail > next && !paused && !frozen.has(vault)) {
+        now ??= await this.blockTimestamp();
+        const eligibleAt = await this.read(VAULT_ABI, vault, 'unwindEligibleAt', [next]) as bigint;
+        if (now >= eligibleAt) {
+          await this.poke(VAULT_ABI, vault, 'startUnwinds', `startUnwinds ${short(vault)}`, [16n]);
+          starting = true;
+          started = true;
+        }
       }
+      if (delever > 0n || (!frozen.has(vault) && (next > head || starting))) pending.push(vault);
+    }
+    const servicing = unwind > 0n || safetyDebt > 0n || pending.length > 0 || waiting;
+    if (!paused) {
+      if (hf < target) {
+        await this.poke(SUBLOOP_ABI, this.subLoop, 'deLever', 'deLever (HF below floor)');
+      } else if (!emergency && frozen.size === 0 && !servicing && hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n) {
+        await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeBorrow', 'pokeBorrow (ramp)');
+      }
+      if (safetyDebt > 0n || hf < target || (!emergency && (unwind > 0n || pending.length > 0 || started))) {
+        await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeRepay', 'pokeRepay (unwind/safety debt)');
+      }
+    }
+    // Applying already freed funds is safe even while source swaps are paused.
+    for (const vault of pending) {
+      await this.poke(VAULT_ABI, vault, 'pokeSettle', `pokeSettle ${short(vault)}`);
     }
 
     // ── slow: peg / rebalance / harvest (self-gating no-ops) ────────────
     if (this.cycle % CONFIG.SLOW_EVERY === 0) {
       for (const vault of this.vaults) {
         await this.poke(VAULT_ABI, vault, 'maintainPeg', `maintainPeg ${short(vault)}`);
-        await this.poke(VAULT_ABI, vault, 'rebalance', `rebalance ${short(vault)}`);
+        if (!paused && !emergency && !frozen.has(vault) && !servicing) {
+          await this.poke(VAULT_ABI, vault, 'rebalance', `rebalance ${short(vault)}`);
+        }
       }
       // harvest walks the Harvester's OWN vault registry and distributes to all
       // of them in one call — so it is once per cycle, not once per vault.
-      if (this.harvester) {
+      if (this.harvester && !paused && !emergency && frozen.size === 0) {
         await this.poke(HARVESTER_ABI, this.harvester, 'harvest', 'harvest (skim+distribute)', [[]]);
       }
     }
+  }
+
+  private async blockTimestamp(): Promise<bigint> {
+    return (await this.publicClient.getBlock({ blockTag: 'latest' })).timestamp;
   }
 
   private async readLeverage(): Promise<number | null> {

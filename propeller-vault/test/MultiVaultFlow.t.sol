@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {Harvester} from "../src/Harvester.sol";
@@ -94,6 +95,8 @@ contract MultiVaultFlowTest is Test {
 
         synth.grantRole(synth.MINTER_ROLE(), address(ethVault));
         synth.grantRole(synth.MINTER_ROLE(), address(tbtcVault));
+        RoundingReserveFixture.fund(ethVault);
+        RoundingReserveFixture.fund(tbtcVault);
         loop.registerVault(address(ethVault));
         loop.registerVault(address(tbtcVault));
         loop.setHarvester(address(harvester));
@@ -108,6 +111,13 @@ contract MultiVaultFlowTest is Test {
         tbtcVault.setFeeController(address(fees));
         fees.registerVault(address(ethVault), address(harvester));
         fees.registerVault(address(tbtcVault), address(harvester));
+        // Governance, not the first public depositor, funds the locked shares.
+        eth.mint(address(this), 1e12);
+        eth.approve(address(ethVault), 1e12);
+        ethVault.deposit(1e12, address(this));
+        tbtc.mint(address(this), 1e12);
+        tbtc.approve(address(tbtcVault), 1e12);
+        tbtcVault.deposit(1e12, address(this));
     }
 
     function _deployVault(string memory n, string memory s, address coll, address aTok)
@@ -129,6 +139,22 @@ contract MultiVaultFlowTest is Test {
                 )
             )
         );
+    }
+
+    function test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() public {
+        ethVault.pause();
+        loop.pauseEmergency();
+        assertTrue(ethVault.paused());
+        assertTrue(tbtcVault.paused());
+        vm.expectRevert("Pausable: paused");
+        tbtcVault.requestRedeem(1, address(this));
+        vm.expectRevert("Pausable: paused");
+        tbtcVault.claim(0, address(this));
+        loop.unpauseEmergency();
+        assertTrue(ethVault.paused(), "local pause remains in force");
+        assertFalse(tbtcVault.paused());
+        ethVault.unpause();
+        assertFalse(ethVault.paused());
     }
 
     function test_fullFlowTwoVaultsYieldInKind() public {
@@ -164,8 +190,8 @@ contract MultiVaultFlowTest is Test {
         uint256[] memory minOuts = new uint256[](2);
         harvester.harvest(minOuts);
 
-        uint256 ethGain = aEth.balanceOf(address(ethVault)) - 1e18; // ETH units
-        uint256 tbtcGain = aTbtc.balanceOf(address(tbtcVault)) - 0.1e18; // tBTC units
+        uint256 ethGain = aEth.balanceOf(address(ethVault)) - 1e18 - 1e12; // excludes governance seed
+        uint256 tbtcGain = aTbtc.balanceOf(address(tbtcVault)) - 0.1e18 - 1e12;
         assertGt(ethGain, 0, "ETH vault earned ETH");
         assertGt(tbtcGain, 0, "tBTC vault earned tBTC");
 
@@ -204,6 +230,8 @@ contract MultiVaultFlowTest is Test {
 
         vm.prank(ETH_USER);
         uint256 reqId = ethVault.requestRedeem(ethShares, ETH_USER);
+        vm.warp(vm.getBlockTimestamp() + ethVault.withdrawalDelay());
+        ethVault.startUnwinds(100);
         for (uint256 i = 0; i < 400; i++) {
             if (loop.unwindTargetEquity() == 0) break;
             loop.pokeRepay();
@@ -321,6 +349,10 @@ contract MultiVaultFlowTest is Test {
         eth.approve(address(ethVault), 1e18);
         uint256 ethShares = ethVault.deposit(1e18, ETH_USER);
         vm.stopPrank();
+        // The first entry's execution deficit must recover before new entry.
+        assertTrue(tbtcVault.isUnderfunded());
+        hollar.mint(address(loop), 2e18);
+        assertFalse(tbtcVault.isUnderfunded());
         tbtc.mint(BTC_USER, 0.1e18);
         vm.startPrank(BTC_USER);
         tbtc.approve(address(tbtcVault), 0.1e18);
@@ -344,7 +376,7 @@ contract MultiVaultFlowTest is Test {
         uint256[] memory minOuts = new uint256[](2);
         harvester.harvest(minOuts);
 
-        uint256 ethGain = aEth.balanceOf(address(ethVault)) - 1e18;
+        uint256 ethGain = aEth.balanceOf(address(ethVault)) - 1e18 - 1e12;
         // frictionless gain was ~0.2316 ETH; with the ramp-fee hole (~1% of
         // the carry) and the 30 bps compound haircut it lands just below
         assertLt(ethGain, 0.2316e18, "swap costs reduce the realized gain");
@@ -352,10 +384,11 @@ contract MultiVaultFlowTest is Test {
         assertGt(grossEthGain, (0.2316e18 * 95) / 100, "swap costs stay ~1-2% before protocol fee");
         assertEq(ethGain, grossEthGain - grossEthGain * 500 / 10_000);
 
-        // ── exit pays the unwind leg's fee: settles a hair under the snapshot,
-        //    but still well above the deposited principal
+        // An incomplete exit is a partial payment, never a finalized haircut.
         vm.prank(ETH_USER);
         uint256 reqId = ethVault.requestRedeem(ethShares, ETH_USER);
+        vm.warp(vm.getBlockTimestamp() + ethVault.withdrawalDelay());
+        ethVault.startUnwinds(100);
         for (uint256 i = 0; i < 400; i++) {
             if (loop.unwindTargetEquity() == 0) break;
             loop.pokeRepay();
@@ -364,7 +397,10 @@ contract MultiVaultFlowTest is Test {
         vm.prank(ETH_USER);
         uint256 got = ethVault.claim(reqId, ETH_USER);
         assertGt(got, 1e18, "principal + yield survive the round-trip costs");
-        assertLt(got, 1e18 + ethGain, "exit pays the unwind fee");
         assertGt(got, ((1e18 + ethGain) * 99) / 100, "unwind fee ~6bps x leverage");
+        (, , uint256 promised, , , , , , bool active) = ethVault.redemptions(reqId);
+        assertEq(got, promised, "recovery buffer funded the full recorded promise");
+        assertFalse(active, "only fully paid requests close");
+        assertEq(ethVault.totalQueuedCollateral(), 0);
     }
 }

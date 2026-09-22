@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {Harvester} from "../src/Harvester.sol";
@@ -101,6 +102,7 @@ contract HarvestTest is Test {
         loop.configureDca(222, 43, 1043, 143, 10_000);
 
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
+        RoundingReserveFixture.fund(vault);
         loop.registerVault(address(vault));
         // permissionless keeper ops: no KEEPER_ROLE grants. harvest payout pins
         // to the configured harvester; compound needs a slippage tolerance set.
@@ -178,6 +180,8 @@ contract HarvestTest is Test {
 
         // open a redemption for HALF the position → ~half the equity in flight
         uint256 reqId = vault.requestRedeem(shares / 2, address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
         uint256 inFlight = loop.unwindTargetEquity();
         assertApproxEqRel(inFlight, uint256(equity0) * 1e10 / 2, 0.01e18, "half equity in flight");
 

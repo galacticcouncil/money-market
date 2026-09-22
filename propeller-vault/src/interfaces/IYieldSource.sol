@@ -18,6 +18,9 @@ pragma solidity ^0.8.22;
 ///         gradually and the vault `pullFreed()`s it as it accrues. A synchronous
 ///         source satisfies this trivially by freeing everything on the first pull.
 interface IYieldSource {
+    /// @notice Source-wide freeze of user flows and new risk, not safety repayment.
+    function emergencyPaused() external view returns (bool);
+
     // ── vault → source: put money in ──────────────────────────────────────
 
     /// @notice Take `hollarAmount` from the calling vault and credit it shares at
@@ -49,7 +52,8 @@ interface IYieldSource {
 
     // ── pricing (what the vault's NAV is built on) ────────────────────────
 
-    /// @notice `vault`'s equity in HOLLAR-USD terms at the source's live NAV.
+    /// @notice `vault`'s LIVE-share equity in USD8 (8 decimals), excluding
+    /// outstanding withdrawal liabilities. Not HOLLAR's 18-decimal units.
     function equityOf(address vault) external view returns (uint256);
 
     /// @notice `vault`'s share balance in this source.
@@ -57,7 +61,8 @@ interface IYieldSource {
 
     function totalShares() external view returns (uint256);
 
-    /// @notice Total equity held by the source (USD8, all vaults).
+    /// @notice Gross equity in USD8, including uncredited withdrawal backing
+    /// and unreserved cash, excluding freed cash already reserved for claims.
     function totalEquity() external view returns (uint256);
 
     // ── monitoring ────────────────────────────────────────────────────────

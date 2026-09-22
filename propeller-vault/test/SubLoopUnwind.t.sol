@@ -124,8 +124,7 @@ contract SubLoopUnwindTest is Test {
         // −x, debt −x) up to the last poke's overshoot, which sits as idle
         // HOLLAR in the loop (folded into the next spiral cycle)
         assertEq(loop.freedOf(address(this)), 0, "no payout from deLever");
-        uint256 idle8 = (hollar.balanceOf(address(loop)) - loop.reservedFreed()) / 1e10;
-        assertApproxEqRel(loop.totalEquity() + idle8, equityBefore, 0.005e18, "equity preserved incl idle");
+        assertApproxEqRel(loop.totalEquity(), equityBefore, 0.005e18, "equity includes unreserved idle cash");
 
         // healthy again: a re-trigger either reverts (at/above target) or
         // re-sizes only convergence dust (HF a hair under target)

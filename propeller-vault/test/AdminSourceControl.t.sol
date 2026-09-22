@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -110,6 +111,7 @@ contract AdminSourceControlTest is Test {
         loop.configureDca(222, 43, 1043, 143, 10_000);
 
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
+        RoundingReserveFixture.fund(vault);
         loop.registerVault(address(vault));
         loop.setTranches(10_000_000e18, 10_000_000e6);
     }
@@ -156,6 +158,8 @@ contract AdminSourceControlTest is Test {
     function test_setYieldSourceGuardsInFlightUnwind() public {
         _depositAndRamp();
         vault.requestRedeem(vault.balanceOf(address(this)), address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
         assertGt(loop.pendingUnwindOf(address(vault)), 0, "source still owes the vault in-flight");
 
         MockYieldSource next = new MockYieldSource(address(hollar));
@@ -174,11 +178,17 @@ contract AdminSourceControlTest is Test {
     function test_setYieldSourceUnreachableOnceFunded() public {
         _depositAndRamp();
         uint256 id = vault.requestRedeem(vault.balanceOf(address(this)), address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
         for (uint256 i = 0; i < 2_000; i++) {
             if (loop.unwindTargetEquity() == 0) break;
             loop.pokeRepay();
             vault.pokeSettle();
         }
+        // Recover rounding deficits without discarding either layer's claims.
+        hollar.mint(address(loop), 1e18);
+        loop.pokeRepay();
+        hollar.mint(address(vault), 1e18);
         vault.pokeSettle();
         vault.claim(id, address(this));
 

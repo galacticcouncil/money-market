@@ -20,6 +20,8 @@ import {
   TREASURY_PROXY_ID,
 } from "../../helpers";
 import ProposalDecoder from "../../helpers/proposal-decoder";
+import { parseRoundingPolicies } from "../../propeller-vault/looper/src/rounding-policy";
+import { nativeAccount, nativeRoundingPolicy } from "../../scripts/propeller/rounding-native";
 
 // Fixed $1 oracle (reused for the synthetic — it is pegged $1 by design, like HOLLAR).
 const GHO_ORACLE_ADDRESS = "0x6096C9D71F7c06024578a62F4B608a1Bb06834F8";
@@ -54,11 +56,9 @@ const ROUTE_HOLLAR = Number(process.env.PROPELLER_HOLLAR_ID || 222);
 const ROUTE_PRIME = Number(process.env.PROPELLER_PRIME_ID || 43);
 const ROUTE_APRIME = Number(process.env.PROPELLER_APRIME_ID || 1043);
 const ROUTE_POOL = Number(process.env.PROPELLER_PRIME_POOL_ID || 143);
-// Permill. 8% is what lark-4 needed because pool-143's HOLLAR→PRIME rate sits
-// ~1.1% off oracle-fair and the router rejects a tighter min-out. Tighten this
-// once pool depth improves — it is the slippage bound on two PERMISSIONLESS
-// entrypoints (`pokeBorrow`, `pokeRepay`), so it is a real risk parameter.
-const ROUTE_SLIPPAGE_PPM = Number(process.env.PROPELLER_SLIPPAGE_PPM || 80000);
+// Explicit governance decision after measuring complete exit costs. Never
+// inherit a testnet's permissive slippage limit in a production proposal.
+const ROUTE_SLIPPAGE_PPM = Number(process.env.PROPELLER_SLIPPAGE_PPM ?? NaN);
 
 // Per-poke tranche caps (HOLLAR 18dp in, aPRIME 6dp out).
 const DEPLOY_TRANCHE = process.env.PROPELLER_DEPLOY_TRANCHE || "5000";
@@ -117,6 +117,13 @@ task(
   `propeller`,
   `Propeller launch — list the synthetic reserve, wire the vaults, hand the guardian to the technical committee`
 ).setAction(async function (_, hre) {
+  const withdrawalDelay = Number(process.env.PROPELLER_WITHDRAWAL_DELAY ?? "43200");
+  if (!Number.isInteger(withdrawalDelay) || withdrawalDelay < 0 || withdrawalDelay > 0xffffffff) {
+    throw new Error("PROPELLER_WITHDRAWAL_DELAY must be uint32 seconds.");
+  }
+  if (!Number.isInteger(ROUTE_SLIPPAGE_PPM) || ROUTE_SLIPPAGE_PPM < 0 || ROUTE_SLIPPAGE_PPM >= 1_000_000) {
+    throw new Error("Set an explicitly reviewed PROPELLER_SLIPPAGE_PPM in 0..999999; there is no default.");
+  }
   const { utils } = hre.ethers;
   const networkId = FORK ? FORK : hre.network.name;
   const admin = POOL_ADMIN[networkId];
@@ -153,6 +160,7 @@ task(
   const swapper = process.env.PROPELLER_SWAPPER;
   // Technical committee — receives GUARDIAN_ROLE (fast pause) on every contract.
   const guardian = process.env.PROPELLER_GUARDIAN || EMERGENCY_ADMIN[networkId];
+  const rounding = parseRoundingPolicies(process.env.PROPELLER_ROUNDING_RESERVES || "[]", vaults);
 
   console.log("Propeller wiring inputs");
   console.log(`  synthetic  : ${synth}`);
@@ -174,6 +182,8 @@ task(
     "function setHarvester(address)",
   ]);
   const vaultI = new Interface([
+    "function fundRoundingReserve(uint256)",
+    "function setWithdrawalDelay(uint32)",
     "function setCompoundSlippageBps(uint16)",
     "function setSwapper(address)",
   ]);
@@ -345,6 +355,47 @@ task(
     const MINTER = id(ROLE.MINTER);
     const GUARDIAN = id(ROLE.GUARDIAN);
 
+    // Dust exemptions precede initial custody transfers. This only generates
+    // the governance proposal; it does not whitelist or move funds itself.
+    const feeController = await resolve("PROPELLER_FEE_CONTROLLER", "PropellerFeeController-Propeller");
+    if (!feeController) throw new Error("Set PROPELLER_FEE_CONTROLLER for custody dust protection");
+    for (const custody of [subLoop, harvester, feeController, ...vaults, ...(swapper ? [swapper] : [])]) {
+      const account = await nativeAccount(api, custody);
+      if ((await api.query.duster.accountWhitelist(account)).isNone) {
+        batch3.push(hydrationTx.duster.whitelistAccount(account));
+      }
+    }
+    const required = new Map<string, { token: any; amount: any }>();
+    for (const vault of vaults) {
+      const policy = rounding.get(vault.toLowerCase())!;
+      const c = await hre.ethers.getContractAt([
+        "function asset() view returns (address)", "function roundingReserve() view returns (uint256)",
+      ], vault);
+      const collateral = await c.asset();
+      await nativeRoundingPolicy(api, policy, collateral);
+      const reserve = await c.roundingReserve();
+      const token = await hre.ethers.getContractAt([
+        "function approve(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)",
+      ], collateral);
+      if ((await token.balanceOf(vault)).lt(reserve)) throw new Error(`Unbacked rounding reserve: ${vault}`);
+      const target = hre.ethers.BigNumber.from(policy.target.toString());
+      if (reserve.lt(target)) {
+        const amount = target.sub(reserve);
+        const key = collateral.toLowerCase();
+        const old = required.get(key);
+        required.set(key, { token, amount: amount.add(old?.amount || 0) });
+        evm(collateral, token.interface.encodeFunctionData("approve", [vault, 0]));
+        evm(collateral, token.interface.encodeFunctionData("approve", [vault, amount]));
+        evm(vault, vaultI.encodeFunctionData("fundRoundingReserve", [amount]));
+        evm(collateral, token.interface.encodeFunctionData("approve", [vault, 0]));
+      }
+    }
+    for (const { token, amount } of required.values()) {
+      if ((await token.balanceOf(admin)).lt(amount)) {
+        throw new Error(`Prefund Aave manager ${admin} with ${amount} base units of ${token.address} for rounding donations`);
+      }
+    }
+
     for (const vault of vaults) {
       console.log(`[3] synth.grantRole(MINTER_ROLE, ${vault})`);
       evm(synth, accessI.encodeFunctionData("grantRole", [MINTER, vault]));
@@ -354,6 +405,9 @@ task(
 
       console.log(`[3] vault.setCompoundSlippageBps(${COMPOUND_SLIPPAGE_BPS})`);
       evm(vault, vaultI.encodeFunctionData("setCompoundSlippageBps", [COMPOUND_SLIPPAGE_BPS]));
+
+      console.log(`[3] vault.setWithdrawalDelay(${withdrawalDelay})`);
+      evm(vault, vaultI.encodeFunctionData("setWithdrawalDelay", [withdrawalDelay]));
 
       if (swapper) {
         console.log(`[3] vault.setSwapper(${swapper})`);
@@ -404,7 +458,7 @@ task(
       console.log("[3] no guardian configured — GUARDIAN_ROLE stays with governance only");
     }
 
-    batch3 = await Promise.all(getBatch().map((tx) => aaveManagerCall({ ...tx, from: admin })));
+    batch3.push(...await Promise.all(getBatch().map((tx) => aaveManagerCall({ ...tx, from: admin }))));
     clearBatch();
   } else {
     console.log(

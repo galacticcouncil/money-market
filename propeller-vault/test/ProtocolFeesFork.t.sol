@@ -33,6 +33,7 @@ interface IFeeForkPool {
 }
 
 contract FeeForkSource {
+    function emergencyPaused() external pure returns (bool) { return false; }
     address public prime;
     address public harvester;
     address public vault;

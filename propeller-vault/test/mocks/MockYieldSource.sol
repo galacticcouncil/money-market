@@ -16,6 +16,11 @@ import {IYieldSource} from "../../src/interfaces/IYieldSource.sol";
 ///         `pullFreed` pays it out.
 contract MockYieldSource is IYieldSource {
     IERC20 public immutable hollar;
+    bool public emergencyPaused;
+
+    function setEmergencyPaused(bool value) external {
+        emergencyPaused = value;
+    }
 
     mapping(address => uint256) internal _shares;
     mapping(address => uint256) internal _freed;

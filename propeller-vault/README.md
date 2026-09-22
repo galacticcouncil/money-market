@@ -1,5 +1,12 @@
 # propeller-vault
 
+**Research checkpoint, not a release candidate.** Start with the
+[current status and resource index](docs/README.md). The principal-protection
+statements below describe the intended policy under stated configuration and
+maintenance assumptions, not an unconditional guarantee from the current code.
+Main-interest servicing, production adapter verification and calibrated
+liquidity limits remain release blockers.
+
 Solidity contracts for **Propeller** — a protocol-managed leveraged-yield product on
 Hydration. Deposit a volatile collateral (ETH, tBTC, DOT…), keep full 1× price
 exposure, earn more of that same asset, and never have the principal liquidated.

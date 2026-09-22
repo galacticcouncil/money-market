@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {HarvestTest} from "./Harvest.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {Harvester} from "../src/Harvester.sol";
 import {PropellerFeeController} from "../src/PropellerFeeController.sol";
 import {PropellerDiscount} from "../src/PropellerDiscount.sol";
@@ -58,6 +59,7 @@ contract ProtocolFeesTest is HarvestTest {
         v.setCompoundSlippageBps(100);
         v.setFeeController(address(fees));
         synth.grantRole(synth.MINTER_ROLE(), address(v));
+        RoundingReserveFixture.fund(v);
         loop.registerVault(address(v));
         fees.registerVault(address(v), address(harvester));
         harvester.addVault(address(v));
@@ -76,7 +78,7 @@ contract ProtocolFeesTest is HarvestTest {
         assertEq(fees.claimableProtocolFees(address(eth)), 0.05e18);
         assertEq(eth.balanceOf(address(fees)), 0.05e18);
         assertEq(vault.totalAssets(), beforeAssets + 0.95e18);
-        assertEq(eth.balanceOf(address(vault)), 7e18);
+        assertEq(eth.balanceOf(address(vault)), 7e18 + vault.roundingReserve());
         assertEq(aEth.balanceOf(address(fees)), 0);
         assertEq(prime.balanceOf(address(fees)), 0);
         assertEq(hollarDebt.balanceOf(address(vault)), beforeDebt);
@@ -119,7 +121,7 @@ contract ProtocolFeesTest is HarvestTest {
         uint256 fee = fees.collectFee(gross, address(harvester));
         vm.stopPrank();
         assertEq(fee, gross * bps / 10_000);
-        assertEq(eth.balanceOf(address(vault)) + eth.balanceOf(address(fees)), gross);
+        assertEq(eth.balanceOf(address(vault)) + eth.balanceOf(address(fees)), gross + vault.roundingReserve());
         assertEq(fees.claimableProtocolFees(address(eth)), fee);
     }
 
@@ -281,7 +283,7 @@ contract ProtocolFeesTest is HarvestTest {
         vault.setSwapper(address(lying));
         vm.expectRevert(CollateralVault.PrincipalShortfall.selector);
         _harvest();
-        assertEq(eth.balanceOf(address(vault)), 10e18);
+        assertEq(eth.balanceOf(address(vault)), 10e18 + vault.roundingReserve());
         assertEq(fees.claimableProtocolFees(address(eth)), 0);
     }
 
@@ -405,22 +407,32 @@ contract ProtocolFeesTest is HarvestTest {
     function test_settledWithdrawalIsNotUsedForFee() public {
         uint256 shares = _depositAndRamp();
         uint256 request = vault.requestRedeem(shares / 2, address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
         for (uint256 i; i < 400 && loop.unwindTargetEquity() != 0; ++i) {
             loop.pokeRepay();
         }
         vault.pokeSettle();
-        uint256 settled = eth.balanceOf(address(vault));
+        uint256 idle = eth.balanceOf(address(vault));
+        uint256 reserve = vault.roundingReserve();
+        (, , , , , , uint256 settled, , ) = vault.redemptions(request);
         assertGt(settled, 0);
         prime.mint(address(harvester), 3_000e6);
         _harvest();
-        assertEq(eth.balanceOf(address(vault)), settled);
+        assertEq(eth.balanceOf(address(vault)), idle);
+        assertEq(vault.roundingReserve(), reserve);
         assertEq(fees.claimableProtocolFees(address(eth)), 0.05e18);
         assertEq(vault.claim(request, address(this)), settled);
+        assertEq(eth.balanceOf(address(vault)), idle - settled);
+        assertGe(eth.balanceOf(address(vault)), reserve);
     }
 
     function test_treasuryMayDepositPaidCollateralNormally() public {
         uint256 amount = _accrue();
         fees.claimProtocolFees(address(eth));
+        // A treasury deposit is subject to the same backing gate as any user.
+        hollar.mint(address(loop), 1e18);
+        assertFalse(vault.isUnderfunded());
         vm.startPrank(TREASURY);
         eth.approve(address(vault), amount);
         uint256 shares = vault.deposit(amount, TREASURY);

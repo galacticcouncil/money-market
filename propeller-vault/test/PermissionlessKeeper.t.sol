@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {Harvester} from "../src/Harvester.sol";
@@ -101,6 +102,7 @@ contract PermissionlessKeeperTest is Test {
         loop.configureDca(222, 43, 1043, 143, 10_000);
 
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
+        RoundingReserveFixture.fund(vault);
         loop.registerVault(address(vault));
         loop.setHarvester(address(harvester));
         loop.setTranches(10_000_000e18, 10_000_000e6);
@@ -198,7 +200,7 @@ contract PermissionlessKeeperTest is Test {
         assertGt(aEth.balanceOf(address(vault)), aEthBefore, "compounded into collateral");
     }
 
-    // ── pause matrix: kill-switch on yield/maintenance, never on user exits ───
+    // Pause blocks exit allocation; committed Main repayment and peg remain live.
 
     function test_pauseMatrix() public {
         loop.grantRole(loop.GUARDIAN_ROLE(), address(this));
@@ -210,7 +212,7 @@ contract PermissionlessKeeperTest is Test {
         vault.compound(address(prime), 1e6, 0, "");
         vm.expectRevert();
         vault.rebalance();
-        // never paused: user-exit + safety-floor ops still run
+        // Safety operations remain callable; FIFO allocation is skipped while paused.
         vault.pokeSettle();
         vault.maintainPeg();
         vault.unpause();
@@ -220,7 +222,9 @@ contract PermissionlessKeeperTest is Test {
         loop.harvest();
         vm.expectRevert();
         loop.pokeBorrow();
-        // never paused: unwind servicing still runs
+        // Pausing stops route execution; already freed funds remain pullable.
+        vm.expectRevert("Pausable: paused");
         loop.pokeRepay();
+        vault.pokeSettle();
     }
 }
