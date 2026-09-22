@@ -8,14 +8,19 @@ establish a safe production TVL.
 
 ## Branches and Reviews
 
-- Latest checkpoint: `fix/propeller-accounting-readiness`, based on `7a7f2cf`.
+- Consolidated integration branch: `propeller`. It includes the discount/fee
+  commits and the accounting/readiness and research commits from
+  `fix/propeller-accounting-readiness` (`0c7229d`, `1f10b8b`). The original
+  feature branches remain available as historical checkpoints.
 - [PR #57: Main discounts and fees](https://github.com/galacticcouncil/money-market/pull/57)
-  remains open against `propeller`; this branch includes those commits and adds
-  readiness work. Pushing this branch does not update or merge that PR.
+  merged into `propeller` as `ee7c79e` on 2026-09-22.
 - [PR #53: accounting and yield-source changes](https://github.com/galacticcouncil/money-market/pull/53)
   merged into `propeller` as `5c1bac4`.
 - [PR #46: original integration](https://github.com/galacticcouncil/money-market/pull/46)
-  remains open, targeting `feat/bil`.
+  remains open, now targeting `hydration`. The entire current `feat/bil` tip is
+  already an ancestor of `hydration`. The base change exposes existing conflicts
+  in `.gitignore` and `HDCL-MAINNET-DEPLOY-PLAN.md`; these are not resolved by the
+  Propeller feature-branch consolidation.
 - [PR #53 audit](../audit/propeller-audit-ys-propeller-fixes-20260731.md)
   is historical review evidence, not approval of this checkpoint.
 
