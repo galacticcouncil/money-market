@@ -13,20 +13,26 @@
 // ref 322 and needed refs 323/324 to recover.)
 //
 // Usage:
-//   WS_URL=wss://rpc.hydradx.cloud RPC_URL=https://rpc.hydradx.cloud \
+//   WS_URL=wss://hdx.tarn.hydration.cloud RPC_URL=https://hdx.tarn.hydration.cloud \
 //   PROPELLER_SYNTH=0x… PROPELLER_SUBLOOP=0x… PROPELLER_HARVESTER=0x… \
 //   PROPELLER_VAULTS=0xETH,0xTBTC \
+//   PROPELLER_FEE_CONTROLLER=0x... PROPELLER_FEE_RECIPIENT=0x... \
+//   PROPELLER_DISCOUNT_CONTROLLER=0x... PROPELLER_DISCOUNT_COMMITTEE=0x... \
+//   PROPELLER_DISCOUNT_BPS=0 PROPELLER_SLIPPAGE_PPM=<approved-ppm> \
+//   PROPELLER_ROUNDING_RESERVES='<per-vault policy JSON; see looper/README.md>' \
 //   npx ts-node --transpile-only --compiler-options '{"module":"commonjs"}' \
 //     scripts/propeller/verify-readiness.ts
 //
 // Optional: PROPELLER_SWAPPER, PROPELLER_GUARDIAN, PROPELLER_LOOPER,
-//           PROPELLER_SYNTH_ASSET_ID, POOL.
+//           PROPELLER_SYNTH_ASSET_ID, PROPELLER_WITHDRAWAL_DELAY (seconds; default 43200), POOL.
 
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { ethers } from "ethers";
+import { parseRoundingPolicies } from "../../propeller-vault/looper/src/rounding-policy";
+import { nativeAccount, nativeRoundingPolicy } from "./rounding-native";
 
-const WS = process.env.WS_URL || "wss://rpc.hydradx.cloud";
-const RPC = process.env.RPC_URL || "https://rpc.hydradx.cloud";
+const WS = process.env.WS_URL || "wss://hdx.tarn.hydration.cloud";
+const RPC = process.env.RPC_URL || "https://hdx.tarn.hydration.cloud";
 
 const SYNTH = req("PROPELLER_SYNTH");
 const SUBLOOP = req("PROPELLER_SUBLOOP");
@@ -35,9 +41,33 @@ const VAULTS = req("PROPELLER_VAULTS").split(",").map((v) => v.trim()).filter(Bo
 const SWAPPER = process.env.PROPELLER_SWAPPER;
 const GUARDIAN = process.env.PROPELLER_GUARDIAN;
 const LOOPER = process.env.PROPELLER_LOOPER;
+const FEES = req("PROPELLER_FEE_CONTROLLER");
+const FEE_RECIPIENT = req("PROPELLER_FEE_RECIPIENT");
+const DISCOUNT = req("PROPELLER_DISCOUNT_CONTROLLER");
+const COMMITTEE = req("PROPELLER_DISCOUNT_COMMITTEE");
+const DISCOUNT_BPS = Number(req("PROPELLER_DISCOUNT_BPS"));
+const SLIPPAGE_PPM = Number(req("PROPELLER_SLIPPAGE_PPM"));
+const WITHDRAWAL_DELAY = Number(process.env.PROPELLER_WITHDRAWAL_DELAY ?? "43200");
 const SYNTH_ASSET_ID = Number(process.env.PROPELLER_SYNTH_ASSET_ID || 5550);
 const POOL = process.env.POOL || "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38";
 const GOV = "0xaa7e0000000000000000000000000000000aa7e0";
+const ROUNDING = parseRoundingPolicies(req("PROPELLER_ROUNDING_RESERVES"), VAULTS);
+
+for (const address of [SYNTH, SUBLOOP, HARVESTER, FEES, FEE_RECIPIENT, DISCOUNT, COMMITTEE, POOL, ...VAULTS]) {
+  if (!ethers.utils.isAddress(address) || eq(address, ethers.constants.AddressZero)) {
+    throw new Error(`invalid or zero deployment address: ${address}`);
+  }
+}
+if (VAULTS.length === 0 || new Set(VAULTS.map(v => v.toLowerCase())).size !== VAULTS.length) {
+  throw new Error("PROPELLER_VAULTS must contain a nonempty, unique list");
+}
+if (!Number.isInteger(DISCOUNT_BPS) || DISCOUNT_BPS < 0 || DISCOUNT_BPS > 10000
+    || !Number.isInteger(SLIPPAGE_PPM) || SLIPPAGE_PPM < 0 || SLIPPAGE_PPM >= 1000000) {
+  throw new Error("invalid explicitly approved discount or slippage rate");
+}
+if (!Number.isInteger(WITHDRAWAL_DELAY) || WITHDRAWAL_DELAY < 0 || WITHDRAWAL_DELAY > 0xffffffff) {
+  throw new Error("invalid withdrawal delay; expected uint32 seconds");
+}
 
 // The route the loop is pinned to. DcaDispatch bakes ROUTER_PALLET=67 into
 // bytecode, so a runtime that renumbers pallets breaks every deploy and unwind
@@ -64,7 +94,9 @@ const results: Result[] = [];
 function add(group: string, name: string, ok: boolean, detail = "") {
   results.push({ group, name, ok, detail });
 }
-const eq = (a?: string, b?: string) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+function eq(a?: string, b?: string): boolean {
+  return !!a && !!b && a.toLowerCase() === b.toLowerCase();
+}
 
 /// Safe chain read. A verification gate must NEVER abort on the first reverting
 /// call — a missing function (wrong contract version) or an unlisted reserve is
@@ -104,6 +136,14 @@ async function main() {
   console.log(`  vaults: ${VAULTS.join(", ")}\n`);
 
   const api = await ApiPromise.create({ provider: new WsProvider(WS), noInitWarn: true });
+
+  await section("R. Custody dust protection", async () => {
+    for (const address of [SUBLOOP, HARVESTER, FEES, ...VAULTS, ...(SWAPPER ? [SWAPPER] : [])]) {
+      const account = await nativeAccount(api, address);
+      const protectedFromDust = (await api.call.dusterApi.isWhitelisted(account) as any).isTrue;
+      add("R. Custody dust protection", address, protectedFromDust, account);
+    }
+  });
 
   // ===================================================================
   // A. Runtime — the pallet indices DcaDispatch pins into bytecode
@@ -166,6 +206,8 @@ async function main() {
     SyntheticToken: SYNTH,
     SubLoop: SUBLOOP,
     Harvester: HARVESTER,
+    FeeController: FEES,
+    DiscountController: DISCOUNT,
     Pool: POOL,
   };
   VAULTS.forEach((v, i) => (contracts[`CollateralVault[${i}]`] = v));
@@ -247,6 +289,7 @@ async function main() {
     [
       ...ACCESS_ABI,
       "function harvester() view returns (address)",
+      "function prime() view returns (address)",
       "function deployTranche() view returns (uint256)",
       "function unwindTranche() view returns (uint256)",
       "function hollarAssetId() view returns (uint32)",
@@ -264,6 +307,7 @@ async function main() {
       "function sharesOf(address) view returns (uint256)",
       "function negativeCarryBps() view returns (uint256)",
       "function paused() view returns (bool)",
+      "function emergencyPaused() view returns (bool)",
     ],
     provider
   );
@@ -296,6 +340,7 @@ async function main() {
       "function isRegistered(address) view returns (bool)",
       "function subLoop() view returns (address)",
       "function prime() view returns (address)",
+      "function feeController() view returns (address)",
     ],
     provider
   );
@@ -332,10 +377,13 @@ async function main() {
 
     const ppmRaw = await sread(() => loopC.dcaSlippagePpm());
     const ppm = Number(ppmRaw ?? 0);
-    add("F. Wiring", "dcaSlippagePpm configured (0 = swaps demand exact oracle price)", ppm > 0, `${ppm} ppm = ${(ppm / 10000).toFixed(2)}%`);
-    add("F. Wiring", "dcaSlippagePpm <= 10% (sanity bound on a permissionless swap)", ppm > 0 && ppm <= 100000, `${ppm} ppm`);
+    add("F. Wiring", "route slippage matches explicitly approved policy", ppmRaw !== undefined
+      && Number.isInteger(SLIPPAGE_PPM) && SLIPPAGE_PPM >= 0 && SLIPPAGE_PPM < 1_000_000
+      && ppm === SLIPPAGE_PPM, `got ${ppm}, approved ${SLIPPAGE_PPM} ppm`);
 
     add("F. Wiring", "harvester.subLoop == deployed SubLoop", eq(await sread(() => harvC.subLoop()), SUBLOOP));
+    add("F. Wiring", "harvester yield asset matches source", eq(await sread(() => harvC.prime()), await sread(() => loopC.prime())));
+    add("F. Wiring", "harvester fee controller", eq(await sread(() => harvC.feeController()), FEES));
 
     const vcRaw = await sread(() => harvC.vaultCount());
     if (vcRaw === undefined) {
@@ -372,6 +420,7 @@ async function main() {
   // ===================================================================
   const VAULT_ABI = [
     ...ACCESS_ABI,
+    "function asset() view returns (address)",
     "function synthLtBps() view returns (uint256)",
     "function compoundSlippageBps() view returns (uint16)",
     "function swapper() view returns (address)",
@@ -386,6 +435,8 @@ async function main() {
     "function queueHead() view returns (uint256)",
     "function queueTail() view returns (uint256)",
     "function totalQueuedDebt() view returns (uint256)",
+    "function withdrawalDelay() view returns (uint32)",
+    "function roundingReserve() view returns (uint256)",
     "function paused() view returns (bool)",
     "function depositsPaused() view returns (bool)",
     "function symbol() view returns (string)",
@@ -430,6 +481,21 @@ async function main() {
       }
 
       add(g, "not paused", (await sread(() => c.paused())) === false);
+      const delay = await sread(() => c.withdrawalDelay());
+      add(g, "withdrawal cooldown matches approved duration", delay !== undefined && Number(delay) === WITHDRAWAL_DELAY,
+        `${delay ?? "read reverted"} seconds; expected ${WITHDRAWAL_DELAY}`);
+      const roundingReserve = await sread(() => c.roundingReserve());
+      await section(`${g} rounding`, async () => {
+        const policy = ROUNDING.get(v.toLowerCase())!;
+        const collateral = await c.asset();
+        const native = await nativeRoundingPolicy(api, policy, collateral);
+        add(g, "rounding reserve meets approved alert threshold", !!roundingReserve && roundingReserve.gte(policy.minimum.toString()),
+          `reserve=${roundingReserve ?? "unreadable"}; minimum=${policy.minimum}; target=${policy.target}; ED=${native.ed}`);
+        const token = new ethers.Contract(collateral, ["function balanceOf(address) view returns (uint256)"], provider);
+        const raw = await token.balanceOf(v);
+        add(g, "rounding reserve held in idle collateral", !!roundingReserve && raw.gte(roundingReserve), raw.toString());
+        add(g, "vault protected from dust removal", native.protectedFromDust, native.account);
+      });
       add(g, "deposits not paused", (await sread(() => c.depositsPaused())) === false);
       const cap = await sread(() => c.tvlCap());
       add(g, "tvlCap > 0", !!cap && cap.gt(0), cap?.toString() ?? "read reverted");
@@ -447,7 +513,7 @@ async function main() {
           rate?.toString() ?? "read reverted"
         );
       } else {
-        add(g, "vault is empty (pre-seed)", true, `totalAssets=${ta?.toString() ?? "?"}`);
+        add(g, "governance bootstrap completed", false, `unseeded or unreadable; totalAssets=${ta?.toString() ?? "?"}`);
       }
       add(
         g,
@@ -463,6 +529,7 @@ async function main() {
   // ===================================================================
   await section("H. Loop health", async () => {
     add("H. Loop health", "subLoop not paused", (await sread(() => loopC.paused())) === false);
+    add("H. Loop health", "source-wide emergency freeze inactive", (await sread(() => loopC.emergencyPaused())) === false);
     const hf = await sread(() => loopC.healthFactor());
     const target = await sread(() => loopC.targetHf());
     const floor = await sread(() => loopC.deployHfFloor());
@@ -498,10 +565,63 @@ async function main() {
     } else {
       add(
         "H. Loop health",
-        "loop not ramped yet (equity 0)",
-        true,
-        "pokeBorrow to ramp; requestRedeem reverts NoLoopEquity until then"
+        "positive loop equity after governance bootstrap",
+        false,
+        equity === undefined ? "totalEquity read reverted" : "zero equity is not production ready"
       );
+    }
+  });
+
+  await section("J. Fees and discount", async () => {
+    const fees = new ethers.Contract(FEES, [
+      ...ACCESS_ABI,
+      "function feeRecipient() view returns (address)",
+      "function validateVault(address,address) view",
+      "function protocolFeeBps(address) view returns (uint16)",
+    ], provider);
+    const discount = new ethers.Contract(DISCOUNT, [
+      ...ACCESS_ABI,
+      "function debtToken() view returns (address)",
+      "function synthetic() view returns (address)",
+      "function discountBps() view returns (uint16)",
+      "function isRegistered(address) view returns (bool)",
+      "function vaults() view returns (address[])",
+    ], provider);
+    const group = "J. Fees and discount";
+    add(group, "fee owner is governance", (await sread(() => fees.hasRole(ethers.constants.HashZero, GOV))) === true);
+    add(group, "treasury recipient", eq(await sread(() => fees.feeRecipient()), FEE_RECIPIENT));
+    add(group, "discount enrollment owner is governance", (await sread(() => discount.hasRole(ethers.constants.HashZero, GOV))) === true);
+    add(group, "committee has rate authority", (await sread(() => discount.hasRole(ROLE("RATE_ADMIN_ROLE"), COMMITTEE))) === true);
+    add(group, "committee has no enrollment authority", (await sread(() => discount.hasRole(ethers.constants.HashZero, COMMITTEE))) === false);
+    add(group, "committee has no fee authority", (await sread(() => fees.hasRole(ethers.constants.HashZero, COMMITTEE))) === false);
+    add(group, "discount synthetic", eq(await sread(() => discount.synthetic()), SYNTH));
+    const rate = await sread(() => discount.discountBps());
+    add(group, "explicitly approved discount rate", Number.isInteger(DISCOUNT_BPS) && DISCOUNT_BPS >= 0
+      && DISCOUNT_BPS <= 10000 && rate !== undefined && Number(rate) === DISCOUNT_BPS);
+    const participants = await sread(() => discount.vaults());
+    add(group, "exact approved discount participant set", Array.isArray(participants)
+      && participants.length === VAULTS.length && VAULTS.every(v => participants.some((p: string) => eq(p, v))));
+    add(group, "SubLoop is not discounted", (await sread(() => discount.isRegistered(SUBLOOP))) === false);
+    const debtAddress = await discount.debtToken();
+    const debt = new ethers.Contract(debtAddress, [
+      "function getDiscountToken() view returns (address)",
+      "function getDiscountRateStrategy() view returns (address)",
+    ], provider);
+    add(group, "HOLLAR discount token installed", eq(await sread(() => debt.getDiscountToken()), DISCOUNT));
+    add(group, "HOLLAR discount strategy installed", eq(await sread(() => debt.getDiscountRateStrategy()), DISCOUNT));
+    for (const vault of VAULTS) {
+      const c = new ethers.Contract(vault, [
+        "function feeController() view returns (address)",
+        "function discountController() view returns (address)",
+        "function hollarDebtToken() view returns (address)",
+        "function isUnderfunded() view returns (bool)",
+      ], provider);
+      add(group, `${vault}: fee pointer`, eq(await sread(() => c.feeController()), FEES));
+      add(group, `${vault}: initial 5% fee`, Number(await sread(() => fees.protocolFeeBps(vault))) === 500);
+      add(group, `${vault}: binding validates`, (await sread(async () => { await fees.validateVault(vault, HARVESTER); return true; })) === true);
+      add(group, `${vault}: discount pointer`, eq(await sread(() => c.discountController()), DISCOUNT));
+      add(group, `${vault}: same HOLLAR debt token`, eq(await sread(() => c.hollarDebtToken()), debtAddress));
+      add(group, `${vault}: not underfunded`, (await sread(() => c.isUnderfunded())) === false);
     }
   });
 

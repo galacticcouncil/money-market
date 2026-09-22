@@ -19,6 +19,9 @@ contract Handler is Test {
     MockERC20 public prime;
 
     uint256 public ghostEscrowed; // pShares escrowed in open redemptions
+    uint256 public successfulDeposits;
+    uint256 public ghostRequested;
+    uint256 public ghostClaimed;
     uint256[] public reqIds;
 
     constructor(
@@ -44,6 +47,7 @@ contract Handler is Test {
         eth.mint(address(this), amt);
         eth.approve(address(vault), amt);
         vault.deposit(amt, address(this));
+        successfulDeposits++;
     }
 
     // ── keeper: ramp the loop (each poke borrows + levers a tranche) ─────────
@@ -62,6 +66,16 @@ contract Handler is Test {
         uint256 id = vault.requestRedeem(shares, address(this));
         reqIds.push(id);
         ghostEscrowed += shares;
+    }
+
+    function advanceAndStart(uint256 secondsForward, uint256 count) external {
+        vm.warp(block.timestamp + bound(secondsForward, 0, 24 hours));
+        uint256 before = vault.queueUnwind();
+        vault.startUnwinds(bound(count, 1, 8));
+        for (uint256 id = before; id < vault.queueUnwind(); ++id) {
+            (, , uint256 owed, , , , , , ) = vault.redemptions(id);
+            ghostRequested += owed;
+        }
     }
 
     // ── keeper: deleveraging spiral (pokeRepay sells + repays per call) ───────
@@ -100,7 +114,7 @@ contract Handler is Test {
         // collateral paid, so track the ACTUAL burn (escrow balance delta)
         // rather than assuming the whole request closes.
         uint256 escrowBefore = vault.balanceOf(address(vault));
-        vault.claim(id, address(this));
+        ghostClaimed += vault.claim(id, address(this));
         ghostEscrowed -= (escrowBefore - vault.balanceOf(address(vault)));
     }
 }

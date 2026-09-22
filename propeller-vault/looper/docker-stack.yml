@@ -14,6 +14,7 @@
 #                           with it unset the bot only ever ramps. The lark-2 stack
 #                           set this while the code read `VAULT_ADDRESS`, so every
 #                           vault-level op was silently skipped for months.
+#   PROPELLER_ROUNDING_RESERVES - per-vault JSON base-unit minimum/target policy
 #   HARVESTER_ADDRESS     — Harvester; harvest is skipped when unset
 #   LOOPER_PRIVATE_KEY    — signer key. Every op the bot calls is PERMISSIONLESS,
 #                           so this account needs NO role — only gas.
@@ -34,9 +35,10 @@ services:
   looper:
     image: ${IMAGE:-galacticcouncil/propeller-looper:latest}
     environment:
-      RPC_URL: ${RPC_URL:-https://rpc.nice.hydration.cloud}
+      RPC_URL: ${RPC_URL:-https://hdx.tarn.hydration.cloud}
       SUBLOOP_ADDRESS: ${SUBLOOP_ADDRESS:?SUBLOOP_ADDRESS required}
       VAULT_ADDRESSES: ${VAULT_ADDRESSES:?VAULT_ADDRESSES required (comma-separated)}
+      PROPELLER_ROUNDING_RESERVES: ${PROPELLER_ROUNDING_RESERVES:?PROPELLER_ROUNDING_RESERVES required}
       HARVESTER_ADDRESS: ${HARVESTER_ADDRESS:-}
       LOOPER_PRIVATE_KEY: ${LOOPER_PRIVATE_KEY:?LOOPER_PRIVATE_KEY required}
       POOL_ADDRESS: ${POOL_ADDRESS:-0x1b02E051683b5cfaC5929C25E84adb26ECf87B38}

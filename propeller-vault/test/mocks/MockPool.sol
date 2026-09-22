@@ -27,6 +27,19 @@ contract MockPool is IAavePool {
 
     mapping(address => Reserve) public reserves;
     address[] public assets;
+    uint256 public repayLimit = type(uint256).max;
+    mapping(address => uint256) public supplyRoundingLoss;
+    mapping(address => uint256) public withdrawRoundingLoss;
+
+    /// @notice Model pessimistic aToken balance rounding independently of exact transfers.
+    function setCollateralRounding(address asset, uint256 supplyLoss, uint256 withdrawLoss) external {
+        supplyRoundingLoss[asset] = supplyLoss;
+        withdrawRoundingLoss[asset] = withdrawLoss;
+    }
+
+    function setRepayLimit(uint256 limit) external {
+        repayLimit = limit;
+    }
     /// @notice asset => reserve is in isolation mode. Aave's
     ///         `validateAutomaticUseAsCollateral` refuses to auto-enable a
     ///         supplied asset as collateral when isolation mode is involved, so
@@ -97,7 +110,7 @@ contract MockPool is IAavePool {
         IERC20(asset).transferFrom(msg.sender, address(this), amount);
         Reserve storage r = reserves[asset];
         bool firstSupply = r.aToken.balanceOf(onBehalfOf) == 0;
-        r.aToken.mint(onBehalfOf, amount);
+        r.aToken.mint(onBehalfOf, amount - supplyRoundingLoss[asset]);
         // Aave SupplyLogic.executeSupply: auto-enable only on first supply, and
         // validateAutomaticUseAsCollateral rejects LTV-0 reserves AND anything
         // touching isolation mode. An isolated reserve therefore needs an
@@ -108,7 +121,7 @@ contract MockPool is IAavePool {
     }
 
     function withdraw(address asset, uint256 amount, address to) external override returns (uint256) {
-        reserves[asset].aToken.burn(msg.sender, amount);
+        reserves[asset].aToken.burn(msg.sender, amount + withdrawRoundingLoss[asset]);
         require(_hf(msg.sender) >= WAD, "MockPool: HF<1 after withdraw");
         // pool must hold the asset (was supplied here); send it out
         IERC20(asset).transfer(to, amount);
@@ -128,6 +141,7 @@ contract MockPool is IAavePool {
     {
         uint256 d = reserves[asset].debtToken.balanceOf(onBehalfOf);
         uint256 r = amount > d ? d : amount;
+        if (r > repayLimit) r = repayLimit;
         IERC20(asset).transferFrom(msg.sender, address(this), r);
         reserves[asset].debtToken.burn(onBehalfOf, r);
         return r;

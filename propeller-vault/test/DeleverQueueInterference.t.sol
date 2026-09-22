@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test, console2} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -108,6 +109,7 @@ contract DeleverQueueInterferenceTest is Test {
         loop.configureDca(222, 43, 1043, 143, 10_000);
 
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
+        RoundingReserveFixture.fund(vault);
         loop.registerVault(address(vault));
         loop.setTranches(10_000_000e18, 10_000_000e6);
     }
@@ -160,7 +162,7 @@ contract DeleverQueueInterferenceTest is Test {
     ///
     /// Pre-fix on this scenario: deleverTarget 1125e18 against 225e18 of non-queued
     /// debt — a 5x over-size that repaid 900 HOLLAR of the redeemer's own debt.
-    function test_rebalanceDeleverIsCappedAtNonQueuedDebt() public {
+    function test_rebalanceWaitsForQueuedExit() public {
         _depositAndRamp();
 
         uint256 debtBefore = hollarDebt.balanceOf(address(vault));
@@ -170,6 +172,8 @@ contract DeleverQueueInterferenceTest is Test {
         // Redeem 90% of the supply. The snapshot claims 90% of Main debt.
         uint256 shares = (vault.balanceOf(address(this)) * 90) / 100;
         uint256 id = vault.requestRedeem(shares, address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
         (, , uint256 debtShare, , ) = _req(id);
         uint256 queuedDebt = vault.totalQueuedDebt();
         assertEq(debtShare, queuedDebt, "queue holds the whole snapshot");
@@ -187,7 +191,7 @@ contract DeleverQueueInterferenceTest is Test {
         console2.log("deleverTarget   ", target);
 
         assertLe(target, nonQueuedDebt, "de-lever must never exceed the NON-queued Main debt");
-        assertGt(target, 0, "but it must still de-lever the non-queued portion");
+        assertEq(target, 0, "Main resizing waits; source safety de-lever remains independent");
 
         // The de-lever's synthetic burn is proportional to the debt it repays, so
         // capping the debt caps the burn: the queued request's pre-burn synthShare
@@ -214,10 +218,12 @@ contract DeleverQueueInterferenceTest is Test {
     /// past the head request, every request behind it is blocked forever, the
     /// redeemer's last sliver of collateral is never released, and
     /// `setYieldSource`'s drain guard can never be satisfied.
-    function test_unwindSpiralTailIsRetiredNotStalled() public {
+    function test_unwindSpiralTailRemainsClaimableUntilRecovery() public {
         _depositAndRamp();
         uint256 shares = vault.balanceOf(address(this));
         uint256 id = vault.requestRedeem(shares, address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
 
         uint256 rounds = _grind(2_000);
         (, , uint256 ds, uint256 repaid, bool active) = _req(id);
@@ -229,17 +235,23 @@ contract DeleverQueueInterferenceTest is Test {
         console2.log("unwindTargetEquity ", loop.unwindTargetEquity());
         console2.log("queueHead / tail   ", vault.queueHead(), vault.queueTail());
 
-        assertLt(rounds, 2_000, "spiral must terminate, not burn the whole budget");
-        assertEq(loop.unwindTargetEquity(), 0, "unrealizable remainder written off");
-        assertEq(loop.pendingUnwindOf(address(vault)), 0, "vault has no outstanding claim");
-        assertGe(repaid, ds, "request reaches its (snapped-down) debtShare");
-        assertEq(vault.queueHead(), vault.queueTail(), "FIFO head retires");
-        assertTrue(active, "still claimable until the owner claims");
+        assertGt(loop.pendingUnwindOf(address(vault)), 0, "unpaid source claim survives dust stall");
+        assertLt(repaid, ds, "original debt promise remains unchanged");
+        assertEq(vault.queueHead(), id, "unpaid request stays at FIFO head");
+        assertTrue(active, "still claimable until fully paid");
+        uint256 paid = vault.claim(id, address(this));
+        (, , uint256 originalDebt, , bool partiallyActive) = _req(id);
+        assertEq(originalDebt, ds);
+        assertTrue(partiallyActive);
 
-        // The redeemer gets essentially all of it, and claim closes the request out.
-        uint256 before = eth.balanceOf(address(this));
-        vault.claim(id, address(this));
-        assertGt(eth.balanceOf(address(this)) - before, 0.99e18, "collateral returned");
+        // A recovery donation funds the missing tail, never a new user's deposit.
+        hollar.mint(address(loop), 1e18);
+        _grind(100);
+        hollar.mint(address(vault), 1e18);
+        vault.pokeSettle();
+        paid += vault.claim(id, address(this));
+        assertEq(paid, 1e18 - 1000, "all principal apart from governance bootstrap is returned");
+        assertEq(vault.queueHead(), vault.queueTail());
         (, , , , bool stillActive) = _req(id);
         assertFalse(stillActive, "request closed on final claim");
     }
@@ -252,26 +264,19 @@ contract DeleverQueueInterferenceTest is Test {
     ///
     /// Observed live on lark-4 (2026-07-31): a pre-ramp redeem left an orphaned
     /// request #0 that only later settled out of the commingled freed bucket.
-    function test_requestRedeemBeforeRampRecordsZeroUnwindTarget() public {
+    function test_requestRedeemBeforeRampHasRecognizedBacking() public {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         vault.deposit(1e18, address(this)); // NO pokeBorrow ramp
 
         assertGt(vault.loopShares(), 0, "vault holds loop shares");
-        assertEq(loop.totalEquity(), 0, "un-ramped loop: aPRIME not flagged as collateral");
+        assertGt(loop.totalEquity(), 0, "deposit enables PRIME collateral immediately");
 
         uint256 shares = vault.balanceOf(address(this)) / 2;
 
-        // Fail closed rather than escrow shares against a target of zero.
-        vm.expectRevert(CollateralVault.NoLoopEquity.selector);
-        vault.requestRedeem(shares, address(this));
-
-        // pokeBorrow is permissionless — ramp and the same call now succeeds with a
-        // real, fundable unwind target.
-        loop.pokeBorrow();
-        assertGt(loop.totalEquity(), 0, "loop has equity once ramped");
-
         uint256 id = vault.requestRedeem(shares, address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
         (, , uint256 debtShare, , bool active) = _req(id);
         assertGt(debtShare, 0, "vault enqueued a real debt slice");
         assertTrue(active, "request is live");
@@ -282,21 +287,20 @@ contract DeleverQueueInterferenceTest is Test {
         );
     }
 
-    /// The guard is on the VAULT, not the loop: `SubLoop.requestUnwind` must stay
-    /// able to burn shares and record a (possibly zero) target unconditionally, so
-    /// the seam keeps working for any future caller that has no user to strand.
-    function test_subLoopRequestUnwindStillPermissiveAtZeroEquity() public {
+    /// Zero backing must not destroy source shares in exchange for a zero claim.
+    function test_subLoopPreservesSharesAtZeroEquity() public {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
-        vault.deposit(1e18, address(this)); // NO ramp -> totalEquity() == 0
+        vault.deposit(1e18, address(this));
+        pool.setPrice(address(prime), 0);
 
         assertEq(loop.totalEquity(), 0, "un-ramped loop reports zero equity");
         assertGt(loop.sharesOf(address(vault)), 0, "but the vault holds loop shares");
 
-        // The loop itself does not reject a zero-equity unwind — only the vault does.
         uint256 held = loop.sharesOf(address(vault));
+        vm.expectRevert(SubLoop.Underfunded.selector);
         vm.prank(address(vault));
         loop.requestUnwind(held);
-        assertEq(loop.sharesOf(address(vault)), 0, "source burned the shares");
+        assertEq(loop.sharesOf(address(vault)), held, "source shares survive for recovery");
     }
 }

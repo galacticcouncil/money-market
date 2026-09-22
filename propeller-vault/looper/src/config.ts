@@ -1,7 +1,8 @@
 import 'dotenv/config';
+import { parseRoundingPolicies } from './rounding-policy.js';
 
 export const CONFIG = {
-  RPC_URL: process.env.RPC_URL || 'https://rpc.nice.hydration.cloud',
+  RPC_URL: process.env.RPC_URL || 'https://hdx.tarn.hydration.cloud',
   // signer only pays gas — pokeBorrow is permissionless, no role required.
   PRIVATE_KEY: process.env.LOOPER_PRIVATE_KEY as `0x${string}`,
   SUBLOOP_ADDRESS: process.env.SUBLOOP_ADDRESS as `0x${string}`,
@@ -28,3 +29,7 @@ export const CONFIG = {
   SLOW_EVERY: Number(process.env.SLOW_EVERY || 10),
   ALERT_WEBHOOK: process.env.ALERT_WEBHOOK,
 };
+
+export const ROUNDING_POLICIES = parseRoundingPolicies(
+  process.env.PROPELLER_ROUNDING_RESERVES || '[]', CONFIG.VAULT_ADDRESSES,
+);

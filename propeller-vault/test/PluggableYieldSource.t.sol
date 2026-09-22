@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
@@ -73,6 +74,7 @@ contract PluggableYieldSourceTest is Test {
         );
 
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
+        RoundingReserveFixture.fund(vault);
     }
 
     function test_depositRedeemClaimThroughNonLeveragedSource() public {
@@ -94,6 +96,8 @@ contract PluggableYieldSourceTest is Test {
         // source has none; requestUnwind frees synchronously and pokeSettle pulls
         // it straight back.
         uint256 reqId = vault.requestRedeem(shares, address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
         vault.pokeSettle();
         uint256 got = vault.claim(reqId, address(this));
 

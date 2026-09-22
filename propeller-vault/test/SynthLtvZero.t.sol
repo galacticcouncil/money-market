@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
@@ -58,48 +59,37 @@ contract SynthLtvZeroTest is Test {
         loop.configureDca(222, 43, 1043, 143, 10_000);
 
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
+        RoundingReserveFixture.fund(vault);
         loop.registerVault(address(vault));
         loop.setTranches(10_000_000e18, 10_000_000e6);
     }
 
-    function test_ltvZeroSynthFloorInertAndRebalancePhantom() public {
-        // deposit still works — the explicit enable reverts inside Aave and the
-        // vault's try/catch swallows it (deposits not bricked by the listing)
+    function test_ltvZeroSynthRejectsDepositAtomically() public {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
+        vm.expectRevert("MockPool: ltv 0");
         vault.deposit(1e18, address(this));
-
-        // 1. floor INERT: the synth is supplied but NOT in totalCollateralBase
-        (uint256 collBase8,,,,,) = pool.getUserAccountData(address(vault));
-        assertApproxEqRel(collBase8, 3_000e8, 0.01e18, "collateral = ETH only, synth invisible");
-        // → a crash liquidates the principal (the guarantee does NOT hold)
-        pool.setPrice(address(eth), 30e18);
-        (,,,,, uint256 hfCrash) = pool.getUserAccountData(address(vault));
-        assertLt(hfCrash, 1e18, "floor inert: principal liquidatable");
-        pool.setPrice(address(eth), 3_000e18);
-
-        // 2. rebalance phantom: ethValue8 = (ETH only) − synthValue ≈ $693 vs
-        //    $2250 debt → ~324% LTV → manufactures a de-lever every call
-        uint256 loopBefore = vault.loopShares();
-        vault.rebalance();
-        assertGt(vault.deleverTarget(), 0, "phantom de-lever scheduled");
-        assertLt(vault.loopShares(), loopBefore, "loop shares burned by phantom unwind");
+        assertEq(eth.balanceOf(address(this)), 1e18);
+        assertEq(vault.totalSupply(), 0);
+        assertEq(hollarDebt.balanceOf(address(vault)), 0);
+        assertEq(vault.syntheticSupplied(), 0);
     }
 
     function test_governanceLtvBumpPlusNextSupplyRecovers() public {
         eth.mint(address(this), 2e18);
         eth.approve(address(vault), 2e18);
-        vault.deposit(1e18, address(this)); // first supply under LTV 0 → not enabled
+        vm.expectRevert("MockPool: ltv 0");
+        vault.deposit(1e18, address(this));
 
         // remedy step 1: governance lists the synth with a small non-zero LTV.
         // NOT retroactive — the existing position is still un-flagged…
         pool.setLtv(address(synth), 100);
         (uint256 collBefore8,,,,,) = pool.getUserAccountData(address(vault));
-        assertApproxEqRel(collBefore8, 3_000e8, 0.01e18, "bump alone doesn't retro-enable");
+        assertEq(collBefore8, 0, "failed deposit left no position");
 
         // remedy step 2: the NEXT synth supply (any deposit / peg top-up) hits
         // the vault's explicit setUserUseReserveAsCollateral → floor engages
-        vault.deposit(1e18, address(this));
+        vault.deposit(2e18, address(this));
         (uint256 collAfter8,,,,,) = pool.getUserAccountData(address(vault));
         assertGt(collAfter8, 10_000e8, "synth now in totalCollateralBase");
 

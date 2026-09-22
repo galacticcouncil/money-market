@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {PropellerDiscount} from "../src/PropellerDiscount.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -67,6 +68,7 @@ contract CollateralVaultDiscountTest is Test {
             )
         );
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
+        RoundingReserveFixture.fund(vault);
         discount = new PropellerDiscount(address(debt), address(synth), address(aSynth), address(this), COMMITTEE);
         debt.setPolicy(address(discount));
         collateral.mint(address(this), 10e18);
@@ -117,6 +119,8 @@ contract CollateralVaultDiscountTest is Test {
         uint256 shares = vault.deposit(1e18, address(this));
         uint256 beforeSynth = aSynth.balanceOf(address(vault));
         uint256 request = vault.requestRedeem(shares / 2, address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
         vault.pokeSettle();
         assertLt(aSynth.balanceOf(address(vault)), beforeSynth);
         assertEq(debt.lastEligibleBalance(address(vault)), aSynth.balanceOf(address(vault)));
@@ -130,6 +134,8 @@ contract CollateralVaultDiscountTest is Test {
         assertEq(debt.getDiscountPercent(address(vault)), 0);
         assertTrue(synth.hasRole(synth.MINTER_ROLE(), address(vault)));
         uint256 request = vault.requestRedeem(shares, address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
         vault.pokeSettle();
         assertGt(vault.claim(request, address(this)), 0);
     }
@@ -140,6 +146,8 @@ contract CollateralVaultDiscountTest is Test {
         discount.unregisterVault(address(vault));
         vault.maintainPeg();
         uint256 request = vault.requestRedeem(shares, address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
         vault.pokeSettle();
         assertEq(debt.getDiscountPercent(address(vault)), 0);
         assertGt(vault.claim(request, address(this)), 0);

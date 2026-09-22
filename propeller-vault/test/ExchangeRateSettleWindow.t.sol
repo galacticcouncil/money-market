@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
@@ -117,6 +118,7 @@ contract ExchangeRateSettleWindowTest is Test {
         loop.configureDca(222, 43, 1043, 143, 10_000);
 
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
+        RoundingReserveFixture.fund(vault);
         loop.registerVault(address(vault));
         loop.setTranches(10_000_000e18, 10_000_000e6);
     }
@@ -126,6 +128,8 @@ contract ExchangeRateSettleWindowTest is Test {
     /// shares are still outstanding, and nothing has been claimed yet.
     function _settleWithoutClaiming(uint256 sharesToRedeem) internal {
         vault.requestRedeem(sharesToRedeem, address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
         for (uint256 i = 0; i < 400; i++) {
             if (loop.unwindTargetEquity() == 0) break;
             loop.pokeRepay();
@@ -178,6 +182,10 @@ contract ExchangeRateSettleWindowTest is Test {
         // Bob deposits 1 ETH inside the window. Real per-share value is unchanged,
         // so he must receive the same shares the pre-settle quote implied.
         eth.mint(bob, 1e18);
+        // Cover source conversion dust independently, never from Bob's deposit.
+        hollar.mint(address(loop), 1e18);
+        hollar.mint(address(vault), 1e18);
+        assertFalse(vault.isUnderfunded());
         vm.startPrank(bob);
         eth.approve(address(vault), 1e18);
         uint256 bobShares = vault.deposit(1e18, bob);
