@@ -24,7 +24,7 @@ result — run `verify-readiness.ts` and read its table.
 | `POOL`, `HOLLAR`, `HOLLAR_VDEBT`, `ETH`/`TBTC`, `AETH`/`ATBTC`, `PRIME`, `APRIME` | `.env` | Read live off `pool.getReserveData` — do **not** trust a previous lark's values |
 | Synthetic asset id is free | `assetRegistry.assets(5550)` | Must be `None`, else pick another and set `PROPELLER_SYNTH_ASSET_ID` |
 | Router pallet index is 66/67 | `scripts/propeller/gen-router-reference.mjs` | **Run this.** `DcaDispatch` bakes pallet 67 into SubLoop's bytecode; a runtime reorder breaks every deposit and unwind and needs a UUPS upgrade to fix |
-| Router has a PRIME→collateral route | router | `compound` cannot convert carry without it |
+| Router has PRIME-to-collateral and collateral-to-HOLLAR routes | router | Both harvest conversion and Main servicing must execute |
 | HydraAugustus (REQ-SWAP) deployed | `../aave-debt-swap` | Not on mainnet yet. Without it `compound` is inert — deploy with the placeholder and `setSwapper` later |
 | pool-143 depth vs `dcaSlippagePpm` | stableswap | Thin depth forces a wider min-out; see the handover doc's lark-4 lesson |
 
@@ -47,6 +47,19 @@ forge script script/DeployVaultTBTC.s.sol:DeployVaultTBTC $FLAGS # → VAULT_TBT
 `DeployMain` also emits the `CollateralVault` implementation address — record it; `DeployVaultTBTC`
 reuses it rather than redeploying.
 
+Deploy one `PropellerOperatingBuffer` for each fresh vault using
+`script/DeployOperatingBuffer.s.sol`. All `OPERATING_*` inputs are explicit;
+there are no approved production defaults. The script prints the governance
+binding, configuration and bootstrap funding calls. Execute binding/configuration
+before generating batch 3; dust-whitelist custody before transferring assets,
+then fund HOLLAR bootstrap and the separate collateral rounding reserve before
+the governance seed deposit. Wire buffers before fee-controller registration.
+See [ownership and sizing](docs/operating-buffer.md).
+
+The vault constructor deploys a stateless `CompoundLogic` helper. Record and
+verify its address and bytecode too. A successful implementation deployment alone
+does not verify the buffer, proxy bindings, adapter or funded bootstrap.
+
 **What `initialize` does automatically:**
 - Grants `DEFAULT_ADMIN_ROLE`, `ADMIN_ROLE`, `UPGRADER_ROLE` **and** `GUARDIAN_ROLE` to `_admin`
   (the governance precompile), so the pause is never wired to a role nobody holds.
@@ -63,6 +76,7 @@ reuses it rather than redeploying.
 | `deployTranche`/`unwindTranche` (0) | tranche caps disabled ⇒ one `pokeBorrow` dumps the whole borrow into pool-143 |
 | `VAULT_ROLE` | `SubLoop.deposit` reverts ⇒ deposits revert |
 | `MINTER_ROLE` | `SyntheticToken.mint` reverts ⇒ deposits revert |
+| operating buffer binding, policy or bootstrap funding | deposits fail closed; no user collateral pays bootstrap |
 
 This is intentional: an unwired deployment is inert rather than exploitable.
 
@@ -79,7 +93,9 @@ npx hardhat propeller --network hydration
 
 This prints **four** preimages. Submit each as its own Root referendum, **in order**:
 
-0. **`compound routes`** — `router.forceInsertRoute` for PRIME → each collateral.
+0. **`compound routes`** — `router.forceInsertRoute` for PRIME to each collateral
+   and each collateral to HOLLAR. Custom routes use `PROPELLER_COMPOUND_ROUTES`
+   and `PROPELLER_OPERATING_ROUTES`; verify both directions through the real adapter.
    `Harvester.harvest` calls `compound(prime, cut, minOut, "")` with an **empty**
    route, so the substrate router resolves the path from its own storage and falls back
    to Omnipool when nothing is stored. PRIME is not an Omnipool asset, so without this
@@ -170,7 +186,7 @@ docker stack deploy -c propeller-vault/looper/docker-stack.yml propeller-looper
 | `harvest` reverts `HarvesterUnset` | `setHarvester` did not land |
 | `harvest` reverts "vault set incomplete" | A share-holding vault is missing from `Harvester.addVault`, or one is registered twice |
 | Wrong yield source wired | `setYieldSource` works **only before the first deposit** — `DEAD_SHARES` keep `loopShares` permanently non-zero afterwards. After that, redeploy the vault |
-| Emergency | `pause()` (guardian) stops deposits, new redemptions, rebalance and compound. `pokeSettle`/`claim` stay live so in-flight settlement completes. There is no admin force-unwind |
+| Emergency | `pause()` blocks new withdrawals, collateral release, collateral claims and HOLLAR buffer payouts. Safety Main repayment and peg maintenance remain callable. Use the emergency runbook before reopening; ordinary FIFO is not fair recovery accounting. |
 
 ---
 
@@ -179,7 +195,9 @@ docker stack deploy -c propeller-vault/looper/docker-stack.yml propeller-looper
 1. `verify-readiness.ts` exits 0.
 2. A full deposit → ramp → requestRedeem → pokeRepay → pokeSettle → claim round-trip completes
    and returns ≥ the deposited collateral.
-3. `harvest` → `compound` raises `exchangeRate()` without minting shares.
+3. Harvest charges collateral fees first, services Main interest from fresh yield,
+   replenishes owned HOLLAR, then compounds any remainder without minting shares.
+   An insufficient harvest need not raise `exchangeRate()`; it must not reduce it.
 4. `subLoop.negativeCarryBps() == 0`.
 5. Keeper runs ≥ 3 consecutive cycles with no errors.
 6. Update `deployments/` with the addresses, roles and on-chain state — that file is what the

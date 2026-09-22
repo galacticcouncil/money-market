@@ -4,8 +4,11 @@
 [current status and resource index](docs/README.md). The principal-protection
 statements below describe the intended policy under stated configuration and
 maintenance assumptions, not an unconditional guarantee from the current code.
-Main-interest servicing, production adapter verification and calibrated
-liquidity limits remain release blockers.
+Harvest-time Main servicing and isolated HOLLAR buffers are implemented on this
+branch; see [ownership and bootstrap policy](docs/operating-buffer.md) and the
+[verification report](docs/operating-buffer-verification.md). Bootstrap incentives,
+production adapter verification and calibrated liquidity limits remain release
+blockers. Existing formal proofs do not cover the new buffer implementation.
 
 Solidity contracts for **Propeller** — a protocol-managed leveraged-yield product on
 Hydration. Deposit a volatile collateral (ETH, tBTC, DOT…), keep full 1× price

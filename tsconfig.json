@@ -16,6 +16,11 @@
         "tests",
         "markets"
      ],
-     "files": ["./hardhat.config.ts"]
+     "files": ["./hardhat.config.ts"],
+     "ts-node": {
+        "moduleTypes": {
+            "propeller-vault/looper/src/rounding-policy.ts": "cjs"
+        }
+     }
 
 }

@@ -8,16 +8,16 @@ const VAULT = '0x0000000000000000000000000000000000000002';
 const OTHER = '0x0000000000000000000000000000000000000003';
 const TARGET = 1050000000000000000n;
 
-async function cycle(overrides: Record<string, bigint | boolean> = {}, multiple = false) {
+async function cycle(overrides: Record<string, bigint | boolean | string> = {}, multiple = false) {
   const calls: string[] = [];
   // Replace IO on the real scheduler; no RPC, wallets or transaction simulation.
   const keeper = Object.create(PropellerLooper.prototype) as any;
   Object.assign(keeper, { cycle: 0, subLoop: LOOP, vaults: multiple ? [VAULT, OTHER] : [VAULT], harvester: '', pool: '' });
-  const state: Record<string, bigint | boolean> = {
+  const state: Record<string, bigint | boolean | string> = {
     healthFactor: TARGET, targetHf: TARGET, unwindTargetEquity: 0n,
     deleverDebtTarget: 0n, paused: false, emergencyPaused: false, vaultPaused: false,
     queueHead: 0n, queueTail: 0n, queueUnwind: 0n, unwindEligibleAt: 100n,
-    deleverTarget: 0n, availableHollar: 0n, ...overrides,
+    deleverTarget: 0n, availableHollar: 0n, operatingBuffer: OTHER, ready: true, pendingUnwindOf: 0n, ...overrides,
   };
   keeper.read = async (_abi: unknown, _address: string, fn: string) => {
     assert.ok(fn in state, `unexpected read ${fn}`);
@@ -50,6 +50,13 @@ test('source pause stops swaps but not settlement of already freed funds', async
 });
 test('idle healthy loop ramps normally', async () => {
   assert.deepEqual(await cycle({ healthFactor: 2n * TARGET }), [`${LOOP}:pokeBorrow`]);
+});
+test('unfunded operating buffer blocks ramp but not repayment', async () => {
+  assert.deepEqual(await cycle({ healthFactor: 2n * TARGET, ready: false }), []);
+  assert.deepEqual(await cycle({ ready: false, deleverTarget: 1n }), [`${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`]);
+});
+test('late source recoveries are pulled even after collateral exits completed', async () => {
+  assert.deepEqual(await cycle({ pendingUnwindOf: 1n }), [`${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`]);
 });
 test('idle recovery surplus is not a repayment obligation', async () => {
   assert.deepEqual(await cycle({ healthFactor: 2n * TARGET, availableHollar: 100n }), [`${LOOP}:pokeBorrow`]);

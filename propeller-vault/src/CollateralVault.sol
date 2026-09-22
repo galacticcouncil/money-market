@@ -9,6 +9,7 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 import {IAavePool} from "./interfaces/IAavePool.sol";
 import {ISwapper} from "./interfaces/ISwapper.sol";
@@ -16,6 +17,8 @@ import {IYieldSource} from "./interfaces/IYieldSource.sol";
 import {ISyntheticToken} from "./interfaces/ISyntheticToken.sol";
 import {IHollarDiscountDebtToken, IPropellerDiscount} from "./interfaces/IPropellerDiscount.sol";
 import {IPropellerFeeController} from "./interfaces/IPropellerFeeController.sol";
+import {IOperatingBuffer} from "./interfaces/IOperatingBuffer.sol";
+import {CompoundLogic} from "./lib/CompoundLogic.sol";
 
 /// @title CollateralVault
 /// @notice One per supported volatile collateral (ETH, tBTC, DOT…). An ERC4626
@@ -144,6 +147,8 @@ contract CollateralVault is
     mapping(uint256 => uint256) public unwindEligibleAt;
     /// @notice Donated collateral reserved for rounding, excluded from share backing.
     uint256 public roundingReserve;
+    IOperatingBuffer public operatingBuffer;
+    address public immutable compoundLogic;
 
     event RoundingReserveFunded(address indexed donor, uint256 assets);
     event RoundingReserveUsed(uint256 assets);
@@ -184,6 +189,7 @@ contract CollateralVault is
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
+        compoundLogic = address(new CompoundLogic());
         _disableInitializers();
     }
 
@@ -293,6 +299,10 @@ contract CollateralVault is
         if (debt == 0) return false;
         uint256 backing8 = yieldSource.equityOf(address(this))
             + (yieldSource.pendingUnwindOf(address(this)) + hollar.balanceOf(address(this))) / 1e10;
+        if (address(operatingBuffer) != address(0)) {
+            if (operatingBuffer.activeUnderfunded()) return true;
+            backing8 += operatingBuffer.ownedCash() / 1e10;
+        }
         return yieldSource.negativeCarryBps() != 0 || backing8 < debt / 1e10;
     }
 
@@ -315,6 +325,9 @@ contract CollateralVault is
         if (receiver == address(0)) revert ZeroAddress();
         if (depositsPaused) revert DepositsArePaused();
         if (assets == 0) revert ZeroAmount();
+        if (address(operatingBuffer) == address(0)) revert ZeroAddress();
+        if (deleverTarget != 0) revert Underfunded();
+        uint256 debtBefore = operatingBuffer.beforeDeposit();
         if (isUnderfunded()) revert Underfunded();
         // Governance funds the locked initial shares, never the first public user.
         if (totalSupply() == 0 && !hasRole(ADMIN_ROLE, msg.sender)) revert BootstrapRequired();
@@ -357,6 +370,7 @@ contract CollateralVault is
         // 4. Route the borrowed HOLLAR into the shared loop.
         hollar.forceApprove(address(yieldSource), borrowHollar);
         loopShares += yieldSource.deposit(borrowHollar);
+        operatingBuffer.borrowed(debtBefore, shares, supply);
 
         // INV-1 (on-chain guard): the synthetic alone must cover the Main debt,
         // so the principal is un-liquidatable at any collateral price.
@@ -396,6 +410,8 @@ contract CollateralVault is
     /// @notice Start up to `maxRequests` eligible withdrawals in FIFO order.
     /// Waiting shares remain invested; collateral and debt are quoted at start.
     function startUnwinds(uint256 maxRequests) external nonReentrant whenNotPaused {
+        // Complete the active cohort's Main resize before allocating an exit.
+        if (deleverTarget != 0 || operatingBuffer.activeSourceRemaining() != 0) return;
         uint256 next = queueUnwind;
         while (next < queueTail && maxRequests != 0) {
             if (block.timestamp < unwindEligibleAt[next]) break;
@@ -418,16 +434,18 @@ contract CollateralVault is
         uint256 collateralOwed = Math.ceilDiv(numerator, supply);
         if (collateralOwed == 0) revert ZeroAmount();
         uint256 debt = hollarDebtToken.balanceOf(address(this));
-        uint256 committed = totalQueuedDebt + deleverTarget;
-        uint256 debtShare = debt > committed ? ((debt - committed) * shares) / supply : 0;
-        uint256 synthShare = debt == 0 ? 0 : (syntheticSupplied * debtShare) / debt;
         uint256 loopSlice = (loopShares * shares) / supply;
+        uint256 pending = yieldSource.pendingUnwindOf(address(this));
 
         // Ask the shared loop to unwind this vault's proportional equity slice.
         if (loopSlice != 0) {
             loopShares -= loopSlice;
             yieldSource.requestUnwind(loopSlice);
-        } else if (debtShare != 0) revert NoLoopEquity();
+        }
+        uint256 debtShare = operatingBuffer.startExit(requestId, r.owner, shares, supply,
+            yieldSource.pendingUnwindOf(address(this)) - pending);
+        if (loopSlice == 0 && debtShare != 0) revert NoLoopEquity();
+        uint256 synthShare = debt == 0 ? 0 : (syntheticSupplied * debtShare) / debt;
 
         // A split exit must not lose a base unit or charge it to remaining holders.
         _coverRounding(assetsBefore + collateralOwed - numerator / supply);
@@ -447,13 +465,19 @@ contract CollateralVault is
     ///         withdraw its collateral, and mark it claimable.
     function pokeSettle() external nonReentrant {
         uint256 assetsBefore = totalAssets();
-        yieldSource.pullFreed();
+        uint256 freed = yieldSource.pullFreed();
+        hollar.forceApprove(address(operatingBuffer), freed);
+        operatingBuffer.creditSource(freed);
+        hollar.forceApprove(address(operatingBuffer), 0);
         // Unsolicited recovery funding is not a deposit and receives no shares.
         availableHollar = hollar.balanceOf(address(this));
 
         // Already committed de-lever debt is excluded from new request snapshots.
-        if (deleverTarget > 0 && availableHollar > 0) {
-            deleverTarget -= _repayMain(deleverTarget);
+        if (deleverTarget > 0) {
+            (,uint256 repaid) = _repayMain(0, deleverTarget, availableHollar);
+            deleverTarget -= Math.min(deleverTarget, repaid);
+        } else {
+            _repayMain(0, 0, queueHead == queueUnwind ? availableHollar : 0);
         }
         if (hollarDebtToken.balanceOf(address(this)) == 0) deleverTarget = 0;
 
@@ -463,14 +487,10 @@ contract CollateralVault is
             Redemption storage r = redemptions[head];
             uint256 remainingDebt = r.debtShare - r.repaid;
             if (remainingDebt != 0) {
-                uint256 paid = _repayMain(remainingDebt);
+                (uint256 paid,) = _repayMain(head + 1, remainingDebt, availableHollar);
+                if (paid > remainingDebt) paid = remainingDebt;
                 r.repaid += paid;
                 totalQueuedDebt -= paid;
-                // External repayment may clear debt. A source shortfall cannot.
-                if (hollarDebtToken.balanceOf(address(this)) == 0) {
-                    totalQueuedDebt -= r.debtShare - r.repaid;
-                    r.debtShare = r.repaid;
-                }
             }
             uint256 entitled = r.repaid == r.debtShare
                 ? r.collateralOwed : (r.collateralOwed * r.repaid) / r.debtShare;
@@ -494,21 +514,14 @@ contract CollateralVault is
 
     /// @dev Use actual repayments and the live synthetic/debt ratio. Frozen
     /// snapshots can over-burn synthetic after another repayment or peg top-up.
-    function _repayMain(uint256 amount) internal returns (uint256 paid) {
-        uint256 debt = hollarDebtToken.balanceOf(address(this));
-        if (amount > debt) amount = debt;
-        if (amount > availableHollar) amount = availableHollar;
-        if (amount == 0) return 0;
-        hollar.forceApprove(address(pool), amount);
-        paid = pool.repay(address(hollar), amount, VARIABLE_RATE, address(this));
-        hollar.forceApprove(address(pool), 0);
-        availableHollar -= paid;
-        uint256 burn = (syntheticSupplied * paid) / debt;
-        if (burn != 0) {
-            pool.withdraw(address(synthetic), burn, address(this));
-            synthetic.burn(address(this), burn);
-            syntheticSupplied -= burn;
-        }
+    function _repayMain(uint256 key, uint256 amount, uint256 recovery)
+        internal returns (uint256 principalPaid, uint256 paid)
+    {
+        uint256 burn;
+        (principalPaid, burn, paid) = abi.decode(Address.functionDelegateCall(compoundLogic,
+            abi.encodeCall(CompoundLogic.repay, (key, amount, recovery))), (uint256, uint256, uint256));
+        availableHollar -= recovery;
+        syntheticSupplied -= burn;
     }
 
     /// @notice Claim collateral settled so far for a request. Partial-claim
@@ -569,37 +582,8 @@ contract CollateralVault is
         nonReentrant
         whenNotPaused
     {
-        if (amountIn == 0) revert ZeroAmount();
-        IPropellerFeeController controller = feeController;
-        if (address(controller) == address(0)) revert ZeroAddress();
-        uint256 collateralBefore = collateral.balanceOf(address(this));
-        uint256 inputBefore = IERC20(tokenIn).balanceOf(address(this));
-        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
-        if (IERC20(tokenIn).balanceOf(address(this)) != inputBefore + amountIn) revert PrincipalShortfall();
-        // permissionless: enforce an oracle-fair floor so a caller-supplied
-        // route/minOut can only tighten the swap, never force a lossy fill.
-        uint256 floor =
-            (controller.quoteCollateral(address(this), tokenIn, amountIn) * (BPS - compoundSlippageBps)) / BPS;
-        if (minCollateralOut < floor) minCollateralOut = floor;
-        if (tokenIn != address(collateral)) {
-            IERC20(tokenIn).forceApprove(address(swapper), amountIn);
-            swapper.sell(tokenIn, address(collateral), amountIn, minCollateralOut, route);
-            IERC20(tokenIn).forceApprove(address(swapper), 0);
-            if (IERC20(tokenIn).balanceOf(address(this)) != inputBefore) revert PrincipalShortfall();
-        }
-        // Measure receipts, excluding existing idle collateral and settled claims.
-        uint256 out = collateral.balanceOf(address(this)) - collateralBefore;
-        if (out == 0 || out < minCollateralOut) revert PrincipalShortfall();
-        collateral.forceApprove(address(controller), out);
-        out -= controller.collectFee(out, msg.sender);
-        collateral.forceApprove(address(controller), 0);
-        if (out != 0) {
-            collateral.forceApprove(address(pool), out);
-            pool.supply(address(collateral), out, address(this), 0);
-            collateral.forceApprove(address(pool), 0);
-        }
-        if (collateral.balanceOf(address(this)) != collateralBefore) revert PrincipalShortfall();
-        emit Harvested(out);
+        Address.functionDelegateCall(compoundLogic,
+            abi.encodeCall(CompoundLogic.compound, (tokenIn, amountIn, minCollateralOut, route)));
     }
 
     /// @notice Rebalance the Main position back to the reserve's max LTV after a
@@ -608,7 +592,8 @@ contract CollateralVault is
     function rebalance() external nonReentrant whenNotPaused {
         // Main resizing is not a safety de-lever: the synthetic floors its HF.
         // Finish existing commitments first; SubLoop safety repayment stays live.
-        if (pendingWithdrawalShares != 0 || totalQueuedShares != 0 || deleverTarget != 0) return;
+        if (pendingWithdrawalShares != 0 || totalQueuedShares != 0 || deleverTarget != 0
+            || yieldSource.pendingUnwindOf(address(this)) != 0) return;
         // Isolate the collateral leg's LTV: collBase8 = ETH value + synth value,
         // and synth value = syntheticSupplied (both $1), so ETH value backs out
         // without a separate oracle ref. (Requires the synth to actually count
@@ -623,6 +608,7 @@ contract CollateralVault is
 
         if (ltvBefore + LTV_BAND_LOW_GAP_BPS < maxLtv) {
             if (isUnderfunded()) revert Underfunded();
+            uint256 debtBefore = operatingBuffer.beforeDeposit();
             // Collateral appreciated → borrow up to the max and deploy the slack,
             // so the yield notional tracks the collateral value.
             uint256 targetDebt8 = (ethValue8 * maxLtv) / BPS;
@@ -635,6 +621,7 @@ contract CollateralVault is
 
             hollar.forceApprove(address(yieldSource), addHollar);
             loopShares += yieldSource.deposit(addHollar);
+            operatingBuffer.borrowed(debtBefore, 0, 0);
         } else if (ltvBefore > maxLtv + LTV_BAND_HIGH_GAP_BPS) {
             // Collateral fell → over-levered on the real ETH. De-lever: unwind the
             // loop slice that frees the excess debt's worth of equity; `pokeSettle`
@@ -658,6 +645,7 @@ contract CollateralVault is
                 yieldSource.requestUnwind(sliceShares);
                 // Share and USD rounding can promise less than the nominal quote.
                 deleverTarget = yieldSource.pendingUnwindOf(address(this)) - pending;
+                operatingBuffer.expectDelever(deleverTarget);
             }
         }
         emit Rebalanced(ltvBefore, (hollarDebtToken.balanceOf(address(this)) / 1e10 * BPS) / ethValue8);
@@ -793,6 +781,13 @@ contract CollateralVault is
         feeController = IPropellerFeeController(controller);
     }
 
+    /// @notice Deployment-only wiring; a live buffer cannot be replaced or swept.
+    function setOperatingBuffer(address buffer) external onlyRole(ADMIN_ROLE) nonReentrant {
+        if (totalSupply() != 0 || address(operatingBuffer) != address(0)) revert SourceNotEmpty();
+        if (buffer == address(0) || IOperatingBuffer(buffer).vault() != address(this)) revert ZeroAddress();
+        operatingBuffer = IOperatingBuffer(buffer);
+    }
+
     /// @notice Repoint the vault to a new yield source. Allowed only when the
     ///         current source owes this vault NOTHING — no live shares, nothing
     ///         freed-but-unpulled, no in-flight unwind — so no funds can be
@@ -881,5 +876,5 @@ contract CollateralVault is
         if (!hasRole(role, account)) revert Unauthorized(account, role);
     }
 
-    uint256[30] private __gap;
+    uint256[29] private __gap;
 }

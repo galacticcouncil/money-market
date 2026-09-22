@@ -236,20 +236,18 @@ contract DeleverQueueInterferenceTest is Test {
         console2.log("queueHead / tail   ", vault.queueHead(), vault.queueTail());
 
         assertGt(loop.pendingUnwindOf(address(vault)), 0, "unpaid source claim survives dust stall");
-        assertLt(repaid, ds, "original debt promise remains unchanged");
-        assertEq(vault.queueHead(), id, "unpaid request stays at FIFO head");
+        assertEq(repaid, ds, "the exit's own buffer bridges the source tail");
+        assertEq(vault.queueHead(), id + 1, "Main repayment is complete");
         assertTrue(active, "still claimable until fully paid");
         uint256 paid = vault.claim(id, address(this));
         (, , uint256 originalDebt, , bool partiallyActive) = _req(id);
         assertEq(originalDebt, ds);
-        assertTrue(partiallyActive);
+        assertFalse(partiallyActive, "fully funded collateral claim closes");
 
         // A recovery donation funds the missing tail, never a new user's deposit.
         hollar.mint(address(loop), 1e18);
         _grind(100);
-        hollar.mint(address(vault), 1e18);
         vault.pokeSettle();
-        paid += vault.claim(id, address(this));
         assertEq(paid, 1e18 - 1000, "all principal apart from governance bootstrap is returned");
         assertEq(vault.queueHead(), vault.queueTail());
         (, , , , bool stillActive) = _req(id);

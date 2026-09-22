@@ -3,8 +3,9 @@
 As of 2026-09-22: **research checkpoint, not a release candidate**. This branch
 includes Main borrowing discounts, per-vault harvest fees, accounting fixes,
 withdrawal controls, keeper/readiness changes, regression tests and economic
-research. It does not implement the proposed Main-interest servicing policy or
-establish a safe production TVL.
+research. This feature branch implements harvest-time Main-interest servicing
+and a separately owned HOLLAR buffer. It does not establish a safe production
+TVL or approve production buffer/slippage parameters.
 
 ## Branches and Reviews
 
@@ -40,7 +41,8 @@ establish a safe production TVL.
 | Formal verification | [Lean](../formal/README.md), [Verity bridge](../formal/bridge/README.md); assumptions and scope apply |
 | Testnet | [lark-4 deployment record](../deployments/lark-4.md); historical, not production addresses |
 | Native and long-term testing | [90-day stresses and fork evidence](market-stress-90d.md) |
-| Main interest | [Policy comparison](interest-policy-comparison.md); proposed, not implemented |
+| Main interest | [Implemented buffer policy](operating-buffer.md), [historical comparison](interest-policy-comparison.md) |
+| Buffer verification | [Contract campaign and native findings](operating-buffer-verification.md), [machine-readable evidence](evidence/operating-buffer-2026-09-22/) |
 | Peg stress | [Finite-funding/no-refill model](hollar-peg-liquidity.md) |
 | Arbitrage and calibration | [Coupled model checkpoint](coupled-liquidity-checkpoint.md), [model scripts](../../scripts/propeller/) |
 | Public evidence | [Pinned market fixture](../../scripts/propeller/fixtures/market-20260922.json), [calibration and preliminary outputs](evidence/2026-09-22/) |
@@ -60,8 +62,15 @@ establish a safe production TVL.
   undiscounted. Governance sets per-vault fees, initially 5% of harvested
   collateral after swaps and before Main servicing. Fees accrue in collateral,
   permissionlessly claimable to the configured recipient.
+- Service ordinary Main interest from fresh after-fee harvested collateral and
+  user-owned HOLLAR. Explicit sponsorship funds entry buffers without diluting
+  incumbents. Started exits own their cash, subsequent interest and late source
+  repayments. Previously compounded collateral is not sold by ordinary servicing.
 
-## Verification at This Checkpoint
+## Historical Integration Baseline
+
+The following predates the operating-buffer implementation. For this branch's
+new verification and remaining findings, use [the buffer report](operating-buffer-verification.md).
 
 - Solidity: **231 passed, zero failed, three skipped**, rerun on 2026-09-22.
   Optional fork/Verity suites were skipped; this is not a fresh native fork run.
@@ -76,15 +85,14 @@ establish a safe production TVL.
 - CollateralVault runtime measured 24,510 bytes, only 66 bytes below EIP-170.
   Recheck size and deployment gas for every subsequent build/configuration.
 
-The Forge worktree uses symlinked dependencies. This environment's test command
-was `FOUNDRY_ALLOW_PATHS='["/home/mrq/git/money-market/hdcl-vault/lib"]' forge test
---offline --evm-version london`, run in `propeller-vault`. Use your own dependency
-path when reproducing it; this is not a portable deployment configuration.
+Use the pinned `bil-vault/lib` dependencies. Run `forge test --offline
+--evm-version london` in `propeller-vault`; the optional multi-scenario contract
+campaign has a separate runner-gas setting documented in its verification report.
 
 ## Release Gates Still Open
 
-1. Select and implement Main-interest servicing and settlement-cost funding.
-   More collateral increases borrowing headroom, not HOLLAR repayment proceeds.
+1. Approve and fund per-vault buffer coverage, stressed rates, gross exit-cost
+   budgets and bootstrap amounts. Implementation does not provide external capital.
 2. Verify Main protection under accrued debt, keeper outages and source losses;
    rehearse emergency pause and governance-funded recovery with all holders.
 3. Deploy and test the production swap adapter, routes, approvals, slippage,

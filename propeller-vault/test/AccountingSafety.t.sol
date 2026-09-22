@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {PluggableYieldSourceTest} from "./PluggableYieldSource.t.sol";
 import {SubLoopUnwindTest} from "./SubLoopUnwind.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {PropellerOperatingBuffer} from "../src/PropellerOperatingBuffer.sol";
 
 contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
     function test_publicDepositorCannotPayBootstrapCost() public {
@@ -78,6 +79,9 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(100);
         assertLe(vault.totalQueuedDebt() + pending, hollarDebt.balanceOf(address(vault)));
+        assertEq(vault.queueUnwind(), 0, "resize finishes before the withdrawal snapshot");
+        vault.pokeSettle();
+        vault.startUnwinds(100);
         vault.pokeSettle();
         assertApproxEqAbs(vault.claim(request, address(this)), 1e18 - 1000, 2);
     }
@@ -104,7 +108,7 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         hollarDebt.mint(address(vault), 10e18);
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
-        vm.expectRevert(CollateralVault.Underfunded.selector);
+        vm.expectRevert(PropellerOperatingBuffer.UnfundedBuffer.selector);
         vault.deposit(1e18, address(this));
     }
 

@@ -1,5 +1,9 @@
 # Main Interest: Policy Comparison
 
+Historical policy-selection evidence. The selected policy is now implemented in
+[Main servicing and the operating buffer](operating-buffer.md); the alternatives
+below remain economic models, not additional deployed contract implementations.
+
 Simulation and analysis performed locally on 2026-09-22, without production
 contract changes or transactions. This compares proposed policies; it does not
 implement them or approve production deployment. See the [current status and

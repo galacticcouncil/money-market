@@ -1,6 +1,12 @@
 # Per-vault protocol fees
 
 Fresh-deployment feature. This is not a migration or an authorization to deploy.
+
+Main servicing now follows [the operating-buffer waterfall](operating-buffer.md):
+the fee base remains fresh harvested collateral after swaps and BEFORE interest.
+Only the after-fee remainder can be converted to HOLLAR for active Main interest
+and buffer replenishment; any remaining collateral is compounded. Treasury fees,
+deposited principal and previously compounded collateral are not used by this path.
 The fee is a fraction of harvested collateral yield, not of principal or TVL.
 
 ## Policy

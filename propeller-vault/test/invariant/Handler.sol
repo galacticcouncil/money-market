@@ -6,6 +6,7 @@ import {CollateralVault} from "../../src/CollateralVault.sol";
 import {SubLoop} from "../../src/SubLoop.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockPool} from "../mocks/MockPool.sol";
+import {PropellerOperatingBuffer} from "../../src/PropellerOperatingBuffer.sol";
 
 /// @notice Randomized driver for the Propeller invariant suite. A single actor
 ///         (this handler) deposits, drives the deploy/unwind DCA + keeper pokes,
@@ -91,6 +92,29 @@ contract Handler is Test {
     // ── keeper: settle queued redemptions ─────────────────────────────────────
     function settle() external {
         vault.pokeSettle();
+    }
+
+    function accrueMainInterest(uint256 seed) external {
+        MockERC20 debt = MockERC20(address(vault.hollarDebtToken()));
+        uint256 balance = debt.balanceOf(address(vault));
+        if (balance == 0) return;
+        debt.mint(address(vault), bound(seed, 1, balance / 100_000 + 1));
+        vault.maintainPeg();
+    }
+
+    function externalRepayment(uint256 seed) external {
+        uint256 balance = vault.hollarDebtToken().balanceOf(address(vault));
+        if (balance == 0) return;
+        uint256 amount = bound(seed, 1, balance);
+        MockERC20 cash = MockERC20(address(vault.hollar()));
+        cash.mint(address(this), amount);
+        cash.approve(address(pool), amount);
+        pool.repay(address(cash), amount, 2, address(vault));
+    }
+
+    function claimOperatingBuffer(uint256 seed) external {
+        if (vault.queueUnwind() == 0) return;
+        PropellerOperatingBuffer(address(vault.operatingBuffer())).claimBuffer(seed % vault.queueUnwind());
     }
 
     // ── user: claim a settled request ─────────────────────────────────────────

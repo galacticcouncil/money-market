@@ -111,6 +111,10 @@ contract MultiVaultFlowTest is Test {
         tbtcVault.setFeeController(address(fees));
         fees.registerVault(address(ethVault), address(harvester));
         fees.registerVault(address(tbtcVault), address(harvester));
+        _bootstrapVaults();
+    }
+
+    function _bootstrapVaults() internal virtual {
         // Governance, not the first public depositor, funds the locked shares.
         eth.mint(address(this), 1e12);
         eth.approve(address(ethVault), 1e12);
@@ -311,13 +315,14 @@ contract MultiVaultFlowTest is Test {
         uint256 spreadBps = PRIME_APY_BPS - BORROW_APY_BPS; // 210
         // ETH: deposit $3000 at 75%
         uint256 ethGainUsd8 = (aEth.balanceOf(address(ethVault)) - 1e18) * 3_000 / 1e10;
-        uint256 ethNetUsd8 = ethGainUsd8 - ethMainInt / 1e10;
+        // Main interest is now already paid before compounding; do not deduct twice.
+        uint256 ethNetUsd8 = ethGainUsd8;
         uint256 ethModel8 = (3_000e8 * 7_500 / 10_000) * loopLevWad / 1e18 * spreadBps / 10_000;
         ethModel8 = (ethModel8 + ethMainInt / 1e10) * 9_500 / 10_000 - ethMainInt / 1e10;
         assertApproxEqRel(ethNetUsd8, ethModel8, 0.02e18, "ETH net after harvest fee and Main interest");
         // tBTC: deposit $6000 at 80%
         uint256 tbtcGainUsd8 = (aTbtc.balanceOf(address(tbtcVault)) - 0.1e18) * 60_000 / 1e10;
-        uint256 tbtcNetUsd8 = tbtcGainUsd8 - tbtcMainInt / 1e10;
+        uint256 tbtcNetUsd8 = tbtcGainUsd8;
         uint256 tbtcModel8 = (6_000e8 * 8_000 / 10_000) * loopLevWad / 1e18 * spreadBps / 10_000;
         tbtcModel8 = (tbtcModel8 + tbtcMainInt / 1e10) * 9_500 / 10_000 - tbtcMainInt / 1e10;
         assertApproxEqRel(tbtcNetUsd8, tbtcModel8, 0.02e18, "tBTC net after harvest fee and Main interest");
@@ -380,9 +385,10 @@ contract MultiVaultFlowTest is Test {
         // frictionless gain was ~0.2316 ETH; with the ramp-fee hole (~1% of
         // the carry) and the 30 bps compound haircut it lands just below
         assertLt(ethGain, 0.2316e18, "swap costs reduce the realized gain");
-        uint256 grossEthGain = ethGain + fees.claimableProtocolFees(address(eth));
+        uint256 grossEthGain = fees.claimableProtocolFees(address(eth)) * 20;
         assertGt(grossEthGain, (0.2316e18 * 95) / 100, "swap costs stay ~1-2% before protocol fee");
-        assertEq(ethGain, grossEthGain - grossEthGain * 500 / 10_000);
+        assertLe(ethGain, grossEthGain - grossEthGain * 500 / 10_000,
+            "fresh yield also replenishes the operating buffer");
 
         // An incomplete exit is a partial payment, never a finalized haircut.
         vm.prank(ETH_USER);

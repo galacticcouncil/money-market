@@ -25,6 +25,9 @@ contract MockYieldSource is IYieldSource {
     mapping(address => uint256) internal _shares;
     mapping(address => uint256) internal _freed;
     uint256 internal _totalShares;
+    uint256 public pullBps = 10_000;
+
+    function setPullBps(uint256 bps) external { require(bps <= 10_000); pullBps = bps; }
 
     constructor(address _hollar) {
         hollar = IERC20(_hollar);
@@ -46,9 +49,9 @@ contract MockYieldSource is IYieldSource {
     }
 
     function pullFreed() external returns (uint256 hollarSent) {
-        hollarSent = _freed[msg.sender];
+        hollarSent = _freed[msg.sender] * pullBps / 10_000;
         if (hollarSent == 0) return 0;
-        _freed[msg.sender] = 0;
+        _freed[msg.sender] -= hollarSent;
         hollar.transfer(msg.sender, hollarSent);
     }
 
@@ -64,6 +67,10 @@ contract MockYieldSource is IYieldSource {
     function equityOf(address vault) external view returns (uint256) {
         // equity in USD8; HOLLAR is 18dp $1, shares 1:1 → /1e10
         return _shares[vault] / 1e10;
+    }
+
+    function exitCostExposure(address vault) external view returns (uint256) {
+        return _shares[vault];
     }
 
     function sharesOf(address vault) external view returns (uint256) {

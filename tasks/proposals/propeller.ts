@@ -108,6 +108,23 @@ const COMPOUND_ROUTES: { assetOut: number; route: any[] }[] = process.env
       },
     ];
 
+// Fresh collateral must also be sellable for Main servicing. Independent
+// overrides avoid assuming a customized PRIME route passes through HOLLAR.
+const OPERATING_ROUTES: { assetIn: number; assetOut: number; route: any[] }[] = process.env
+  .PROPELLER_OPERATING_ROUTES
+  ? JSON.parse(process.env.PROPELLER_OPERATING_ROUTES)
+  : [
+      { assetIn: 34, assetOut: ROUTE_HOLLAR, route: [
+        { pool: { Aave: null }, assetIn: 34, assetOut: 1007 },
+        { pool: { Stableswap: 4200 }, assetIn: 1007, assetOut: 4200 },
+        { pool: { Aave: null }, assetIn: 4200, assetOut: 420 },
+        { pool: { Omnipool: null }, assetIn: 420, assetOut: ROUTE_HOLLAR },
+      ] },
+      { assetIn: 1000765, assetOut: ROUTE_HOLLAR, route: [
+        { pool: { Omnipool: null }, assetIn: 1000765, assetOut: ROUTE_HOLLAR },
+      ] },
+    ];
+
 const ROLE = {
   MINTER: "MINTER_ROLE",
   GUARDIAN: "GUARDIAN_ROLE",
@@ -199,22 +216,26 @@ task(
   // Pure substrate (no aave-manager wrapper) — forceInsertRoute is a Root call.
   // Independent of the contracts, so this can enact before they even exist.
   const batch0: any[] = [];
-  for (const { assetOut, route } of COMPOUND_ROUTES) {
-    const assetPair = { assetIn: ROUTE_PRIME, assetOut };
+  const harvestRoutes = [
+    ...COMPOUND_ROUTES.map(r => ({ assetIn: ROUTE_PRIME, ...r })),
+    ...OPERATING_ROUTES,
+  ];
+  for (const { assetIn, assetOut, route } of harvestRoutes) {
+    const assetPair = { assetIn, assetOut };
     // The router CANONICALISES the pair: it stores under (min, max) and reverses
     // the hops on the way in, then un-reverses on lookup. So a route inserted as
     // 43 → 34 lives under key 34 → 43. Querying the un-ordered direction always
     // returns None (verified on lark-4: all 265 stored routes have in < out), and
     // checking it would make this "skip" branch dead for half the pairs.
     const existing: any = await api.query.router.routes(
-      ROUTE_PRIME < assetOut ? assetPair : { assetIn: assetOut, assetOut: ROUTE_PRIME }
+      assetIn < assetOut ? assetPair : { assetIn: assetOut, assetOut: assetIn }
     );
     if (existing?.isSome) {
-      console.log(`[0] route ${ROUTE_PRIME} ↔ ${assetOut} already stored — skipping`);
+      console.log(`[0] route ${assetIn} ↔ ${assetOut} already stored — skipping`);
       continue;
     }
     console.log(
-      `[0] router.forceInsertRoute(${ROUTE_PRIME} → ${assetOut}, ${route.length} hops)`
+      `[0] router.forceInsertRoute(${assetIn} → ${assetOut}, ${route.length} hops)`
     );
     batch0.push(hydrationTx.router.forceInsertRoute(assetPair, route));
   }
@@ -359,7 +380,21 @@ task(
     // the governance proposal; it does not whitelist or move funds itself.
     const feeController = await resolve("PROPELLER_FEE_CONTROLLER", "PropellerFeeController-Propeller");
     if (!feeController) throw new Error("Set PROPELLER_FEE_CONTROLLER for custody dust protection");
-    for (const custody of [subLoop, harvester, feeController, ...vaults, ...(swapper ? [swapper] : [])]) {
+    const buffers: string[] = [];
+    for (const vault of vaults) {
+      const v = await hre.ethers.getContractAt(["function operatingBuffer() view returns (address)"], vault);
+      const address = await v.operatingBuffer();
+      if (address === hre.ethers.constants.AddressZero) throw new Error(`Configure operating buffer first: ${vault}`);
+      const buffer = await hre.ethers.getContractAt([
+        "function vault() view returns (address)", "function coverageSeconds() view returns (uint32)",
+        "function bootstrapCash() view returns (uint256)",
+      ], address);
+      if ((await buffer.vault()).toLowerCase() !== vault.toLowerCase() || !(await buffer.coverageSeconds())) {
+        throw new Error(`Invalid operating buffer binding/policy: ${vault}`);
+      }
+      buffers.push(address);
+    }
+    for (const custody of [subLoop, harvester, feeController, ...vaults, ...buffers, ...(swapper ? [swapper] : [])]) {
       const account = await nativeAccount(api, custody);
       if ((await api.query.duster.accountWhitelist(account)).isNone) {
         batch3.push(hydrationTx.duster.whitelistAccount(account));

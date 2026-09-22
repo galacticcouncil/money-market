@@ -20,9 +20,12 @@ const {
   keccak256,
 } = require("viem");
 const { mnemonicToAccount } = require("viem/accounts");
-const RPC = "http://127.0.0.1:8141";
+const PORT = Number(process.env.PROPELLER_LOCAL_PORT || 8141);
+assert.ok(Number.isInteger(PORT) && PORT > 0 && PORT <= 65535);
+const RPC = `http://127.0.0.1:${PORT}`;
 const FILE = process.argv[2] || "/tmp/propeller-campaign-result-20260918.json";
 const r = JSON.parse(readFileSync(FILE));
+assert.equal(r.rpc, RPC, "result belongs to another local fork");
 const art = (n) =>
   JSON.parse(
     readFileSync(
@@ -48,7 +51,7 @@ const pub = createPublicClient({
   pollingInterval: 1000,
   cacheTime: 0,
 });
-const ws = new WsProvider("ws://127.0.0.1:8141", 2500, {}, 180000);
+const ws = new WsProvider(`ws://127.0.0.1:${PORT}`, 2500, {}, 180000);
 const api = await ApiPromise.create({ provider: ws, noInitWarn: true });
 const { pool, hollar, prime, hollarDebt } = r.market;
 const {
@@ -69,7 +72,7 @@ const erc20 = parseAbi([
 ]);
 const poolAbi = JSON.parse(
   readFileSync(
-    new URL("../../deployments/lark2/Pool-Implementation.json", import.meta.url)
+    new URL("../../deployments/hydration/Pool-Implementation.json", import.meta.url)
   )
 ).abi;
 const save = () =>
@@ -126,6 +129,11 @@ async function write(
     hash,
     timeout: 240000,
   });
+  if (receipt.status !== "success") {
+    r.failures ??= [];
+    r.failures.push({label, hash, block: receipt.blockNumber, gasUsed: receipt.gasUsed});
+    save();
+  }
   assert.equal(receipt.status, "success", label);
   r.calls.push({
     label,
@@ -146,14 +154,23 @@ async function deploy(name, args, label) {
       chain,
       transport: http(RPC, { timeout: 180000 }),
     });
-  const hash = await wallet.deployContract({
+  const options = {
     abi: a.abi,
     bytecode: a.bytecode.object,
     args,
     gas: 12000000n,
     gasPrice: (await pub.getGasPrice()) * 2n,
     type: "legacy",
-  });
+  };
+  let hash;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      hash = await wallet.deployContract({ ...options, gasPrice: options.gasPrice + BigInt(attempt) });
+      break;
+    } catch (e) {
+      if (attempt >= 3 || !String(e).includes("Expected input with 32 bytes")) throw e;
+    }
+  }
   const receipt = await pub.waitForTransactionReceipt({
     hash,
     timeout: 240000,
@@ -336,10 +353,16 @@ try {
     "CollateralVaultTBTC.proxy"
   );
   r.addresses.tbtcVault = btc;
+  const ethBuffer = await vread(ethVault, "operatingBuffer");
+  const btcBuffer = await deploy("PropellerOperatingBuffer", [btc], "PropellerOperatingBuffer.tBTC");
+  await write("btcBufferBinding", btc, art("CollateralVault").abi, "setOperatingBuffer", [btcBuffer]);
+  await write("btcBufferPolicy", btcBuffer, art("PropellerOperatingBuffer").abi, "configure",
+    [7 * 86400, 10, 50000000000000000000000000n]);
+  r.addresses.tbtcBuffer = btcBuffer;
   r.addresses.testRouteAdapter = adapter;
   save();
   const roots = [];
-  for (const address of [source, ethVault, btc, fees, harvester, adapter]) {
+  for (const address of [source, ethVault, btc, ethBuffer, btcBuffer, fees, harvester, adapter]) {
     const who = await api.call.evmAccountsApi.accountId(address);
     if (!(await api.call.dusterApi.isWhitelisted(who)).isTrue)
       roots.push(api.tx.duster.whitelistAccount(who));
@@ -361,7 +384,21 @@ try {
   roots.push(
     api.tx.router.forceInsertRoute({ assetIn: 43, assetOut: 1000765 }, btcRoute)
   );
+  roots.push(api.tx.router.forceInsertRoute({ assetIn: 34, assetOut: 222 },
+    ethRoute.slice(1).reverse().map(hop => ({pool: hop.pool, assetIn: hop.assetOut, assetOut: hop.assetIn}))));
+  roots.push(api.tx.router.forceInsertRoute({ assetIn: 1000765, assetOut: 222 },
+    [{pool: {Omnipool: null}, assetIn: 1000765, assetOut: 222}]));
   await root(api.tx.utility.batchAll(roots), "campaign.rootCustodyAndRoutes");
+  // Explicit external bootstrap capital, borrowed by the public test donor.
+  // This is not strategy yield or a production funding commitment.
+  await write("bootstrapApprove", token(34), erc20, "approve", [pool, 20n * 10n ** 18n]);
+  await write("bootstrapSupply", pool, poolAbi, "supply", [token(34), 20n * 10n ** 18n, admin.address, 0]);
+  await write("bootstrapBorrow", pool, poolAbi, "borrow", [hollar, 20000n * 10n ** 18n, 2n, 0, admin.address]);
+  for (const [name, buffer] of [["ETH", ethBuffer], ["tBTC", btcBuffer]]) {
+    await write(`${name}.bootstrapApprove`, hollar, erc20, "approve", [buffer, 1000n * 10n ** 18n]);
+    await write(`${name}.bootstrapFund`, buffer, art("PropellerOperatingBuffer").abi, "fundBootstrap", [1000n * 10n ** 18n]);
+  }
+  r.operatingBootstrap = {hollarPerVault: "1000000000000000000000", source: "external fork-only donor debt"};
   await write("btcMinter", synth, art("SyntheticToken").abi, "grantRole", [
     keccak256(Buffer.from("MINTER_ROLE")),
     btc,
@@ -438,6 +475,24 @@ try {
     assert.ok((await vread(v, "roundingReserve")) >= minimum);
     const seed = id === 34 ? 10n ** 16n : 10n ** 14n;
     await write(`${id}.seedApprove`, asset, erc20, "approve", [v, seed]);
+    if (v === ethVault && !r.checks.entryOracleFloorRejected) {
+      // At this pinned snapshot, even a small entry misses the 1% floor.
+      // Preserve that launch finding before using an explicit fork-only 1.2% fixture.
+      await assert.rejects(() => pub.simulateContract({
+        account: admin, address: v, abi: art("CollateralVault").abi,
+        functionName: "deposit", args: [seed, admin.address], gas: 12000000n,
+      }), /0xf4c0eb20|DispatchFailed/);
+      assert.equal(await vread(v, "totalSupply"), 0n);
+      r.checks.entryOracleFloorRejected = true;
+      r.entryFloorFinding = "Pinned HOLLAR/PRIME quote: 20.5 HOLLAR -> 19.312911 PRIME; Aave PRIME=$1.0505 implies 19.319371 PRIME at 1% floor. Actual route rejects. No production widening approved.";
+      save();
+    }
+    if (v === ethVault) {
+      await write("explicitForkOnlyEntryFloor", source, art("SubLoop").abi, "configureDca", [222,43,1043,143,12000]);
+      r.testOnlyPolicy.slippagePpm = 12000;
+      r.testOnlyPolicy.productionApproval = false;
+      save();
+    }
     // Initial source swap costs can block the next bootstrap; pre-existing
     // shortfalls are recovered explicitly below, never charged to new holders.
     if (v === btc && (await sread("negativeCarryBps")) > 0n) {
@@ -490,11 +545,6 @@ try {
     source,
     50n * 10n ** 18n,
   ]);
-  for (const v of [ethVault, btc])
-    await write(`${v}.entryMainFunding`, hollar, erc20, "transfer", [
-      v,
-      10n * 10n ** 18n,
-    ]);
   const positions = [
     { v: ethVault, id: 34, who: alice, amount: 10n ** 17n + 7n },
     { v: ethVault, id: 34, who: bob, amount: 10n ** 17n + 11n },
@@ -521,6 +571,11 @@ try {
   }
   for (let i = 0; i < 3; i++)
     await write(`ramp${i}`, source, art("SubLoop").abi, "pokeBorrow");
+  if (!r.campaignInterestAdvanced) {
+    await advance(86400n);
+    r.campaignInterestAdvanced = true;
+    save();
+  }
   // Harvest input is an explicit donated PRIME fixture, NOT fabricated APY.
   await write("yieldApprove", prime, erc20, "approve", [
     pool,
@@ -536,10 +591,24 @@ try {
     r.campaignPreHarvest = {
       eth: await vread(ethVault, "totalAssets"),
       btc: await vread(btc, "totalAssets"),
+      buffers: [],
     };
+    for (const v of [ethVault, btc]) {
+      const buffer = await vread(v, "operatingBuffer");
+      const interest = await read(buffer, art("PropellerOperatingBuffer").abi, "interestOf", [0n]);
+      assert.ok(interest > 0n, "native interest must accrue before harvest");
+      r.campaignPreHarvest.buffers.push({vault: v, buffer, interest});
+    }
     save();
   }
   await write("harvest", harvester, art("Harvester").abi, "harvest", [[]]);
+  if (!r.checks.nativeAccruedInterestServicedByHarvest) {
+    for (const {buffer} of r.campaignPreHarvest.buffers) {
+      assert.equal(await read(buffer, art("PropellerOperatingBuffer").abi, "interestOf", [0n]), 0n);
+    }
+    r.checks.nativeAccruedInterestServicedByHarvest = true;
+    save();
+  }
   assert.ok(
     (await vread(ethVault, "totalAssets")) > BigInt(r.campaignPreHarvest.eth)
   );
@@ -612,10 +681,10 @@ try {
       })
     );
     await write(`${v}.peg`, v, art("CollateralVault").abi, "maintainPeg");
-    await write(`${v}.recoverMain`, hollar, erc20, "transfer", [
-      v,
-      100n * 10n ** 18n,
-    ]);
+    const buffer = await vread(v, "operatingBuffer");
+    await write(`${v}.recoveryApprove`, hollar, erc20, "approve", [buffer, 100n * 10n ** 18n]);
+    await write(`${v}.recoverMain`, buffer, art("PropellerOperatingBuffer").abi,
+      "fundPosition", [0n, 100n * 10n ** 18n]);
   }
   await write("recoverSource", hollar, erc20, "transfer", [
     source,
@@ -641,8 +710,9 @@ try {
         "pokeSettle"
       );
   }
-  r.campaignPayouts = [];
+  r.campaignPayouts ??= [];
   for (const [i, p] of positions.entries()) {
+    if (r.campaignPayouts.some(x => x.vault === p.v && x.user === p.who.address)) continue;
     const id = BigInt(i % 2),
       request = await vread(p.v, "redemptions", [id]);
     assert.equal(request[5], request[3], `user ${i}: unpaid Main debt`);
@@ -667,6 +737,11 @@ try {
       paid,
     });
     save();
+  }
+  for (const [i, p] of positions.entries()) {
+    const buffer = await vread(p.v, "operatingBuffer");
+    await write(`user${i}.claimBuffer`, buffer, art("PropellerOperatingBuffer").abi,
+      "claimBuffer", [BigInt(i % 2)]);
   }
   for (const v of [ethVault, btc])
     assert.equal(await vread(v, "totalQueuedCollateral"), 0n);

@@ -12,6 +12,7 @@ import {MockPool} from "../mocks/MockPool.sol";
 import {DcaDispatch} from "../../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "../mocks/MockDispatch.sol";
 import {Handler} from "./Handler.sol";
+import {PropellerOperatingBuffer} from "../../src/PropellerOperatingBuffer.sol";
 
 /// @notice Invariant suite. The fuzzer drives the Handler through random
 ///         deposit/ramp/redeem/unwind/settle/claim sequences; after every call
@@ -171,5 +172,23 @@ contract PropellerInvariantTest is Test {
     function invariant_roundingReserveIsRingFenced() public view {
         assertGe(eth.balanceOf(address(vault)), vault.roundingReserve());
         assertEq(vault.totalAssets() + vault.roundingReserve(), aEth.balanceOf(address(vault)) + eth.balanceOf(address(vault)));
+    }
+
+    function invariant_operatingCashAndDebtUnitsConserved() public view {
+        PropellerOperatingBuffer buffer = PropellerOperatingBuffer(address(vault.operatingBuffer()));
+        uint256 units;
+        uint256 cash = buffer.unallocatedSource();
+        uint256 debt;
+        for (uint256 key; key <= vault.queueUnwind(); ++key) {
+            (uint256 positionUnits,,uint256 positionCash,,) = buffer.positions(key);
+            units += positionUnits;
+            cash += positionCash;
+            debt += buffer.debtOf(key);
+        }
+        assertEq(units, buffer.totalUnits());
+        assertEq(cash, buffer.ownedCash());
+        assertEq(hollar.balanceOf(address(buffer)), cash + buffer.bootstrapCash());
+        assertApproxEqAbs(debt, hollarDebt.balanceOf(address(vault)), vault.queueUnwind() + 1,
+            "all live Main debt is allocated; only division dust is unassigned");
     }
 }

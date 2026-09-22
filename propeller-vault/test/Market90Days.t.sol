@@ -120,10 +120,12 @@ contract Market90DaysTest is RecoveryE2ETest {
         tbtcVault.startUnwinds(16);
         for (uint256 i; i < 500; ++i) {
             uint256 debtBefore = ethVault.totalQueuedDebt() + tbtcVault.totalQueuedDebt();
+            ethVault.startUnwinds(16);
+            tbtcVault.startUnwinds(16);
             loop.pokeRepay();
             ethVault.pokeSettle();
             tbtcVault.pokeSettle();
-            if (ethVault.totalQueuedDebt() == 0 && tbtcVault.totalQueuedDebt() == 0) break;
+            if (ethVault.queueHead() == ethVault.queueTail() && tbtcVault.queueHead() == tbtcVault.queueTail()) break;
             if (i > 100 && ethVault.totalQueuedDebt() + tbtcVault.totalQueuedDebt() == debtBefore) break;
         }
         // USD8 source quotes and proportional source repayments can leave a

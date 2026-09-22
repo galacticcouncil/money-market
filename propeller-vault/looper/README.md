@@ -33,8 +33,16 @@ read each vault's pause, queue cursors and Main repayment target
   source safety target or active unwind       -> pokeRepay()
   active vault settlement or Main repayment   -> pokeSettle()
   healthy, no pending work, no freeze         -> pokeBorrow()
-periodically maintainPeg(), then rebalance/harvest when allowed
+periodically harvest(), maintainPeg(), pokeSettle(), then rebalance when allowed
 ```
+
+The keeper checks each operating buffer's `ready()` state. A missing, unreadable
+or below-target buffer blocks new source ramping and emits an alert; it does not
+disable safety repayments. Settlement also runs for late source claims after
+the collateral queue finishes, and the slow cycle services idle Main interest.
+No keeper operation spends unallocated bootstrap or obtains treasury funding.
+Monitor bootstrap separately: owned cash may be healthy while new deposits lack
+sponsorship. See [buffer ownership and recovery](../docs/operating-buffer.md).
 
 The default cooldown is 12 hours BEFORE unwinding starts. It is configured per
 vault by governance through `setWithdrawalDelay(uint32 seconds)`. Existing

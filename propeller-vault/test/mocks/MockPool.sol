@@ -28,6 +28,22 @@ contract MockPool is IAavePool {
     mapping(address => Reserve) public reserves;
     address[] public assets;
     uint256 public repayLimit = type(uint256).max;
+    uint128 public variableBorrowRate;
+    uint256 public borrowRoundingLoss;
+    uint256 public repayRoundingLoss;
+
+    function setDebtRounding(uint256 borrowLoss, uint256 repayLoss) external {
+        borrowRoundingLoss = borrowLoss;
+        repayRoundingLoss = repayLoss;
+    }
+
+    function getReserveNormalizedVariableDebt(address) external pure returns (uint256) { return 1e27; }
+
+    function setVariableBorrowRate(uint128 rate) external { variableBorrowRate = rate; }
+
+    function getReserveData(address) external view returns (uint256, uint128, uint128, uint128, uint128) {
+        return (0, 1e27, 0, 1e27, variableBorrowRate);
+    }
     mapping(address => uint256) public supplyRoundingLoss;
     mapping(address => uint256) public withdrawRoundingLoss;
 
@@ -129,7 +145,7 @@ contract MockPool is IAavePool {
     }
 
     function borrow(address asset, uint256 amount, uint256, uint16, address onBehalfOf) external override {
-        reserves[asset].debtToken.mint(onBehalfOf, amount);
+        reserves[asset].debtToken.mint(onBehalfOf, amount > borrowRoundingLoss ? amount - borrowRoundingLoss : 0);
         MockERC20(asset).mint(msg.sender, amount); // GHO/HOLLAR-style: minted on borrow
         require(_hf(onBehalfOf) >= WAD, "MockPool: HF<1 after borrow");
     }
@@ -143,7 +159,8 @@ contract MockPool is IAavePool {
         uint256 r = amount > d ? d : amount;
         if (r > repayLimit) r = repayLimit;
         IERC20(asset).transferFrom(msg.sender, address(this), r);
-        reserves[asset].debtToken.burn(onBehalfOf, r);
+        uint256 burned = r == d ? r : r > repayRoundingLoss ? r - repayRoundingLoss : 0;
+        reserves[asset].debtToken.burn(onBehalfOf, burned);
         return r;
     }
 

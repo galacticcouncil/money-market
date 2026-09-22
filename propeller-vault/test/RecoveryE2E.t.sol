@@ -5,6 +5,7 @@ import {MultiVaultFlowTest} from "./MultiVaultFlow.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {SubLoop} from "../src/SubLoop.sol";
+import {PropellerOperatingBuffer} from "../src/PropellerOperatingBuffer.sol";
 
 /// @notice Full Propeller topology with modeled market loss/interest. Uses real
 /// vault/source/harvest/fee logic, mock Aave/router, and external recovery funds.
@@ -31,6 +32,21 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         hollar.mint(DONOR, amount);
         vm.prank(DONOR);
         hollar.transfer(to, amount);
+    }
+
+    function _fundInterest(CollateralVault v) internal {
+        PropellerOperatingBuffer buffer = PropellerOperatingBuffer(address(v.operatingBuffer()));
+        // Governance targets every debt cohort, including offline holders. A
+        // donation to the FIFO head must not be mistaken for cohort-wide funding.
+        for (uint256 key; key <= v.queueUnwind(); ++key) {
+            uint256 interest = buffer.interestOf(key);
+            if (interest == 0) continue;
+            hollar.mint(DONOR, interest);
+            vm.startPrank(DONOR);
+            hollar.approve(address(buffer), interest);
+            buffer.fundPosition(key, interest);
+            vm.stopPrank();
+        }
     }
 
     function _modelLoopLiquidation() internal {
@@ -114,8 +130,8 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         vm.warp(vm.getBlockTimestamp() + 3 days);
         ethVault.maintainPeg();
         tbtcVault.maintainPeg();
-        _donate(address(ethVault), ethInterest);
-        _donate(address(tbtcVault), btcInterest);
+        _fundInterest(ethVault);
+        _fundInterest(tbtcVault);
 
         uint256 target = loop.principalEquity() + loop.unwindTargetEquity();
         uint256 current = loop.totalEquity() * 1e10;

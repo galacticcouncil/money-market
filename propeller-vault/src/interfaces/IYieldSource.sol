@@ -56,6 +56,10 @@ interface IYieldSource {
     /// outstanding withdrawal liabilities. Not HOLLAR's 18-decimal units.
     function equityOf(address vault) external view returns (uint256);
 
+    /// @notice HOLLAR-valued gross unwind exposure, including planned leverage.
+    /// Used for the operating reserve's execution-cost budget, not NAV.
+    function exitCostExposure(address vault) external view returns (uint256);
+
     /// @notice `vault`'s share balance in this source.
     function sharesOf(address vault) external view returns (uint256);
 

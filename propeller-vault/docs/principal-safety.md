@@ -1,5 +1,9 @@
 # Principal Preservation
 
+For the new Main-interest policy, debt-cohort accounting and current verification,
+see [operating buffers](operating-buffer.md) and [the candidate report](operating-buffer-verification.md).
+The dated test/deployment sections below are historical evidence.
+
 ## Required Policy
 
 The user's deposited collateral must not be used to absorb strategy losses.
@@ -173,8 +177,10 @@ allocating cooldown interest solely to non-withdrawing holders. `queueUnwind`
 separates waiting from started requests; `totalQueuedShares`, collateral and debt
 track started requests only. Before start, a request's `collateralOwed` and
 `debtShare` are zero, not a finalized zero entitlement. Once started, the existing
-fixed collateral promise and partial-claim accounting apply. Funding interest
-that accrues AFTER start remains part of the broader interest-funding review.
+fixed collateral promise and partial-claim accounting apply. Interest accruing
+AFTER start is assigned to the exit's own HOLLAR buffer and live debt units; it
+cannot consume remaining holders' cash. See [Main servicing](operating-buffer.md).
+Exhaustion preserves unpaid claims and still needs explicit recovery funding.
 The keeper reads chain time and starts bounded batches of up to 16 requests.
 
 Verify no request-driven source activity before eligibility, just-before and

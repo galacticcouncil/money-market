@@ -609,6 +609,18 @@ contract SubLoop is
         return (_liveEquity18() * _sharesOf[vault]) / _totalShares / 1e10;
     }
 
+    function exitCostExposure(address vault) external view override returns (uint256) {
+        if (_totalShares == 0) return 0;
+        (uint256 gross,,,,,) = pool.getUserAccountData(address(this));
+        uint256 lt = ((pool.getConfiguration(address(prime)) >> 16) & 0xFFFF) * 1e14;
+        if (deployHfFloor <= lt) revert InvalidParameters();
+        // Reserve for the fully ramped position, not just today's deployment.
+        uint256 planned = _liveEquity18() * deployHfFloor / (deployHfFloor - lt);
+        uint256 observed = gross * 1e10;
+        uint256 exposure = planned > observed ? planned : observed;
+        return exposure * _sharesOf[vault] / _totalShares;
+    }
+
     /// @inheritdoc IYieldSource
     function sharesOf(address vault) external view override returns (uint256) {
         return _sharesOf[vault];

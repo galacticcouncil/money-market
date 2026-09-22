@@ -137,6 +137,41 @@ async function main() {
 
   const api = await ApiPromise.create({ provider: new WsProvider(WS), noInitWarn: true });
 
+  await section("O. Operating buffers", async () => {
+    for (const vault of VAULTS) {
+      const v = new ethers.Contract(vault, ["function operatingBuffer() view returns (address)",
+        "function compoundLogic() view returns (address)"], provider);
+      const address = await v.operatingBuffer();
+      const buffer = new ethers.Contract(address, [
+        "function vault() view returns (address)", "function hollar() view returns (address)",
+        "function coverageSeconds() view returns (uint32)", "function exitCostBps() view returns (uint16)",
+        "function stressRateRay() view returns (uint128)", "function bootstrapCash() view returns (uint256)",
+        "function ownedCash() view returns (uint256)", "function targetCash() view returns (uint256)",
+        "function ready() view returns (bool)",
+      ], provider);
+      add("O. Operating buffers", `${vault}: bound buffer`, eq(await buffer.vault(), vault), address);
+      const seconds = await buffer.coverageSeconds();
+      const cost = await buffer.exitCostBps();
+      const rate = await buffer.stressRateRay();
+      add("O. Operating buffers", `${vault}: explicit policy`, seconds > 0 && cost > 0 && !rate.isZero(),
+        `coverage=${seconds}s, gross exit cost=${cost}bps, stressed APR=${rate.toString()} ray`);
+      const bootstrap = await buffer.bootstrapCash();
+      const owned = await buffer.ownedCash();
+      const token = new ethers.Contract(await buffer.hollar(), ["function balanceOf(address) view returns (uint256)"], provider);
+      add("O. Operating buffers", `${vault}: ledger backed`, (await token.balanceOf(address)).gte(bootstrap.add(owned)));
+      add("O. Operating buffers", `${vault}: bootstrap funded`, !bootstrap.isZero(), bootstrap.toString());
+      add("O. Operating buffers", `${vault}: active coverage`, await buffer.ready(), `target=${await buffer.targetCash()}`);
+      const account = await nativeAccount(api, address);
+      add("O. Operating buffers", `${vault}: dust protected`,
+        (await api.call.dusterApi.isWhitelisted(account) as any).isTrue, account);
+      for (const target of [address, await v.compoundLogic()]) {
+        const code = await provider.getCode(target);
+        const size = (code.length - 2) / 2;
+        add("O. Operating buffers", `${target}: deployed size`, size > 0 && size <= 24576, `${size} bytes`);
+      }
+    }
+  });
+
   await section("R. Custody dust protection", async () => {
     for (const address of [SUBLOOP, HARVESTER, FEES, ...VAULTS, ...(SWAPPER ? [SWAPPER] : [])]) {
       const account = await nativeAccount(api, address);
