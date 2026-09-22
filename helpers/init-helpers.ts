@@ -107,6 +107,7 @@ export const initReservesByHelper = async (
   let strategyAddressPerAsset: Record<string, string> = {};
   let aTokenType: Record<string, string> = {};
   let delegationAwareATokenImplementationAddress = "";
+  let lockableATokenImplementationAddress = "";
   let aTokenImplementationAddress: string;
   let stableDebtTokenImplementationAddress: string;
   let variableDebtTokenImplementationAddress: string;
@@ -131,10 +132,21 @@ export const initReservesByHelper = async (
     ).address;
   }
 
+  const lockableATokenReserves = Object.entries(reservesParams).filter(
+    ([_, { aTokenImpl }]) => aTokenImpl === eContractid.LockableAToken
+  ) as [string, IReserveParams][];
+
+  if (lockableATokenReserves.length > 0) {
+    lockableATokenImplementationAddress = (
+      await hre.deployments.get(`LockableAToken-${MARKET_NAME}`)
+    ).address;
+  }
+
   const reserves = Object.entries(reservesParams).filter(
     ([_, { aTokenImpl }]) =>
       aTokenImpl === eContractid.DelegationAwareAToken ||
-      aTokenImpl === eContractid.AToken
+      aTokenImpl === eContractid.AToken ||
+      aTokenImpl === eContractid.LockableAToken
   ) as [string, IReserveParams][];
 
   for (let [symbol, params] of reserves) {
@@ -167,6 +179,8 @@ export const initReservesByHelper = async (
       aTokenType[symbol] = "generic";
     } else if (aTokenImpl === eContractid.DelegationAwareAToken) {
       aTokenType[symbol] = "delegation aware";
+    } else if (aTokenImpl === eContractid.LockableAToken) {
+      aTokenType[symbol] = "lockable";
     }
 
     reserveInitDecimals.push(reserveDecimals);
@@ -178,6 +192,8 @@ export const initReservesByHelper = async (
     let aTokenToUse: string;
     if (aTokenType[reserveSymbols[i]] === "generic") {
       aTokenToUse = aTokenImplementationAddress;
+    } else if (aTokenType[reserveSymbols[i]] === "lockable") {
+      aTokenToUse = lockableATokenImplementationAddress;
     } else {
       aTokenToUse = delegationAwareATokenImplementationAddress;
     }
@@ -254,19 +270,23 @@ export const getPairsTokenAggregator = (
 ): [string[], string[]] => {
   const { ETH, USD, ...assetsAddressesWithoutEth } = allAssetsAddresses;
 
-  const pairs = Object.entries(assetsAddressesWithoutEth).map(
-    ([tokenSymbol, tokenAddress]) => {
-      const aggregatorAddressIndex = Object.keys(
-        aggregatorsAddresses
-      ).findIndex((value) => value === tokenSymbol);
-      const [, aggregatorAddress] = (
-        Object.entries(aggregatorsAddresses) as [string, tEthereumAddress][]
-      )[aggregatorAddressIndex];
-      if (!aggregatorAddress) throw `Missing aggregator for ${tokenSymbol}`;
+  const pairs = Object.entries(assetsAddressesWithoutEth)
+    .map(([tokenSymbol, tokenAddress]) => {
+      const aggregatorAddress = aggregatorsAddresses[tokenSymbol];
+      // No aggregator configured for this asset: skip it here rather than
+      // crash/throw. Its oracle source is wired later (e.g. init-reserve prefers
+      // a deployed ${SYMBOL}-USDOracleAdapter), so the AaveOracle is deployed
+      // without an initial source for it and gets one via setAssetSources.
+      if (!aggregatorAddress) {
+        console.log(
+          `[getPairsTokenAggregator] no aggregator for ${tokenSymbol} — skipping (wired later via setAssetSources)`
+        );
+        return null;
+      }
       if (!tokenAddress) throw `Missing token address for ${tokenSymbol}`;
       return [tokenAddress, aggregatorAddress];
-    }
-  ) as [string, string][];
+    })
+    .filter((p): p is [string, string] => p !== null);
 
   const mappedPairs = pairs.map(([asset]) => asset);
   const mappedAggregators = pairs.map(([, source]) => source);
@@ -442,7 +462,7 @@ export const configureReservesByHelper = async (
           await reservesSetupHelper.populateTransaction.configureReserves(
             poolConfiguratorAddress,
             chunkedInputParams[chunkIndex],
-            { gasLimit: 300000 }
+            { gasLimit: 3000000 }
           );
         addTransaction(tx);
       } else {
@@ -450,7 +470,7 @@ export const configureReservesByHelper = async (
           await reservesSetupHelper.configureReserves(
             poolConfiguratorAddress,
             chunkedInputParams[chunkIndex],
-            { gasLimit: 300000 }
+            { gasLimit: 3000000 }
           )
         );
         console.log(
@@ -482,9 +502,36 @@ export const addMarketToRegistry = async (
     );
   }
 
-  const signer = await hre.ethers.getSigner(providerRegistryOwner);
+  // 1. Set the provider at the Registry (idempotent — skip if already registered)
+  const existingId = await providerRegistryInstance.getAddressesProviderIdByAddress(
+    addressesProvider
+  );
+  if (existingId.gt(0)) {
+    console.log(
+      `LendingPoolAddressesProvider ${addressesProvider} already registered (id=${existingId.toString()}) in registry ${providerRegistry.address}`
+    );
+    return;
+  }
 
-  // 1. Set the provider at the Registry
+  // When reusing a shared, governance-owned registry (e.g. the main Hydration
+  // money-market registry, owned by the aave-manager precompile), the deployer
+  // can't sign as the owner. Detect that — if the registry owner isn't one of
+  // our controllable signers — and defer the registration to the governance
+  // proposal (which executes registerAddressesProvider as the aave-manager).
+  const signers = await hre.ethers.getSigners();
+  const controllable = signers.some(
+    (s) => s.address.toLowerCase() === providerRegistryOwner.toLowerCase()
+  );
+  if (!controllable) {
+    console.log(
+      `[add-market-to-registry] Registry ${providerRegistry.address} is owned by ${providerRegistryOwner}, ` +
+        `which is not a local signer. Skipping registration of provider ${addressesProvider} ` +
+        `(providerId ${providerId}) — defer to governance proposal.`
+    );
+    return;
+  }
+
+  const signer = await hre.ethers.getSigner(providerRegistryOwner);
   await waitForTx(
     await providerRegistryInstance
       .connect(signer)

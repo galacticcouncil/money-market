@@ -2,7 +2,8 @@ import { rateStrategyVolatileOne } from "./../aave/rateStrategies";
 import { eContractid, IReserveParams } from "../../helpers/types";
 import {
   rateStrategyDOT,
-  rateStrategyDOT5,
+  rateStrategyDOT275,
+  rateStrategyPRIME,
   rateStrategyStables,
   rateStrategyStables80,
 } from "./rateStrategies";
@@ -27,7 +28,7 @@ export const strategyUSDC: IReserveParams = {
   supplyCap,
   borrowCap,
   debtCeiling,
-  borrowableIsolation: true,
+  borrowableIsolation: false,
 };
 
 export const strategyUSDT = strategyUSDC;
@@ -54,13 +55,13 @@ export const strategyWBTC = {
   ...strategyWETH,
   baseLTVAsCollateral: "6000",
   liquidationThreshold: "7000",
-  supplyCap: "33",
+  supplyCap: "1",
   borrowCap: "10",
   reserveDecimals: "8",
 };
 
 export const strategyDOT: IReserveParams = {
-  strategy: rateStrategyDOT5,
+  strategy: rateStrategyDOT275,
   baseLTVAsCollateral: "8000",
   liquidationThreshold: "8500",
   liquidationBonus: "10700",
@@ -223,14 +224,14 @@ export const strategyPAXG: IReserveParams = {
   reserveDecimals: "18",
   aTokenImpl: eContractid.AToken,
   reserveFactor,
-  supplyCap: "100",
-  borrowCap: "70",
+  supplyCap: "250",
+  borrowCap: "175",
   debtCeiling,
   borrowableIsolation: false,
 };
 
 export const strategyPRIME: IReserveParams = {
-  strategy: rateStrategyVolatileOne,
+  strategy: rateStrategyPRIME,
   baseLTVAsCollateral: "8500",
   liquidationThreshold: "8800",
   liquidationBonus: "10700",
@@ -241,9 +242,45 @@ export const strategyPRIME: IReserveParams = {
   reserveDecimals: "6",
   aTokenImpl: eContractid.AToken,
   reserveFactor,
+  supplyCap: "15000000",
+  borrowCap: "3000000",
+  debtCeiling: "1200000000",
+  borrowableIsolation: false,
+};
+
+export const strategySIGIL: IReserveParams = {
+  strategy: rateStrategyStables,
+  baseLTVAsCollateral: "8500",
+  liquidationThreshold: "8800",
+  liquidationBonus: "10700",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: false,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "18",
+  aTokenImpl: eContractid.AToken,
+  reserveFactor,
+  supplyCap: "1100000",
+  borrowCap: "0",
+  debtCeiling,
+  borrowableIsolation: false,
+};
+
+export const strategyApyUSD: IReserveParams = {
+  strategy: rateStrategyVolatileOne,
+  baseLTVAsCollateral: "8500",
+  liquidationThreshold: "8800",
+  liquidationBonus: "10700",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: true,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "18",
+  aTokenImpl: eContractid.AToken,
+  reserveFactor,
   supplyCap: "5000000",
   borrowCap: "3000000",
-  debtCeiling: "400000000",
+  debtCeiling: "222222200",
   borrowableIsolation: false,
 };
 
@@ -281,5 +318,47 @@ export const strategyGSOL: IReserveParams = {
   supplyCap: "100,000".replace(/,/g, ""),
   borrowCap: "0",
   debtCeiling,
+  borrowableIsolation: false,
+};
+
+// HEURC reserve configurations
+export const strategyEURC: IReserveParams = {
+  strategy: rateStrategyStables80,
+  baseLTVAsCollateral: "7500",
+  liquidationThreshold: "8000",
+  liquidationBonus: "10300",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: true,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "6", // EURC has 6 decimals
+  aTokenImpl: eContractid.AToken,
+  reserveFactor: "1000",
+  supplyCap: "4,000,000".replace(/,/g, ""),
+  borrowCap: "3,500,000".replace(/,/g, ""),
+  debtCeiling,
+  borrowableIsolation: false,
+};
+
+export const strategyHEURC: IReserveParams = {
+  ...strategyHtoken,
+  supplyCap: "8,000,000".replace(/,/g, ""),
+};
+
+export const strategySTHDX: IReserveParams = {
+  strategy: rateStrategyDOT,
+  baseLTVAsCollateral: "4000",
+  liquidationThreshold: "7000",
+  liquidationBonus: "10800",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: false,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "12",
+  aTokenImpl: eContractid.LockableAToken,
+  reserveFactor: "2000",
+  supplyCap: "500000000",
+  borrowCap: "0",
+  debtCeiling: "100000000", // $1,000,000 in cents
   borrowableIsolation: false,
 };
