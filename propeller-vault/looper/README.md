@@ -9,14 +9,15 @@ levers in a tranche **synchronously** (router sell, oracle-fair `minOut`) instea
 of feeding a gradual DCA order. The gradualness that DCA used to provide now comes
 from calling `pokeBorrow()` repeatedly off-chain. That's this bot.
 
-`pokeBorrow()` is **permissionless** and fully bounded by the contract:
+`pokeBorrow()` is **permissionless**, subject to the following controls:
 
 - borrows only down to `deployHfFloor` (= target HF) — can't over-lever,
-- per-call amount capped at `deployTranche`,
+- per-call amount capped when `deployTranche` is nonzero; activation requires an approved nonzero limit,
 - HOLLAR→aPRIME swap uses an Aave-oracle `minOut` to bound execution slippage.
 
-So the signer needs **no role** — only enough HDX to pay gas. A caller can only
-advance the ramp or waste their own gas on a no-op at floor.
+The signer needs **no role**, only target-chain transaction funding. A successful
+call changes leverage and incurs execution costs. These controls do not bound
+initial/upward source deposits or harvest size; see the [RC admission gate](../docs/release-candidate.md#activation-gates).
 
 The keeper also starts eligible withdrawals, repays debt, settles requests,
 maintains synthetic collateral, and harvests. These operations require no keeper
@@ -36,13 +37,12 @@ read each vault's pause, queue cursors and Main repayment target
 periodically harvest(), maintainPeg(), pokeSettle(), then rebalance when allowed
 ```
 
-The keeper checks each operating buffer's `ready()` state. A missing, unreadable
-or below-target buffer blocks new source ramping and emits an alert; it does not
-disable safety repayments. Settlement also runs for late source claims after
-the collateral queue finishes, and the slow cycle services idle Main interest.
-No keeper operation spends unallocated bootstrap or obtains treasury funding.
-Monitor bootstrap separately: owned cash may be healthy while new deposits lack
-sponsorship. See [buffer ownership and recovery](../docs/operating-buffer.md).
+The keeper checks each Main debt ledger's `ready()` state. Missing/unreadable
+accounting, insufficient backing or incomplete source allocation blocks new
+source ramping without disabling safety repayments. Settlement also runs for
+late source claims after collateral settlement. The slow cycle services Main
+interest from available proceeds; it never obtains treasury money or widens
+slippage. See [yield funding and recovery](../docs/main-debt-servicing.md).
 
 The default cooldown is 12 hours BEFORE unwinding starts. It is configured per
 vault by governance through `setWithdrawalDelay(uint32 seconds)`. Existing

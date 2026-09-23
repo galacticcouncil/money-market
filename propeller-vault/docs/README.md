@@ -1,107 +1,94 @@
-# Propeller Status and Resources
+# Propeller Team Documentation
 
-As of 2026-09-22: **research checkpoint, not a release candidate**. This branch
-includes Main borrowing discounts, per-vault harvest fees, accounting fixes,
-withdrawal controls, keeper/readiness changes, regression tests and economic
-research. This feature branch implements harvest-time Main-interest servicing
-and a separately owned HOLLAR buffer. It does not establish a safe production
-TVL or approve production buffer/slippage parameters.
+**23 September 2026 | RC1 for review | Production activation blocked**
 
-## Branches and Reviews
+Propeller's current design uses harvest-time Main interest servicing,
+source-funded resizing and an earned PRIME execution allowance. It does not
+require sponsored HOLLAR operating capital. The local candidate is on
+`feat/propeller-interest-buffer`; the branch name predates that decision.
 
-- Consolidated integration branch: `propeller`. It includes the discount/fee
-  commits and the accounting/readiness and research commits from
-  `fix/propeller-accounting-readiness` (`0c7229d`, `1f10b8b`). The original
-  feature branches remain available as historical checkpoints.
-- [PR #57: Main discounts and fees](https://github.com/galacticcouncil/money-market/pull/57)
-  merged into `propeller` as `ee7c79e` on 2026-09-22.
-- [PR #53: accounting and yield-source changes](https://github.com/galacticcouncil/money-market/pull/53)
-  merged into `propeller` as `5c1bac4`.
-- [PR #46: original integration](https://github.com/galacticcouncil/money-market/pull/46)
-  remains open, now targeting `hydration`. The entire current `feat/bil` tip is
-  already an ancestor of `hydration`. The latest `hydration` base is merged into
-  `propeller`: ignore rules retain both branches' exclusions, and the superseded
-  HDCL deployment plan is replaced by the existing BIL plan. Propeller's build
-  paths now use the renamed `bil-vault/lib` submodules with unchanged pins.
-- [PR #53 audit](../audit/propeller-audit-ys-propeller-fixes-20260731.md)
-  is historical review evidence, not approval of this checkpoint.
+## Start Here
 
-## Resource Map
+| Reader                      | Start with                                                                                                   | Outcome                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| Everyone                    | [Architecture and user lifecycle](../README.md)                                                              | Understand the two debt positions, funding flows and user protections.    |
+| Release reviewers           | [RC1 scope and activation gates](release-candidate.md)                                                       | Separate verified behavior from work required before production.          |
+| Risk and governance         | [Principal and emergency policy](principal-safety.md), [Main servicing](main-debt-servicing.md)              | Review loss allocation, recovery funding and operating responsibilities.  |
+| Liquidity and oracle owners | [PRIME pricing and replenishment](prime-pricing-replenishment.md)                                            | Assess reference wiring, executable spreads and launch inventory.         |
+| Deployment and operations   | [Deployment runbook](../DEPLOYMENT.md), [keeper runbook](../looper/README.md)                                | Prepare exact artifacts, permissions, reserves, monitoring and rehearsal. |
+| Contract reviewers          | [Servicing ledger](main-debt-servicing.md), [source upgrade boundary](source-upgrades.md), [tests](../test/) | Review accounting, recovery ownership and future compatibility.           |
 
-| Area | Resources |
-| --- | --- |
-| Architecture | [Vault README](../README.md), [contracts](../src/) |
-| Main discount | [Policy and implementation](main-borrow-discount.md) |
-| Harvest fees | [Per-vault fee specification](protocol-fees.md) |
-| Principal and emergencies | [Principal policy and accounting limitations](principal-safety.md) |
-| Deployment | [Deployment guide](../DEPLOYMENT.md), [scripts](../script/), [governance proposal task](../../tasks/proposals/propeller.ts) |
-| Deployment verification | [Readiness checks](../../scripts/propeller/verify-readiness.ts) |
-| Keeper operations | [Keeper runbook and rounding policy](../looper/README.md) |
-| Tests | [Solidity tests](../test/), [keeper tests](../looper/test/) |
-| Formal verification | [Lean](../formal/README.md), [Verity bridge](../formal/bridge/README.md); assumptions and scope apply |
-| Testnet | [lark-4 deployment record](../deployments/lark-4.md); historical, not production addresses |
-| Native and long-term testing | [90-day stresses and fork evidence](market-stress-90d.md) |
-| Main interest | [Implemented buffer policy](operating-buffer.md), [historical comparison](interest-policy-comparison.md) |
-| Buffer verification | [Contract campaign and native findings](operating-buffer-verification.md), [machine-readable evidence](evidence/operating-buffer-2026-09-22/) |
-| Peg stress | [Finite-funding/no-refill model](hollar-peg-liquidity.md) |
-| Arbitrage and calibration | [Coupled model checkpoint](coupled-liquidity-checkpoint.md), [model scripts](../../scripts/propeller/) |
-| Public evidence | [Pinned market fixture](../../scripts/propeller/fixtures/market-20260922.json), [calibration and preliminary outputs](evidence/2026-09-22/) |
+## Agreed Design
 
-## Confirmed Policy
+- Protect original principal in the deposited token, not its dollar value.
+  Preserve unpaid claims and block deposits while underfunded. Governance funds
+  residual recovery; recording a claim does not make repayment liquid.
+- Yield, including previously compounded yield, may contribute to an emergency
+  recovery. That requires explicit per-holder reconciliation and a reviewed
+  execution path, not an unrestricted treasury withdrawal.
+- Withdrawals wait 12 hours by default before unwinding. Emergency freezes also
+  block already-settled claims. Ordinary FIFO settlement is not all-holder
+  emergency recovery.
+- Governance and the Technical Committee control the Main-only interest discount.
+  Governance sets per-vault harvest fees, initially 5%. Fees accrue in collateral
+  and are permissionlessly payable to the configured treasury recipient.
+- Fresh after-fee harvests service Main interest. PRIME-loop unwind proceeds
+  resize Main debt. Earned PRIME retention covers eligible execution costs;
+  it is neither insurance nor a guaranteed repayment budget.
+- Strategy rotation and incident-specific all-holder recovery accounting remain
+  deferred. Their fairness and compatibility requirements are documented now.
 
-- Protect original deposited-token principal, not its USD value. Never write off
-  unpaid claims; block new deposits while underfunded. Governance funds residual
-  HOLLAR shortfalls. Preserving a claim does not provide repayment liquidity.
-- Compounded yield may cover emergency losses. All affected holders must be
-  included fairly. Detailed manual recovery accounting is deferred; the ordinary
-  FIFO queue is not itself a fair emergency-distribution mechanism.
-- Configurable withdrawal delay defaults to 12 hours **before starting unwinds**.
-  Emergency freeze stops withdrawals and settled claims. Safety operations remain
-  separately available.
-- Technical Committee controls Main HOLLAR discounts; PRIME-loop debt remains
-  undiscounted. Governance sets per-vault fees, initially 5% of harvested
-  collateral after swaps and before Main servicing. Fees accrue in collateral,
-  permissionlessly claimable to the configured recipient.
-- Service ordinary Main interest from fresh after-fee harvested collateral and
-  user-owned HOLLAR. Explicit sponsorship funds entry buffers without diluting
-  incumbents. Started exits own their cash, subsequent interest and late source
-  repayments. Previously compounded collateral is not sold by ordinary servicing.
+See the [RC checklist](release-candidate.md#activation-gates) for unresolved
+launch decisions. Defaults and experimental limits are not deployment approvals.
 
-## Historical Integration Baseline
+## Current Specifications
 
-The following predates the operating-buffer implementation. For this branch's
-new verification and remaining findings, use [the buffer report](operating-buffer-verification.md).
+| Topic                                             | Document                                                           |
+| ------------------------------------------------- | ------------------------------------------------------------------ |
+| Main interest, execution allowance and incentives | [Yield-funded Main servicing](main-debt-servicing.md)              |
+| Discount authority, eligibility and cache refresh | [Main borrowing discount](main-borrow-discount.md)                 |
+| Fee basis, recipient and claims                   | [Per-vault protocol fees](protocol-fees.md)                        |
+| Principal, delay, pauses, rounding and recovery   | [Principal preservation](principal-safety.md)                      |
+| Future source rotation                            | [Upgrade boundary and deferred implementation](source-upgrades.md) |
 
-- Solidity: **231 passed, zero failed, three skipped**, rerun on 2026-09-22.
-  Optional fork/Verity suites were skipped; this is not a fresh native fork run.
-- Keeper tests/build, native-rounding unit tests and standalone readiness
-  TypeScript check passed. All five JavaScript model/calibration test files
-  passed against the checked-in snapshot, including 24 coupled-model tests and
-  five history-calibration tests.
-- Previous `hdx.tarn` Chopsticks rehearsal deployed the contracts and exercised
-  small real-route lifecycles using a **fork-only adapter and explicit external
-  donor funding**. It did not verify the production HydraAugustus adapter or
-  prove exits are self-financing.
-- CollateralVault runtime measured 24,510 bytes, only 66 bytes below EIP-170.
-  Recheck size and deployment gas for every subsequent build/configuration.
+## Verification and Research
 
-Use the pinned `bil-vault/lib` dependencies. Run `forge test --offline
---evm-version london` in `propeller-vault`; the optional multi-scenario contract
-campaign has a separate runner-gas setting documented in its verification report.
+| Evidence                                                                                                                                   | Scope                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| [RC verification](release-candidate.md#verification)                                                                                       | Current candidate summary; use this before historical test counts.                                           |
+| [Production adapter and execution calibration](route-execution-calibration.md)                                                             | Conditional native lifecycle, real-route quotes, Main resizing and 2,220 retention/cost scenario executions. |
+| [PRIME validation](prime-pricing-replenishment.md)                                                                                         | Dated production reads, replacement feed checks, mint/bridge state and observed replenishment.               |
+| [Main debt verification](main-debt-verification.md)                                                                                        | Earlier 370-case contract campaign and native entry rejection; retained as dated evidence.                   |
+| [Source compatibility](source-upgrades.md#checks-added-now)                                                                                | Storage and accounting tests, not a migration implementation.                                                |
+| [Lean](../formal/README.md) and [Verity](../formal/bridge/README.md)                                                                       | Formal artifacts with separate scope and assumptions.                                                        |
+| [90-day market study](market-stress-90d.md), [HOLLAR peg study](hollar-peg-liquidity.md), [coupled model](coupled-liquidity-checkpoint.md) | Historical models and calibration; not current launch budgets or provider commitments.                       |
 
-## Release Gates Still Open
+Raw outputs are checked in under [evidence](evidence/). Reports distinguish
+mocked market behavior, native fork fixtures, live read-only observations and
+funded recovery. Turnover is not committed replenishment; funded exits are not
+proof of self-financing.
 
-1. Approve and fund per-vault buffer coverage, stressed rates, gross exit-cost
-   budgets and bootstrap amounts. Implementation does not provide external capital.
-2. Verify Main protection under accrued debt, keeper outages and source losses;
-   rehearse emergency pause and governance-funded recovery with all holders.
-3. Deploy and test the production swap adapter, routes, approvals, slippage,
-   custody, governance wiring and exact deployable artifacts on a fresh fork.
-4. Resolve the independent PRIME-reference/oracle discrepancy and finish the
-   calibrated six-TVL, 90-day bull/bear/seesaw liquidity campaign, including
-   arbitrage/settlement outages, LP withdrawals and shared money-market cash.
-5. Set justified TVL/ramp/pause budgets, arrange funded backstops and redundant
-   keeper monitoring, then obtain independent review of the exact candidate.
+## Integration References
 
-No production deployment, automatic recovery transfer, PR merge or production
-configuration approval is implied by publishing these resources.
+- Integration branch: `propeller`; current RC work: `feat/propeller-interest-buffer`.
+- [PR #46](https://github.com/galacticcouncil/money-market/pull/46): umbrella integration; the agreed target is `hydration`.
+- [PR #60](https://github.com/galacticcouncil/money-market/pull/60): Main-servicing work; earlier buffer terminology is superseded by the current specification.
+- [PR #57](https://github.com/galacticcouncil/money-market/pull/57) and [PR #53](https://github.com/galacticcouncil/money-market/pull/53): discount/fee and accounting/yield-source review history.
+- [Governance task](../../tasks/proposals/propeller.ts), [readiness checker](../../scripts/propeller/verify-readiness.ts), [deployment scripts](../script/).
+- [lark-4 record](../deployments/lark-4.md) and [PR #53 audit](../audit/propeller-audit-ys-propeller-fixes-20260731.md): historical context, not production addresses or RC approval.
+
+Branch names and links identify the work; confirm live PR state and the exact
+reviewed commit before merge or deployment.
+
+## Superseded Material
+
+These documents explain earlier decisions and retain evidence, but are not the
+current implementation specification:
+
+- [Sponsored operating-buffer proposal](operating-buffer.md) and [its verification](operating-buffer-verification.md).
+- [Interest-policy comparison](interest-policy-comparison.md).
+- [Principal-safety history](principal-safety-history.md), including dated test counts and original recovery discussions.
+
+The current specifications and RC checklist take precedence over historical
+narrative. No production deployment, governance action or launch approval is
+implied by publishing this documentation.

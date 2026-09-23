@@ -9,15 +9,19 @@ const paths = { nativeResult: resultPath, readiness: readinessPath, regression: 
   aaveFork: forkPath, artifactVerification: verificationPath };
 const inputs = Object.fromEntries(Object.entries(paths).map(([key, path]) => [key, readFileSync(path, "utf8")]));
 const r = JSON.parse(inputs.nativeResult);
-assert.equal(r.status, "native-multi-user-multi-vault-campaign-passed");
+const lifecyclePassed = r.status === "native-multi-user-multi-vault-campaign-passed";
+assert.ok(lifecyclePassed || r.status === "native-entry-blocked-by-strict-slippage");
 for (const key of ["deployedCodeMatchesLocalArtifacts", "proxyImplementationSlots",
-  "nativeAccruedInterestServicedByHarvest", "nativeFourPublicPositionsPaidInFull",
-  "exitOwnershipAndPendingSourceClaims", "constructorHelperMatchesArtifact"]) {
+  "constructorHelperMatchesArtifact"]) {
   assert.equal(r.checks[key], true, `missing native proof: ${key}`);
 }
-assert.match(inputs.artifactVerification, /FINAL VERIFICATION PASS/);
-assert.equal(r.campaignPayouts.length, 4);
-for (const payout of r.campaignPayouts) {
+assert.match(inputs.artifactVerification, /FINAL ARTIFACT VERIFICATION PASS/);
+if (lifecyclePassed) {
+  for (const key of ["nativeAccruedInterestServicedByHarvest", "nativeFourPublicPositionsPaidInFull",
+    "exitOwnershipAndPendingSourceClaims"]) assert.equal(r.checks[key], true, key);
+  assert.equal(r.campaignPayouts.length, 4);
+} else assert.equal(r.checks.strictSlippageNotWidened, true);
+for (const payout of r.campaignPayouts || []) {
   assert.equal(payout.paid, payout.promised);
   assert.ok(BigInt(payout.paid) >= BigInt(payout.deposited));
 }
@@ -29,10 +33,10 @@ const counts = log => {
 };
 const readiness = inputs.readiness.match(/(\d+)\/(\d+) checks passed, (\d+) FAILED/);
 assert.ok(readiness, "missing readiness summary (this fixture is not production-ready)");
-const bufferSection = inputs.readiness.split("O. Operating buffers")[1]?.split("R. Custody dust protection")[0];
+const bufferSection = inputs.readiness.split("O. Main debt settlement")[1]?.split("R. Custody dust protection")[0];
 assert.ok(bufferSection && !bufferSection.includes("FAIL"));
 const bufferPasses = [...bufferSection.matchAll(/PASS/g)].length;
-assert.equal(bufferPasses, 16);
+assert.ok(bufferPasses > 0);
 const failures = [...inputs.readiness.matchAll(/^  - (.+)$/gm)].map(match => match[1]);
 assert.equal(failures.length, Number(readiness[3]));
 const output = {
@@ -42,28 +46,29 @@ const output = {
     [key, createHash("sha256").update(value).digest("hex")])),
   tests: { regression: counts(inputs.regression), aaveFork: counts(inputs.aaveFork) },
   readiness: { passed: Number(readiness[1]), total: Number(readiness[2]), failed: Number(readiness[3]),
-    operatingBufferChecksPassed: bufferPasses, failures,
-    explanation: "Development governance/owner stand-ins and absent synthetic Substrate registry mapping remain failures, not waived production checks." },
+    mainDebtChecksPassed: bufferPasses, failures,
+    explanation: "Development roles, absent synthetic registry mapping, and any unseeded state after strict-entry rejection remain failures, not waived production checks." },
   native: {
-    status: r.status, rpc: r.rpc, upstream: r.upstream,
+    status: r.status, lifecyclePassed, rpc: r.rpc, upstream: r.upstream,
     fork: { block: r.fork.block, hash: r.fork.hash, runtime: r.fork.runtime.specVersion, chainId: r.fork.chainId },
     verifiedThroughBlock: r.verifiedThroughBlock, checks: r.checks,
     market: r.market, addresses: r.addresses, overrides: r.overrides,
     deployments: r.deployments, calls: r.calls,
     receiptCaveat: "Every receipt checked when mined; pruned receipt lookups are marked unavailable, not reverified. Final live code and bindings were rechecked.",
-    testOnlyPolicy: r.testOnlyPolicy, entryFloorFinding: r.entryFloorFinding,
+    testOnlyPolicy: r.testOnlyPolicy, verifiedPolicy: r.verifiedPolicy, entryFloorFinding: r.entryFloorFinding,
+    policyCaveat: "testOnlyPolicy describes planned fixture settings; early entry rejection may prevent later stages from applying them. verifiedPolicy is the actual configuration read back on-chain.",
     operatingBootstrap: r.operatingBootstrap, roundingPolicies: r.roundingPolicies,
     preHarvest: r.campaignPreHarvest, collateralPayouts: r.campaignPayouts,
-    unpaidSourceClaims: r.finalBufferExits,
-    unpaidSourceClaimTotalWei: r.finalBufferExits.reduce((sum, p) => sum + BigInt(p.unpaidSourceClaim), 0n).toString(),
-    timeAdvances: "One day before harvest; seven days after exit requests. This is not a native 90-day path.",
-    externalSupport: {
+    unpaidSourceClaims: r.finalBufferExits || [],
+    unpaidSourceClaimTotalWei: (r.finalBufferExits || []).reduce((sum, p) => sum + BigInt(p.unpaidSourceClaim), 0n).toString(),
+    timeAdvances: lifecyclePassed ? "One day before harvest; seven days after exit requests. This is not a native 90-day path." : "Stopped at entry; no native interest or exit lifecycle claimed.",
+    externalSupport: lifecyclePassed ? {
       primeDonatedToSource: "100 PRIME; fixture for harvest execution, not earned yield",
-      hollarBootstrap: "1000 HOLLAR per vault, from a fork-only donor borrow",
+      hollarBootstrap: "0; no sponsored operating capital",
       hollarSourceSupport: "10 HOLLAR before second seed, 50 HOLLAR before public entries, 100 HOLLAR during recovery",
       hollarActiveRecovery: "100 HOLLAR per vault via fundPosition(0), allocated before all four exits start",
       warning: "Collateral gains and HOLLAR payouts include donated capital; neither is an APY estimate.",
-    },
+    } : { hollarBootstrap: "0; no sponsored operating capital", warning: "No completed lifecycle or APY evidence." },
     limitations: r.campaignLimitations, infrastructureCaveat: r.infrastructureCaveat,
   },
 };

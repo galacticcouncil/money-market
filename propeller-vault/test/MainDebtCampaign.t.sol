@@ -3,7 +3,7 @@ pragma solidity ^0.8.22;
 
 import {RecoveryE2ETest} from "./RecoveryE2E.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
-import {PropellerOperatingBuffer} from "../src/PropellerOperatingBuffer.sol";
+import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
 import {PropellerDiscount} from "../src/PropellerDiscount.sol";
 import {MockDiscountDebtToken, MockDiscountAToken} from "./mocks/MockDiscount.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
@@ -12,7 +12,7 @@ import {SubLoop} from "../src/SubLoop.sol";
 
 /// Real Propeller bytecode with explicit market fixtures, not a liquidity engine.
 /// 180 main cases + 190 sensitivities cover the selected policy's comparison grid.
-contract OperatingBufferCampaignTest is RecoveryE2ETest {
+contract MainDebtCampaignTest is RecoveryE2ETest {
     struct Scenario {
         uint256 tvl;
         uint256 path; // flat, bull, bear, seesaw, rally/crash
@@ -20,8 +20,8 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
         uint16 discount;
         uint16 swapCost;
         uint16 loopCost;
-        uint16 reserveCost;
-        uint32 bufferDays;
+        uint16 slippageBps;
+        uint32 incentiveMode;
         uint32 exitLag;
         uint32 harvestEvery;
         uint32 halfExitDay;
@@ -34,12 +34,13 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
         uint256 peakDebt;
         uint256 floorMisses;
         uint256 blocked;
-        uint256 bootstrap;
+        uint256 incentive;
         uint256 liquidations;
         uint256 ethReturnBps;
         uint256 btcReturnBps;
         uint256 bufferPaid;
         uint256 residualSourceClaim;
+        uint256 recoveryLiquidity;
     }
     Metrics internal metrics;
     PropellerDiscount internal policy;
@@ -50,8 +51,15 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
         super._bootstrapVaults();
     }
 
-    function _default(uint256 tvl, uint256 path) internal pure returns (Scenario memory s) {
-        s = Scenario(tvl, path, false, 0, 10, 0, 10, 7, 2 days, 1, 60, 0);
+    function _default(uint256 tvl, uint256 path) internal view returns (Scenario memory s) {
+        s = Scenario(tvl, path, false, 0, 10, 0, 100, 0, 2 days, 1, 60, 0);
+        uint256 loopCost = vm.envOr("CAMPAIGN_LOOP_COST_BPS", uint256(s.loopCost));
+        uint256 swapCost = vm.envOr("CAMPAIGN_SWAP_COST_BPS", uint256(s.swapCost));
+        uint256 ceiling = vm.envOr("CAMPAIGN_CEILING_BPS", uint256(s.slippageBps));
+        require(loopCost <= ceiling && ceiling <= 100 && swapCost <= 100, "invalid campaign costs");
+        s.loopCost = uint16(loopCost);
+        s.swapCost = uint16(swapCost);
+        s.slippageBps = uint16(ceiling);
     }
 
     function _installDiscount() internal {
@@ -104,8 +112,8 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
         }
     }
 
-    function _buffer(CollateralVault v) internal view returns (PropellerOperatingBuffer) {
-        return PropellerOperatingBuffer(address(v.operatingBuffer()));
+    function _buffer(CollateralVault v) internal view returns (PropellerMainDebt) {
+        return PropellerMainDebt(address(v.mainDebt()));
     }
 
     function _fundSource() internal {
@@ -119,7 +127,7 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
     }
 
     function _fundCohorts(CollateralVault v) internal {
-        PropellerOperatingBuffer buffer = _buffer(v);
+        PropellerMainDebt buffer = _buffer(v);
         for (uint256 key; key <= v.queueUnwind(); ++key) {
             (,,uint256 cash, uint256 pending,) = buffer.positions(key);
             uint256 debt = buffer.debtOf(key);
@@ -140,13 +148,17 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
             bytes4 selector;
             assembly { selector := mload(add(reason, 32)) }
             assertTrue(selector == CollateralVault.Underfunded.selector
-                || selector == PropellerOperatingBuffer.UnfundedBuffer.selector
-                || selector == PropellerOperatingBuffer.OutstandingDebt.selector, "unexpected rebalance revert");
+                || selector == PropellerMainDebt.UnfundedInterest.selector
+                || selector == PropellerMainDebt.OutstandingDebt.selector, "unexpected rebalance revert");
             ++metrics.blocked;
         }
     }
 
     function _run(Scenario memory s) internal {
+        if (vm.envOr("REPLAY_CASE", false) && (s.path != vm.envOr("CASE_PATH", uint256(0))
+            || s.dimension != vm.envOr("CASE_DIMENSION", uint256(0))
+            || s.discount != vm.envOr("CASE_DISCOUNT", uint256(0))
+            || s.outage != vm.envOr("CASE_OUTAGE", false))) return;
         delete metrics;
         policy.setDiscountBps(s.discount);
         pool.setVariableBorrowRate(44016888918e15);
@@ -155,17 +167,20 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
         swapper.setHaircut(s.swapCost);
         ethVault.setTvlCap(type(uint128).max);
         tbtcVault.setTvlCap(type(uint128).max);
-        _buffer(ethVault).configure(s.bufferDays * 1 days, s.reserveCost, 1);
-        _buffer(tbtcVault).configure(s.bufferDays * 1 days, s.reserveCost, 1);
-        uint256 sponsorBefore = _buffer(ethVault).bootstrapCash() + _buffer(tbtcVault).bootstrapCash();
+        loop.configureDca(222, 43, 1043, 143, uint32(s.slippageBps) * 100);
         _deposit(ethVault, eth, address(this), 1e12);
         _fundSource();
         _deposit(tbtcVault, tbtc, address(this), 1e12);
         _fundSource();
+        _fundCohorts(ethVault);
+        _fundCohorts(tbtcVault);
         uint256 ethPrincipal = s.tvl * 1e18 / 6000 + 7;
         uint256 btcPrincipal = s.tvl * 1e18 / 120000 + 13;
         _deposit(ethVault, eth, ETH_USER, ethPrincipal);
         _fundSource(); // entry friction is explicit sponsorship, never hidden yield
+        // Shared NAV rounding can leave the other seed one USD base unit short.
+        // Fund that measured cohort deficit; do not weaken deposit admission.
+        _fundCohorts(tbtcVault);
         _deposit(tbtcVault, tbtc, BTC_USER, btcPrincipal);
         for (uint256 i; i < 40; ++i) loop.pokeBorrow();
         uint256 start = vm.getBlockTimestamp();
@@ -179,6 +194,7 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
             pool.setPrice(address(eth), e);
             pool.setPrice(address(tbtc), b);
             _accrue(rate, yieldRate, 1 days);
+            if (day == 30 && s.incentiveMode != 0) this.applyIncentive(s.tvl, s.incentiveMode);
             if (loop.healthFactor() < 1e18 && metrics.liquidations == 0) {
                 loop.pauseEmergency();
                 _modelLoopLiquidation();
@@ -223,7 +239,6 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
                 + hollarDebt.balanceOf(address(tbtcVault));
             if (debt > metrics.peakDebt) metrics.peakDebt = debt;
         }
-        metrics.bootstrap = sponsorBefore - _buffer(ethVault).bootstrapCash() - _buffer(tbtcVault).bootstrapCash();
         // Manual governance recovery is a separate, measured source of money.
         _fundSource();
         _fundCohorts(ethVault);
@@ -238,7 +253,9 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
         _accrue(endRate, endYield, 12 hours + s.exitLag);
         ethVault.maintainPeg();
         tbtcVault.maintainPeg();
-        for (uint256 i; i < 600; ++i) {
+        // HF-safe sales converge geometrically; large books can need more than
+        // 600 keeper calls even with only cents remaining. No debt is rounded off.
+        for (uint256 i; i < 1500; ++i) {
             _fundSource();
             _fundCohorts(ethVault);
             _fundCohorts(tbtcVault);
@@ -249,6 +266,13 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
             tbtcVault.pokeSettle();
             if (ethVault.queueHead() == ethVault.queueTail() && tbtcVault.queueHead() == tbtcVault.queueTail()) break;
         }
+        // A source receivable is not spendable HOLLAR. If the bounded unwind
+        // campaign stalls, governance bridges every remaining exit explicitly;
+        // the original owners retain the source claims after Main is paid.
+        _bridgeExitLiquidity(ethVault);
+        _bridgeExitLiquidity(tbtcVault);
+        ethVault.pokeSettle();
+        tbtcVault.pokeSettle();
         assertEq(ethVault.queueHead(), ethVault.queueTail(), "ETH recovery incomplete");
         assertEq(tbtcVault.queueHead(), tbtcVault.queueTail(), "tBTC recovery incomplete");
         for (uint256 id; id < ethVault.queueTail(); ++id) _claim(ethVault, ETH_USER, id);
@@ -257,8 +281,8 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
         assertGe(tbtc.balanceOf(BTC_USER), btcPrincipal);
         metrics.ethReturnBps = (eth.balanceOf(ETH_USER) - ethPrincipal) * 10_000 / ethPrincipal;
         metrics.btcReturnBps = (tbtc.balanceOf(BTC_USER) - btcPrincipal) * 10_000 / btcPrincipal;
-        for (uint256 id; id < ethVault.queueTail(); ++id) metrics.bufferPaid += _buffer(ethVault).claimBuffer(id);
-        for (uint256 id; id < tbtcVault.queueTail(); ++id) metrics.bufferPaid += _buffer(tbtcVault).claimBuffer(id);
+        for (uint256 id; id < ethVault.queueTail(); ++id) metrics.bufferPaid += _buffer(ethVault).claimSurplus(id);
+        for (uint256 id; id < tbtcVault.queueTail(); ++id) metrics.bufferPaid += _buffer(tbtcVault).claimSurplus(id);
         metrics.residualSourceClaim = loop.pendingUnwindOf(address(ethVault)) + loop.pendingUnwindOf(address(tbtcVault));
         assertEq(ethVault.totalQueuedCollateral(), 0);
         assertEq(tbtcVault.totalQueuedCollateral(), 0);
@@ -266,20 +290,54 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
         _report(s, dispatch);
     }
 
+    function _bridgeExitLiquidity(CollateralVault v) internal {
+        PropellerMainDebt ledger = _buffer(v);
+        for (uint256 id = v.queueHead(); id < v.queueUnwind(); ++id) {
+            uint256 key = id + 1;
+            (,,uint256 cash,,) = ledger.positions(key);
+            uint256 debt = ledger.debtOf(key);
+            if (debt <= cash) continue;
+            uint256 amount = debt - cash;
+            metrics.recovery += amount;
+            metrics.recoveryLiquidity += amount;
+            hollar.mint(address(this), amount);
+            hollar.approve(address(ledger), amount);
+            ledger.fundPosition(key, amount);
+        }
+    }
+
+    function applyIncentive(uint256 tvl, uint32 mode) external {
+        // Day-30 governance budget of 0.5% TVL. This is external funding, not yield.
+        uint256 budget = tvl * 1e18 / 200;
+        for (uint256 i; i < (mode == 3 ? 1 : 2); ++i) {
+            address borrower = mode == 3 ? address(loop)
+                : i == 0 ? address(ethVault) : address(tbtcVault);
+            uint256 amount = mode == 3 ? budget : budget / 2;
+            uint256 debt = hollarDebt.balanceOf(borrower);
+            if (mode == 1) debt = _buffer(CollateralVault(borrower)).interestOf(0);
+            if (amount > debt) amount = debt;
+            if (amount == 0) continue;
+            hollar.mint(address(this), amount);
+            hollar.approve(address(pool), amount);
+            metrics.incentive += pool.repay(address(hollar), amount, 2, borrower);
+        }
+    }
+
     function _report(Scenario memory s, MockDispatch dispatch) internal {
-        uint256[25] memory values = [s.tvl, s.path, s.outage ? 1 : 0, uint256(s.discount), s.dimension,
-            uint256(s.swapCost), uint256(s.loopCost), uint256(s.reserveCost), uint256(s.bufferDays),
+        uint256[26] memory values = [s.tvl, s.path, s.outage ? 1 : 0, uint256(s.discount), s.dimension,
+            uint256(s.swapCost), uint256(s.loopCost), uint256(s.slippageBps), uint256(s.incentiveMode),
             uint256(s.exitLag), uint256(s.harvestEvery), uint256(s.halfExitDay), metrics.mainInterest,
-            metrics.loopInterest, metrics.bootstrap, metrics.recovery, metrics.peakDebt,
+            metrics.loopInterest, metrics.incentive, metrics.recovery, metrics.peakDebt,
             dispatch.hollarSold(), dispatch.hollarBought(), metrics.floorMisses, metrics.liquidations,
-            metrics.ethReturnBps, metrics.btcReturnBps, metrics.bufferPaid, metrics.residualSourceClaim];
+            metrics.ethReturnBps, metrics.btcReturnBps, metrics.bufferPaid, metrics.residualSourceClaim,
+            metrics.recoveryLiquidity];
         string memory line = "CONTRACT_CASE";
         for (uint256 i; i < values.length; ++i) line = string.concat(line, ",", vm.toString(values[i]));
         emit log_string(line);
     }
 
     function _matrix(uint256 tvl) internal {
-        if (!vm.envOr("RUN_OPERATING_CAMPAIGN", false)) vm.skip(true);
+        if (!vm.envOr("RUN_MAIN_DEBT_CAMPAIGN", false)) vm.skip(true);
         assertTrue(vm.revertToStateAndDelete(unseededSnapshot));
         _installDiscount();
         for (uint256 path; path < 5; ++path) for (uint256 outage; outage < 2; ++outage) for (uint256 discount; discount < 3; ++discount) {
@@ -293,7 +351,7 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
     }
 
     function _sensitivities(uint256 tvl) internal {
-        if (!vm.envOr("RUN_OPERATING_CAMPAIGN", false)) vm.skip(true);
+        if (!vm.envOr("RUN_MAIN_DEBT_CAMPAIGN", false)) vm.skip(true);
         assertTrue(vm.revertToStateAndDelete(unseededSnapshot));
         _installDiscount();
         for (uint256 path; path < 5; ++path) for (uint256 variant; variant < 19; ++variant) {
@@ -304,8 +362,8 @@ contract OperatingBufferCampaignTest is RecoveryE2ETest {
             else if (variant < 6) s.exitLag = variant == 3 ? 0 : variant == 4 ? 12 hours : 14 days;
             else if (variant < 8) s.harvestEvery = variant == 6 ? 3 : 7;
             else if (variant == 8) s.loopCost = 10;
-            else if (variant < 13) s.bufferDays = variant == 9 ? 1 : variant == 10 ? 3 : variant == 11 ? 14 : 30;
-            else if (variant < 16) { s.loopCost = 10; s.reserveCost = variant == 13 ? 10 : variant == 14 ? 20 : 50; }
+            else if (variant < 13) { s.loopCost = 10; s.slippageBps = variant == 9 ? 10 : variant == 10 ? 25 : variant == 11 ? 50 : 100; }
+            else if (variant < 16) { s.loopCost = 10; s.incentiveMode = uint32(variant - 12); }
             else { s.loopCost = 10; s.halfExitDay = variant == 16 ? 1 : variant == 17 ? 3 : 7; }
             _run(s);
             assertTrue(vm.revertToStateAndDelete(snapshot));

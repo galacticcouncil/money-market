@@ -1,5 +1,10 @@
 # Propeller Readiness and 90-Day Pressure Tests
 
+**Historical study.** For the current implementation, test counts and release
+gates, use [RC1](release-candidate.md) and the later
+[production-route and retention campaign](route-execution-calibration.md).
+Values and statements of readiness below apply to their dated snapshots only.
+
 Local investigation, 2026-09-18. Branch `fix/propeller-accounting-readiness`.
 These runs were performed locally without production transactions. See the
 [current status and resource index](README.md) for the publication checkpoint.

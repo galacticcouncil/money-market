@@ -1,0 +1,1088 @@
+{
+  "campaign": "MainDebtCampaignTest",
+  "logSha256": "006c4b9a9429f1bf7de6d8afa2aff75ac7cabbfea6a2bc2166bd34f8518e1655",
+  "days": 90,
+  "collateralWeights": {
+    "ETH": 0.5,
+    "tBTC": 0.5
+  },
+  "paths": [
+    "flat",
+    "bull",
+    "bear",
+    "seesaw",
+    "rally-crash"
+  ],
+  "scope": "Actual Propeller contracts; explicit mocked Aave accrual/router/liquidation. Not native pool capacity proof.",
+  "principal": "All public collateral claims settled after explicit recovery; deposited-token principal asserted with zero tolerance.",
+  "returns": "Realized collateral-token gains for partial plus final exits, not annualized APY. HOLLAR surplus payouts are separate. Incentive cases include externally repaid debt.",
+  "funding": "No operating bootstrap. Recovery includes entry friction, negative source carry, final shortfalls and separately measured exit liquidity bridges after 1500 settlement calls. Bridged source receivables remain owned. Day-30 incentives are separately measured, not organic yield.",
+  "incentiveModes": {
+    "0": "none",
+    "1": "Main accrued interest",
+    "2": "Main debt",
+    "3": "PRIME-loop debt"
+  },
+  "slippage": "Test ceilings and modeled fills are recorded in each row, not production approvals. Explicit 10/25/50/100bp sensitivities remain distinct from the main grid; no automatic widening.",
+  "mainGridCosts": [
+    {
+      "loopCostBps": 25,
+      "swapCostBps": 85,
+      "slippageBps": 50
+    }
+  ],
+  "aggregate": {
+    "cases": 370,
+    "casesWithMaterialRecovery": 370,
+    "casesWithResidualSourceClaims": 109,
+    "maxRecoveryPctTvl": 8.426795745674315,
+    "casesWithRecoveryLiquidity": 7,
+    "maxRecoveryLiquidityPctTvl": 0.00011033809549143393,
+    "maxIncentivePctTvl": 0.5,
+    "maxPeakDebtToTvl": 7.2285170320900765,
+    "floorMisses": 216,
+    "liquidations": 0,
+    "minEthReturnBps": 0,
+    "minBtcReturnBps": 0
+  },
+  "artifacts": {
+    "CollateralVault": {
+      "runtimeBytes": 24381,
+      "templateSha256": "7870bc4d8b78c30bae787dd7d4c09c7331e2a023acd35edef79f7f9d602c69ce",
+      "immutableReferences": {
+        "409": [
+          {
+            "start": 11030,
+            "length": 32
+          },
+          {
+            "start": 11568,
+            "length": 32
+          },
+          {
+            "start": 12715,
+            "length": 32
+          }
+        ],
+        "48950": [
+          {
+            "start": 3506,
+            "length": 32
+          },
+          {
+            "start": 4418,
+            "length": 32
+          },
+          {
+            "start": 4762,
+            "length": 32
+          },
+          {
+            "start": 11315,
+            "length": 32
+          },
+          {
+            "start": 14150,
+            "length": 32
+          }
+        ]
+      }
+    },
+    "SubLoop": {
+      "runtimeBytes": 20436,
+      "templateSha256": "c37e86aeef7cce46587b853afa7fce18745757497cf85dc9aa81e8ae9561a08f",
+      "immutableReferences": {
+        "409": [
+          {
+            "start": 5480,
+            "length": 32
+          },
+          {
+            "start": 5777,
+            "length": 32
+          },
+          {
+            "start": 6785,
+            "length": 32
+          }
+        ]
+      }
+    },
+    "Harvester": {
+      "runtimeBytes": 7042,
+      "templateSha256": "41331b93874caaa952c9bf9e6372fe60ba9b1f7fec42663ca4a767abfb9eceaa",
+      "immutableReferences": {
+        "51772": [
+          {
+            "start": 256,
+            "length": 32
+          },
+          {
+            "start": 436,
+            "length": 32
+          },
+          {
+            "start": 1460,
+            "length": 32
+          },
+          {
+            "start": 1608,
+            "length": 32
+          },
+          {
+            "start": 2009,
+            "length": 32
+          },
+          {
+            "start": 2190,
+            "length": 32
+          },
+          {
+            "start": 3409,
+            "length": 32
+          }
+        ],
+        "51775": [
+          {
+            "start": 939,
+            "length": 32
+          },
+          {
+            "start": 1690,
+            "length": 32
+          },
+          {
+            "start": 2405,
+            "length": 32
+          },
+          {
+            "start": 2495,
+            "length": 32
+          },
+          {
+            "start": 2682,
+            "length": 32
+          },
+          {
+            "start": 2786,
+            "length": 32
+          },
+          {
+            "start": 2932,
+            "length": 32
+          },
+          {
+            "start": 2978,
+            "length": 32
+          }
+        ]
+      }
+    },
+    "PropellerFeeController": {
+      "runtimeBytes": 8052,
+      "templateSha256": "dd16c1ec3d01a53dd4992f73120b5705fea2763346e74c20fa5d0efb12a051d9",
+      "immutableReferences": {}
+    },
+    "PropellerDiscount": {
+      "runtimeBytes": 6740,
+      "templateSha256": "0ba6189d099e8a73012aa68829c51901793e66ea5eb190a99ebca7d1a54e5fdb",
+      "immutableReferences": {
+        "52349": [
+          {
+            "start": 320,
+            "length": 32
+          },
+          {
+            "start": 1474,
+            "length": 32
+          },
+          {
+            "start": 1805,
+            "length": 32
+          },
+          {
+            "start": 3352,
+            "length": 32
+          },
+          {
+            "start": 5643,
+            "length": 32
+          },
+          {
+            "start": 5987,
+            "length": 32
+          }
+        ],
+        "52352": [
+          {
+            "start": 664,
+            "length": 32
+          },
+          {
+            "start": 1913,
+            "length": 32
+          },
+          {
+            "start": 2075,
+            "length": 32
+          },
+          {
+            "start": 4608,
+            "length": 32
+          }
+        ],
+        "52355": [
+          {
+            "start": 3830,
+            "length": 32
+          },
+          {
+            "start": 4320,
+            "length": 32
+          }
+        ],
+        "52357": [
+          {
+            "start": 1318,
+            "length": 32
+          },
+          {
+            "start": 3762,
+            "length": 32
+          }
+        ]
+      }
+    },
+    "PropellerMainDebt": {
+      "runtimeBytes": 14279,
+      "templateSha256": "f56bec19ef4cd3a1b828f8e684905f670c5beae180e3c6c43841a13eb3f65fa7",
+      "immutableReferences": {
+        "53920": [
+          {
+            "start": 350,
+            "length": 32
+          },
+          {
+            "start": 540,
+            "length": 32
+          },
+          {
+            "start": 991,
+            "length": 32
+          },
+          {
+            "start": 1066,
+            "length": 32
+          },
+          {
+            "start": 1186,
+            "length": 32
+          },
+          {
+            "start": 1397,
+            "length": 32
+          },
+          {
+            "start": 1605,
+            "length": 32
+          },
+          {
+            "start": 2717,
+            "length": 32
+          },
+          {
+            "start": 4880,
+            "length": 32
+          },
+          {
+            "start": 5901,
+            "length": 32
+          },
+          {
+            "start": 6247,
+            "length": 32
+          },
+          {
+            "start": 6742,
+            "length": 32
+          },
+          {
+            "start": 7120,
+            "length": 32
+          },
+          {
+            "start": 7258,
+            "length": 32
+          },
+          {
+            "start": 7869,
+            "length": 32
+          },
+          {
+            "start": 8968,
+            "length": 32
+          },
+          {
+            "start": 9199,
+            "length": 32
+          },
+          {
+            "start": 9463,
+            "length": 32
+          },
+          {
+            "start": 9746,
+            "length": 32
+          },
+          {
+            "start": 10059,
+            "length": 32
+          },
+          {
+            "start": 11234,
+            "length": 32
+          },
+          {
+            "start": 12914,
+            "length": 32
+          }
+        ],
+        "53923": [
+          {
+            "start": 1869,
+            "length": 32
+          },
+          {
+            "start": 2104,
+            "length": 32
+          },
+          {
+            "start": 2434,
+            "length": 32
+          },
+          {
+            "start": 2539,
+            "length": 32
+          },
+          {
+            "start": 2803,
+            "length": 32
+          },
+          {
+            "start": 2912,
+            "length": 32
+          },
+          {
+            "start": 3054,
+            "length": 32
+          },
+          {
+            "start": 6049,
+            "length": 32
+          },
+          {
+            "start": 6876,
+            "length": 32
+          },
+          {
+            "start": 10718,
+            "length": 32
+          },
+          {
+            "start": 12775,
+            "length": 32
+          },
+          {
+            "start": 13647,
+            "length": 32
+          }
+        ],
+        "53926": [
+          {
+            "start": 461,
+            "length": 32
+          },
+          {
+            "start": 617,
+            "length": 32
+          },
+          {
+            "start": 4988,
+            "length": 32
+          },
+          {
+            "start": 6372,
+            "length": 32
+          },
+          {
+            "start": 9018,
+            "length": 32
+          },
+          {
+            "start": 9252,
+            "length": 32
+          },
+          {
+            "start": 9796,
+            "length": 32
+          },
+          {
+            "start": 11273,
+            "length": 32
+          },
+          {
+            "start": 12872,
+            "length": 32
+          }
+        ],
+        "53929": [
+          {
+            "start": 1737,
+            "length": 32
+          },
+          {
+            "start": 2240,
+            "length": 32
+          },
+          {
+            "start": 7054,
+            "length": 32
+          },
+          {
+            "start": 12983,
+            "length": 32
+          },
+          {
+            "start": 13697,
+            "length": 32
+          }
+        ]
+      }
+    },
+    "CompoundLogic": {
+      "runtimeBytes": 4974,
+      "templateSha256": "651b76697670a11c99ef77fc66903121c41e5475cca68efc68d9d52369a37ff6",
+      "immutableReferences": {}
+    },
+    "MockPool": {
+      "runtimeBytes": 6133,
+      "templateSha256": "a12ed3fa8eaab24d3897a2dea31b472b687f50db1ca64917e3dd6c612c9c5fb0",
+      "immutableReferences": {}
+    },
+    "MockDispatch": {
+      "runtimeBytes": 3090,
+      "templateSha256": "6d31ef99c5eece79a66b77e5302d732a8db647f03c535205a6048ab4f7ccc608",
+      "immutableReferences": {}
+    },
+    "MockDiscountDebtToken": {
+      "runtimeBytes": 3849,
+      "templateSha256": "74c5beb2848b8ecc47ba886af1e31be9c574d41a387ec589787c385fd48e33f4",
+      "immutableReferences": {
+        "98433": [
+          {
+            "start": 1483,
+            "length": 32
+          }
+        ]
+      }
+    }
+  },
+  "byTvl": {
+    "100000": {
+      "cases": 125,
+      "casesWithMaterialRecovery": 125,
+      "casesWithResidualSourceClaims": 38,
+      "maxRecoveryPctTvl": 8.12213247632571,
+      "casesWithRecoveryLiquidity": 1,
+      "maxRecoveryLiquidityPctTvl": 0.000042320031225708916,
+      "maxIncentivePctTvl": 0.5,
+      "maxPeakDebtToTvl": 7.2285170320900765,
+      "floorMisses": 36,
+      "liquidations": 0,
+      "minEthReturnBps": 0,
+      "minBtcReturnBps": 0
+    },
+    "500000": {
+      "cases": 30,
+      "casesWithMaterialRecovery": 30,
+      "casesWithResidualSourceClaims": 8,
+      "maxRecoveryPctTvl": 8.122128820944189,
+      "casesWithRecoveryLiquidity": 1,
+      "maxRecoveryLiquidityPctTvl": 0.00009683211107454606,
+      "maxIncentivePctTvl": 0,
+      "maxPeakDebtToTvl": 7.228513570038482,
+      "floorMisses": 36,
+      "liquidations": 0,
+      "minEthReturnBps": 0,
+      "minBtcReturnBps": 0
+    },
+    "1000000": {
+      "cases": 125,
+      "casesWithMaterialRecovery": 125,
+      "casesWithResidualSourceClaims": 39,
+      "maxRecoveryPctTvl": 8.12212836470836,
+      "casesWithRecoveryLiquidity": 2,
+      "maxRecoveryLiquidityPctTvl": 0.00010364548527644585,
+      "maxIncentivePctTvl": 0.5,
+      "maxPeakDebtToTvl": 7.228513137095705,
+      "floorMisses": 36,
+      "liquidations": 0,
+      "minEthReturnBps": 0,
+      "minBtcReturnBps": 0
+    },
+    "10000000": {
+      "cases": 30,
+      "casesWithMaterialRecovery": 30,
+      "casesWithResidualSourceClaims": 8,
+      "maxRecoveryPctTvl": 8.122127953312766,
+      "casesWithRecoveryLiquidity": 1,
+      "maxRecoveryLiquidityPctTvl": 0.00010977763682666915,
+      "maxIncentivePctTvl": 0,
+      "maxPeakDebtToTvl": 7.228512747577736,
+      "floorMisses": 36,
+      "liquidations": 0,
+      "minEthReturnBps": 0,
+      "minBtcReturnBps": 0
+    },
+    "50000000": {
+      "cases": 30,
+      "casesWithMaterialRecovery": 30,
+      "casesWithResidualSourceClaims": 8,
+      "maxRecoveryPctTvl": 8.082706788391523,
+      "casesWithRecoveryLiquidity": 1,
+      "maxRecoveryLiquidityPctTvl": 0.00011033809549143393,
+      "maxIncentivePctTvl": 0,
+      "maxPeakDebtToTvl": 7.228435108001549,
+      "floorMisses": 36,
+      "liquidations": 0,
+      "minEthReturnBps": 0,
+      "minBtcReturnBps": 0
+    },
+    "100000000": {
+      "cases": 30,
+      "casesWithMaterialRecovery": 30,
+      "casesWithResidualSourceClaims": 8,
+      "maxRecoveryPctTvl": 8.426795745674315,
+      "casesWithRecoveryLiquidity": 1,
+      "maxRecoveryLiquidityPctTvl": 0.00009614381683814426,
+      "maxIncentivePctTvl": 0,
+      "maxPeakDebtToTvl": 7.226674336981588,
+      "floorMisses": 36,
+      "liquidations": 0,
+      "minEthReturnBps": 0,
+      "minBtcReturnBps": 0
+    }
+  },
+  "oneMillionMainCases": [
+    {
+      "path": 0,
+      "outage": false,
+      "discountBps": 0,
+      "mainInterest": 7358.143903163275,
+      "loopInterest": 37663.99022451025,
+      "incentive": 0,
+      "recovery": 3784.8084202747764,
+      "peakDebt": 4843393.445977296,
+      "hollarSold": 4845438.332773129,
+      "hollarBought": 4882167.225021239,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 5.835371970974127,
+      "residualSourceClaim": 815.4893834379748,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 0,
+      "outage": false,
+      "discountBps": 5000,
+      "mainInterest": 3667.6231944874157,
+      "loopInterest": 37704.42685105787,
+      "incentive": 0,
+      "recovery": 2264.1679149460288,
+      "peakDebt": 4840578.229386938,
+      "hollarSold": 4845496.96439072,
+      "hollarBought": 4868167.044658574,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 11.293715856318716,
+      "residualSourceClaim": 3034.1130422640017,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 0,
+      "outage": false,
+      "discountBps": 10000,
+      "mainInterest": 0,
+      "loopInterest": 37733.47988792603,
+      "incentive": 0,
+      "recovery": 937.50012801,
+      "peakDebt": 4837746.162519938,
+      "hollarSold": 4845539.15917575,
+      "hollarBought": 4854945.478316326,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 285.9602085349999,
+      "residualSourceClaim": 5147.28475904027,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 0,
+      "outage": true,
+      "discountBps": 0,
+      "mainInterest": 7358.208160239176,
+      "loopInterest": 37583.11268527085,
+      "incentive": 0,
+      "recovery": 3803.5446129778866,
+      "peakDebt": 4843197.355948351,
+      "hollarSold": 4845321.3508817805,
+      "hollarBought": 4882019.451896947,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.33358293568368264,
+      "residualSourceClaim": 801.8580668908345,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 0,
+      "outage": true,
+      "discountBps": 5000,
+      "mainInterest": 3667.671373422749,
+      "loopInterest": 37583.11268527085,
+      "incentive": 0,
+      "recovery": 2292.236912968823,
+      "peakDebt": 4840284.049840916,
+      "hollarSold": 4845321.3508817805,
+      "hollarBought": 4868189.7177039,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 41.448463068779915,
+      "residualSourceClaim": 2974.6329789208344,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 0,
+      "outage": true,
+      "discountBps": 10000,
+      "mainInterest": 0,
+      "loopInterest": 37583.11268527085,
+      "incentive": 0,
+      "recovery": 937.50012801,
+      "peakDebt": 4837381.438908201,
+      "hollarSold": 4845321.3508817805,
+      "hollarBought": 4854510.337858913,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 216.48232308249987,
+      "residualSourceClaim": 5146.817586340834,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 1,
+      "outage": false,
+      "discountBps": 0,
+      "mainInterest": 8836.934412325312,
+      "loopInterest": 44317.062030972695,
+      "incentive": 0,
+      "recovery": 10059.76277761609,
+      "peakDebt": 7027991.227011323,
+      "hollarSold": 7022532.2141803205,
+      "hollarBought": 7065626.016930968,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000004,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 1,
+      "outage": false,
+      "discountBps": 5000,
+      "mainInterest": 4491.716742146565,
+      "loopInterest": 45537.976692791366,
+      "incentive": 0,
+      "recovery": 4930.729774642814,
+      "peakDebt": 7033844.226980602,
+      "hollarSold": 7031880.93778756,
+      "hollarBought": 7076972.948265569,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000002,
+      "residualSourceClaim": 1.0364360227644587,
+      "recoveryLiquidity": 1.0364548527644586
+    },
+    {
+      "path": 1,
+      "outage": false,
+      "discountBps": 10000,
+      "mainInterest": 0,
+      "loopInterest": 46824.239904375085,
+      "incentive": 0,
+      "recovery": 972.6206888005833,
+      "peakDebt": 7228513.137095705,
+      "hollarSold": 7223397.23506895,
+      "hollarBought": 7266922.393164892,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 104.22433605808317,
+      "residualSourceClaim": 424.13943003854405,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 1,
+      "outage": true,
+      "discountBps": 0,
+      "mainInterest": 8491.886151677909,
+      "loopInterest": 42911.908674598875,
+      "incentive": 0,
+      "recovery": 10478.403514365156,
+      "peakDebt": 6939569.067605738,
+      "hollarSold": 6940816.51941959,
+      "hollarBought": 6981741.498120218,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000004,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 1,
+      "outage": true,
+      "discountBps": 5000,
+      "mainInterest": 4237.920217460163,
+      "loopInterest": 43226.79053935837,
+      "incentive": 0,
+      "recovery": 6128.2181373752,
+      "peakDebt": 6957746.738358948,
+      "hollarSold": 6954044.24936702,
+      "hollarBought": 6995380.32324411,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000004,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 1,
+      "outage": true,
+      "discountBps": 10000,
+      "mainInterest": 0,
+      "loopInterest": 43272.29123822474,
+      "incentive": 0,
+      "recovery": 2268.5395202459154,
+      "peakDebt": 6969216.265843998,
+      "hollarSold": 6968591.60827349,
+      "hollarBought": 7009933.271778885,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 338.3220117747066,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 2,
+      "outage": false,
+      "discountBps": 0,
+      "mainInterest": 15316.748935126216,
+      "loopInterest": 42438.25876404013,
+      "incentive": 0,
+      "recovery": 63661.160102409434,
+      "peakDebt": 4622010.782992844,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4716649.562325068,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000004,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 2,
+      "outage": false,
+      "discountBps": 5000,
+      "mainInterest": 7637.289747269263,
+      "loopInterest": 44773.328823685966,
+      "incentive": 0,
+      "recovery": 57327.02957010784,
+      "peakDebt": 4621883.385724309,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4717639.3144552875,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000004,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 2,
+      "outage": false,
+      "discountBps": 10000,
+      "mainInterest": 0,
+      "loopInterest": 45917.5125281089,
+      "incentive": 0,
+      "recovery": 50167.124099491244,
+      "peakDebt": 4621755.988456785,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4718306.10252624,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003008746363206,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 2,
+      "outage": true,
+      "discountBps": 0,
+      "mainInterest": 16432.47479781922,
+      "loopInterest": 68983.05239027266,
+      "incentive": 0,
+      "recovery": 81221.2836470836,
+      "peakDebt": 4622010.782992844,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4726749.850181416,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003011883292895,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 2,
+      "outage": true,
+      "discountBps": 5000,
+      "mainInterest": 8167.641786256609,
+      "loopInterest": 68866.9869273008,
+      "incentive": 0,
+      "recovery": 72866.21577864797,
+      "peakDebt": 4621883.385724309,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4726724.017458082,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003011351204693,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 2,
+      "outage": true,
+      "discountBps": 10000,
+      "mainInterest": 0,
+      "loopInterest": 68968.40943806338,
+      "incentive": 0,
+      "recovery": 64742.842152653335,
+      "peakDebt": 4621755.988456785,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4726781.173385145,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003013333648591,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 3,
+      "outage": false,
+      "discountBps": 0,
+      "mainInterest": 8874.309327913692,
+      "loopInterest": 40443.479780495785,
+      "incentive": 0,
+      "recovery": 34703.555778621616,
+      "peakDebt": 4731685.078409278,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4737169.791748643,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003005422704168,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 3,
+      "outage": false,
+      "discountBps": 5000,
+      "mainInterest": 4423.637490890937,
+      "loopInterest": 41388.831088766565,
+      "incentive": 0,
+      "recovery": 30287.8377621064,
+      "peakDebt": 4730935.672602676,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4738080.183586838,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003015461731628,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 3,
+      "outage": false,
+      "discountBps": 10000,
+      "mainInterest": 0,
+      "loopInterest": 41143.424563351226,
+      "incentive": 0,
+      "recovery": 25832.414354087097,
+      "peakDebt": 4730186.89813528,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4737866.568488025,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003007095440547,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 3,
+      "outage": true,
+      "discountBps": 0,
+      "mainInterest": 8874.309327913692,
+      "loopInterest": 40443.479780495785,
+      "incentive": 0,
+      "recovery": 34703.555778621616,
+      "peakDebt": 4731685.078409278,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4737169.791748643,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003005422704168,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 3,
+      "outage": true,
+      "discountBps": 5000,
+      "mainInterest": 4423.637490890937,
+      "loopInterest": 41388.831088766565,
+      "incentive": 0,
+      "recovery": 30287.8377621064,
+      "peakDebt": 4730935.672602676,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4738080.183586838,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003015461731628,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 3,
+      "outage": true,
+      "discountBps": 10000,
+      "mainInterest": 0,
+      "loopInterest": 41143.424563351226,
+      "incentive": 0,
+      "recovery": 25832.414354087097,
+      "peakDebt": 4730186.89813528,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4737866.568488025,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003007095440547,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 4,
+      "outage": false,
+      "discountBps": 0,
+      "mainInterest": 14393.368587863773,
+      "loopInterest": 64997.86399197379,
+      "incentive": 0,
+      "recovery": 54098.42375884985,
+      "peakDebt": 6166509.5178443445,
+      "hollarSold": 6132316.53931196,
+      "hollarBought": 6157609.087075739,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.00000300608254908,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 4,
+      "outage": false,
+      "discountBps": 5000,
+      "mainInterest": 7280.995092107821,
+      "loopInterest": 70427.55301437793,
+      "incentive": 0,
+      "recovery": 51129.341652075724,
+      "peakDebt": 6483891.111031532,
+      "hollarSold": 6453293.043677171,
+      "hollarBought": 6479871.9672812475,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003012901024282,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 4,
+      "outage": false,
+      "discountBps": 10000,
+      "mainInterest": 0,
+      "loopInterest": 66030.83036888152,
+      "incentive": 0,
+      "recovery": 40136.37188197301,
+      "peakDebt": 6516886.565754443,
+      "hollarSold": 6491860.949224341,
+      "hollarBought": 6517755.153088409,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003010512770395,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 4,
+      "outage": true,
+      "discountBps": 0,
+      "mainInterest": 12832.248500286,
+      "loopInterest": 63213.10831978054,
+      "incentive": 0,
+      "recovery": 45224.981423646,
+      "peakDebt": 4767018.668677376,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4753375.831964497,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003009999847423,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 4,
+      "outage": true,
+      "discountBps": 5000,
+      "mainInterest": 6377.5361870266115,
+      "loopInterest": 63213.10831978054,
+      "incentive": 0,
+      "recovery": 38770.26911038662,
+      "peakDebt": 4763361.993100812,
+      "hollarSold": 4722555.73725617,
+      "hollarBought": 4753375.831964497,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003009999847423,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    },
+    {
+      "path": 4,
+      "outage": true,
+      "discountBps": 10000,
+      "mainInterest": 0,
+      "loopInterest": 64684.55946687653,
+      "incentive": 0,
+      "recovery": 38105.883123731845,
+      "peakDebt": 5754682.341862729,
+      "hollarSold": 5722225.699789801,
+      "hollarBought": 5748804.108119834,
+      "ethReturnBps": 0,
+      "btcReturnBps": 0,
+      "surplusPaid": 0.000003006844686692,
+      "residualSourceClaim": 0,
+      "recoveryLiquidity": 0
+    }
+  ]
+}

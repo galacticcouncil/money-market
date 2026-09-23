@@ -1,5 +1,9 @@
 # Operating Buffer Verification
 
+**Historical evidence for commit `1efdf1d`, not the revised Main-debt policy.**
+See [the replacement specification](main-debt-servicing.md). The test counts and
+native artifacts below must not be attributed to the replacement contracts.
+
 Implementation branch: `feat/propeller-interest-buffer`, based on `propeller`
 `55acd38229f2ccc949f00c474e641d6a0df551b2`. This is review evidence, not production
 approval. See [the policy and ownership specification](operating-buffer.md).

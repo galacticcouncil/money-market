@@ -50,15 +50,15 @@ interface IYieldSource {
     ///         are never stranded.
     function pendingUnwindOf(address vault) external view returns (uint256);
 
+    /// @notice Cumulative realized swap costs charged only to un-compounded
+    /// yield earmarked for this vault's unwinds, never to source cost basis.
+    function unwindExecutionCost(address vault) external view returns (uint256);
+
     // ── pricing (what the vault's NAV is built on) ────────────────────────
 
     /// @notice `vault`'s LIVE-share equity in USD8 (8 decimals), excluding
     /// outstanding withdrawal liabilities. Not HOLLAR's 18-decimal units.
     function equityOf(address vault) external view returns (uint256);
-
-    /// @notice HOLLAR-valued gross unwind exposure, including planned leverage.
-    /// Used for the operating reserve's execution-cost budget, not NAV.
-    function exitCostExposure(address vault) external view returns (uint256);
 
     /// @notice `vault`'s share balance in this source.
     function sharesOf(address vault) external view returns (uint256);

@@ -5,7 +5,7 @@ import {MultiVaultFlowTest} from "./MultiVaultFlow.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {SubLoop} from "../src/SubLoop.sol";
-import {PropellerOperatingBuffer} from "../src/PropellerOperatingBuffer.sol";
+import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
 
 /// @notice Full Propeller topology with modeled market loss/interest. Uses real
 /// vault/source/harvest/fee logic, mock Aave/router, and external recovery funds.
@@ -14,6 +14,20 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
     address constant SECOND_ETH_USER = address(0xE2);
     address constant DONOR = address(0xD0);
     address constant LIQUIDATOR = address(0x11);
+
+    struct RecoveryCheckpoint {
+        uint256 ethFees;
+        uint256 btcFees;
+        uint256 promised;
+        uint256 repaid;
+        uint256 ready;
+        uint256 ethBacking;
+        uint256 btcBacking;
+        uint256 offlineShares;
+        uint256 offlineValue;
+        uint256 sourceShares;
+        uint256 sourceClaim;
+    }
 
     function _deposit(CollateralVault vault, MockERC20 token, address user, uint256 assets) internal {
         token.mint(user, assets);
@@ -35,7 +49,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
     }
 
     function _fundInterest(CollateralVault v) internal {
-        PropellerOperatingBuffer buffer = PropellerOperatingBuffer(address(v.operatingBuffer()));
+        PropellerMainDebt buffer = PropellerMainDebt(address(v.mainDebt()));
         // Governance targets every debt cohort, including offline holders. A
         // donation to the FIFO head must not be mistaken for cohort-wide funding.
         for (uint256 key; key <= v.queueUnwind(); ++key) {
@@ -77,6 +91,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
     }
 
     function _recovery(bool reverseVaults, bool reverseClaims, uint256 firstFundingBps) internal {
+        RecoveryCheckpoint memory checkpoint;
         _deposit(ethVault, eth, ETH_USER, 1e18 + 7);
         _deposit(ethVault, eth, SECOND_ETH_USER, 2e18 + 11);
         _deposit(tbtcVault, tbtc, BTC_USER, 1e17 + 13);
@@ -85,29 +100,34 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         aPrime.mint(address(loop), earned);
         prime.mint(address(pool), earned);
         harvester.harvest(new uint256[](0));
-        uint256 ethFees = fees.claimableProtocolFees(address(eth));
-        uint256 btcFees = fees.claimableProtocolFees(address(tbtc));
-        assertGt(ethFees, 0);
-        assertGt(btcFees, 0);
+        checkpoint.ethFees = fees.claimableProtocolFees(address(eth));
+        checkpoint.btcFees = fees.claimableProtocolFees(address(tbtc));
+        assertGt(checkpoint.ethFees, 0);
+        assertGt(checkpoint.btcFees, 0);
 
         uint256 id = _request(ethVault, ETH_USER, ethVault.balanceOf(ETH_USER) / 2);
         vm.warp(vm.getBlockTimestamp() + 12 hours);
         ethVault.startUnwinds(16);
         loop.pokeRepay();
         ethVault.pokeSettle();
-        (, , uint256 promised, uint256 debt, , uint256 repaid, uint256 ready, , ) = ethVault.redemptions(id);
-        assertGt(ready, 0, "freeze includes an already claimable request");
-        assertLt(repaid, debt, "scenario includes unfinished Main repayment");
-        uint256 ethBacking = ethVault.totalAssets();
-        uint256 btcBacking = tbtcVault.totalAssets();
-        uint256 offlineShares = tbtcVault.balanceOf(BTC_USER);
-        uint256 offlineValue = tbtcVault.convertToAssets(offlineShares);
-        uint256 sourceShares = loop.totalShares();
-        uint256 sourceClaim = loop.pendingUnwindOf(address(ethVault));
+        {
+            (, , uint256 promised, uint256 debt, , uint256 repaid, uint256 ready, , ) = ethVault.redemptions(id);
+            assertGt(ready, 0, "freeze includes an already claimable request");
+            assertLt(repaid, debt, "scenario includes unfinished Main repayment");
+            checkpoint.promised = promised;
+            checkpoint.repaid = repaid;
+            checkpoint.ready = ready;
+        }
+        checkpoint.ethBacking = ethVault.totalAssets();
+        checkpoint.btcBacking = tbtcVault.totalAssets();
+        checkpoint.offlineShares = tbtcVault.balanceOf(BTC_USER);
+        checkpoint.offlineValue = tbtcVault.convertToAssets(checkpoint.offlineShares);
+        checkpoint.sourceShares = loop.totalShares();
+        checkpoint.sourceClaim = loop.pendingUnwindOf(address(ethVault));
 
         _modelLoopLiquidation();
-        assertEq(ethVault.totalAssets(), ethBacking, "Main ETH was not seized");
-        assertEq(tbtcVault.totalAssets(), btcBacking, "Main tBTC was not seized");
+        assertEq(ethVault.totalAssets(), checkpoint.ethBacking, "Main ETH was not seized");
+        assertEq(tbtcVault.totalAssets(), checkpoint.btcBacking, "Main tBTC was not seized");
         assertTrue(ethVault.isUnderfunded());
         assertTrue(tbtcVault.isUnderfunded());
         loop.pauseEmergency();
@@ -116,7 +136,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         ethVault.claim(id, ETH_USER);
         vm.prank(BTC_USER);
         vm.expectRevert("Pausable: paused");
-        tbtcVault.requestRedeem(offlineShares, BTC_USER);
+        tbtcVault.requestRedeem(checkpoint.offlineShares, BTC_USER);
         vm.prank(SECOND_ETH_USER);
         vm.expectRevert("Pausable: paused");
         ethVault.transfer(ETH_USER, 1);
@@ -143,14 +163,14 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         ethVault.pokeSettle();
         tbtcVault.pokeSettle();
         assertTrue(ethVault.paused());
-        assertEq(loop.totalShares(), sourceShares, "recovery funds mint no shares");
-        assertEq(loop.pendingUnwindOf(address(ethVault)), sourceClaim, "no write-off or early credit");
+        assertEq(loop.totalShares(), checkpoint.sourceShares, "recovery funds mint no shares");
+        assertEq(loop.pendingUnwindOf(address(ethVault)), checkpoint.sourceClaim, "no write-off or early credit");
         (, , uint256 owedAfter, , , uint256 repaidAfter, uint256 readyAfter, , ) = ethVault.redemptions(id);
-        assertEq(owedAfter, promised);
-        assertEq(repaidAfter, repaid);
-        assertEq(readyAfter, ready);
-        assertEq(tbtcVault.balanceOf(BTC_USER), offlineShares);
-        assertGe(tbtcVault.convertToAssets(offlineShares), offlineValue);
+        assertEq(owedAfter, checkpoint.promised);
+        assertEq(repaidAfter, checkpoint.repaid);
+        assertEq(readyAfter, checkpoint.ready);
+        assertEq(tbtcVault.balanceOf(BTC_USER), checkpoint.offlineShares);
+        assertGe(tbtcVault.convertToAssets(checkpoint.offlineShares), checkpoint.offlineValue);
         assertEq(eth.balanceOf(ETH_USER), 0);
         assertEq(tbtc.balanceOf(BTC_USER), 0);
 
@@ -160,7 +180,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         loop.unpauseEmergency();
         uint256 rest = _request(ethVault, ETH_USER, ethVault.balanceOf(ETH_USER));
         uint256 second = _request(ethVault, SECOND_ETH_USER, ethVault.balanceOf(SECOND_ETH_USER));
-        uint256 btc = _request(tbtcVault, BTC_USER, offlineShares);
+        uint256 btc = _request(tbtcVault, BTC_USER, checkpoint.offlineShares);
         vm.warp(vm.getBlockTimestamp() + 12 hours);
         if (reverseVaults) { tbtcVault.startUnwinds(16); ethVault.startUnwinds(16); }
         else { ethVault.startUnwinds(16); tbtcVault.startUnwinds(16); }
@@ -186,12 +206,12 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         assertEq(tbtcVault.totalQueuedCollateral(), 0);
         assertEq(ethVault.totalQueuedShares(), 0);
         assertEq(tbtcVault.totalQueuedShares(), 0);
-        assertEq(fees.claimableProtocolFees(address(eth)), ethFees, "fees not silently spent on recovery");
-        assertEq(fees.claimableProtocolFees(address(tbtc)), btcFees);
+        assertEq(fees.claimableProtocolFees(address(eth)), checkpoint.ethFees, "fees not silently spent on recovery");
+        assertEq(fees.claimableProtocolFees(address(tbtc)), checkpoint.btcFees);
         fees.claimProtocolFees(address(eth));
         fees.claimProtocolFees(address(tbtc));
-        assertEq(eth.balanceOf(address(0xFEE)), ethFees);
-        assertEq(tbtc.balanceOf(address(0xFEE)), btcFees);
+        assertEq(eth.balanceOf(address(0xFEE)), checkpoint.ethFees);
+        assertEq(tbtc.balanceOf(address(0xFEE)), checkpoint.btcFees);
     }
 
     function test_lossFreezeStagedFundingAndFullRecovery() public {

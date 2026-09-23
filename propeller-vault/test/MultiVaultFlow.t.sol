@@ -183,11 +183,12 @@ contract MultiVaultFlowTest is Test {
             loop.pokeBorrow();
         }
         assertApproxEqRel(loop.healthFactor(), 1.05e18, 0.03e18, "shared loop at target HF");
-        uint256 basis = loop.totalEquity();
+        uint256 basis = loop.principalEquity() / 1e10;
 
         // ── 3. earn: PRIME yield accrues +5% on the levered position (~$2177)
         uint256 yieldPrime = aPrime.balanceOf(address(loop)) * 5 / 100;
         aPrime.mint(address(loop), yieldPrime);
+        uint256 retained8 = loop.executionCostReserve() / 1e10;
 
         // ── 4. harvest: ONE call skims the carry, splits pro-rata by loop
         //      shares, and swaps each cut back into THAT vault's collateral
@@ -219,8 +220,8 @@ contract MultiVaultFlowTest is Test {
         assertApproxEqRel(
             ethGainUsd * 4_800, tbtcGainUsd * 2_250, 0.01e18, "carry split pro-rata by loop shares"
         );
-        // and the loop is skimmed back to its principal basis
-        assertApproxEqRel(loop.totalEquity(), basis, 0.01e18, "loop equity back to basis");
+        assertApproxEqAbs(loop.totalEquity(), basis + retained8, 200,
+            "un-compounded execution yield remains above basis");
 
         // yield-on-deposit tracks the vault's OWN max LTV: tBTC (80%) beats ETH (75%)
         // ethGain/1.0 vs tbtcGain/0.1 — both ≈ ltv·leverage·5%, ratio 75:80
@@ -301,10 +302,12 @@ contract MultiVaultFlowTest is Test {
         );
 
         // ── harvest skims gross PRIME yield MINUS the loop's borrow cost
+        uint256 retained8 = loop.executionCostReserve() / 1e10;
         uint256 expectedLoopNet8 =
-            (loopColl8 * PRIME_APY_BPS - loopDebt8 * BORROW_APY_BPS) / 10_000;
+            (loopColl8 * PRIME_APY_BPS - loopDebt8 * BORROW_APY_BPS) / 10_000 - retained8;
         uint256 surplusPrime = loop.harvest(); // 6dp, $1 → 8dp USD = ×100
-        assertApproxEqRel(surplusPrime * 100, expectedLoopNet8, 0.01e18, "skim = gross - loop borrow cost");
+        assertApproxEqRel(surplusPrime * 100, expectedLoopNet8, 0.01e18,
+            "skim = gross - loop borrow cost - retained execution yield");
 
         // distribute + compound into each collateral
         uint256[] memory minOuts = new uint256[](2);
@@ -318,13 +321,15 @@ contract MultiVaultFlowTest is Test {
         // Main interest is now already paid before compounding; do not deduct twice.
         uint256 ethNetUsd8 = ethGainUsd8;
         uint256 ethModel8 = (3_000e8 * 7_500 / 10_000) * loopLevWad / 1e18 * spreadBps / 10_000;
-        ethModel8 = (ethModel8 + ethMainInt / 1e10) * 9_500 / 10_000 - ethMainInt / 1e10;
+        ethModel8 = (ethModel8 + ethMainInt / 1e10 - retained8 * 2250 / 7050)
+            * 9_500 / 10_000 - ethMainInt / 1e10;
         assertApproxEqRel(ethNetUsd8, ethModel8, 0.02e18, "ETH net after harvest fee and Main interest");
         // tBTC: deposit $6000 at 80%
         uint256 tbtcGainUsd8 = (aTbtc.balanceOf(address(tbtcVault)) - 0.1e18) * 60_000 / 1e10;
         uint256 tbtcNetUsd8 = tbtcGainUsd8;
         uint256 tbtcModel8 = (6_000e8 * 8_000 / 10_000) * loopLevWad / 1e18 * spreadBps / 10_000;
-        tbtcModel8 = (tbtcModel8 + tbtcMainInt / 1e10) * 9_500 / 10_000 - tbtcMainInt / 1e10;
+        tbtcModel8 = (tbtcModel8 + tbtcMainInt / 1e10 - retained8 * 4800 / 7050)
+            * 9_500 / 10_000 - tbtcMainInt / 1e10;
         assertApproxEqRel(tbtcNetUsd8, tbtcModel8, 0.02e18, "tBTC net after harvest fee and Main interest");
 
         // tBTC's net %-yield > ETH's (higher LTV), both ≈ ltv·6.17·2.1%
@@ -378,6 +383,10 @@ contract MultiVaultFlowTest is Test {
 
         // ── 5% PRIME yield, then harvest+compound (30 bps haircut on the swap)
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) * 5 / 100);
+        uint256 harvestable8 = loop.totalEquity() - loop.principalEquity() / 1e10
+            - loop.executionCostReserve() / 1e10;
+        uint256 expectedGrossEth = harvestable8 * loop.sharesOf(address(ethVault))
+            / loop.totalShares() * 9950 / 10_000 * 1e10 / 3000;
         uint256[] memory minOuts = new uint256[](2);
         harvester.harvest(minOuts);
 
@@ -386,9 +395,11 @@ contract MultiVaultFlowTest is Test {
         // the carry) and the 30 bps compound haircut it lands just below
         assertLt(ethGain, 0.2316e18, "swap costs reduce the realized gain");
         uint256 grossEthGain = fees.claimableProtocolFees(address(eth)) * 20;
-        assertGt(grossEthGain, (0.2316e18 * 95) / 100, "swap costs stay ~1-2% before protocol fee");
-        assertLe(ethGain, grossEthGain - grossEthGain * 500 / 10_000,
-            "fresh yield also replenishes the operating buffer");
+        assertApproxEqAbs(grossEthGain, expectedGrossEth, 2e10,
+            "compound only carry above the execution holdback, after modeled swap costs");
+        // Inverting the floored 5% fee reconstructs gross within 19 token wei.
+        assertApproxEqAbs(ethGain, grossEthGain - fees.claimableProtocolFees(address(eth)), 19,
+            "fresh after-fee yield reaches collateral backing");
 
         // An incomplete exit is a partial payment, never a finalized haircut.
         vm.prank(ETH_USER);
@@ -405,7 +416,7 @@ contract MultiVaultFlowTest is Test {
         assertGt(got, 1e18, "principal + yield survive the round-trip costs");
         assertGt(got, ((1e18 + ethGain) * 99) / 100, "unwind fee ~6bps x leverage");
         (, , uint256 promised, , , , , , bool active) = ethVault.redemptions(reqId);
-        assertEq(got, promised, "recovery buffer funded the full recorded promise");
+        assertEq(got, promised, "earned execution yield covers the full recorded promise");
         assertFalse(active, "only fully paid requests close");
         assertEq(ethVault.totalQueuedCollateral(), 0);
     }

@@ -41,7 +41,7 @@ const SUBLOOP_ABI = [
 const VAULT_ABI = [
   view('roundingReserve', 'uint256'),
   view('asset', 'address'),
-  view('operatingBuffer', 'address'),
+  view('mainDebt', 'address'),
   view('queueHead', 'uint256'),
   view('queueTail', 'uint256'),
   view('queueUnwind', 'uint256'),
@@ -158,15 +158,15 @@ export class PropellerLooper {
     let now: bigint | undefined;
     for (const vault of this.vaults) {
       try {
-        const buffer = await this.read(VAULT_ABI, vault, 'operatingBuffer') as Address;
+        const buffer = await this.read(VAULT_ABI, vault, 'mainDebt') as Address;
         const ready = await this.read([view('ready', 'bool')], buffer, 'ready') as boolean;
         if (!ready) {
           funded = false;
-          console.error(`[ALERT] ${vault}: operating buffer below target; new ramp disabled`);
+          console.error(`[ALERT] ${vault}: Main debt backing or source allocation incomplete; new ramp disabled`);
         }
       } catch (error) {
         funded = false;
-        console.error(`[ALERT] ${vault}: operating buffer monitor failed: ${shortErr(error)}`);
+        console.error(`[ALERT] ${vault}: Main debt monitor failed: ${shortErr(error)}`);
       }
       const policy = ROUNDING_POLICIES.get(vault.toLowerCase());
       if (policy) {
@@ -224,7 +224,7 @@ export class PropellerLooper {
 
     // ── slow: peg / rebalance / harvest (self-gating no-ops) ────────────
     if (this.cycle % CONFIG.SLOW_EVERY === 0) {
-      // Fresh yield services Main interest first; buffer cash bridges missed harvests.
+      // Fresh harvested yield services Main interest; source equity backs later settlement.
       if (this.harvester && !paused && !emergency && frozen.size === 0) {
         await this.poke(HARVESTER_ABI, this.harvester, 'harvest', 'harvest (skim+distribute)', [[]]);
       }

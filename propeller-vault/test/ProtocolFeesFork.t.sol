@@ -7,7 +7,7 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {Harvester} from "../src/Harvester.sol";
 import {PropellerFeeController} from "../src/PropellerFeeController.sol";
-import {PropellerOperatingBuffer} from "../src/PropellerOperatingBuffer.sol";
+import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
 import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "../src/interfaces/IAavePool.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockFeeSwapper} from "./mocks/MockFeeAttack.sol";
@@ -34,7 +34,7 @@ interface IFeeForkPool {
 }
 
 contract FeeForkSource {
-    function exitCostExposure(address) external pure returns (uint256) { return 0; }
+    function unwindExecutionCost(address) external pure returns (uint256) { return 0; }
     function emergencyPaused() external pure returns (bool) { return false; }
     address public prime;
     address public harvester;
@@ -124,9 +124,8 @@ contract ProtocolFeesForkTest is Test {
         harvester = new Harvester(address(source), address(prime), address(this));
         source.configure(address(harvester), address(vault));
         fees = new PropellerFeeController(address(this), TREASURY);
-        PropellerOperatingBuffer buffer = new PropellerOperatingBuffer(address(vault));
-        vault.setOperatingBuffer(address(buffer));
-        buffer.configure(7 days, 10, 1);
+        PropellerMainDebt buffer = new PropellerMainDebt(address(vault));
+        vault.setMainDebt(address(buffer));
         harvester.setFeeController(address(fees));
         harvester.addVault(address(vault));
         vault.setFeeController(address(fees));
@@ -150,10 +149,10 @@ contract ProtocolFeesForkTest is Test {
         _checkRate(10_000);
     }
 
-    function testFork_bufferReadsActualReserveRate() public view {
-        PropellerOperatingBuffer buffer = PropellerOperatingBuffer(address(vault.operatingBuffer()));
-        uint256 rate = IFeeForkPool(POOL).getReserveData(HOLLAR).currentVariableBorrowRate;
-        assertEq(buffer.effectiveRateRay(), rate);
+    function testFork_ledgerNeedsNoSponsoredBalance() public view {
+        PropellerMainDebt buffer = PropellerMainDebt(address(vault.mainDebt()));
+        assertEq(buffer.ownedCash(), 0);
+        assertTrue(buffer.ready());
     }
 
     function _checkRate(uint16 bps) internal {

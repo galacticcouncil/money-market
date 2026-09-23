@@ -17,7 +17,7 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
     healthFactor: TARGET, targetHf: TARGET, unwindTargetEquity: 0n,
     deleverDebtTarget: 0n, paused: false, emergencyPaused: false, vaultPaused: false,
     queueHead: 0n, queueTail: 0n, queueUnwind: 0n, unwindEligibleAt: 100n,
-    deleverTarget: 0n, availableHollar: 0n, operatingBuffer: OTHER, ready: true, pendingUnwindOf: 0n, ...overrides,
+    deleverTarget: 0n, availableHollar: 0n, mainDebt: OTHER, ready: true, pendingUnwindOf: 0n, ...overrides,
   };
   keeper.read = async (_abi: unknown, _address: string, fn: string) => {
     assert.ok(fn in state, `unexpected read ${fn}`);

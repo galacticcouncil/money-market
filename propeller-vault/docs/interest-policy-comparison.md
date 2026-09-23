@@ -1,7 +1,7 @@
 # Main Interest: Policy Comparison
 
-Historical policy-selection evidence. The selected policy is now implemented in
-[Main servicing and the operating buffer](operating-buffer.md); the alternatives
+Historical policy-selection evidence. The current revision is documented in
+[Yield-funded Main debt servicing](main-debt-servicing.md); the alternatives
 below remain economic models, not additional deployed contract implementations.
 
 Simulation and analysis performed locally on 2026-09-22, without production

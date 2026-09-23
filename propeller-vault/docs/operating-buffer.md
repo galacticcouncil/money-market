@@ -1,5 +1,8 @@
 # Main Interest and the Operating Buffer
 
+**Historical proposal, superseded by [yield-funded Main servicing](main-debt-servicing.md).**
+The sponsored buffer described below was removed from the revised implementation.
+
 Implementation of the approved **harvest servicing + user-owned HOLLAR buffer**
 policy. Fresh deployment only. Production coverage, stressed rate, exit-cost
 allowance, bootstrap amount and TVL limits still require governance approval.

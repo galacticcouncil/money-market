@@ -6,7 +6,9 @@ import {CollateralVault} from "../../src/CollateralVault.sol";
 import {SubLoop} from "../../src/SubLoop.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockPool} from "../mocks/MockPool.sol";
-import {PropellerOperatingBuffer} from "../../src/PropellerOperatingBuffer.sol";
+import {PropellerMainDebt} from "../../src/PropellerMainDebt.sol";
+import {MockDispatch} from "../mocks/MockDispatch.sol";
+import {DcaDispatch} from "../../src/lib/DcaDispatch.sol";
 
 /// @notice Randomized driver for the Propeller invariant suite. A single actor
 ///         (this handler) deposits, drives the deploy/unwind DCA + keeper pokes,
@@ -102,6 +104,14 @@ contract Handler is Test {
         vault.maintainPeg();
     }
 
+    function accruePrimeAndExecutionCost(uint256 seed, uint16 costBps) external {
+        MockERC20 aPrime = MockERC20(address(loop.primeAToken()));
+        uint256 earned = bound(seed, 1, aPrime.balanceOf(address(loop)) / 20 + 1);
+        aPrime.mint(address(loop), earned);
+        prime.mint(address(pool), earned);
+        MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(uint16(bound(costBps, 0, 10)));
+    }
+
     function externalRepayment(uint256 seed) external {
         uint256 balance = vault.hollarDebtToken().balanceOf(address(vault));
         if (balance == 0) return;
@@ -112,9 +122,9 @@ contract Handler is Test {
         pool.repay(address(cash), amount, 2, address(vault));
     }
 
-    function claimOperatingBuffer(uint256 seed) external {
+    function claimMainSurplus(uint256 seed) external {
         if (vault.queueUnwind() == 0) return;
-        PropellerOperatingBuffer(address(vault.operatingBuffer())).claimBuffer(seed % vault.queueUnwind());
+        PropellerMainDebt(address(vault.mainDebt())).claimSurplus(seed % vault.queueUnwind());
     }
 
     // ── user: claim a settled request ─────────────────────────────────────────

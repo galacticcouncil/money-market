@@ -102,6 +102,8 @@ contract SubLoop is
     ///         deLever, drained by pokeRepay ahead of the proportional split.
     uint256 public deleverDebtTarget;
     bool public override emergencyPaused;
+    mapping(address => uint256) public unwindYieldAllowance;
+    mapping(address => uint256) public override unwindExecutionCost;
 
     event EmergencyPauseUpdated(bool paused);
     error EmergencyPaused();
@@ -118,6 +120,7 @@ contract SubLoop is
     event Repaid(uint256 amount, uint256 hfAfter);
     event Harvested(uint256 surplus);
     event DeLevered(uint256 hfBefore, uint256 hfAfter);
+    event UnwindYieldSpent(address indexed vault, uint256 cost);
 
     error ZeroAmount();
     error ZeroAddress();
@@ -221,7 +224,9 @@ contract SubLoop is
         uint256 equityHollar = (_liveEquity18() * shares) / totalSharesBefore;
         if (equityHollar == 0) revert Underfunded();
 
-        principalEquity -= (principalEquity * shares) / totalSharesBefore; // shrink cost basis
+        uint256 basis = (principalEquity * shares) / totalSharesBefore;
+        principalEquity -= basis;
+        if (equityHollar > basis) unwindYieldAllowance[msg.sender] += equityHollar - basis;
         _sharesOf[msg.sender] = held - shares;
         _totalShares -= shares;
 
@@ -265,6 +270,7 @@ contract SubLoop is
     function _pruneUnwinder(address vault) internal {
         if (!_isUnwinding[vault]) return;
         _isUnwinding[vault] = false;
+        unwindYieldAllowance[vault] = 0;
         uint256 n = _unwinders.length;
         for (uint256 i = 0; i < n; i++) {
             if (_unwinders[i] == vault) {
@@ -333,7 +339,8 @@ contract SubLoop is
         // fair aPRIME (6dp) = amount HOLLAR (18dp) · pHollar/pPrime, /1e12 decimals.
         (uint256 pHollar, uint256 pPrime) = _oracleRate();
         uint256 fairOut = (amount * pHollar) / pPrime / 1e12;
-        uint128 minOut = uint128((fairOut * (1_000_000 - dcaSlippagePpm)) / 1_000_000);
+        if (amount > type(uint128).max) revert InvalidParameters();
+        uint128 minOut = _minimumOut(fairOut);
         DcaDispatch.routerSell(hollarAssetId, aPrimeAssetId, uint128(amount), minOut, _deployRoute());
         pool.setUserUseReserveAsCollateral(address(prime), true);
     }
@@ -344,6 +351,13 @@ contract SubLoop is
         address oracle = IPoolAddressesProvider(pool.ADDRESSES_PROVIDER()).getPriceOracle();
         pHollar = IAaveOracle(oracle).getAssetPrice(address(hollar));
         pPrime = IAaveOracle(oracle).getAssetPrice(address(prime));
+        if (pHollar == 0 || pPrime == 0) revert InvalidParameters();
+    }
+
+    function _minimumOut(uint256 fairOut) internal view returns (uint128) {
+        uint256 minimum = fairOut * (1_000_000 - dcaSlippagePpm) / 1_000_000;
+        if (minimum == 0 || minimum > type(uint128).max) revert InvalidParameters();
+        return uint128(minimum);
     }
 
     /// @dev HOLLAR →[stableswap primePoolId]→ PRIME →[Aave]→ aPRIME.
@@ -394,8 +408,7 @@ contract SubLoop is
                         // min-out off the AaveOracle fair rate (aPRIME 1:1 PRIME).
                         // fair HOLLAR (18dp) = sellAmt aPRIME (6dp) · pPrime/pHollar · 1e12.
                         uint256 fairOut = (sellAmt * pPrime * 1e12) / pHollar;
-                        uint128 minOut = uint128((fairOut * (1_000_000 - dcaSlippagePpm)) / 1_000_000);
-                        DcaDispatch.routerSell(aPrimeAssetId, hollarAssetId, uint128(sellAmt), minOut, _unwindRoute());
+                        _sellForUnwind(sellAmt, fairOut);
                     }
                 }
             } else if (debt8 == 0) {
@@ -408,8 +421,7 @@ contract SubLoop is
                 if (unwindTranche > 0 && sellAmt > unwindTranche) sellAmt = unwindTranche;
                 if (sellAmt > 0) {
                     uint256 fairOut = (sellAmt * pPrime * 1e12) / pHollar;
-                    uint128 minOut = uint128(fairOut * (1_000_000 - dcaSlippagePpm) / 1_000_000);
-                    DcaDispatch.routerSell(aPrimeAssetId, hollarAssetId, uint128(sellAmt), minOut, _unwindRoute());
+                    _sellForUnwind(sellAmt, fairOut);
                 }
             }
         }
@@ -470,6 +482,35 @@ contract SubLoop is
         emit Repaid(deleverRepaid + repayHollar, healthFactor());
     }
 
+    function _sellForUnwind(uint256 amount, uint256 fairOut) internal {
+        if (amount > type(uint128).max) revert InvalidParameters();
+        uint256 before_ = hollar.balanceOf(address(this));
+        DcaDispatch.routerSell(aPrimeAssetId, hollarAssetId, uint128(amount), _minimumOut(fairOut), _unwindRoute());
+        uint256 received = hollar.balanceOf(address(this)) - before_;
+        if (received >= fairOut || deleverDebtTarget != 0) return;
+        uint256 cost = fairOut - received;
+        uint256 target = unwindTargetEquity;
+        uint256 weight;
+        uint256 charged;
+        // Only realized execution loss, capped by each vault's un-compounded
+        // yield. Costs above this allowance remain an unfunded source liability.
+        for (uint256 i; i < _unwinders.length; ++i) {
+            address v = _unwinders[i];
+            uint256 remaining = unwindRequested[v] - freedHollar[v];
+            uint256 prior = target == 0 ? 0 : cost * weight / target;
+            weight += remaining;
+            uint256 cut = target == 0 ? 0 : cost * weight / target - prior;
+            if (cut > unwindYieldAllowance[v]) cut = unwindYieldAllowance[v];
+            if (cut > remaining) cut = remaining;
+            unwindYieldAllowance[v] -= cut;
+            unwindRequested[v] -= cut;
+            unwindExecutionCost[v] += cut;
+            charged += cut;
+            if (cut != 0) emit UnwindYieldSpent(v, cut);
+        }
+        unwindTargetEquity -= charged;
+    }
+
     /// @dev Credit freed equity HOLLAR to open unwind requests, pro-rata by the
     ///      REMAINING-to-credit slice (request minus credited-but-unpulled),
     ///      capped there too. Weighting by the raw `unwindRequested` is wrong:
@@ -511,7 +552,10 @@ contract SubLoop is
         // already burned (principalEquity dropped) but the equity stays in the
         // loop until pokeRepay frees it. it is NOT carry — skimming it would
         // pay one vault's principal out to the others' shareholders.
-        uint256 reserved18 = principalEquity + unwindTargetEquity;
+        // Retain earned PRIME, not sponsored HOLLAR, against execution costs.
+        // A target above earned carry only suppresses harvest; it never creates
+        // a claim on deposits or requires an external bootstrap payment.
+        uint256 reserved18 = principalEquity + unwindTargetEquity + executionCostReserve();
         if (equity18 <= reserved18) {
             emit Harvested(0);
             return 0;
@@ -589,9 +633,20 @@ contract SubLoop is
         return gross > unwindTargetEquity ? gross - unwindTargetEquity : 0;
     }
 
+    /// @notice HOLLAR value of the current gross PRIME position's permitted
+    /// execution loss. Already-held HOLLAR needs no swap and is excluded.
+    /// This is a harvest holdback, not a funded insurance or payout guarantee.
+    function executionCostReserve() public view returns (uint256) {
+        uint256 balance = primeAToken.balanceOf(address(this));
+        if (balance == 0 || dcaSlippagePpm == 0) return 0;
+        (uint256 pHollar, uint256 pPrime) = _oracleRate();
+        uint256 grossHollar = balance * pPrime * 1e12 / pHollar;
+        return (grossHollar * dcaSlippagePpm + 999_999) / 1_000_000;
+    }
+
     /// @inheritdoc IYieldSource
-    /// @dev The exact mirror of `harvest`: there, `reserved18 = principalEquity +
-    ///      unwindTargetEquity` is the non-carry basis and surplus is
+    /// @dev `reserved18 = principalEquity + unwindTargetEquity` is the liability
+    ///      basis. The earned cost allowance is not a liability. Surplus is
     ///      `equity18 - reserved18` when positive. Here we report the shortfall
     ///      `reserved18 - equity18` (when equity is below basis) as a fraction of
     ///      basis, in bps. Pure view — monitoring only, no state change.
@@ -607,18 +662,6 @@ contract SubLoop is
     function equityOf(address vault) external view override returns (uint256) {
         if (_totalShares == 0) return 0;
         return (_liveEquity18() * _sharesOf[vault]) / _totalShares / 1e10;
-    }
-
-    function exitCostExposure(address vault) external view override returns (uint256) {
-        if (_totalShares == 0) return 0;
-        (uint256 gross,,,,,) = pool.getUserAccountData(address(this));
-        uint256 lt = ((pool.getConfiguration(address(prime)) >> 16) & 0xFFFF) * 1e14;
-        if (deployHfFloor <= lt) revert InvalidParameters();
-        // Reserve for the fully ramped position, not just today's deployment.
-        uint256 planned = _liveEquity18() * deployHfFloor / (deployHfFloor - lt);
-        uint256 observed = gross * 1e10;
-        uint256 exposure = planned > observed ? planned : observed;
-        return exposure * _sharesOf[vault] / _totalShares;
     }
 
     /// @inheritdoc IYieldSource
@@ -714,5 +757,5 @@ contract SubLoop is
 
     function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
-    uint256[39] private __gap;
+    uint256[37] private __gap;
 }

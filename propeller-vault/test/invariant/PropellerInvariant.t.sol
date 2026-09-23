@@ -12,7 +12,7 @@ import {MockPool} from "../mocks/MockPool.sol";
 import {DcaDispatch} from "../../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "../mocks/MockDispatch.sol";
 import {Handler} from "./Handler.sol";
-import {PropellerOperatingBuffer} from "../../src/PropellerOperatingBuffer.sol";
+import {PropellerMainDebt} from "../../src/PropellerMainDebt.sol";
 
 /// @notice Invariant suite. The fuzzer drives the Handler through random
 ///         deposit/ramp/redeem/unwind/settle/claim sequences; after every call
@@ -174,20 +174,26 @@ contract PropellerInvariantTest is Test {
         assertEq(vault.totalAssets() + vault.roundingReserve(), aEth.balanceOf(address(vault)) + eth.balanceOf(address(vault)));
     }
 
-    function invariant_operatingCashAndDebtUnitsConserved() public view {
-        PropellerOperatingBuffer buffer = PropellerOperatingBuffer(address(vault.operatingBuffer()));
+    function invariant_mainCashDebtAndSourceClaimsConserved() public view {
+        PropellerMainDebt buffer = PropellerMainDebt(address(vault.mainDebt()));
         uint256 units;
         uint256 cash = buffer.unallocatedSource();
         uint256 debt;
+        uint256 sourceClaims = buffer.activeSourceRemaining();
         for (uint256 key; key <= vault.queueUnwind(); ++key) {
-            (uint256 positionUnits,,uint256 positionCash,,) = buffer.positions(key);
+            (uint256 positionUnits,,uint256 positionCash,uint256 sourceClaim,) = buffer.positions(key);
             units += positionUnits;
             cash += positionCash;
             debt += buffer.debtOf(key);
+            sourceClaims += sourceClaim;
         }
         assertEq(units, buffer.totalUnits());
         assertEq(cash, buffer.ownedCash());
-        assertEq(hollar.balanceOf(address(buffer)), cash + buffer.bootstrapCash());
+        assertEq(hollar.balanceOf(address(buffer)), cash);
+        assertEq(sourceClaims, buffer.sourceOutstanding());
+        uint256 pendingCost = loop.unwindExecutionCost(address(vault)) - buffer.sourceCostCheckpoint();
+        assertEq(sourceClaims, loop.pendingUnwindOf(address(vault)) + buffer.unallocatedSource()
+            + buffer.unallocatedCost() + pendingCost);
         assertApproxEqAbs(debt, hollarDebt.balanceOf(address(vault)), vault.queueUnwind() + 1,
             "all live Main debt is allocated; only division dust is unassigned");
     }

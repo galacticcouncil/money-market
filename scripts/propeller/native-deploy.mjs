@@ -133,9 +133,10 @@ try {
   const source = await deploy('ERC1967Proxy', [subImpl, subInit], 'SubLoop.proxy');
   const vaultInit = encodeFunctionData({ abi: artifact('CollateralVault').abi, functionName: 'initialize', args: ['Propeller ETH', 'pETH', ETH, POOL, source, account.address, HOLLAR, synth, ethReserve.aTokenAddress, hollarReserve.variableDebtTokenAddress, 1000000n * 10n ** 18n, account.address] });
   const vault = await deploy('ERC1967Proxy', [vaultImpl, vaultInit], 'CollateralVault.proxy');
-  const buffer = await deploy('PropellerOperatingBuffer', [vault]);
-  await call('CollateralVault', vault, 'setOperatingBuffer', [buffer]);
-  await call('PropellerOperatingBuffer', buffer, 'configure', [7 * 86400, 10, 50000000000000000000000000n]);
+  const buffer = await deploy('PropellerMainDebt', [vault]);
+  await call('CollateralVault', vault, 'setMainDebt', [buffer]);
+  assert.equal(await read('PropellerMainDebt', buffer, 'ownedCash'), 0n);
+  result.checks.noSponsoredOperatingCapital = true;
   const harvester = await deploy('Harvester', [source, PRIME, account.address]);
   const fees = await deploy('PropellerFeeController', [account.address, treasury]);
   await call('SyntheticToken', synth, 'grantRole', [ethers.utils.id('MINTER_ROLE'), vault]);

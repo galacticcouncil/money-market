@@ -3,16 +3,16 @@ pragma solidity ^0.8.22;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IOperatingVault} from "../PropellerOperatingBuffer.sol";
-import {IOperatingBuffer} from "../interfaces/IOperatingBuffer.sol";
+import {IMainDebtVault} from "../PropellerMainDebt.sol";
+import {IMainDebt} from "../interfaces/IMainDebt.sol";
 import {IPropellerFeeController} from "../interfaces/IPropellerFeeController.sol";
 import {ISwapper} from "../interfaces/ISwapper.sol";
 import {IAavePool} from "../interfaces/IAavePool.sol";
 import {ISyntheticToken} from "../interfaces/ISyntheticToken.sol";
 
-interface ICompoundVault is IOperatingVault {
+interface ICompoundVault is IMainDebtVault {
     function feeController() external view returns (IPropellerFeeController);
-    function operatingBuffer() external view returns (IOperatingBuffer);
+    function mainDebt() external view returns (IMainDebt);
     function synthetic() external view returns (ISyntheticToken);
     function syntheticSupplied() external view returns (uint256);
 }
@@ -33,7 +33,7 @@ contract CompoundLogic {
         ICompoundVault v = ICompoundVault(address(this));
         uint256 debt = v.hollarDebtToken().balanceOf(address(this));
         IERC20 hollar = v.hollar();
-        IOperatingBuffer buffer = v.operatingBuffer();
+        IMainDebt buffer = v.mainDebt();
         hollar.forceApprove(address(buffer), recovery);
         (, principalPaid, paid) = buffer.repay(key, amount, recovery);
         hollar.forceApprove(address(buffer), 0);
@@ -49,7 +49,7 @@ contract CompoundLogic {
         if (amountIn == 0) revert ZeroAmount();
         ICompoundVault v = ICompoundVault(address(this));
         IPropellerFeeController controller = v.feeController();
-        IOperatingBuffer buffer = v.operatingBuffer();
+        IMainDebt buffer = v.mainDebt();
         if (address(controller) == address(0) || address(buffer) == address(0)) revert ZeroAddress();
         IERC20 collateral = v.collateral();
         ISwapper swapper = v.swapper();

@@ -4,7 +4,7 @@ pragma solidity ^0.8.22;
 import {PluggableYieldSourceTest} from "./PluggableYieldSource.t.sol";
 import {SubLoopUnwindTest} from "./SubLoopUnwind.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
-import {PropellerOperatingBuffer} from "../src/PropellerOperatingBuffer.sol";
+import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
 
 contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
     function test_publicDepositorCannotPayBootstrapCost() public {
@@ -91,15 +91,14 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         uint256 request = vault.requestRedeem(shares, address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(100);
-        uint256 freed = source.freedOf(address(vault));
-        vm.mockCall(address(source), abi.encodeWithSignature("pullFreed()"), abi.encode(freed / 3));
-        hollar.mint(address(vault), freed / 3);
+        (,,uint256 promised,,,,,,) = vault.redemptions(request);
+        source.setPullBps(3333);
         vault.pokeSettle();
         uint256 first = vault.claim(request, address(this));
-        vm.clearMockedCalls();
+        source.setPullBps(10_000);
         vault.pokeSettle();
         uint256 last = vault.claim(request, address(this));
-        assertApproxEqAbs(first + last, 1e18 - 1000, 1);
+        assertEq(first + last, promised);
         assertEq(vault.totalQueuedShares(), 0);
     }
 
@@ -108,7 +107,7 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         hollarDebt.mint(address(vault), 10e18);
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
-        vm.expectRevert(PropellerOperatingBuffer.UnfundedBuffer.selector);
+        vm.expectRevert(PropellerMainDebt.UnfundedInterest.selector);
         vault.deposit(1e18, address(this));
     }
 

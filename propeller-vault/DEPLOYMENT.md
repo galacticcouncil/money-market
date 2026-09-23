@@ -1,204 +1,185 @@
 # Propeller Deployment Runbook
 
-> Audience: deploy operator / Hydration governance facilitator
-> Companion to: `script/*.s.sol`, `tasks/proposals/propeller.ts`, `scripts/propeller/verify-readiness.ts`,
-> `deployments/`, and `../PROPELLER-MAINNET-HANDOVER.md` (read the "What went wrong" section first)
+**RC1 | 23 September 2026 | Production activation blocked**
 
-The Foundry scripts handle the **on-chain contract deploy**. Everything else — listing the
-synthetic reserve, wiring the contracts, delegating the guardian, starting the keeper — is
-governance and operations, and is the part that has historically gone wrong.
+Audience: deployment, governance and operations reviewers. Complete the
+[activation gates](docs/release-candidate.md#activation-gates) before authorizing
+production transactions. This runbook supports a reviewed fresh deployment;
+it does not approve production settings or upgrade a live old-buffer deployment.
 
-**The single most important thing on this page:** `dispatcher.dispatchAsAaveManager` reports
-EVM reverts as `ExecutedFailed` *events*, not as extrinsic failures. A wiring referendum can
-enact "successfully" with individual calls silently reverted. Never trust the referendum
-result — run `verify-readiness.ts` and read its table.
+**Check individual EVM outcomes.** `dispatcher.dispatchAsAaveManager` can report
+reverts as `ExecutedFailed` events while the enclosing extrinsic succeeds.
+Inspect every dispatched result and run the read-only readiness checker;
+referendum enactment alone is not wiring verification.
 
----
+## 1. Prepare the Deployment Manifest
 
-## Step 0 — Pre-flight
+Record the exact commit, compiler settings, dependency pins, runtime version,
+chain block/hash and all reviewed addresses and parameters. Use `hdx.tarn`
+for Hydration reads and fresh Chopsticks rehearsals.
 
-| Item | Where | Sanity check |
-|---|---|---|
-| Deployer is a whitelisted contract deployer | `evmAccounts.contractDeployer` | Must be in the whitelist or every `forge script` reverts |
-| Deployer funded | any | Needs the EVM gas token, not just HDX |
-| `POOL`, `HOLLAR`, `HOLLAR_VDEBT`, `ETH`/`TBTC`, `AETH`/`ATBTC`, `PRIME`, `APRIME` | `.env` | Read live off `pool.getReserveData` — do **not** trust a previous lark's values |
-| Synthetic asset id is free | `assetRegistry.assets(5550)` | Must be `None`, else pick another and set `PROPELLER_SYNTH_ASSET_ID` |
-| Router pallet index is 66/67 | `scripts/propeller/gen-router-reference.mjs` | **Run this.** `DcaDispatch` bakes pallet 67 into SubLoop's bytecode; a runtime reorder breaks every deposit and unwind and needs a UUPS upgrade to fix |
-| Router has PRIME-to-collateral and collateral-to-HOLLAR routes | router | Both harvest conversion and Main servicing must execute |
-| HydraAugustus (REQ-SWAP) deployed | `../aave-debt-swap` | Not on mainnet yet. Without it `compound` is inert — deploy with the placeholder and `setSwapper` later |
-| pool-143 depth vs `dcaSlippagePpm` | stableswap | Thin depth forces a wider min-out; see the handover doc's lark-4 lesson |
+| Required input              | Verification                                                                                                                                                                                                      |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deployer and gas funding    | Contract-deployer authorization and actual EVM fee funding on the target chain. Do not assume historical testnet whitelist behavior.                                                                              |
+| Pool and token addresses    | Read live reserve data for collateral, collateral aTokens, HOLLAR debt, PRIME and aPRIME. Override script defaults explicitly.                                                                                    |
+| Governance and committee    | Actual dispatch/execution addresses, not member wallets or keeper keys. Record all admin, upgrader and guardian assignments.                                                                                      |
+| Synthetic reserve           | Available asset ID, registration, $1 oracle, approved LTV/LT, disabled borrowing and correct receipt token. The proposal uses 1% LTV and 98% LT; Main sizing uses real collateral, not synthetic borrowing power. |
+| Runtime routes              | Regenerate router references with `scripts/propeller/gen-router-reference.mjs`; confirm pallet indices and SCALE encoding.                                                                                        |
+| Swap adapter                | Deploy and review the production HydraAugustus implementation and required sell routes. No governance-address placeholder in an activated vault.                                                                  |
+| PRIME pricing and liquidity | Approve source provenance/freshness, Aave and pool-peg wiring, executable inventory and funded replenishment. See [pricing validation](docs/prime-pricing-replenishment.md).                                      |
+| Execution and admission     | Approve floors, nonzero tranches, deposit/ramp limits and harvest sizing. `deployTranche` does not cap initial/upward source deposits.                                                                            |
+| Rounding and bootstrap      | Fund locked initial shares and per-vault collateral reserves; verify native minimum balances and custody dust protection.                                                                                         |
+| Fees and discounts          | Configure fee controller/recipient, per-vault rates, discount controller/committee and explicit approved discount. Defaults are not policy approval.                                                              |
 
----
+Legacy deployment scripts contain testnet defaults. Never reuse a historical
+`.env`, address registry or placeholder as an approved production manifest.
+Keep signing secrets outside tracked files and archived evidence.
 
-## Step 1 — Deploy the contracts
+## 2. Deploy and Bind
 
-Order matters — each step consumes the previous one's output.
+Initialize the pinned `bil-vault/lib` dependencies and build with the
+[documented settings](README.md#build-and-test). Run serially against the same
+artifact directory. Recheck EIP-170: the candidate CollateralVault has only
+195 bytes of runtime headroom.
+
+From `propeller-vault`, the core deployment order is:
 
 ```sh
-cd propeller-vault
-cp .env.lark4.example .env      # fill in the [chain] values
-FLAGS="--rpc-url $RPC --broadcast --evm-version london --legacy --slow --gas-estimate-multiplier 200"
-
-forge script script/DeploySynth.s.sol:DeploySynth       $FLAGS   # → SYNTH
-forge script script/DeployMain.s.sol:DeployMain         $FLAGS   # → SUBLOOP, VAULT_ETH, HARVESTER, IMPL
-forge script script/DeployVaultTBTC.s.sol:DeployVaultTBTC $FLAGS # → VAULT_TBTC   (optional)
+forge script script/DeploySynth.s.sol:DeploySynth --rpc-url "$RPC" --evm-version london
+forge script script/DeployMain.s.sol:DeployMain --rpc-url "$RPC" --evm-version london
+forge script script/DeployVaultTBTC.s.sol:DeployVaultTBTC --rpc-url "$RPC" --evm-version london
 ```
 
-`DeployMain` also emits the `CollateralVault` implementation address — record it; `DeployVaultTBTC`
-reuses it rather than redeploying.
+These are simulation commands, not a single automatic deployment sequence.
+Each script requires its documented environment; later scripts consume addresses
+from the earlier actual deployment. Only an approved deployment adds
+`--broadcast --legacy --slow --gas-estimate-multiplier 200`.
+The tBTC script reuses the recorded CollateralVault implementation.
 
-Deploy one `PropellerOperatingBuffer` for each fresh vault using
-`script/DeployOperatingBuffer.s.sol`. All `OPERATING_*` inputs are explicit;
-there are no approved production defaults. The script prints the governance
-binding, configuration and bootstrap funding calls. Execute binding/configuration
-before generating batch 3; dust-whitelist custody before transferring assets,
-then fund HOLLAR bootstrap and the separate collateral rounding reserve before
-the governance seed deposit. Wire buffers before fee-controller registration.
-See [ownership and sizing](docs/operating-buffer.md).
+Continue in dependency order:
 
-The vault constructor deploys a stateless `CompoundLogic` helper. Record and
-verify its address and bytecode too. A successful implementation deployment alone
-does not verify the buffer, proxy bindings, adapter or funded bootstrap.
+1. Deploy one [Main debt ledger](script/DeployMainDebt.s.sol) per fresh vault
+   using `MAIN_DEBT_VAULT`. Execute the printed governance `setMainDebt` call.
+   The ledger requires no sponsored HOLLAR funding.
+2. Deploy and bind the [fee controller](script/DeployFees.s.sol) after the ledger
+   binding. Register every vault and verify the recipient and 5% initial rate.
+3. Deploy and install the [Main discount controller](script/DeployDiscount.s.sol)
+   through its separate governance batch. See [discount installation](docs/main-borrow-discount.md).
+4. Complete source/harvester roles, native custody protection, routes and reserve
+   wiring before the controlled bootstrap.
 
-**What `initialize` does automatically:**
-- Grants `DEFAULT_ADMIN_ROLE`, `ADMIN_ROLE`, `UPGRADER_ROLE` **and** `GUARDIAN_ROLE` to `_admin`
-  (the governance precompile), so the pause is never wired to a role nobody holds.
-- Sets `tvlCap`, `targetHf`, `deLeverTrigger`, `deployHfFloor = targetHf`, `harvestThreshold`.
+Record implementation and proxy addresses, the constructor-created
+`CompoundLogic` helper, both immutable ledgers, adapter, controllers and
+harvester. Compare deployed bytecode and proxy slots to the final artifacts;
+deployment success alone is insufficient.
 
-**What it deliberately does NOT do — every one of these fails closed until Step 2:**
+Missing roles or ledger/reserve bindings can make deposits revert. Other unset
+parameters are unsafe rather than inert: zero tranche values disable caps, and
+zero compound slippage means exact oracle-relative execution, not a universal
+revert. Verify all settings explicitly.
 
-| Unset | Consequence until wired |
-|---|---|
-| synthetic reserve not listed | `synthLtBps()` reverts `SynthReserveNotListed` ⇒ **every `deposit` reverts** |
-| `SubLoop.harvester` | `harvest()` reverts `HarvesterUnset` ⇒ no carry realisation |
-| `compoundSlippageBps` (0) | the compound floor equals the exact oracle price ⇒ **every `compound` reverts** |
-| route ids (0) | `pokeBorrow`/`pokeRepay` dispatch a malformed call ⇒ `DispatchFailed` |
-| `deployTranche`/`unwindTranche` (0) | tranche caps disabled ⇒ one `pokeBorrow` dumps the whole borrow into pool-143 |
-| `VAULT_ROLE` | `SubLoop.deposit` reverts ⇒ deposits revert |
-| `MINTER_ROLE` | `SyntheticToken.mint` reverts ⇒ deposits revert |
-| operating buffer binding, policy or bootstrap funding | deposits fail closed; no user collateral pays bootstrap |
+## 3. Generate and Rehearse Governance Wiring
 
-This is intentional: an unwired deployment is inert rather than exploitable.
+The [proposal task](../tasks/proposals/propeller.ts) generates preimages, not an
+automatic approved deployment. Its four ordered groups are:
 
----
+| Group                | Purpose                                                                                                                             |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 0: compound routes   | PRIME-to-collateral and collateral-to-HOLLAR routes. Empty route bytes resolve through runtime route storage.                       |
+| 1: list reserve      | Register the synthetic native asset before initializing its Aave reserve.                                                           |
+| 2: configure reserve | Apply approved synthetic collateral settings, disable borrowing and install the $1 source.                                          |
+| 3: wire              | Source/vault/harvester roles, tranches, route IDs, swapper, compound floor, withdrawal delay, guardians and funded rounding policy. |
 
-## Step 2 — Governance wiring
+Main-ledger binding, fee installation and discount installation must also be
+verified; do not assume these four groups include every external prerequisite.
+Splitting the batches avoids the historically observed scheduler weight limit,
+but each final batch still needs current weight and execution checks.
+
+Provide `PROPELLER_SYNTH`, `PROPELLER_SUBLOOP`, `PROPELLER_HARVESTER`,
+`PROPELLER_VAULTS`, `PROPELLER_SWAPPER`, `PROPELLER_GUARDIAN`,
+`PROPELLER_FEE_CONTROLLER`, explicitly approved `PROPELLER_SLIPPAGE_PPM`,
+tranche/compound settings and `PROPELLER_ROUNDING_RESERVES`.
+The rounding policy requires one funded entry per vault; see the
+[keeper policy format](looper/README.md). Review optional route overrides and
+the per-vault withdrawal delay before generating:
 
 ```sh
-cd ..   # repo root
-PROPELLER_SYNTH=0x… PROPELLER_SUBLOOP=0x… PROPELLER_HARVESTER=0x… \
-PROPELLER_VAULTS=0xETH,0xTBTC PROPELLER_SWAPPER=0x… PROPELLER_GUARDIAN=0x… \
 npx hardhat propeller --network hydration
 ```
 
-This prints **four** preimages. Submit each as its own Root referendum, **in order**:
+Rehearse the exact governance calls on a fresh local fork before submission.
+Inspect every EVM event and permission change, including removal of unintended
+deployer authority.
 
-0. **`compound routes`** — `router.forceInsertRoute` for PRIME to each collateral
-   and each collateral to HOLLAR. Custom routes use `PROPELLER_COMPOUND_ROUTES`
-   and `PROPELLER_OPERATING_ROUTES`; verify both directions through the real adapter.
-   `Harvester.harvest` calls `compound(prime, cut, minOut, "")` with an **empty**
-   route, so the substrate router resolves the path from its own storage and falls back
-   to Omnipool when nothing is stored. PRIME is not an Omnipool asset, so without this
-   **every harvest reverts** and loop carry can never reach the vaults. Pure substrate —
-   no contracts needed, so it can enact before anything else.
-1. **`list-reserve`** — registers the synthetic as an `Erc20` substrate asset, then
-   `initReserves`. The substrate registration MUST come first: the EVM ERC20 precompile reads
-   decimals from the registry, so `initReserves` reverts otherwise.
-2. **`configure`** — `configureReserveAsCollateral(LTV 100, LT 9800, bonus 10100)`,
-   `setReserveBorrowing(false)`, `setSupplyCap(0)`, `setAssetSources($1 oracle)`.
-3. **`wire`** — `MINTER_ROLE` → each vault, `registerVault`, `setTranches`, `configureDca`,
-   `setHarvester`, `setCompoundSlippageBps`, `setSwapper`, `addVault`, and
-   `GUARDIAN_ROLE` → technical committee.
+## 4. Bootstrap and Verify Readiness
 
-They are split because `initReserves` alone is ~58e9 refTime and a combined `batchAll` trips
-`scheduler.PermanentlyOverweight` (observed on lark-2).
+Keep public deposits closed throughout rehearsal and bootstrap.
 
-> **LT 9800 is not a deploy parameter.** The vault reads the synthetic's liquidation threshold
-> live off this reserve's config bitmap on every deposit, rebalance and peg top-up. Batch 2 is
-> the only place it is set, and changing it later changes the floor for every existing position.
+1. Verify pre-bootstrap wiring, routes, role assignments, oracle inputs,
+   custody protection and the funded rounding reserve.
+2. Governance makes the first approved deposit, funding the locked bootstrap
+   shares. Public users must not bear that cost.
+3. Confirm PRIME is enabled as source collateral and loop equity is recognized.
+   Funding now enables collateral directly; ramping is **not** a prerequisite
+   for an unlevered unwind.
+4. Ramp only within approved native execution and liquidity budgets.
+5. Run the full readiness checker after bootstrap. Its positive-equity and
+   initial-share checks intentionally fail on an unseeded deployment.
 
----
-
-## Step 3 — Verify before doing anything else
+Use the complete environment documented at the top of
+[verify-readiness.ts](../scripts/propeller/verify-readiness.ts). It includes fee
+and discount controllers/recipient/committee, explicit discount/slippage values
+and the rounding policy, not just vault addresses.
 
 ```sh
-PROPELLER_SYNTH=0x… PROPELLER_SUBLOOP=0x… PROPELLER_HARVESTER=0x… \
-PROPELLER_VAULTS=0xETH,0xTBTC PROPELLER_SWAPPER=0x… PROPELLER_GUARDIAN=0x… \
-PROPELLER_LOOPER=0x… \
-npx ts-node --transpile-only --compiler-options '{"module":"commonjs"}' \
-  scripts/propeller/verify-readiness.ts
+npx ts-node --transpile-only --compiler-options '{"module":"commonjs"}' scripts/propeller/verify-readiness.ts
 ```
 
-Read-only, exits non-zero on any failure. **Do not proceed past a red row.** It checks the
-runtime pallet indices, the substrate registration, bytecode presence, every bit of the
-synthetic reserve config, every role, every wiring value, per-vault live state, loop health,
-and keeper funding.
+The checker is read-only and exits nonzero on failure. Resolve every failed row;
+passing it does not replace independent review or prove sufficient market depth.
 
----
+## 5. Rehearse the Lifecycle and Operations
 
-## Step 4 — Seed and ramp
+Use the exact adapter, registry, policy and artifacts intended for deployment.
 
-```sh
-# 1. small seed deposit (establishes the share price; DEAD_SHARES = 1000 wei are burned)
-node scripts/propeller-deposit-lark.mjs
+- Both collateral vaults and multiple holders: deposit, ramp, harvest, fee claim,
+  Main interest service and source-funded Main resizing.
+- Withdrawal: request, wait until chain-time eligibility, `startUnwinds`,
+  source repayment, `pokeSettle`, partial/final collateral claims and late
+  source-surplus ownership.
+- Incident: freeze eligible and already-settled claims, retain Main maintenance,
+  fund recovery explicitly, reconcile every affected holder and only then reopen.
+- Rounding: exhaust/refill a controlled reserve and verify exact retry without
+  reducing principal or charging other holders.
+- Execution: no unapproved price override, floor widening, gas-limit relaxation
+  or hidden recovery funding in the final acceptance run.
 
-# 2. ramp the loop — REQUIRED before anyone can redeem
-node scripts/propeller-ramp-lark.mjs
-```
+The existing native success used a labeled oracle-update fixture and external
+funding. A fresh unchanged-market acceptance run remains an activation gate.
 
-**The ramp is not optional.** PRIME is an isolation-mode reserve, so a plain supply never
-auto-enables it as collateral — only `pokeBorrow`'s explicit
-`setUserUseReserveAsCollateral` does. Until it runs, `totalEquity()` is 0 and
-`requestRedeem` reverts `NoLoopEquity` (it used to silently escrow shares against a zero
-unwind target and orphan the request — see the handover doc).
+Start the keeper using the [operations runbook](looper/README.md), with
+`VAULT_ADDRESSES` covering every configured vault. Use one active sender per
+signing key to avoid nonce collisions. Arrange independent monitoring, a funded
+failover process and committee incident coverage; the keeper has no special role.
 
-Sanity after ramping:
-- `subLoop.healthFactor()` ≈ `targetHf` (1.05), not far above it
-- `subLoop.totalEquity() > 0`
-- `vault.exchangeRate()` ≈ 1e18
-- a `requestRedeem` → `pokeRepay` → `pokeSettle` → `claim` round-trip completes
+## Incident and Abort Checks
 
----
+| Symptom                               | Investigation or control                                                                                                                            |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Wiring transaction appears successful | Check every `ExecutedFailed` event, live state and readiness result before retrying missing calls.                                                  |
+| Entry or unwind swap fails            | Check routes, reference price, inventory and executable size. Do not widen loss limits to force success.                                            |
+| Harvest fails                         | Check complete harvester registry, both conversion routes, adapter balances/approvals and the fee/Main-ledger bindings.                             |
+| Wrong source bound                    | Treat `setYieldSource` as deployment wiring, not live migration. Follow the [upgrade boundary](docs/source-upgrades.md); preserve all claims.       |
+| User flows must stop                  | Use affected-vault pauses or the source-wide emergency freeze. Stopping the keeper or source route alone does not block existing claims.            |
+| Route execution is unsafe             | Source `pause()` also stops safety swaps. Account for that loss of debt-reduction capability in the incident plan.                                  |
+| Recovery is only partially funded     | Keep ordinary FIFO frozen; do not advantage early claimants. Follow [all-holder recovery policy](docs/principal-safety.md#fair-emergency-recovery). |
 
-## Step 5 — Start the keeper
+## Release Record
 
-```sh
-export SUBLOOP_ADDRESS=0x… VAULT_ADDRESS=0x… HARVESTER_ADDRESS=0x…
-export LOOPER_PRIVATE_KEY=0x… ALERT_WEBHOOK=https://discord.com/api/webhooks/…
-docker stack deploy -c propeller-vault/looper/docker-stack.yml propeller-looper
-```
+Before enabling public deposits, archive the exact reviewed commit, source hashes,
+compiler/dependency settings, runtime bytecode, complete storage layout, deployed
+addresses, roles, policy, proposal outcomes and successful acceptance evidence.
+Record explicit sign-off for every [activation gate](docs/release-candidate.md#activation-gates).
 
-`replicas` MUST stay 1 — two loopers fight over the signer's nonce every cycle. The key needs
-**no role**: every poke is permissionless, so it only pays gas.
-
----
-
-## Rollback / abort paths
-
-| Scenario | Action |
-|---|---|
-| Batch 1 enacts but batch 2 fails | Reserve is listed but unconfigured. `deposit` reverts (`SynthReserveNotListed` → LT 0). Re-submit batch 2; nothing is stuck |
-| Batch 3 partially reverts | Most likely cause. `verify-readiness` names the exact missing call — re-submit just that one as its own referendum |
-| Deposits revert `SynthReserveNotListed` | Batch 2's `configureReserveAsCollateral` did not land. Check LT with `pool.getConfiguration(synth) >> 16 & 0xFFFF` |
-| Deposits revert `DcaDispatch.DispatchFailed` | Route ids wrong, `dcaSlippagePpm` too tight for pool depth, or the router pallet moved. Run `gen-router-reference.mjs` first, then widen slippage |
-| `compound` always reverts | `compoundSlippageBps` is 0, `swapper` is still the placeholder, or batch 0's PRIME → collateral route is missing (the empty-route path resolves on-chain) |
-| `harvest` reverts on the swap leg | Batch 0 did not land. Check `router.routes({assetIn: PRIME, assetOut: collateral})` is `Some` |
-| `harvest` reverts `HarvesterUnset` | `setHarvester` did not land |
-| `harvest` reverts "vault set incomplete" | A share-holding vault is missing from `Harvester.addVault`, or one is registered twice |
-| Wrong yield source wired | `setYieldSource` works **only before the first deposit** — `DEAD_SHARES` keep `loopShares` permanently non-zero afterwards. After that, redeploy the vault |
-| Emergency | `pause()` blocks new withdrawals, collateral release, collateral claims and HOLLAR buffer payouts. Safety Main repayment and peg maintenance remain callable. Use the emergency runbook before reopening; ordinary FIFO is not fair recovery accounting. |
-
----
-
-## Post-deploy invariants to confirm before announcing
-
-1. `verify-readiness.ts` exits 0.
-2. A full deposit → ramp → requestRedeem → pokeRepay → pokeSettle → claim round-trip completes
-   and returns ≥ the deposited collateral.
-3. Harvest charges collateral fees first, services Main interest from fresh yield,
-   replenishes owned HOLLAR, then compounds any remainder without minting shares.
-   An insufficient harvest need not raise `exchangeRate()`; it must not reduce it.
-4. `subLoop.negativeCarryBps() == 0`.
-5. Keeper runs ≥ 3 consecutive cycles with no errors.
-6. Update `deployments/` with the addresses, roles and on-chain state — that file is what the
-   UI and integrator teams read.
+The checked-in source layout is a research baseline, not a deployed upgrade
+baseline. Future upgrades require a new compatibility and economic review.

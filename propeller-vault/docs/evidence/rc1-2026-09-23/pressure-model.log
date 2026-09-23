@@ -1,0 +1,72 @@
+TAP version 13
+# Subtest: six requested TVLs and 90-day price paths
+ok 1 - six requested TVLs and 90-day price paths
+  ---
+  duration_ms: 1.235214
+  type: 'test'
+  ...
+# Subtest: debt identities and modeled funding are explicit
+ok 2 - debt identities and modeled funding are explicit
+  ---
+  duration_ms: 1.411748
+  type: 'test'
+  ...
+# Subtest: Main discount never subsidizes loop interest; bear still needs loss funding
+ok 3 - Main discount never subsidizes loop interest; bear still needs loss funding
+  ---
+  duration_ms: 0.369297
+  type: 'test'
+  ...
+# Subtest: PRIME gap losses separate Main funding from loop bad debt
+ok 4 - PRIME gap losses separate Main funding from loop bad debt
+  ---
+  duration_ms: 0.174834
+  type: 'test'
+  ...
+# Subtest: outage defers harvest and resizing, without hiding accrued interest
+ok 5 - outage defers harvest and resizing, without hiding accrued interest
+  ---
+  duration_ms: 0.326536
+  type: 'test'
+  ...
+# Subtest: TVL scaling is linear only before capacity gates
+ok 6 - TVL scaling is linear only before capacity gates
+  ---
+  duration_ms: 0.441048
+  type: 'test'
+  ...
+# Subtest: partial and final exits expose both HOLLAR and PRIME liquidity demand
+ok 7 - partial and final exits expose both HOLLAR and PRIME liquidity demand
+  ---
+  duration_ms: 0.330206
+  type: 'test'
+  ...
+# Subtest: pinned snapshot quotes, HSM limits and capacity gates
+not ok 8 - pinned snapshot quotes, HSM limits and capacity gates
+  ---
+  duration_ms: 15.456682
+  type: 'test'
+  location: '/tmp/propeller-consolidation-20260922/scripts/propeller/pressure-model.test.mjs:93:1'
+  failureType: 'testCodeFailure'
+  error: 'stable-swap math rejected quote'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    poolQuote (file:///tmp/propeller-consolidation-20260922/scripts/propeller/pressure-model.mjs:264:34)
+    run (file:///tmp/propeller-consolidation-20260922/scripts/propeller/pressure-model.mjs:414:13)
+    TestContext.<anonymous> (file:///tmp/propeller-consolidation-20260922/scripts/propeller/pressure-model.test.mjs:123:15)
+    Test.runInAsyncScope (node:async_hooks:226:14)
+    Test.run (node:internal/test_runner/test:1120:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:789:18)
+    Test.postRun (node:internal/test_runner/test:1249:19)
+    Test.run (node:internal/test_runner/test:1177:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:789:7)
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 7
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 28.441655

@@ -3,7 +3,7 @@ pragma solidity ^0.8.22;
 
 import {PluggableYieldSourceTest} from "./PluggableYieldSource.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
-import {PropellerOperatingBuffer} from "../src/PropellerOperatingBuffer.sol";
+import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
 
 /// Regression evidence: collateral alone is not interest funding.
 contract InterestPolicyEvidenceTest is PluggableYieldSourceTest {
@@ -37,7 +37,7 @@ contract InterestPolicyEvidenceTest is PluggableYieldSourceTest {
         uint256 sourceBefore = source.sharesOf(address(vault));
         hollarDebt.mint(address(vault), 100e18);
         // Isolate the headroom calculation from the separate backing guard.
-        PropellerOperatingBuffer buffer = PropellerOperatingBuffer(address(vault.operatingBuffer()));
+        PropellerMainDebt buffer = PropellerMainDebt(address(vault.mainDebt()));
         hollar.mint(address(this), 100e18);
         hollar.approve(address(buffer), 100e18);
         buffer.fundPosition(0, 100e18);

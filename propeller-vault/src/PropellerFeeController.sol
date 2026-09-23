@@ -16,7 +16,7 @@ interface IFeeVault {
     function pool() external view returns (address);
     function yieldSource() external view returns (address);
     function feeController() external view returns (address);
-    function operatingBuffer() external view returns (address);
+    function mainDebt() external view returns (address);
 }
 
 interface IFeeHarvester {
@@ -86,7 +86,7 @@ contract PropellerFeeController is AccessControl, ReentrancyGuard, IPropellerFee
         b.harvester = harvester;
         validateVault(vault, harvester);
         _markCustody(vault);
-        _markCustody(v.operatingBuffer());
+        _markCustody(v.mainDebt());
         _markCustody(harvester);
         _markCustody(source);
         _markCustody(pool);

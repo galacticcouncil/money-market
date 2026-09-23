@@ -382,15 +382,14 @@ task(
     if (!feeController) throw new Error("Set PROPELLER_FEE_CONTROLLER for custody dust protection");
     const buffers: string[] = [];
     for (const vault of vaults) {
-      const v = await hre.ethers.getContractAt(["function operatingBuffer() view returns (address)"], vault);
-      const address = await v.operatingBuffer();
-      if (address === hre.ethers.constants.AddressZero) throw new Error(`Configure operating buffer first: ${vault}`);
+      const v = await hre.ethers.getContractAt(["function mainDebt() view returns (address)"], vault);
+      const address = await v.mainDebt();
+      if (address === hre.ethers.constants.AddressZero) throw new Error(`Bind Main debt ledger first: ${vault}`);
       const buffer = await hre.ethers.getContractAt([
-        "function vault() view returns (address)", "function coverageSeconds() view returns (uint32)",
-        "function bootstrapCash() view returns (uint256)",
+        "function vault() view returns (address)",
       ], address);
-      if ((await buffer.vault()).toLowerCase() !== vault.toLowerCase() || !(await buffer.coverageSeconds())) {
-        throw new Error(`Invalid operating buffer binding/policy: ${vault}`);
+      if ((await buffer.vault()).toLowerCase() !== vault.toLowerCase()) {
+        throw new Error(`Invalid Main debt binding: ${vault}`);
       }
       buffers.push(address);
     }
