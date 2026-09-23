@@ -1,5 +1,9 @@
 # X-Ray Report
 
+> **Historical snapshot (2026-08-07, `ys-propeller-fixes` at `0e7f9a4`).** Predates PRs #53
+> and #57 and the RC1 suite (231 tests). Not reconciled against RC1; see
+> [docs/README.md](../docs/README.md) for current status.
+
 > Propeller | 1,087 nSLOC | `0e7f9a4` + uncommitted (`ys-propeller-fixes`) | Foundry | 07/08/26
 
 Analyzed branch: `ys-propeller-fixes` at `0e7f9a4`, **plus uncommitted working-tree changes**

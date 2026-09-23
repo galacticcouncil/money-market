@@ -1,18 +1,19 @@
 # propeller-vault
 
-**Research checkpoint, not a release candidate.** Start with the
-[current status and resource index](docs/README.md). The principal-protection
+**Release candidate 1 (RC1)** for independent review, not a production approval.
+Start with the [current status and resource index](docs/README.md). The principal-protection
 statements below describe the intended policy under stated configuration and
 maintenance assumptions, not an unconditional guarantee from the current code.
-Main-interest servicing, production adapter verification and calibrated
-liquidity limits remain release blockers.
+Main-interest servicing (not in RC1; draft
+[PR #60](https://github.com/galacticcouncil/money-market/pull/60)), production adapter
+verification and calibrated liquidity limits remain pre-deployment gates.
 
 Solidity contracts for **Propeller** — a protocol-managed leveraged-yield product on
 Hydration. Deposit a volatile collateral (ETH, tBTC, DOT…), keep full 1× price
 exposure, earn more of that same asset, and never have the principal liquidated.
 
-Full design + chain-verified spec: `garden` wiki → `note-propeller-impl`; machine-checked
-invariants live in `formal/` (Lean 4 — see `formal/README.md`).
+Design notes and invariants: this README, [docs/](docs/README.md) and `formal/`
+(Lean 4 — see `formal/README.md`).
 
 ## Architecture (Architecture A — collateral on Aave + synthetic floor + shared PRIME loop)
 
@@ -254,9 +255,9 @@ asset/DEX deployment rehearsal. Adding fees and discounts does not resolve those
   it — HOLLAR↔aPRIME goes straight through `pallet_route::sell`).
 - Synthetic reserve registration, PRIME ceiling /
   collateral supply-cap raises, deployer whitelist — all governance, shipped as an
-  `aave-v3-deploy/tasks/proposals/propeller.ts` batch (mirrors `prime.ts` / `hdcl.ts`).
+  [`tasks/proposals/propeller.ts`](../tasks/proposals/propeller.ts) batch (mirrors `prime.ts` / `bil.ts`).
 - **Main-vault HOLLAR discount**: `PropellerDiscount` and opt-in vault refresh hooks
-  are implemented locally. The technical committee and governance can set 0-100%
+  are implemented in RC1. The technical committee and governance can set 0-100%
   off Main interest; governance controls enrollment. SubLoop stays undiscounted.
   Installation is a separate governance batch, not part of `propeller.ts`.
   See [policy, deployment and tests](docs/main-borrow-discount.md).
@@ -290,7 +291,7 @@ Full backlog, dismissed false positives, and per-bug detail: `FUTURE_IMPROVEMENT
 ```sh
 forge build
 forge test            # uses MockSwapper / MockPool / MockDispatch
-forge test --fork-url $RPC_HYDRATION   # fork tests against live Aave + PRIME
+RPC_HYDRATION=... forge test --match-contract Fork   # optional pinned discount/fee forks; skipped without an RPC
 ```
 
 Libs are reused from `../bil-vault/lib` (see `foundry.toml`). Initialize the pinned
@@ -321,7 +322,7 @@ See `formal/README.md` for the full theorem index.
     freshly-borrowed HOLLAR repays the exiter's Main HOLLAR debt directly (HOLLAR→HOLLAR, no
     swap); each user keeps their own collateral asset; only the loop's funding source shifts
     ETH→tBTC. Saves both spiral round-trips *and* avoids any swap entirely.
-- **Bounded harvest cadence**, estimated-wait views (HDCL `getEstimatedWaitTime` analogue),
+- **Bounded harvest cadence**, estimated-wait views (BIL `getEstimatedWaitTime` analogue),
   and an optional fast-path for small instant exits.
 
 ## Verified mainnet anchors (2026-06-05)

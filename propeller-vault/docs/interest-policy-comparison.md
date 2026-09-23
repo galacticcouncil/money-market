@@ -3,7 +3,7 @@
 Simulation and analysis performed locally on 2026-09-22, without production
 contract changes or transactions. This compares proposed policies; it does not
 implement them or approve production deployment. See the [current status and
-resource index](README.md) for the publication checkpoint.
+resource index](README.md) for RC1 status.
 
 The separate [HOLLAR peg-liquidity analysis](hollar-peg-liquidity.md) addresses
 pool depth, finite HSM funding and facilitator burn capacity. The constant
@@ -248,7 +248,9 @@ implementation likely needs a reviewed external module and small vault hooks.
 My preferred next step is to design that buffer/servicing accounting, then test
 it with the production adapter and measured costs. Choose withdrawal-time
 deduction instead only with an explicit decision to implement the additional
-principal/net-yield accounting now. No implementation choice has been applied.
+principal/net-yield accounting now. No implementation choice is applied in RC1;
+the harvest-time buffer is implemented separately in draft
+[PR #60](https://github.com/galacticcouncil/money-market/pull/60).
 
 ## Verification and Limitations
 
@@ -313,14 +315,14 @@ PROPELLER_MARKET_SNAPSHOT=/tmp/propeller-market-snapshot-20260922.json \
   node scripts/propeller/interest-policy-model.test.mjs
 ```
 
-From `propeller-vault` with this workspace's linked dependencies:
+From `propeller-vault`, with `bil-vault/lib` submodules initialised:
 
 ```sh
-FOUNDRY_ALLOW_PATHS='["/home/mrq/git/money-market/hdcl-vault/lib"]' \
+FOUNDRY_ALLOW_PATHS="[\"$(realpath ../bil-vault/lib)\"]" \
   forge test --offline --evm-version london --match-contract InterestPolicyEvidenceTest -vv
 ```
 
-Results: `/tmp/propeller-interest-policies-20260922.json` contains the complete
+Results (local-only, ~15 MB; regenerate with the command above): `/tmp/propeller-interest-policies-20260922.json` contains the complete
 main matrix, sensitivities and per-vault exit accounting; the matching `.csv`
 contains main comparison rows. Logs are `/tmp/propeller-interest-evidence-20260922.log`
 and `/tmp/propeller-interest-full-suite-20260922.log`. Updated source-pool/HSM

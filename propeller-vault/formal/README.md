@@ -6,7 +6,7 @@ tests (`../test/invariant/`) into machine-checked theorems over *all* inputs.
 
 Lives beside the contracts it models: `propeller-vault/{src,test,formal}` (branch `propeller`).
 A self-contained Lake project; the Foundry build ignores it and vice-versa.
-Strategy and rationale: `~/.claude/plans/lets-plan-implementation-of-warm-zebra.md` (Path C).
+Strategy: Path C.
 
 ## Layout
 

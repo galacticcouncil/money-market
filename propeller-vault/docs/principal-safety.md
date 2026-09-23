@@ -292,7 +292,8 @@ remains FIFO outside emergency recovery.
 ## Local Remediation
 
 Branch: `fix/propeller-accounting-readiness`, based on
-`7a7f2cf197afb5c4721e19bd061e78bc551b0dd0`. Not published.
+`7a7f2cf197afb5c4721e19bd061e78bc551b0dd0`. Merged into `propeller` (`0c7229d`) and
+part of RC1.
 
 Vault accounting separates live shareholder backing from queued collateral,
 including settled-but-unclaimed balances. Main repayments use the actual pool
@@ -349,7 +350,7 @@ approval. Before release:
    uncontrolled yield extraction during an incident.
 
 No migration is being provided: Propeller has not been deployed. No live-chain
-transactions or remote branch updates are authorized by this local work.
+transactions are authorized by this work.
 
 ## Earlier Accounting Verification: 2026-09-18
 
@@ -548,8 +549,8 @@ runtime bytecode was verified separately at the end. All changes remain local.
 
 See [90-day pressure and readiness report](market-stress-90d.md) for the completed
 rounding-policy tooling, 27 additional long-duration contract scenarios, native
-ETH/tBTC two-user lifecycle, and all six TVL pressure levels. The full suite is
-now 227 passed, zero failed, three skipped. The production swapper still needs
+ETH/tBTC two-user lifecycle, and all six TVL pressure levels. The full suite was
+227 passed, zero failed, three skipped at that point (231 at RC1). The production swapper still needs
 deployment and verification with Propeller; the native route adapter is test-only.
 
 These tests identify real operating dependencies, not just successful funded

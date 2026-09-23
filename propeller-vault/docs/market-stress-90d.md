@@ -310,7 +310,7 @@ From `propeller-vault` (the allow path is specific to this linked-dependency
 workspace):
 
 ```sh
-FOUNDRY_ALLOW_PATHS='["/home/mrq/git/money-market/hdcl-vault/lib"]' \
+FOUNDRY_ALLOW_PATHS="[\"$(realpath ../bil-vault/lib)\"]" \
   forge test --offline --evm-version london -vv
 ```
 

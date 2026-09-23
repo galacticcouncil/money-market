@@ -2,8 +2,10 @@
 
 > Companion to `propeller-vault/DEPLOYMENT.md` (the runbook) and
 > `propeller-vault/deployments/` (the address registry).
-> Modelled on `HDCL-MAINNET-HANDOVER.md`, whose "what went wrong" section saved the
-> HDCL mainnet launch from repeating four separate lark mistakes.
+> Modelled on `BIL-MAINNET-HANDOVER.md` (formerly HDCL), whose "what went wrong" section
+> saved that mainnet launch from repeating four separate lark mistakes.
+>
+> Current release status and open gates: [`propeller-vault/docs/README.md`](propeller-vault/docs/README.md).
 
 **Read § "What went wrong on lark-4" before touching mainnet.** Everything in it cost real
 time or a wasted referendum, and every item is repeatable.
@@ -174,8 +176,9 @@ Get the source right at deploy time.
 
 ## Known limitations carried into mainnet
 
-- **No fork tests.** The Aave money market, the AaveOracle, the `0x0401` router precompile and
-  HydraAugustus are all exercised only against mocks.
+- **Limited fork tests.** Optional pinned forks (`PropellerDiscountFork`, `ProtocolFeesFork`)
+  exercise the deployed HOLLAR debt token and Aave supply code. Full collateral, AaveOracle,
+  `0x0401` router precompile and HydraAugustus flows are still exercised only against mocks.
 - **No external audit.** The in-repo report is AI-assisted and says so in its own footer.
 - **All five privileged roles sit on one address** at `initialize`, with no on-chain timelock.
   Batch 3 delegates `GUARDIAN_ROLE` to the technical committee; nothing else is separated.
@@ -192,7 +195,9 @@ Get the source right at deploy time.
 - **`SyntheticToken` transfers are unrestricted.** It is a real Aave reserve at LT 9800 with no
   supply cap; only `MINTER_ROLE` custody keeps it contained. The soulbinding note at
   `SyntheticToken.sol:50` was deferred "before audit" and never revisited.
-- **REQ-DISCOUNT is unimplemented.** Real net carry is ~8.6% (`maxLtv · loopLeverage · spread`).
-  Any higher headline number assumes a redemption-discount mechanism that does not exist.
+- **Main-interest servicing is not in RC1** (draft PR #60). The Main HOLLAR borrowing discount
+  is implemented ([main-borrow-discount.md](propeller-vault/docs/main-borrow-discount.md)); a
+  redemption discount is not. Historical carry estimates (~8.6% at
+  `maxLtv · loopLeverage · spread`) are not a guaranteed APY.
 - **PRIME mirror oracle** is still owned by the looper hot key on lark. Mainnet needs governance
   ownership with the bot behind an updater role.

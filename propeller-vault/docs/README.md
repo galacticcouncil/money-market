@@ -1,10 +1,17 @@
 # Propeller Status and Resources
 
-As of 2026-09-22: **research checkpoint, not a release candidate**. This branch
-includes Main borrowing discounts, per-vault harvest fees, accounting fixes,
+As of 2026-09-23: **release candidate 1 (RC1)** for independent review and
+native rehearsal. RC1 is the `propeller` tip carried by
+[PR #46](https://github.com/galacticcouncil/money-market/pull/46) into `hydration`.
+It includes Main borrowing discounts, per-vault harvest fees, accounting fixes,
 withdrawal controls, keeper/readiness changes, regression tests and economic
-research. It does not implement the proposed Main-interest servicing policy or
-establish a safe production TVL.
+research.
+
+RC1 freezes the reviewed scope; it is not a production approval. Main-interest
+servicing is **not in RC1**. The isolated HOLLAR operating buffer is developed
+separately in draft [PR #60](https://github.com/galacticcouncil/money-market/pull/60)
+and would need its own review before joining a later candidate. The
+pre-deployment gates below remain open.
 
 ## Branches and Reviews
 
@@ -23,7 +30,7 @@ establish a safe production TVL.
   HDCL deployment plan is replaced by the existing BIL plan. Propeller's build
   paths now use the renamed `bil-vault/lib` submodules with unchanged pins.
 - [PR #53 audit](../audit/propeller-audit-ys-propeller-fixes-20260731.md)
-  is historical review evidence, not approval of this checkpoint.
+  is historical review evidence, not approval of RC1.
 
 ## Resource Map
 
@@ -40,7 +47,7 @@ establish a safe production TVL.
 | Formal verification | [Lean](../formal/README.md), [Verity bridge](../formal/bridge/README.md); assumptions and scope apply |
 | Testnet | [lark-4 deployment record](../deployments/lark-4.md); historical, not production addresses |
 | Native and long-term testing | [90-day stresses and fork evidence](market-stress-90d.md) |
-| Main interest | [Policy comparison](interest-policy-comparison.md); proposed, not implemented |
+| Main interest | [Policy comparison](interest-policy-comparison.md); not in RC1, buffer implementation in draft [PR #60](https://github.com/galacticcouncil/money-market/pull/60) |
 | Peg stress | [Finite-funding/no-refill model](hollar-peg-liquidity.md) |
 | Arbitrage and calibration | [Coupled model checkpoint](coupled-liquidity-checkpoint.md), [model scripts](../../scripts/propeller/) |
 | Public evidence | [Pinned market fixture](../../scripts/propeller/fixtures/market-20260922.json), [calibration and preliminary outputs](evidence/2026-09-22/) |
@@ -61,10 +68,11 @@ establish a safe production TVL.
   collateral after swaps and before Main servicing. Fees accrue in collateral,
   permissionlessly claimable to the configured recipient.
 
-## Verification at This Checkpoint
+## Verification of RC1
 
-- Solidity: **231 passed, zero failed, three skipped**, rerun on 2026-09-22.
-  Optional fork/Verity suites were skipped; this is not a fresh native fork run.
+- Solidity: **231 passed, zero failed, three skipped** across 35 suites, rerun
+  on 2026-09-23 at `55acd38` after the `hydration` merge. Optional fork/Verity
+  suites were skipped; this is not a fresh native fork run.
 - Keeper tests/build, native-rounding unit tests and standalone readiness
   TypeScript check passed. All five JavaScript model/calibration test files
   passed against the checked-in snapshot, including 24 coupled-model tests and
@@ -73,18 +81,30 @@ establish a safe production TVL.
   small real-route lifecycles using a **fork-only adapter and explicit external
   donor funding**. It did not verify the production HydraAugustus adapter or
   prove exits are self-financing.
-- CollateralVault runtime measured 24,510 bytes, only 66 bytes below EIP-170.
-  Recheck size and deployment gas for every subsequent build/configuration.
+- Runtime sizes at `55acd38` (optimizer 200, via IR, `--evm-version london`):
+  CollateralVault 24,510 bytes (**66 bytes** below EIP-170), SubLoop 19,340,
+  Harvester 7,042, SyntheticToken 4,827. Recheck size and deployment gas for
+  every subsequent build/configuration.
 
-The Forge worktree uses symlinked dependencies. This environment's test command
-was `FOUNDRY_ALLOW_PATHS='["/home/mrq/git/money-market/hdcl-vault/lib"]' forge test
---offline --evm-version london`, run in `propeller-vault`. Use your own dependency
-path when reproducing it; this is not a portable deployment configuration.
+Reproduce from `propeller-vault` after initialising the `bil-vault/lib`
+submodules (see [Build / test](../README.md#build--test)):
 
-## Release Gates Still Open
+```sh
+FOUNDRY_ALLOW_PATHS="[\"$(realpath ../bil-vault/lib)\"]" forge test --offline
+forge build --offline --evm-version london --sizes
+```
 
-1. Select and implement Main-interest servicing and settlement-cost funding.
-   More collateral increases borrowing headroom, not HOLLAR repayment proceeds.
+`foundry.toml` defaults to `paris`; deployment scripts pass `--evm-version
+london` (see [DEPLOYMENT.md](../DEPLOYMENT.md)). Both targets run on Hydration's
+EVM; size figures are quoted for the London deploy target.
+
+## Pre-Deployment Gates (Open)
+
+RC1 is reviewable as-is; none of these gates is closed by publishing it.
+
+1. Main-interest servicing and settlement-cost funding. More collateral
+   increases borrowing headroom, not HOLLAR repayment proceeds. RC1 does not
+   service Main interest; the candidate implementation is draft PR #60.
 2. Verify Main protection under accrued debt, keeper outages and source losses;
    rehearse emergency pause and governance-funded recovery with all holders.
 3. Deploy and test the production swap adapter, routes, approvals, slippage,
@@ -93,7 +113,7 @@ path when reproducing it; this is not a portable deployment configuration.
    calibrated six-TVL, 90-day bull/bear/seesaw liquidity campaign, including
    arbitrage/settlement outages, LP withdrawals and shared money-market cash.
 5. Set justified TVL/ramp/pause budgets, arrange funded backstops and redundant
-   keeper monitoring, then obtain independent review of the exact candidate.
+   keeper monitoring, then obtain independent review of the exact deployed candidate.
 
 No production deployment, automatic recovery transfer, PR merge or production
 configuration approval is implied by publishing these resources.
