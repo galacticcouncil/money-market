@@ -151,13 +151,18 @@ anything until they choose to redeem.
 `requestRedeem(shares, owner)` is async (ERC-7540-style), because unwinding the shared loop
 takes gradual, HF-safe tranches:
 
-1. The vault snapshots this request's **proportional slice** of the Main position at request
-   time: `collateralOwed`, `debtShare` (Main HOLLAR debt), `synthShare`, and `loopSlice`
-   (shares in the shared loop) — all `shares / totalSupply` of the current totals, so
-   settlement is deterministic regardless of what happens afterward.
-2. The vault calls `SubLoop.requestUnwind(loopSlice)`, which converts the share slice to an
-   equity target (HOLLAR) and registers it; the vault's own loop shares are burned
-   immediately (they no longer earn future harvests).
+1. **Withdrawal delay.** `requestRedeem` escrows the shares in the vault and records
+   `unwindEligibleAt = now + withdrawalDelay` (default **12 hours**, set per vault by
+   `ADMIN_ROLE` via `setWithdrawalDelay(uint32)`; `0` disables it). The delay is fixed per
+   request, so later changes do not move queued requests. Waiting shares stay invested:
+   they keep earning yield and accruing Main interest.
+2. **Start.** `startUnwinds(maxRequests)` (permissionless, strict FIFO — stops at the first
+   request still inside its delay) snapshots the request's **proportional slice** at start
+   time: `collateralOwed`, `debtShare` (Main HOLLAR debt), `synthShare` and `loopSlice`
+   (shares in the shared loop). The collateral promise is fixed from here to settlement. The
+   vault then calls `SubLoop.requestUnwind(loopSlice)`, which converts the share slice to an
+   equity target (HOLLAR) and registers it; the vault's loop shares are burned immediately
+   (they no longer earn future harvests).
 3. `SubLoop.pokeRepay()` (permissionless, gradual) grinds the unwind down: each call sells an
    HF-safe sliver of aPRIME → HOLLAR via the router, repays loop debt with it, and credits
    the freed equity **pro-rata across all open unwind requests** (`_creditFreed` — weighted by
@@ -205,7 +210,7 @@ your ETH's borrowing power ─► HOLLAR ─────┘
          who never touches their deposit still compounds through both stages, indefinitely)
                     │
                     ▼
-        requestRedeem → (async, gradual unwind) → pokeSettle → claim: you receive > 1 ETH per ETH deposited
+        requestRedeem → 12h delay → startUnwinds → (gradual unwind) → pokeSettle → claim: you receive > 1 ETH per ETH deposited
 ```
 
 ## Status: core flows and test coverage
@@ -232,7 +237,7 @@ asset/DEX deployment rehearsal. Adding fees and discounts does not resolve those
 - **deploy ramp** → `pokeBorrow` self-ramps the shared loop to `targetHf` ≈ 1.05
 - **unwind** → the deleveraging spiral (`pokeRepay`) drains a requested slice and frees the
   seed equity back, HF-safe throughout, pro-rata credited across concurrent unwinders
-- **full withdraw** → `requestRedeem` → unwind → `pokeSettle` (repay Main debt, burn synth,
+- **full withdraw** → `requestRedeem` → withdrawal delay (12h default) → `startUnwinds` → unwind → `pokeSettle` (repay Main debt, burn synth,
   withdraw collateral) → `claim` returns principal + compounded yield
 - **harvest** → skim loop carry above cost basis → pro-rata split → compound into each
   vault's own collateral → share price rises; loop equity returns toward basis

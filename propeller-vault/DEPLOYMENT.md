@@ -170,7 +170,7 @@ docker stack deploy -c propeller-vault/looper/docker-stack.yml propeller-looper
 | `harvest` reverts `HarvesterUnset` | `setHarvester` did not land |
 | `harvest` reverts "vault set incomplete" | A share-holding vault is missing from `Harvester.addVault`, or one is registered twice |
 | Wrong yield source wired | `setYieldSource` works **only before the first deposit** — `DEAD_SHARES` keep `loopShares` permanently non-zero afterwards. After that, redeploy the vault |
-| Emergency | `pause()` (guardian) stops deposits, new redemptions, rebalance and compound. `pokeSettle`/`claim` stay live so in-flight settlement completes. There is no admin force-unwind |
+| Emergency | `pause()` (guardian) or a yield-source emergency pause freezes every attached vault: deposits, `requestRedeem`, `startUnwinds`, `claim`, rebalance and compound stop. `pokeSettle` stays live so in-flight settlement completes. There is no admin force-unwind |
 
 ---
 

@@ -170,6 +170,7 @@ Get the source right at deploy time.
 | `targetHf` | 1.05 | ~20× leverage on the loop. Deliberate? |
 | `deLeverTrigger` | 1.10 | Above `targetHf`, so it is a ceiling not a floor — the operative gate in `deLever()` is `hf < targetHf` |
 | `compoundSlippageBps` | 100 | Per-vault. Set it on **every** vault |
+| `withdrawalDelay` | 12h (initialize default) | Per-vault, `setWithdrawalDelay`. Applies before unwinds start; queued requests keep their recorded time |
 | Synthetic LT | 9800 | Read **live**; changing it later changes the floor for every existing position |
 
 ---
