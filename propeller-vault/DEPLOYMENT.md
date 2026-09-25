@@ -149,6 +149,8 @@ Use the exact adapter, registry, policy and artifacts intended for deployment.
   source-surplus ownership.
 - Incident: freeze eligible and already-settled claims, retain Main maintenance,
   fund recovery explicitly, reconcile every affected holder and only then reopen.
+  Vault or source-wide emergency freezes stop `claim` and `startUnwinds`;
+  `pokeSettle` remains available to advance settlement.
 - Rounding: exhaust/refill a controlled reserve and verify exact retry without
   reducing principal or charging other holders.
 - Execution: no unapproved price override, floor widening, gas-limit relaxation

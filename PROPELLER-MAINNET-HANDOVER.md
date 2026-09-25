@@ -2,8 +2,11 @@
 
 > Companion to `propeller-vault/DEPLOYMENT.md` (the runbook) and
 > `propeller-vault/deployments/` (the address registry).
-> Modelled on `HDCL-MAINNET-HANDOVER.md`, whose "what went wrong" section saved the
-> HDCL mainnet launch from repeating four separate lark mistakes.
+> Modelled on `BIL-MAINNET-HANDOVER.md` (formerly HDCL), whose "what went wrong" section
+> saved that mainnet launch from repeating four separate lark mistakes.
+>
+> Historical lark-4 handover; use the current deployment runbook for this candidate.
+> Current release status and open gates: [`propeller-vault/docs/README.md`](propeller-vault/docs/README.md).
 
 **Read § "What went wrong on lark-4" before touching mainnet.** Everything in it cost real
 time or a wasted referendum, and every item is repeatable.
@@ -168,14 +171,17 @@ Get the source right at deploy time.
 | `targetHf` | 1.05 | ~20× leverage on the loop. Deliberate? |
 | `deLeverTrigger` | 1.10 | Above `targetHf`, so it is a ceiling not a floor — the operative gate in `deLever()` is `hf < targetHf` |
 | `compoundSlippageBps` | 100 | Per-vault. Set it on **every** vault |
+| `withdrawalDelay` | 12h (initialize default) | Per-vault, `setWithdrawalDelay`. Applies before unwinds start; queued requests keep their recorded time |
 | Synthetic LT | 9800 | Read **live**; changing it later changes the floor for every existing position |
 
 ---
 
 ## Known limitations carried into mainnet
 
-- **No fork tests.** The Aave money market, the AaveOracle, the `0x0401` router precompile and
-  HydraAugustus are all exercised only against mocks.
+- **Conditional native evidence.** Optional pinned Aave forks and a native HydraAugustus
+  lifecycle are archived in [the release record](propeller-vault/docs/release-candidate.md).
+  The lifecycle used a labelled oracle fixture and recovery funding; unchanged-market
+  entry remains an activation gate.
 - **No external audit.** The in-repo report is AI-assisted and says so in its own footer.
 - **All five privileged roles sit on one address** at `initialize`, with no on-chain timelock.
   Batch 3 delegates `GUARDIAN_ROLE` to the technical committee; nothing else is separated.
@@ -192,7 +198,10 @@ Get the source right at deploy time.
 - **`SyntheticToken` transfers are unrestricted.** It is a real Aave reserve at LT 9800 with no
   supply cap; only `MINTER_ROLE` custody keeps it contained. The soulbinding note at
   `SyntheticToken.sol:50` was deferred "before audit" and never revisited.
-- **REQ-DISCOUNT is unimplemented.** Real net carry is ~8.6% (`maxLtv · loopLeverage · spread`).
-  Any higher headline number assumes a redemption-discount mechanism that does not exist.
+- **Main-interest servicing is implemented in the PR #60 candidate**, using fresh
+  after-fee harvests ([policy](propeller-vault/docs/main-debt-servicing.md)). The Main
+  HOLLAR borrowing discount is also implemented ([main-borrow-discount.md](propeller-vault/docs/main-borrow-discount.md)); a
+  redemption discount is not. Historical carry estimates (~8.6% at
+  `maxLtv · loopLeverage · spread`) are not a guaranteed APY.
 - **PRIME mirror oracle** is still owned by the looper hot key on lark. Mainnet needs governance
   ownership with the bot behind an updater role.

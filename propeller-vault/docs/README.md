@@ -4,7 +4,7 @@
 
 Propeller's current design uses harvest-time Main interest servicing,
 source-funded resizing and an earned PRIME execution allowance. It does not
-require sponsored HOLLAR operating capital. The local candidate is on
+require sponsored HOLLAR operating capital. The candidate is on
 `feat/propeller-interest-buffer`; the branch name predates that decision.
 
 ## Start Here

@@ -66,7 +66,10 @@ but does not replace missing HOLLAR.
    repays Main. Ordinary resizing does not sell deposited collateral.
 4. **Request withdrawal.** `requestRedeem` escrows shares for the configured
    delay, initially 12 hours. Those shares remain invested during the wait.
-5. **Unwind and settle.** After eligibility, `startUnwinds` snapshots the
+   Governance can set `setWithdrawalDelay(uint32)` to zero for future requests;
+   queued requests keep their original eligibility time.
+5. **Unwind and settle.** After eligibility, permissionless `startUnwinds`
+   processes strict FIFO and stops at the first ineligible request. It snapshots the
    collateral entitlement and debt allocation. `pokeRepay` frees source HOLLAR;
    `pokeSettle` services debt and releases collateral. Exits bear their own
    post-start interest. A shortfall preserves the unpaid claim.

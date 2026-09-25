@@ -308,7 +308,8 @@ remains FIFO outside emergency recovery.
 ## Local Remediation
 
 Branch: `fix/propeller-accounting-readiness`, based on
-`7a7f2cf197afb5c4721e19bd061e78bc551b0dd0`. Not published.
+`7a7f2cf197afb5c4721e19bd061e78bc551b0dd0`. Subsequently merged into
+`propeller` (`0c7229d`) and included in RC1.
 
 Vault accounting separates live shareholder backing from queued collateral,
 including settled-but-unclaimed balances. Main repayments use the actual pool
