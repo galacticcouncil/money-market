@@ -1,0 +1,70 @@
+TAP version 13
+# Subtest: loss measurement respects decimals and does not hide favorable fills
+ok 1 - loss measurement respects decimals and does not hide favorable fills
+  ---
+  duration_ms: 0.864017
+  type: 'test'
+  ...
+# Subtest: infeasible marginal quote has zero admissible size
+ok 2 - infeasible marginal quote has zero admissible size
+  ---
+  duration_ms: 0.192224
+  type: 'test'
+  ...
+# Subtest: capacity search never rounds an unsafe boundary upwards
+ok 3 - capacity search never rounds an unsafe boundary upwards
+  ---
+  duration_ms: 0.840247
+  type: 'test'
+  ...
+# Subtest: capacity search handles rejected quotes without hiding unexpected errors
+ok 4 - capacity search handles rejected quotes without hiding unexpected errors
+  ---
+  duration_ms: 0.603752
+  type: 'test'
+  ...
+# Subtest: capacity search respects zero and sub-HOLLAR input limits
+ok 5 - capacity search respects zero and sub-HOLLAR input limits
+  ---
+  duration_ms: 0.160303
+  type: 'test'
+  ...
+# Subtest: refill pays the trader from pool HOLLAR and preserves both inventories
+ok 6 - refill pays the trader from pool HOLLAR and preserves both inventories
+  ---
+  duration_ms: 2.981367
+  type: 'test'
+  ...
+# Subtest: oracle-only improvement is not confused with eventual pool-peg repricing
+ok 7 - oracle-only improvement is not confused with eventual pool-peg repricing
+  ---
+  duration_ms: 41.153183
+  type: 'test'
+  ...
+# Subtest: tighter floors have no more capacity than looser ones
+ok 8 - tighter floors have no more capacity than looser ones
+  ---
+  duration_ms: 41.297856
+  type: 'test'
+  ...
+# Subtest: six-TVL throughput includes gross loop exposure and linear retention
+ok 9 - six-TVL throughput includes gross loop exposure and linear retention
+  ---
+  duration_ms: 38.264458
+  type: 'test'
+  ...
+# Subtest: pinned SDK quotes exactly match native pool-143 and folded Aave routes
+ok 10 - pinned SDK quotes exactly match native pool-143 and folded Aave routes
+  ---
+  duration_ms: 3.12932
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 138.413399

@@ -3,7 +3,14 @@ import assert from "node:assert/strict";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
-import { loadMath, poolQuote, capacity, TVLS } from "./pressure-model.mjs";
+import {
+  loadMath,
+  poolQuote,
+  capacity,
+  TVLS,
+  maximumInput,
+} from "./pressure-model.mjs";
+export { maximumInput } from "./pressure-model.mjs";
 
 const H = 222,
   P = 43,
@@ -16,21 +23,6 @@ export function lossBps(input, output, price8, reverse = false) {
     : (input * 100000000n) / price8 / 10n ** 12n;
   assert.ok(fair > 0n);
   return Number(((fair - output) * 1000000n) / fair) / 100;
-}
-export function maximumInput(quote, acceptable, limit) {
-  if (!acceptable(quote(1n * WAD), 1n * WAD)) return 0n;
-  let lo = 0n,
-    hi = limit;
-  for (let i = 0; i < 128 && hi > lo; i++) {
-    const mid = (lo + hi + 1n) / 2n;
-    try {
-      if (acceptable(quote(mid), mid)) lo = mid;
-      else hi = mid - 1n;
-    } catch {
-      hi = mid - 1n;
-    }
-  }
-  return lo;
 }
 export function sellPrime(stable, pool, amount) {
   const copy = structuredClone(pool);

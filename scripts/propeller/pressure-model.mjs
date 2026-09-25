@@ -229,6 +229,38 @@ export function loadMath(root) {
   }
   return { stable, hsm, dependencies };
 }
+export class QuoteRejected extends Error {
+  constructor() {
+    super("stable-swap math rejected quote");
+  }
+}
+
+// Monotone oracle-floor capacity above a one-HOLLAR probe. A failed marginal
+// trade means zero usable entry, not a search through sub-token rounding dust.
+export function maximumInput(quote, acceptable, limit) {
+  if (limit <= 0n) return 0n;
+  const probe = limit < 10n ** 18n ? limit : 10n ** 18n;
+  const succeeds = (input) => {
+    let output;
+    try {
+      output = quote(input);
+    } catch (error) {
+      if (error instanceof QuoteRejected) return false;
+      throw error;
+    }
+    return output > 0n && acceptable(output, input);
+  };
+  if (!succeeds(probe)) return 0n;
+  let low = probe,
+    high = limit;
+  while (low < high) {
+    const mid = (low + high + 1n) / 2n;
+    if (succeeds(mid)) low = mid;
+    else high = mid - 1n;
+  }
+  return low;
+}
+
 export function poolQuote(
   stable,
   pool,
@@ -261,7 +293,7 @@ export function poolQuote(
     String(pool.info.fee / 1e6),
     pegs
   );
-  if (BigInt(output) < 0n) throw new Error("stable-swap math rejected quote");
+  if (BigInt(output) < 0n) throw new QuoteRejected();
   return BigInt(output);
 }
 export function hsmCapacity(snapshot, math) {
@@ -406,19 +438,14 @@ export function run(snapshot, math) {
   });
   // No replenishment/arb: find the largest aggregate entry within a 1% oracle
   // floor. This is a sensitivity assumption, NOT an approved production limit.
-  let low = 0n,
-    high = 100_000_000n * 10n ** 18n;
   // Compare in USD8*1e12 units directly; avoid a hidden decimal mismatch.
-  for (let i = 0; i < 90; i++) {
-    const mid = (low + high) / 2n,
-      out = poolQuote(math.stable, pool, 222, 43, mid);
-    if (
+  const entryCapacity = maximumInput(
+    (input) => poolQuote(math.stable, pool, 222, 43, input),
+    (out, input) =>
       out * BigInt(snapshot.markets.PRIME.price) * 10n ** 12n * 100n >=
-      mid * 10n ** 8n * 99n
-    )
-      low = mid;
-    else high = mid;
-  }
+      input * 10n ** 8n * 99n,
+    100_000_000n * 10n ** 18n
+  );
   const scenarios = [];
   for (const tvl of TVLS)
     for (const path of ["bull", "bear", "seesaw"])
@@ -483,7 +510,7 @@ export function run(snapshot, math) {
     primeGapStress: TVLS.flatMap((tvl) =>
       [0.05, 0.1, 0.25, 1].map((loss) => primeGapStress(tvl, c, loss))
     ),
-    noRefillEntryAtOnePercent: usd(low),
+    noRefillEntryAtOnePercent: usd(entryCapacity),
     scenarios,
     assumptions: [
       "50/50 initial deposited collateral value, six TVL levels, 90 daily steps",

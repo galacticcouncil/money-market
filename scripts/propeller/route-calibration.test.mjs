@@ -7,7 +7,7 @@ import {
   maximumInput,
   sellPrime,
 } from "./route-calibration.mjs";
-import { loadMath, poolQuote } from "./pressure-model.mjs";
+import { loadMath, poolQuote, QuoteRejected } from "./pressure-model.mjs";
 const snapshot = JSON.parse(
   readFileSync(
     process.env.PROPELLER_MARKET_SNAPSHOT ||
@@ -37,6 +37,84 @@ test("capacity search never rounds an unsafe boundary upwards", () => {
     5000n * W
   );
   assert.equal(max, 1234n * W + 5n);
+});
+test("capacity search handles rejected quotes without hiding unexpected errors", () => {
+  assert.equal(
+    maximumInput(
+      () => {
+        throw new QuoteRejected();
+      },
+      () => true,
+      W
+    ),
+    0n
+  );
+  assert.equal(
+    maximumInput(
+      () => 0n,
+      () => true,
+      W
+    ),
+    0n
+  );
+  const boundary = 1234n * W + 5n;
+  assert.equal(
+    maximumInput(
+      (q) => {
+        if (q > boundary) throw new QuoteRejected();
+        return q;
+      },
+      () => true,
+      5000n * W
+    ),
+    boundary
+  );
+  assert.throws(
+    () =>
+      maximumInput(
+        () => {
+          throw new TypeError("broken quote");
+        },
+        () => true,
+        W
+      ),
+    TypeError
+  );
+  assert.throws(
+    () =>
+      maximumInput(
+        (q) => q,
+        () => {
+          throw new Error("broken floor");
+        },
+        W
+      ),
+    /broken floor/
+  );
+});
+test("capacity search respects zero and sub-HOLLAR input limits", () => {
+  assert.equal(
+    maximumInput(
+      () => {
+        throw new Error("no quote expected");
+      },
+      () => true,
+      0n
+    ),
+    0n
+  );
+  const limit = W / 2n;
+  assert.equal(
+    maximumInput(
+      (q) => {
+        assert.ok(q <= limit);
+        return q;
+      },
+      () => true,
+      limit
+    ),
+    limit
+  );
 });
 test("refill pays the trader from pool HOLLAR and preserves both inventories", () => {
   const p = snapshot.pools[143],

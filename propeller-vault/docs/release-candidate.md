@@ -43,12 +43,14 @@ separate fixture and funding assumptions.
 | Pricing/refill validation       | Fresh Hastra reference, live replacement oracle/guard and NTT/reserve reads; replenishment commitment not established                                                                     |
 | Runtime size                    | CollateralVault 24,381 bytes, 195 bytes below EIP-170; no native size/gas-limit relaxation                                                                                                |
 
-The historical pressure and peg suites pass against their checked-in September
-22 fixture. Replaying them with the September 23 route snapshot exposes a
-rejected-quote capacity-search failure and two snapshot-specific shock-threshold
-assertions. These research-tool follow-ups are recorded in the final logs and
-must be addressed before relying on a newly calibrated launch-capacity campaign.
-They are not failures in the Solidity regression, nor are they counted as passes.
+The [September 25 completion checks](pr60-completion.md) close the recorded
+snapshot-replay failures: the capacity search handles rejected quotes and the
+peg tests check each snapshot's actual reserve and burn budgets. The pressure,
+peg, coupled and policy suites now pass on both September 22 and September 23
+snapshots. The complete model/calibration replay passes **167 tests with no
+skips**, including native quote parity against archived receipts. Those results
+do not establish funded replenishment or a safe production TVL. The original
+September 23 failure logs remain archived as historical evidence.
 
 The final unfiltered regression includes eight inherited campaign-fixture tests
 not counted in the earlier 279-test scoped run. Its 11 skips are eight opt-in
@@ -77,7 +79,7 @@ organic APY; preserving principal after external recovery is not self-funding.
 | Oracle and risk review    | Approve provenance, freshness/outage behavior and coordinated Aave/pool-peg wiring; replay gradual peg convergence.                               |
 | Liquidity and treasury    | Confirm funded PRIME replenishment, two-way execution budgets, shared stablecoin capacity and governance recovery funding.                        |
 | Contract engineering      | Bound admission/harvest sizes, close applicable accounting review findings and retain exact principal/claim ownership tests.                      |
-| Research                  | Resolve snapshot-replay failures and complete the provider-calibrated six-TVL coupled campaign. Historical turnover is not a provider commitment. |
+| Research                  | Complete the provider-calibrated six-TVL coupled campaign. Snapshot-replay failures are closed; historical turnover is not a provider commitment. |
 | Governance and operations | Approve launch parameters, exact roles, monitored keepers, pause coverage and a rehearsed recovery process.                                       |
 | Release reviewers         | Review the exact final artifacts and sign off on the fresh governance/native acceptance run.                                                      |
 

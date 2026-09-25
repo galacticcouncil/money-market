@@ -1,0 +1,85 @@
+{
+  "date": "2026-09-25",
+  "scope": "PR review completion; no Solidity changes or new native transactions",
+  "solidity": {
+    "command": "forge test --offline --evm-version london",
+    "workingDirectory": "propeller-vault",
+    "passed": 287,
+    "failed": 0,
+    "skipped": 11,
+    "invariantRuns": 256,
+    "invariantDepth": 50,
+    "file": "solidity.log",
+    "sha256": "2243a4ec19f0bd3a12a900b8891ec855d35155d4444efedc06662ff35732daf0"
+  },
+  "models": {
+    "summary": "summary.json",
+    "passed": 167,
+    "failed": 0,
+    "skipped": 0
+  },
+  "additionalChecks": {
+    "keeperTests": {
+      "passed": 19,
+      "failed": 0
+    },
+    "keeperBuild": "passed",
+    "readinessTypecheck": "passed",
+    "nativeRoundingTests": {
+      "passed": 3,
+      "failed": 0
+    },
+    "hardhatTaskLoading": "passed",
+    "sourceMetadataMatchesLocalFiles": true
+  },
+  "artifacts": {
+    "CollateralVault": {
+      "runtimeBytes": 24381,
+      "templateSha256": "7870bc4d8b78c30bae787dd7d4c09c7331e2a023acd35edef79f7f9d602c69ce",
+      "matchesSeptember23": true,
+      "evmVersion": "london"
+    },
+    "SubLoop": {
+      "runtimeBytes": 20436,
+      "templateSha256": "c37e86aeef7cce46587b853afa7fce18745757497cf85dc9aa81e8ae9561a08f",
+      "matchesSeptember23": true,
+      "evmVersion": "london"
+    },
+    "PropellerMainDebt": {
+      "runtimeBytes": 14279,
+      "templateSha256": "f56bec19ef4cd3a1b828f8e684905f670c5beae180e3c6c43841a13eb3f65fa7",
+      "matchesSeptember23": true,
+      "evmVersion": "london"
+    },
+    "PropellerFeeController": {
+      "runtimeBytes": 8052,
+      "templateSha256": "dd16c1ec3d01a53dd4992f73120b5705fea2763346e74c20fa5d0efb12a051d9",
+      "matchesSeptember23": true,
+      "evmVersion": "london"
+    },
+    "Harvester": {
+      "runtimeBytes": 7042,
+      "templateSha256": "41331b93874caaa952c9bf9e6372fe60ba9b1f7fec42663ca4a767abfb9eceaa",
+      "matchesSeptember23": true,
+      "evmVersion": "london"
+    },
+    "CompoundLogic": {
+      "runtimeBytes": 4974,
+      "templateSha256": "651b76697670a11c99ef77fc66903121c41e5475cca68efc68d9d52369a37ff6",
+      "matchesSeptember23": true,
+      "evmVersion": "london"
+    },
+    "PropellerDiscount": {
+      "runtimeBytes": 6740,
+      "templateSha256": "0ba6189d099e8a73012aa68829c51901793e66ea5eb190a99ebca7d1a54e5fdb",
+      "matchesSeptember23": true,
+      "evmVersion": "london"
+    }
+  },
+  "limitations": [
+    "Eleven Solidity skips: eight opt-in campaign cases plus three optional fork/Verity setups.",
+    "Native and large campaign evidence is retained from September 23, not rerun in this follow-up.",
+    "Full repository TypeScript configuration retains a pre-existing duplicate STHDX oracle key; standalone Propeller readiness typecheck passed.",
+    "Production activation gates remain open."
+  ]
+}

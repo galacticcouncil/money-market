@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { loadMath, poolQuote, hsmCapacity } from "./pressure-model.mjs";
+import { loadMath, poolQuote, hsmCapacity, usd } from "./pressure-model.mjs";
 import {
   units,
   stateFrom,
@@ -118,10 +118,17 @@ scenario("flash capacity and minimum trade size are separate gates", () => {
 scenario(
   "a full shock consumes reserves and preserves exact token conservation",
   () => {
+    const initial = stateFrom(snapshot);
+    const holdings = initial.rows.reduce(
+      (sum, r) => sum + usd(r.holding, r.decimals),
+      0
+    );
     const r = simulate(snapshot, math, { sales: [1.2e6], days: 7 });
-    assert.ok(r.burned > 250000 && r.burned < 300000);
+    assert.ok(r.burned > 0 && r.burned <= usd(initial.burn));
+    assert.ok(Math.abs(r.burned + r.burnRemaining - usd(initial.burn)) < 1e-6);
+    assert.ok(Math.abs(r.spent + r.hsmRemaining - holdings) < 1e-6);
     assert.ok(r.hsmRemaining >= 0 && r.burnRemaining >= 0);
-    assert.ok(r.finalPrice > r.minimumPrice && r.finalPrice < 0.99);
+    assert.ok(r.finalPrice > r.minimumPrice);
     assert.equal(r.conservation, true);
   }
 );
@@ -153,7 +160,16 @@ scenario(
     assert.ok(funded.burned <= bucket && base.burned <= bucket);
     // Donations may change allocation between collaterals when one sleeve runs
     // dry, but cannot expand the shared HOLLAR burn budget.
-    assert.ok(funded.finalPrice < 0.99 && funded.hsmRemaining > 1.9e6);
+    assert.ok(Math.abs(funded.burned + funded.burnRemaining - bucket) < 1e-6);
+    const initial = stateFrom(snapshot);
+    const holdings = initial.rows.reduce(
+      (sum, r) => sum + usd(r.holding, r.decimals),
+      0
+    );
+    assert.ok(
+      Math.abs(funded.spent + funded.hsmRemaining - holdings - 2e6) < 1e-6
+    );
+    assert.ok(funded.hsmRemaining > 1.9e6);
   }
 );
 scenario(

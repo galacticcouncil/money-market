@@ -1,0 +1,136 @@
+TAP version 13
+# Subtest: accrued interest reduces new borrowing, never creates proceeds
+ok 1 - accrued interest reduces new borrowing, never creates proceeds
+  ---
+  duration_ms: 1.219124
+  type: 'test'
+  ...
+# Subtest: same-token principal is excluded from sellable yield
+ok 2 - same-token principal is excluded from sellable yield
+  ---
+  duration_ms: 0.242464
+  type: 'test'
+  ...
+# Subtest: current policy's apparent extra yield has an explicit Main-interest subsidy
+ok 3 - current policy's apparent extra yield has an explicit Main-interest subsidy
+  ---
+  duration_ms: 3.706912
+  type: 'test'
+  ...
+# Subtest: fee is charged on gross collateral harvest before Main servicing
+ok 4 - fee is charged on gross collateral harvest before Main servicing
+  ---
+  duration_ms: 4.600888
+  type: 'test'
+  ...
+# Subtest: harvest-time repayment reduces compound interest but not delay interest
+ok 5 - harvest-time repayment reduces compound interest but not delay interest
+  ---
+  duration_ms: 1.978098
+  type: 'test'
+  ...
+# Subtest: yield-funded seven-day buffer covers the positive-carry three-day exits
+ok 6 - yield-funded seven-day buffer covers the positive-carry three-day exits
+  ---
+  duration_ms: 0.50285
+  type: 'test'
+  ...
+# Subtest: finite buffer does not promise unlimited settlement-time coverage
+ok 7 - finite buffer does not promise unlimited settlement-time coverage
+  ---
+  duration_ms: 0.769174
+  type: 'test'
+  ...
+# Subtest: exit-cost buffer is required in addition to an interest-only budget
+ok 8 - exit-cost buffer is required in addition to an interest-only budget
+  ---
+  duration_ms: 0.957529
+  type: 'test'
+  ...
+# Subtest: future harvests cannot prefund an early exit
+ok 9 - future harvests cannot prefund an early exit
+  ---
+  duration_ms: 0.690444
+  type: 'test'
+  ...
+# Subtest: withdrawal model sells only the exiting slice's accrued yield
+ok 10 - withdrawal model sells only the exiting slice's accrued yield
+  ---
+  duration_ms: 0.799306
+  type: 'test'
+  ...
+# Subtest: deferred repayment carries debt in borrowing headroom
+ok 11 - deferred repayment carries debt in borrowing headroom
+  ---
+  duration_ms: 1.073321
+  type: 'test'
+  ...
+# Subtest: queued delay interest belongs to its exiting slice, not other holders
+ok 12 - queued delay interest belongs to its exiting slice, not other holders
+  ---
+  duration_ms: 0.52783
+  type: 'test'
+  ...
+# Subtest: full Main discount removes Main costs, not loop borrowing or losses
+ok 13 - full Main discount removes Main costs, not loop borrowing or losses
+  ---
+  duration_ms: 2.164711
+  type: 'test'
+  ...
+# Subtest: bear losses cannot be hidden as harvest or charged to principal
+ok 14 - bear losses cannot be hidden as harvest or charged to principal
+  ---
+  duration_ms: 1.932537
+  type: 'test'
+  ...
+# Subtest: outage accrues debt with no services and retains the funding gap
+ok 15 - outage accrues debt with no services and retains the funding gap
+  ---
+  duration_ms: 0.709204
+  type: 'test'
+  ...
+# Subtest: 100% fee leaves no fresh yield for user interest servicing
+ok 16 - 100% fee leaves no fresh yield for user interest servicing
+  ---
+  duration_ms: 0.50612
+  type: 'test'
+  ...
+# Subtest: conservation holds through two exits, route friction and every price path
+ok 17 - conservation holds through two exits, route friction and every price path
+  ---
+  duration_ms: 5.844062
+  type: 'test'
+  ...
+# Subtest: TVL scales economic amounts, not native capacity
+ok 18 - TVL scales economic amounts, not native capacity
+  ---
+  duration_ms: 0.661592
+  type: 'test'
+  ...
+# Subtest: results distinguish token yield from market price appreciation
+ok 19 - results distinguish token yield from market price appreciation
+  ---
+  duration_ms: 0.900777
+  type: 'test'
+  ...
+# Subtest: execution-cost sensitivity is explicit rather than assumed native gas pricing
+ok 20 - execution-cost sensitivity is explicit rather than assumed native gas pricing
+  ---
+  duration_ms: 0.497399
+  type: 'test'
+  ...
+# Subtest: fresh pinned inputs cover all six TVLs and the complete comparison
+ok 21 - fresh pinned inputs cover all six TVLs and the complete comparison
+  ---
+  duration_ms: 154.62088
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 197.660921

@@ -53,6 +53,10 @@ launch decisions. Defaults and experimental limits are not deployment approvals.
 
 ## Verification and Research
 
+[September 25 PR completion](pr60-completion.md) resolves the target-branch
+documentation conflicts and the model replay failures recorded in RC1. It
+includes a reproducible, fixture-selected verification command and hashed logs.
+
 | Evidence                                                                                                                                   | Scope                                                                                                        |
 | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | [RC verification](release-candidate.md#verification)                                                                                       | Current candidate summary; use this before historical test counts.                                           |
