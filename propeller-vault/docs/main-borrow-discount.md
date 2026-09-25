@@ -81,15 +81,15 @@ annual subsidy budget or new borrowing cap in this change. Existing Propeller
 and money-market limits still apply. Operational monitoring should track actual
 debt and foregone interest, not assume a fixed expense from the percentage alone.
 
-## Deployment and migration
+## Fresh Deployment
 
 1. Verify the deployed Main HOLLAR debt-token implementation, existing discount
    policy/cache, pool-admin authority, synthetic reserve and aToken addresses.
    Do not replace an unrelated active discount program with this one implicitly.
-2. Use fresh or storage-compatible Main vaults with the refresh hooks. This change
-   consumes one slot of CollateralVault's reserved gap relative to PR #53 head
-   `f2dc5d16`. It does NOT fix that PR's earlier base-to-head layout incompatibility
-   or its separately reported accounting issues. Those remain launch blockers.
+2. Use the current fresh-deployment vaults with the refresh hooks. No migration
+   from an older Propeller layout is supplied. Earlier PR #53 layout findings
+   are historical review context, not an upgrade-compatibility approval for RC1.
+   See the [current source upgrade boundary](source-upgrades.md).
 3. Deploy `PropellerDiscount` at its default zero rate. `DeployDiscount.s.sol`
    reads `HOLLAR_VDEBT`, `SYNTH`, `ASYNTH`, `DISCOUNT_GOVERNANCE`,
    `DISCOUNT_COMMITTEE`, comma-separated `DISCOUNT_VAULTS`, and optional
@@ -115,7 +115,7 @@ them atomically. This example is not a deployment approval or fixed APY promise.
 
 ```sh
 forge test --match-contract 'PropellerDiscountTest|CollateralVaultDiscountTest' -vv
-DISCOUNT_FORK_RPC=https://rpc.hydradx.cloud forge test --evm-version london --match-contract PropellerDiscountForkTest -vv
+DISCOUNT_FORK_RPC=https://hdx.tarn.hydration.cloud forge test --evm-version london --match-contract PropellerDiscountForkTest -vv
 ```
 
 Set `DISCOUNT_FORK_BLOCK` to pin a fork. Without `DISCOUNT_FORK_RPC`, fork tests

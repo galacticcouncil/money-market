@@ -34,6 +34,9 @@ contract MockDispatch {
     ///         (frictionless); must stay under the caller's slippage bound or
     ///         the minOut check rejects the fill (as it would live).
     uint16 public feeBps;
+    uint256 public hollarSold;
+    uint256 public hollarBought;
+    uint256 public grossPrimeSoldHollar;
 
     function configure(
         address _pool,
@@ -65,6 +68,7 @@ contract MockDispatch {
         (uint256 pPrime, ) = pool.assetPrice(address(prime));
 
         if (assetIn == hollarId && assetOut == aPrimeId) {
+            hollarSold += amountIn;
             // deploy leg: HOLLAR (18dp) → aPRIME (6dp) at the oracle rate
             hollar.burn(msg.sender, amountIn);
             uint256 out6 = (amountIn * pHollar) / pPrime / 1e12;
@@ -79,7 +83,9 @@ contract MockDispatch {
             pool.mockWithdrawTo(address(prime), amountIn, msg.sender, address(this));
             prime.burn(address(this), amountIn);
             uint256 out18 = (amountIn * pPrime * 1e12) / pHollar;
+            grossPrimeSoldHollar += out18;
             out18 = (out18 * (10_000 - feeBps)) / 10_000;
+            hollarBought += out18;
             require(out18 >= minOut, "MockDispatch: minOut");
             hollar.mint(msg.sender, out18);
         } else {

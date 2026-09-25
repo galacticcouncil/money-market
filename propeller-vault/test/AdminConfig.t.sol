@@ -186,6 +186,7 @@ contract AdminConfigTest is Test {
             )
         );
 
+        RoundingReserveFixture.fund(v);
         vm.expectRevert(CollateralVault.SynthReserveNotListed.selector);
         v.synthLtBps();
 

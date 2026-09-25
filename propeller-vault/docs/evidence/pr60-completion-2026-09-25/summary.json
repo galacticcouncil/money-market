@@ -1,0 +1,218 @@
+{
+  "scope": "Archived model replay, not a fresh native fork or production capacity approval",
+  "node": "v25.7.0",
+  "mathDependencies": {
+    "stableswap": {
+      "version": "2.5.0",
+      "wasmSha256": "a3cb6c3ea278d231cf6af1e75dbeabe465a24825b379f27c008f030d43234c93"
+    },
+    "hsm": {
+      "version": "1.2.0",
+      "wasmSha256": "b98b025623d907590d055bcfe6e03a24406379638a1af7c40e4b79cd7f8205eb"
+    }
+  },
+  "fixtures": {
+    "historical": {
+      "file": "scripts/propeller/fixtures/market-20260922.json",
+      "sha256": "a79ba33ba6fc63da3b71e59e7541551fb7a461c7310ce24a5894ebee5732a354"
+    },
+    "route": {
+      "file": "propeller-vault/docs/evidence/route-execution-2026-09-23/market.json",
+      "sha256": "2c6fbef9d1150ee955bf766acd6c0d14adc21bddec47f6cb64938aea8bc40e6a"
+    }
+  },
+  "checks": {
+    "pressure-model-historical": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/pressure-model.test.mjs"
+      ],
+      "fixture": "historical",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "pressure-model-historical.log",
+      "sha256": "769496974bb9e532b9fd55d4b97c726319ac785317cdedcc81a8b147060a4456"
+    },
+    "peg-model-historical": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/peg-model.test.mjs"
+      ],
+      "fixture": "historical",
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "peg-model-historical.log",
+      "sha256": "181daef751f5445e7199e9afb724ebf37ee8c3ec17b2152cd6a36f7ad8f5c1c1"
+    },
+    "coupled-peg-model-historical": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/coupled-peg-model.test.mjs"
+      ],
+      "fixture": "historical",
+      "tests": 24,
+      "pass": 24,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "coupled-peg-model-historical.log",
+      "sha256": "0f0be6c29d15fb28dc15c5c8c72be4ebc0c98f4448171b96df93658234538f56"
+    },
+    "interest-policy-model-historical": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/interest-policy-model.test.mjs"
+      ],
+      "fixture": "historical",
+      "tests": 21,
+      "pass": 21,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "interest-policy-model-historical.log",
+      "sha256": "05237e76f5f5cfa5d2ad723d780c695d29eedc7b0731e03bb7763cd6f1b80bc5"
+    },
+    "pressure-model-route": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/pressure-model.test.mjs"
+      ],
+      "fixture": "route",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "pressure-model-route.log",
+      "sha256": "e10c06b90afda1e14c455ff6ecf3302170bd36bfe03c8460cde048e97c917478"
+    },
+    "peg-model-route": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/peg-model.test.mjs"
+      ],
+      "fixture": "route",
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "peg-model-route.log",
+      "sha256": "df94e03b95fc6b2da01870c69e8b32746a4c7f73019dca31e1e4c164abcf9806"
+    },
+    "coupled-peg-model-route": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/coupled-peg-model.test.mjs"
+      ],
+      "fixture": "route",
+      "tests": 24,
+      "pass": 24,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "coupled-peg-model-route.log",
+      "sha256": "9eb884c2d455741252fd485d0c7f09af6fa722ce5ebb6da434d6a320e6d9b277"
+    },
+    "interest-policy-model-route": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/interest-policy-model.test.mjs"
+      ],
+      "fixture": "route",
+      "tests": 21,
+      "pass": 21,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "interest-policy-model-route.log",
+      "sha256": "7fa42e1a2eafaa9822ca43d547c11e6b41d6b7b1b220638a9a9039069f4d6eea"
+    },
+    "route-calibration-route": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/route-calibration.test.mjs"
+      ],
+      "fixture": "route",
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "route-calibration-route.log",
+      "sha256": "d9c872b043db7b958c5307285a1484f3306e4ba6efeb774d7e9177cd8228b29b"
+    },
+    "prime-replenishment-route": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/prime-replenishment.test.mjs"
+      ],
+      "fixture": "route",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "prime-replenishment-route.log",
+      "sha256": "8eee58c6875b0663c6bbb9f1a76482ed2c0852ef9806dd5043baa053c245de98"
+    },
+    "neckwork-calibration-route": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/neckwork-calibration.test.mjs"
+      ],
+      "fixture": "route",
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "neckwork-calibration-route.log",
+      "sha256": "611176c39ab802ce3ca4d6f09aac6d89cfdc73a15d49391035bffc5f3681cf74"
+    },
+    "source-storage-route": {
+      "command": [
+        "node",
+        "--test-reporter=tap",
+        "scripts/propeller/source-storage.test.mjs"
+      ],
+      "fixture": "route",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "status": "passed",
+      "exitCode": 0,
+      "file": "source-storage-route.log",
+      "sha256": "55881b5f89ba3dee778aefa3f56dec83b87409815456408a665ef2d68ea8c94a"
+    }
+  }
+}

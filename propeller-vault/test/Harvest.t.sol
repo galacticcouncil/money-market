@@ -135,6 +135,7 @@ contract HarvestTest is Test {
         uint256 yieldPrime = aPrime.balanceOf(address(loop)) * 5 / 100;
         aPrime.mint(address(loop), yieldPrime);
         assertGt(loop.totalEquity(), equityBasis, "yield raised equity");
+        uint256 retained = loop.executionCostReserve();
 
         // harvest → compound into ETH collateral
         uint256[] memory minOuts = new uint256[](1);
@@ -142,8 +143,8 @@ contract HarvestTest is Test {
 
         // share price rose: vault's ETH collateral grew (yield compounded in)
         assertGt(aEth.balanceOf(address(vault)), aEthBefore, "yield compounded into pETH");
-        // loop equity skimmed back to ~basis
-        assertApproxEqRel(loop.totalEquity(), equityBasis, 0.01e18, "equity back to basis");
+        assertApproxEqAbs(loop.totalEquity() * 1e10, loop.principalEquity() + retained, 1e12,
+            "earned execution allowance stays in PRIME");
     }
 
     /// PRIME price appreciation (+6%) is carry like any other: harvest skims it
@@ -156,17 +157,17 @@ contract HarvestTest is Test {
         uint256 hfBefore = loop.healthFactor();
 
         pool.setPrice(address(prime), 1.06e18); // PRIME +6%
+        uint256 retained = loop.executionCostReserve();
+        uint256 harvestable = loop.totalEquity() * 1e10 - loop.principalEquity() - retained;
+        uint256 assetsBefore = vault.totalAssets();
 
         uint256[] memory minOuts = new uint256[](1);
         harvester.harvest(minOuts);
 
-        // surplus ≈ 6% of the levered PRIME position ≈ $833 → 0.2777 ETH @3000.
-        // (0.75 LTV × ~6.17 loop leverage × 6% ≈ 27.8% of the 1 ETH deposit.)
-        assertApproxEqRel(
-            aEth.balanceOf(address(vault)), 1.277e18, 0.02e18, "PRIME gain compounded into pETH"
-        );
-        // equity back to ~basis at the NEW price (skim was oracle-sized)…
-        assertApproxEqRel(loop.totalEquity(), equityBasis, 0.02e18, "equity back to basis");
+        assertApproxEqAbs(vault.totalAssets() - assetsBefore, harvestable * 95 / 100 / 3000, 1e9,
+            "only net carry above earned cost allowance compounds");
+        assertApproxEqAbs(loop.totalEquity() * 1e10, loop.principalEquity() + retained, 2e12,
+            "oracle-priced cost allowance retained");
         // …and the loop HF did NOT dip below where it started (bug C symptom)
         assertGe(loop.healthFactor() + 0.005e18, hfBefore, "harvest left HF at target");
     }
@@ -185,13 +186,15 @@ contract HarvestTest is Test {
         uint256 inFlight = loop.unwindTargetEquity();
         assertApproxEqRel(inFlight, uint256(equity0) * 1e10 / 2, 0.01e18, "half equity in flight");
 
-        // accrue 1% PRIME yield — the only true carry
-        uint256 yieldPrime = aPrime.balanceOf(address(loop)) / 100;
+        // Accrue enough carry for both the retained allowance and a harvest.
+        uint256 yieldPrime = aPrime.balanceOf(address(loop)) / 50;
         aPrime.mint(address(loop), yieldPrime);
+        uint256 retained = loop.executionCostReserve();
+        uint256 expected = (loop.totalEquity() * 1e10 - loop.principalEquity() - inFlight - retained) / 1e12;
 
         // harvest mid-redemption: skims ONLY the yield, not the exiter's slice
         uint256 surplusPrime = loop.harvest();
-        assertApproxEqRel(surplusPrime, yieldPrime, 0.02e18, "skimmed only the carry");
+        assertApproxEqAbs(surplusPrime, expected, 1, "skim only carry above cost allowance");
         assertEq(loop.unwindTargetEquity(), inFlight, "in-flight equity untouched");
 
         // the exiter still settles to ~their full half ETH

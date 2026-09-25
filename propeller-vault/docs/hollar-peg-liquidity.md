@@ -1,5 +1,10 @@
 # HOLLAR Peg Stability and Liquidity Requirements
 
+**Historical model, pinned to 22 September 2026.** Its balances and budget
+estimates are not live launch limits. See the later
+[PRIME validation](prime-pricing-replenishment.md) and
+[RC activation gates](release-candidate.md#activation-gates) for current review.
+
 Analysis performed locally on 2026-09-22, without production transactions or
 contract changes. See the [current status](README.md) and subsequent
 [coupled-arbitrage checkpoint](coupled-liquidity-checkpoint.md) before using these

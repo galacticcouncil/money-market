@@ -1,5 +1,9 @@
 # Main Interest: Policy Comparison
 
+Historical policy-selection evidence. The current revision is documented in
+[Yield-funded Main debt servicing](main-debt-servicing.md); the alternatives
+below remain economic models, not additional deployed contract implementations.
+
 Simulation and analysis performed locally on 2026-09-22, without production
 contract changes or transactions. This compares proposed policies; it does not
 implement them or approve production deployment. See the [current status and
@@ -248,9 +252,10 @@ implementation likely needs a reviewed external module and small vault hooks.
 My preferred next step is to design that buffer/servicing accounting, then test
 it with the production adapter and measured costs. Choose withdrawal-time
 deduction instead only with an explicit decision to implement the additional
-principal/net-yield accounting now. No implementation choice is applied in RC1;
-the harvest-time buffer is implemented separately in draft
-[PR #60](https://github.com/galacticcouncil/money-market/pull/60).
+principal/net-yield accounting now. This was the September 22 recommendation. The
+[PR #60 candidate](https://github.com/galacticcouncil/money-market/pull/60) now
+implements harvest-time Main servicing with earned PRIME execution retention;
+the sponsored buffer was superseded. See [the current policy](main-debt-servicing.md).
 
 ## Verification and Limitations
 

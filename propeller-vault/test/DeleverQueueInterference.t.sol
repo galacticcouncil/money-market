@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test, console2} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
@@ -236,18 +237,27 @@ contract DeleverQueueInterferenceTest is Test {
         console2.log("queueHead / tail   ", vault.queueHead(), vault.queueTail());
 
         assertGt(loop.pendingUnwindOf(address(vault)), 0, "unpaid source claim survives dust stall");
-        assertLt(repaid, ds, "original debt promise remains unchanged");
-        assertEq(vault.queueHead(), id, "unpaid request stays at FIFO head");
+        assertLt(repaid, ds, "no sponsored cash silently pays the source tail");
+        assertEq(vault.queueHead(), id, "unpaid Main debt keeps the claim open");
         assertTrue(active, "still claimable until fully paid");
         uint256 paid = vault.claim(id, address(this));
         (, , uint256 originalDebt, , bool partiallyActive) = _req(id);
         assertEq(originalDebt, ds);
-        assertTrue(partiallyActive);
+        assertTrue(partiallyActive, "unfunded collateral remains owed");
 
         // A recovery donation funds the missing tail, never a new user's deposit.
         hollar.mint(address(loop), 1e18);
         _grind(100);
-        hollar.mint(address(vault), 1e18);
+        vault.pokeSettle();
+        assertEq(loop.pendingUnwindOf(address(vault)), 0, "source recovery pays its full quote");
+        // The 8dp source quote can be smaller than the 18dp Main debt. Funding
+        // the loop cannot credit more than that quote to the exiting cohort.
+        PropellerMainDebt ledger = PropellerMainDebt(address(vault.mainDebt()));
+        uint256 missing = ledger.debtOf(id + 1);
+        assertGt(missing, 0, "Main rounding deficit remains a real obligation");
+        hollar.mint(address(this), missing);
+        hollar.approve(address(ledger), missing);
+        ledger.fundPosition(id + 1, missing);
         vault.pokeSettle();
         paid += vault.claim(id, address(this));
         assertEq(paid, 1e18 - 1000, "all principal apart from governance bootstrap is returned");

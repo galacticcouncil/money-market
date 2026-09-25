@@ -1,6 +1,13 @@
 # Per-vault protocol fees
 
 Fresh-deployment feature. This is not a migration or an authorization to deploy.
+
+Main servicing follows [the yield-funded waterfall](main-debt-servicing.md):
+the fee base remains fresh harvested collateral after swaps and BEFORE interest.
+Only the after-fee remainder can be converted to HOLLAR for active Main interest;
+any remaining collateral is compounded. PRIME retained for future source execution
+costs is not yet harvested collateral and is not charged a harvest fee. Treasury fees,
+deposited principal and previously compounded collateral are not used by this path.
 The fee is a fraction of harvested collateral yield, not of principal or TVL.
 
 ## Policy

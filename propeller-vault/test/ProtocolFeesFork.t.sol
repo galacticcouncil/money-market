@@ -7,6 +7,7 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {Harvester} from "../src/Harvester.sol";
 import {PropellerFeeController} from "../src/PropellerFeeController.sol";
+import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
 import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "../src/interfaces/IAavePool.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockFeeSwapper} from "./mocks/MockFeeAttack.sol";
@@ -33,6 +34,7 @@ interface IFeeForkPool {
 }
 
 contract FeeForkSource {
+    function unwindExecutionCost(address) external pure returns (uint256) { return 0; }
     function emergencyPaused() external pure returns (bool) { return false; }
     address public prime;
     address public harvester;
@@ -66,6 +68,7 @@ contract FeeForkSource {
 contract ProtocolFeesForkTest is Test {
     address constant POOL = 0x1b02E051683b5cfaC5929C25E84adb26ECf87B38;
     address constant ETH = 0x0000000000000000000000000000000100000022;
+    address constant HOLLAR = 0x531a654d1696ED52e7275A8cede955E82620f99a;
     address constant TREASURY = address(0xFEE);
     uint256 constant GROSS = 1e15;
 
@@ -84,6 +87,7 @@ contract ProtocolFeesForkTest is Test {
         else vm.createSelectFork(rpc, blockNumber);
 
         IFeeForkPool.ReserveData memory reserve = IFeeForkPool(POOL).getReserveData(ETH);
+        IFeeForkPool.ReserveData memory hollarReserve = IFeeForkPool(POOL).getReserveData(HOLLAR);
         aToken = IERC20(reserve.aTokenAddress);
         vm.etch(ETH, address(new MockERC20("Fork collateral", "ETH", 18)).code);
         collateral = MockERC20(ETH);
@@ -106,10 +110,10 @@ contract ProtocolFeesForkTest is Test {
                             POOL,
                             address(source),
                             address(swapper),
-                            address(0),
+                            HOLLAR,
                             address(0),
                             address(aToken),
-                            address(0),
+                            hollarReserve.variableDebtTokenAddress,
                             1_000e18,
                             address(this)
                         )
@@ -120,6 +124,8 @@ contract ProtocolFeesForkTest is Test {
         harvester = new Harvester(address(source), address(prime), address(this));
         source.configure(address(harvester), address(vault));
         fees = new PropellerFeeController(address(this), TREASURY);
+        PropellerMainDebt buffer = new PropellerMainDebt(address(vault));
+        vault.setMainDebt(address(buffer));
         harvester.setFeeController(address(fees));
         harvester.addVault(address(vault));
         vault.setFeeController(address(fees));
@@ -141,6 +147,12 @@ contract ProtocolFeesForkTest is Test {
 
     function testFork_fullFeeSkipsRealAaveZeroSupply() public {
         _checkRate(10_000);
+    }
+
+    function testFork_ledgerNeedsNoSponsoredBalance() public view {
+        PropellerMainDebt buffer = PropellerMainDebt(address(vault.mainDebt()));
+        assertEq(buffer.ownedCash(), 0);
+        assertTrue(buffer.ready());
     }
 
     function _checkRate(uint16 bps) internal {

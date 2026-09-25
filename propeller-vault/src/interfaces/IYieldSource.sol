@@ -50,6 +50,10 @@ interface IYieldSource {
     ///         are never stranded.
     function pendingUnwindOf(address vault) external view returns (uint256);
 
+    /// @notice Cumulative realized swap costs charged only to un-compounded
+    /// yield earmarked for this vault's unwinds, never to source cost basis.
+    function unwindExecutionCost(address vault) external view returns (uint256);
+
     // ── pricing (what the vault's NAV is built on) ────────────────────────
 
     /// @notice `vault`'s LIVE-share equity in USD8 (8 decimals), excluding

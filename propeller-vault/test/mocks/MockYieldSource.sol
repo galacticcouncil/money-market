@@ -25,6 +25,10 @@ contract MockYieldSource is IYieldSource {
     mapping(address => uint256) internal _shares;
     mapping(address => uint256) internal _freed;
     uint256 internal _totalShares;
+    uint256 public pullBps = 10_000;
+    function unwindExecutionCost(address) external pure returns (uint256) { return 0; }
+
+    function setPullBps(uint256 bps) external { require(bps <= 10_000); pullBps = bps; }
 
     constructor(address _hollar) {
         hollar = IERC20(_hollar);
@@ -46,9 +50,9 @@ contract MockYieldSource is IYieldSource {
     }
 
     function pullFreed() external returns (uint256 hollarSent) {
-        hollarSent = _freed[msg.sender];
+        hollarSent = _freed[msg.sender] * pullBps / 10_000;
         if (hollarSent == 0) return 0;
-        _freed[msg.sender] = 0;
+        _freed[msg.sender] -= hollarSent;
         hollar.transfer(msg.sender, hollarSent);
     }
 

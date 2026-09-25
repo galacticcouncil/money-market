@@ -399,8 +399,11 @@ contract ProtocolFeesTest is HarvestTest {
         uint256 parked = prime.balanceOf(address(harvester));
         assertGt(parked, 0);
         assertEq(prime.balanceOf(STRANGER), 0);
+        uint256 beforePrime = aPrime.balanceOf(address(loop));
         _harvest();
-        uint256 gross = parked * 1e12 / 3_000;
+        // The smaller gross position can release further retained yield.
+        uint256 secondHarvest = beforePrime - aPrime.balanceOf(address(loop));
+        uint256 gross = (parked + secondHarvest) * 1e12 / 3_000;
         assertEq(fees.claimableProtocolFees(address(eth)), gross * 500 / 10_000);
     }
 

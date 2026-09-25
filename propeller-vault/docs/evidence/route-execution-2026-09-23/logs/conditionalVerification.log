@@ -1,0 +1,34 @@
+CollateralVault 24381 bytes; 10868370 gas; verified
+SyntheticToken 4827 bytes; 1935042 gas; verified
+SubLoop 20436 bytes; 7563024 gas; verified
+SubLoop.proxy 209 bytes; 754326 gas; verified
+CollateralVault.proxy 209 bytes; 924150 gas; verified
+PropellerMainDebt 14279 bytes; 5394474 gas; verified
+Harvester 7042 bytes; 2703276 gas; verified
+PropellerFeeController 8052 bytes; 3115392 gas; verified
+PropellerDiscount 6740 bytes; 2677656 gas; verified
+HydraAugustus 4919 bytes; 1883802 gas; verified
+CollateralVaultTBTC.proxy 209 bytes; 924150 gas; verified
+PropellerMainDebt.tBTC 14279 bytes; 5394474 gas; verified
+FINAL ARTIFACT VERIFICATION PASS native-multi-user-multi-vault-campaign-passed {
+  immutableHelper: {
+    address: '0xa16E02E87b7454126E5E10d957A927A7F5B5d2be',
+    runtimeBytes: 4974,
+    codeHash: '0xf6414eb60e2a68ac03f5f7af11f9b3f503592ed8b79af2c329e68fb178e0378c'
+  },
+  noSponsoredOperatingCapital: true,
+  feeBinding: true,
+  initialFeeBps: 500,
+  discountInstalledAndRegistered: true,
+  discountRateUpdateAndReset: true,
+  committeeRateRole: true,
+  entryOracleFloorRejected: true,
+  strictSlippageNotWidened: true,
+  nativeAccruedInterestServicedByHarvest: true,
+  nativeMultiUserMultiVaultRealRouteHarvest: true,
+  nativeFourPublicPositionsPaidInFull: true,
+  constructorHelperMatchesArtifact: true,
+  deployedCodeMatchesLocalArtifacts: true,
+  proxyImplementationSlots: true,
+  exitOwnershipAndPendingSourceClaims: true
+}

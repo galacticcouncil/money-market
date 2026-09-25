@@ -1,5 +1,9 @@
 # Coupled Liquidity Research Checkpoint
 
+**Historical research checkpoint.** The later [PRIME validation](prime-pricing-replenishment.md)
+adds pricing and replenishment evidence but does not establish a committed
+provider or finish the calibrated launch-capacity campaign. See [RC1](release-candidate.md).
+
 2026-09-22. **The full recalibrated six-TVL campaign is unfinished.** These are
 public observations, preliminary simulations and model infrastructure, not a
 production liquidity requirement or approved launch capacity. No production

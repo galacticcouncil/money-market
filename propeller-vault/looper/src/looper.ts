@@ -31,6 +31,8 @@ const SUBLOOP_ABI = [
   view('unwindTargetEquity', 'uint256'),
   view('paused', 'bool'),
   view('emergencyPaused', 'bool'),
+  { name: 'pendingUnwindOf', type: 'function', stateMutability: 'view',
+    inputs: [{ name: 'vault', type: 'address' }], outputs: [{ type: 'uint256' }] },
   nonpayable('pokeBorrow'), // permissionless ramp (lever one tranche)
   nonpayable('pokeRepay'), // permissionless unwind servicing
   nonpayable('deLever'), // permissionless safety de-lever
@@ -39,6 +41,7 @@ const SUBLOOP_ABI = [
 const VAULT_ABI = [
   view('roundingReserve', 'uint256'),
   view('asset', 'address'),
+  view('mainDebt', 'address'),
   view('queueHead', 'uint256'),
   view('queueTail', 'uint256'),
   view('queueUnwind', 'uint256'),
@@ -149,10 +152,22 @@ export class PropellerLooper {
     // Main rebalances create repayment work even when no user has redeemed.
     const pending: Address[] = [];
     const frozen = new Set<Address>();
+    let funded = true;
     let waiting = false;
     let started = false;
     let now: bigint | undefined;
     for (const vault of this.vaults) {
+      try {
+        const buffer = await this.read(VAULT_ABI, vault, 'mainDebt') as Address;
+        const ready = await this.read([view('ready', 'bool')], buffer, 'ready') as boolean;
+        if (!ready) {
+          funded = false;
+          console.error(`[ALERT] ${vault}: Main debt backing or source allocation incomplete; new ramp disabled`);
+        }
+      } catch (error) {
+        funded = false;
+        console.error(`[ALERT] ${vault}: Main debt monitor failed: ${shortErr(error)}`);
+      }
       const policy = ROUNDING_POLICIES.get(vault.toLowerCase());
       if (policy) {
         // Monitoring failure must not prevent Main debt or synthetic maintenance.
@@ -169,13 +184,14 @@ export class PropellerLooper {
           console.error(`[ALERT] ${vault}: rounding monitor failed: ${shortErr(error)}`);
         }
       }
-      const [head, tail, next, delever, vaultPaused] = (await Promise.all([
+      const [head, tail, next, delever, vaultPaused, sourcePending] = (await Promise.all([
         this.read(VAULT_ABI, vault, 'queueHead'),
         this.read(VAULT_ABI, vault, 'queueTail'),
         this.read(VAULT_ABI, vault, 'queueUnwind'),
         this.read(VAULT_ABI, vault, 'deleverTarget'),
         this.read(VAULT_ABI, vault, 'paused'),
-      ])) as [bigint, bigint, bigint, bigint, boolean];
+        this.read(SUBLOOP_ABI, this.subLoop, 'pendingUnwindOf', [vault]),
+      ])) as [bigint, bigint, bigint, bigint, boolean, bigint];
       if (vaultPaused || emergency) frozen.add(vault);
       waiting ||= tail > next;
       let starting = false;
@@ -188,13 +204,13 @@ export class PropellerLooper {
           started = true;
         }
       }
-      if (delever > 0n || (!frozen.has(vault) && (next > head || starting))) pending.push(vault);
+      if (delever > 0n || (!frozen.has(vault) && (next > head || starting || sourcePending > 0n))) pending.push(vault);
     }
     const servicing = unwind > 0n || safetyDebt > 0n || pending.length > 0 || waiting;
     if (!paused) {
       if (hf < target) {
         await this.poke(SUBLOOP_ABI, this.subLoop, 'deLever', 'deLever (HF below floor)');
-      } else if (!emergency && frozen.size === 0 && !servicing && hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n) {
+      } else if (funded && !emergency && frozen.size === 0 && !servicing && hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n) {
         await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeBorrow', 'pokeBorrow (ramp)');
       }
       if (safetyDebt > 0n || hf < target || (!emergency && (unwind > 0n || pending.length > 0 || started))) {
@@ -208,16 +224,18 @@ export class PropellerLooper {
 
     // ── slow: peg / rebalance / harvest (self-gating no-ops) ────────────
     if (this.cycle % CONFIG.SLOW_EVERY === 0) {
+      // Fresh harvested yield services Main interest; source equity backs later settlement.
+      if (this.harvester && !paused && !emergency && frozen.size === 0) {
+        await this.poke(HARVESTER_ABI, this.harvester, 'harvest', 'harvest (skim+distribute)', [[]]);
+      }
       for (const vault of this.vaults) {
         await this.poke(VAULT_ABI, vault, 'maintainPeg', `maintainPeg ${short(vault)}`);
+        if (!pending.includes(vault)) {
+          await this.poke(VAULT_ABI, vault, 'pokeSettle', `service Main interest ${short(vault)}`);
+        }
         if (!paused && !emergency && !frozen.has(vault) && !servicing) {
           await this.poke(VAULT_ABI, vault, 'rebalance', `rebalance ${short(vault)}`);
         }
-      }
-      // harvest walks the Harvester's OWN vault registry and distributes to all
-      // of them in one call — so it is once per cycle, not once per vault.
-      if (this.harvester && !paused && !emergency && frozen.size === 0) {
-        await this.poke(HARVESTER_ABI, this.harvester, 'harvest', 'harvest (skim+distribute)', [[]]);
       }
     }
   }

@@ -17,7 +17,7 @@ const POOL = "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38";
 const HOLLAR = "0x531a654d1696ED52e7275A8cede955E82620f99a";
 const abi = JSON.parse(
   readFileSync(
-    new URL("../../deployments/lark2/Pool-Implementation.json", import.meta.url)
+    new URL("../../deployments/hydration/Pool-Implementation.json", import.meta.url)
   )
 ).abi;
 const erc20 = parseAbi([

@@ -137,6 +137,32 @@ async function main() {
 
   const api = await ApiPromise.create({ provider: new WsProvider(WS), noInitWarn: true });
 
+  await section("O. Main debt settlement", async () => {
+    for (const vault of VAULTS) {
+      const v = new ethers.Contract(vault, ["function mainDebt() view returns (address)",
+        "function compoundLogic() view returns (address)"], provider);
+      const address = await v.mainDebt();
+      const buffer = new ethers.Contract(address, [
+        "function vault() view returns (address)", "function hollar() view returns (address)",
+        "function ownedCash() view returns (uint256)", "function sourceOutstanding() view returns (uint256)",
+        "function ready() view returns (bool)",
+      ], provider);
+      add("O. Main debt settlement", `${vault}: bound ledger`, eq(await buffer.vault(), vault), address);
+      const owned = await buffer.ownedCash();
+      const token = new ethers.Contract(await buffer.hollar(), ["function balanceOf(address) view returns (uint256)"], provider);
+      add("O. Main debt settlement", `${vault}: ledger backed`, (await token.balanceOf(address)).gte(owned));
+      add("O. Main debt settlement", `${vault}: active debt backed`, await buffer.ready(), `pending source=${await buffer.sourceOutstanding()}`);
+      const account = await nativeAccount(api, address);
+      add("O. Main debt settlement", `${vault}: dust protected`,
+        (await api.call.dusterApi.isWhitelisted(account) as any).isTrue, account);
+      for (const target of [address, await v.compoundLogic()]) {
+        const code = await provider.getCode(target);
+        const size = (code.length - 2) / 2;
+        add("O. Main debt settlement", `${target}: deployed size`, size > 0 && size <= 24576, `${size} bytes`);
+      }
+    }
+  });
+
   await section("R. Custody dust protection", async () => {
     for (const address of [SUBLOOP, HARVESTER, FEES, ...VAULTS, ...(SWAPPER ? [SWAPPER] : [])]) {
       const account = await nativeAccount(api, address);

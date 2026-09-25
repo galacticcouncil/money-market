@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: loss measurement respects decimals and does not hide favorable fills
+ok 1 - loss measurement respects decimals and does not hide favorable fills
+  ---
+  duration_ms: 2.060728
+  type: 'test'
+  ...
+# Subtest: infeasible marginal quote has zero admissible size
+ok 2 - infeasible marginal quote has zero admissible size
+  ---
+  duration_ms: 0.216654
+  type: 'test'
+  ...
+# Subtest: capacity search never rounds an unsafe boundary upwards
+ok 3 - capacity search never rounds an unsafe boundary upwards
+  ---
+  duration_ms: 0.158063
+  type: 'test'
+  ...
+# Subtest: refill pays the trader from pool HOLLAR and preserves both inventories
+ok 4 - refill pays the trader from pool HOLLAR and preserves both inventories
+  ---
+  duration_ms: 3.936073
+  type: 'test'
+  ...
+# Subtest: oracle-only improvement is not confused with eventual pool-peg repricing
+ok 5 - oracle-only improvement is not confused with eventual pool-peg repricing
+  ---
+  duration_ms: 36.046486
+  type: 'test'
+  ...
+# Subtest: tighter floors have no more capacity than looser ones
+ok 6 - tighter floors have no more capacity than looser ones
+  ---
+  duration_ms: 40.979296
+  type: 'test'
+  ...
+# Subtest: six-TVL throughput includes gross loop exposure and linear retention
+ok 7 - six-TVL throughput includes gross loop exposure and linear retention
+  ---
+  duration_ms: 39.175823
+  type: 'test'
+  ...
+# Subtest: pinned SDK quotes exactly match native pool-143 and folded Aave routes
+ok 8 - pinned SDK quotes exactly match native pool-143 and folded Aave routes
+  ---
+  duration_ms: 2.897344
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 136.688043
