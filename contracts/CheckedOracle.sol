@@ -28,10 +28,18 @@ import {IHydraChainlinkOracle} from "./dependencies/hydra-chainlink/IHydraChainl
 ///   and may push unchecked via `setPriceUnchecked` — the escape hatch for a
 ///   dead check feed. Owner is therefore fully trusted, as in ManagedOracle.
 ///
-/// Fail-closed: no usable check price (feed reverts, returns <= 0, or is
-/// unset) means no checked update. The price freezes at its last value until
-/// the feed recovers, governance swaps the feed, or the owner pushes
-/// unchecked.
+/// Fail-closed: no usable check price (feed reverts or returns <= 0) means no
+/// checked update. The price freezes at its last value until the feed
+/// recovers, governance swaps the feed, or the owner pushes unchecked.
+///
+/// Unchecked mode: a `checkOracle` of `address(0)` means there is nothing to
+/// check against, and `setPrice` stores every positive price as a plain
+/// ManagedOracle would. This is for chains without an independent reference
+/// for the asset (HDX/USD on Robinhood Chain): the oracle is deployed at the
+/// address its consumers read from day one, and the owner switches a check on
+/// later with `setCheckOracle` without touching anything downstream. A
+/// non-zero check feed must answer a positive price when it is set, so a
+/// typo cannot turn the feed into reject-everything.
 ///
 /// The constructor price is not checked: deploying is an owner action, of the
 /// same weight as `setPriceUnchecked`, and requiring the initial value to sit
@@ -73,9 +81,15 @@ contract CheckedOracle is ManagedOracle, ICheckedOracle {
     // ---------------------------------------------------------------------
 
     /// @notice Pushes `price`, provided it sits within `maxDiffBps` of the
-    /// check feed. Callable by the pusher or the owner.
+    /// check feed, or unconditionally while no check feed is set. Callable by
+    /// the pusher or the owner.
     function setPrice(int256 price) external override onlyPriceSetter {
         if (price <= 0) revert InvalidPrice();
+
+        if (checkOracle == address(0)) {
+            _setPrice(price);
+            return;
+        }
 
         (bool ok, uint256 check) = _checkPrice();
         if (!ok) revert CheckPriceUnavailable();
@@ -105,8 +119,14 @@ contract CheckedOracle is ManagedOracle, ICheckedOracle {
     // views
     // ---------------------------------------------------------------------
 
+    /// @notice Whether pushes are checked at all: false while `checkOracle` is
+    /// unset.
+    function checked() public view override returns (bool) {
+        return checkOracle != address(0);
+    }
+
     /// @notice The check feed's current price, normalised to this oracle's
-    /// decimals. `ok` is false when the feed is unusable.
+    /// decimals. `ok` is false when the feed is unusable or unset.
     function checkPrice() external view override returns (bool ok, int256 price) {
         uint256 check;
         (ok, check) = _checkPrice();
@@ -115,11 +135,13 @@ contract CheckedOracle is ManagedOracle, ICheckedOracle {
 
     /// @notice Whether `setPrice(price)` would be accepted right now, and by
     /// how much `price` deviates from the check feed. `deviationBps` is 0 when
-    /// the check price is unavailable.
+    /// the check price is unavailable, and when no check feed is set (every
+    /// positive price is accepted then).
     function previewSetPrice(
         int256 price
     ) external view override returns (bool ok, uint256 deviationBps) {
         if (price <= 0) return (false, 0);
+        if (!checked()) return (true, 0);
 
         (bool hasCheck, uint256 check) = _checkPrice();
         if (!hasCheck) return (false, 0);
@@ -144,10 +166,15 @@ contract CheckedOracle is ManagedOracle, ICheckedOracle {
         _setPusher(pusher_);
     }
 
+    /// @dev `address(0)` switches checking off. Anything else must answer a
+    /// positive price right now: enabling a check against a feed that does
+    /// not answer would reject every push from this moment on.
     function _setCheckOracle(address checkOracle_) internal {
-        if (checkOracle_ == address(0)) revert InvalidFeed();
-
-        uint8 feedDecimals = _feedDecimals(checkOracle_);
+        uint8 feedDecimals = 0;
+        if (checkOracle_ != address(0)) {
+            feedDecimals = _feedDecimals(checkOracle_);
+            if (!_feedAnswers(checkOracle_)) revert InvalidFeed();
+        }
         checkOracle = checkOracle_;
         checkDecimals = feedDecimals;
 
@@ -204,6 +231,15 @@ contract CheckedOracle is ManagedOracle, ICheckedOracle {
     ) internal pure returns (uint256) {
         uint256 diff = p > c ? p - c : c - p;
         return (diff * MAX_BPS) / c;
+    }
+
+    /// @dev Whether `feed` currently answers a positive price.
+    function _feedAnswers(address feed) internal view returns (bool) {
+        try IHydraChainlinkOracle(feed).latestAnswer() returns (int256 answer) {
+            return answer > 0;
+        } catch {
+            return false;
+        }
     }
 
     /// @dev Feeds that don't answer `decimals()` are assumed to match this

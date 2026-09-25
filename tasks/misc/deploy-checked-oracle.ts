@@ -3,14 +3,17 @@ import { BigNumber, constants } from "ethers";
 
 task(
   `deploy-checked-oracle`,
-  `Deploys a CheckedOracle: a ManagedOracle that rejects pushed prices more than <maxDiffBps> away from <check>`
+  `Deploys a CheckedOracle: a ManagedOracle that rejects pushed prices more than <maxDiffBps> away from <check>; without --check it runs unchecked until the owner sets one`
 )
   .addParam("name", "Asset name -- used for the deployment artifact (e.g. APYUSD)")
   .addParam("description", "Feed description (e.g. APYUSD/USD)")
   .addParam("owner", "Owner address (governance) -- configures the check and can push unchecked")
   .addParam("price", "Initial price, 8 decimals (not checked against the check feed)")
-  .addParam("check", "Check feed address (Hydration EMA oracle precompile)")
-  .addParam("maxDiffBps", "Max allowed deviation from the check feed, in bps (0..10000)")
+  .addOptionalParam(
+    "check",
+    "Check feed address (Hydration EMA oracle precompile). Omit for unchecked mode: every push is stored until the owner calls setCheckOracle"
+  )
+  .addParam("maxDiffBps", "Max allowed deviation from the check feed, in bps (0..10000); inert while unchecked")
   .addOptionalParam("pusher", "Address allowed to push checked prices (default: none)")
   // "version" is a reserved hardhat param name
   .addOptionalParam("feedVersion", "Feed version (default: 1)")
@@ -30,7 +33,7 @@ task(
         description: string;
         owner: string;
         price: string;
-        check: string;
+        check?: string;
         maxDiffBps: string;
         pusher?: string;
         feedVersion?: string;
@@ -52,6 +55,8 @@ task(
       }
 
       const pusherAddress = pusher ?? constants.AddressZero;
+      const checkAddress = check ?? constants.AddressZero;
+      const unchecked = checkAddress.toLowerCase() === constants.AddressZero;
       const feedVersionNum = feedVersion ? parseInt(feedVersion, 10) : 1;
 
       const { deployer } = await hre.getNamedAccounts();
@@ -63,7 +68,7 @@ task(
           feedVersionNum,
           owner,
           initialPrice,
-          check,
+          checkAddress,
           bps,
           pusherAddress,
         ],
@@ -75,14 +80,21 @@ task(
       console.log(`  owner:       ${owner}`);
       console.log(`  pusher:      ${pusherAddress}`);
       console.log(`  price:       ${initialPrice.toString()}`);
-      console.log(`  check:       ${check}`);
-      console.log(`  maxDiffBps:  ${bps}`);
+      console.log(
+        `  check:       ${unchecked ? "none -- UNCHECKED: every push is stored until setCheckOracle" : checkAddress}`
+      );
+      console.log(`  maxDiffBps:  ${bps}${unchecked ? " (inert while unchecked)" : ""}`);
 
       // sanity: what the freshly deployed oracle thinks of its own price
       const oracle = await hre.ethers.getContractAt(
         "CheckedOracle",
         artifact.address
       );
+      if (unchecked) {
+        const isChecked = await oracle.checked();
+        if (isChecked) throw new Error("deployed oracle reports checked() == true in unchecked mode");
+        return;
+      }
       const [ok, checkPrice] = await oracle.checkPrice();
       if (!ok) {
         console.log(`  check feed:  UNAVAILABLE -- setPrice is blocked until it recovers`);

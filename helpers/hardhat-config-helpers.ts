@@ -13,6 +13,7 @@ import {
   eBaseNetwork,
   eHydrationNetwork,
   eOptimismNetwork,
+  eRobinhoodNetwork,
 } from "./types";
 
 require("dotenv").config();
@@ -117,6 +118,10 @@ export const NETWORKS_RPC_URL: iParamsPerNetwork<string> = {
   // doesn't try to reuse main-MM's per-market contracts (Pool-Implementation
   // etc.) which bake provider immutables. RPC overridable for fork testing.
   [eHydrationNetwork.bil]: process.env.RPC || "https://rpc.hydradx.cloud",
+  // Robinhood Chain public RPC. Rejects some default user agents and rate
+  // limits batches; RPC overridable for an anvil fork rehearsal.
+  [eRobinhoodNetwork.robinhood]:
+    process.env.RPC || "https://rpc.mainnet.chain.robinhood.com",
 };
 
 export const LIVE_NETWORKS: iParamsPerNetwork<boolean> = {
@@ -137,6 +142,7 @@ export const LIVE_NETWORKS: iParamsPerNetwork<boolean> = {
   [eHydrationNetwork.zombie]: true,
   [eHydrationNetwork.gigahdx]: true,
   [eHydrationNetwork.bil]: true,
+  [eRobinhoodNetwork.robinhood]: true,
   [eBaseNetwork.base]: true,
 };
 

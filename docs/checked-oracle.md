@@ -41,10 +41,23 @@ push (checked or unchecked).
 - Accept iff `|price − check| · 10000 ≤ maxDiffBps · check`, cross-multiplied,
   so the band edges are exact and inclusive on both sides.
 - `price <= 0` → `InvalidPrice`.
-- **Fail closed:** check feed reverts, returns `<= 0`, or is unset →
+- **Fail closed:** check feed reverts or returns `<= 0` →
   `CheckPriceUnavailable`, the update is rejected and the last accepted price
   stands. Recovery paths: the feed comes back, governance swaps the feed, or
   the owner pushes unchecked.
+- **Unchecked mode:** `checkOracle == address(0)` means there is nothing to
+  check against, and `setPrice` stores every positive price exactly as a plain
+  `ManagedOracle` would (`checked()` is false, `previewSetPrice` accepts with
+  deviation 0, `checkPrice()` reports unavailable). This is for chains with no
+  independent reference for the asset — HDX/USD on Robinhood Chain — so the
+  oracle can sit at the address its consumers read from day one and grow a
+  check later. Deploy with no `--check`, or switch off with
+  `setCheckOracle(address(0))`.
+- **A non-zero check feed must answer a positive price when it is set**, in
+  the constructor and in `setCheckOracle`; otherwise `InvalidFeed`. Enabling a
+  check against a feed that does not answer would reject every push from that
+  moment on, which is the one mistake fail-closed cannot distinguish from an
+  outage. A feed that dies *after* being set still fails closed as above.
 - The check feed's answer is rescaled to the oracle's 8 decimals using its
   `decimals()`, read once when the feed is set. A feed that doesn't answer
   `decimals()` is assumed to be 8 (the precompile convention) and that
@@ -91,13 +104,18 @@ npx hardhat deploy-checked-oracle \
   --network hydration
 ```
 
+Omit `--check` to deploy in unchecked mode. The Robinhood HDX/USD instance
+has its own pinned task, `deploy-checked-oracle-robinhood` (see
+`checked-oracle-robinhood.md`).
+
 Swapping an existing `ManagedOracle` for a `CheckedOracle` is an
 `AaveOracle.setAssetSources` call through governance, same as any other source
 swap.
 
 ## Tests
 
-`tests/foundry/CheckedOracle.t.sol` — 42 tests incl. fuzz over
+`tests/foundry/CheckedOracle.t.sol` — 56 tests incl. fuzz over
 (check price, pushed price, band): acceptance matches the band exactly, the
-reported price never leaves the band no matter what the pusher tries, and only
-pusher/owner can move it.
+reported price never leaves the band no matter what the pusher tries, only
+pusher/owner can move it, and in unchecked mode every positive price is stored
+verbatim while caller gating still holds.
