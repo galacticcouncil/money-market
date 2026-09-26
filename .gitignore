@@ -4,6 +4,10 @@
 cache
 artifacts
 
+# Foundry build output + deploy records (any foundry project, any depth)
+out/
+broadcast/
+
 node_modules
 dist/
 build/
@@ -26,7 +30,4 @@ deployments/*
 !deployments/gigahdx
 !deployments/bil
 # deployments/chopsticks is intentionally ignored — it's a disposable local fork.
-
-# Foundry
-out/
-broadcast/
+.propeller-bot.secret

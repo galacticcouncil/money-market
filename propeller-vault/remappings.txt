@@ -1,0 +1,4 @@
+forge-std/=../bil-vault/lib/forge-std/src/
+@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/
+solmate/=../bil-vault/lib/solmate/

@@ -1,0 +1,149 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.22;
+
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ISubLoop} from "./interfaces/ISubLoop.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {IPropellerFeeController} from "./interfaces/IPropellerFeeController.sol";
+
+interface ICompoundable {
+    function compound(address tokenIn, uint256 amountIn, uint256 minOut, bytes calldata route) external;
+}
+
+/// @title Harvester
+/// @notice Keeper entrypoint orchestrating harvest / de-lever across the shared
+///         SubLoop and the registered CollateralVaults. `harvest` skims the loop
+///         carry (surplus PRIME), splits it pro-rata by each vault's loop shares,
+///         and compounds each cut into that vault's collateral (in-kind yield).
+contract Harvester is AccessControl, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
+    // KEEPER_ROLE removed: harvest/deLever are permissionless. DEFAULT_ADMIN_ROLE
+    // is retained for addVault (registry management).
+
+    ISubLoop public immutable subLoop;
+    IERC20 public immutable prime; // the token SubLoop.harvest returns
+    address[] public vaults;
+    mapping(address => bool) public isRegistered;
+    IPropellerFeeController public feeController;
+
+    event HarvestRun(uint256 surplusPrime);
+    event DeLeverRun();
+    event VaultAdded(address indexed vault);
+    event VaultRemoved(address indexed vault);
+    event FeeControllerUpdated(address indexed controller);
+
+    error ZeroAddress();
+    error AlreadyRegistered();
+    error NotRegistered();
+    error FeeControllerUnset();
+    error HarvestConfigurationChanged();
+
+    constructor(address _subLoop, address _prime, address admin) {
+        if (_subLoop == address(0) || _prime == address(0) || admin == address(0)) revert ZeroAddress();
+        subLoop = ISubLoop(_subLoop);
+        prime = IERC20(_prime);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+    }
+
+    /// @notice Register a vault to receive its pro-rata cut of the loop carry.
+    /// @dev    Duplicate registration is REJECTED, not tolerated: `harvest` sums
+    ///         `sharesOf(v)` per entry and hard-requires the total to equal
+    ///         `subLoop.totalShares()`, so a vault listed twice double-counts, fails
+    ///         that check, and reverts every harvest. This contract is not
+    ///         upgradeable, so recovery would mean redeploying it and re-running a
+    ///         governance `SubLoop.setHarvester`.
+    function addVault(address vault) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        if (vault == address(0)) revert ZeroAddress();
+        if (isRegistered[vault]) revert AlreadyRegistered();
+        isRegistered[vault] = true;
+        vaults.push(vault);
+        emit VaultAdded(vault);
+    }
+
+    /// @notice Deregister a vault. Needed because the registry-completeness check
+    ///         is strict: a vault that still holds loop shares but must be excluded
+    ///         (retired, or paused for long enough to block the shared harvest)
+    ///         would otherwise wedge harvesting for every healthy vault with no way
+    ///         out short of redeploying this contract.
+    /// @dev    Removing a vault that still holds loop shares will make
+    ///         `registeredShares < totalShares` and revert `harvest` until its
+    ///         shares are unwound — deliberate, so carry is never silently
+    ///         redistributed away from a vault that is still entitled to it.
+    function removeVault(address vault) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        if (!isRegistered[vault]) revert NotRegistered();
+        isRegistered[vault] = false;
+        uint256 n = vaults.length;
+        for (uint256 i = 0; i < n; i++) {
+            if (vaults[i] == vault) {
+                vaults[i] = vaults[n - 1];
+                vaults.pop();
+                break;
+            }
+        }
+        emit VaultRemoved(vault);
+    }
+
+    /// @notice Number of registered vaults (the array is not otherwise enumerable).
+    function vaultCount() external view returns (uint256) {
+        return vaults.length;
+    }
+
+    function setFeeController(address controller) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        if (controller == address(0)) revert ZeroAddress();
+        feeController = IPropellerFeeController(controller);
+        emit FeeControllerUpdated(controller);
+    }
+
+    /// @notice Skim loop carry → distribute PRIME pro-rata by loop shares →
+    ///         compound each vault's cut into its collateral.
+    /// @param minOuts per-vault min collateral out (slippage bound); pass 0s in tests.
+    function harvest(uint256[] calldata minOuts) external nonReentrant {
+        IPropellerFeeController controller = feeController;
+        if (address(controller) == address(0)) revert FeeControllerUnset();
+        uint256 version = controller.configurationVersion();
+        uint256 total = subLoop.totalShares();
+        uint256 n = vaults.length;
+        uint256[] memory weights = new uint256[](n);
+        uint256 registeredShares;
+        for (uint256 i; i < n; ++i) {
+            controller.validateVault(vaults[i], address(this));
+            weights[i] = subLoop.sharesOf(vaults[i]);
+            registeredShares += weights[i];
+        }
+        require(registeredShares == total, "vault set incomplete");
+        subLoop.harvest(); // PRIME → this Harvester (routed via SubLoop.harvester)
+        // distribute the FULL balance, not just this call's skim — a direct
+        // SubLoop.harvest() caller may have parked PRIME here; nothing strands.
+        uint256 surplus = prime.balanceOf(address(this));
+        for (uint256 i = 0; i < n; i++) {
+            address v = vaults[i];
+            uint256 cut = total == 0 ? 0 : Math.mulDiv(surplus, weights[i], total);
+            if (cut == 0) continue;
+            prime.forceApprove(v, 0);
+            prime.forceApprove(v, cut);
+            // A previous vault's external calls must not rewire this vault's hook.
+            controller.validateVault(v, address(this));
+            ICompoundable(v).compound(address(prime), cut, i < minOuts.length ? minOuts[i] : 0, "");
+            prime.forceApprove(v, 0);
+        }
+        // Detect even a policy change followed by a restoration during a callback.
+        if (controller.configurationVersion() != version || subLoop.totalShares() != total) {
+            revert HarvestConfigurationChanged();
+        }
+        for (uint256 i; i < n; ++i) {
+            controller.validateVault(vaults[i], address(this));
+            if (subLoop.sharesOf(vaults[i]) != weights[i]) revert HarvestConfigurationChanged();
+        }
+        emit HarvestRun(surplus);
+    }
+
+    /// @notice Trigger loop de-lever when HF is at/below the trigger.
+    function deLever() external nonReentrant {
+        subLoop.deLever();
+        emit DeLeverRun();
+    }
+}
