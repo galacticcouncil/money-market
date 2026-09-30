@@ -285,6 +285,7 @@ contract SubLoop is
     ///      oracle-fair minOut. A caller can only advance the ramp (or waste gas
     ///      on a no-op at floor), never extract value, so no role is needed.
     function pokeBorrow() external override nonReentrant whenNotPaused whenNotEmergencyPaused {
+        _dropMetDelever();
         if (unwindTargetEquity != 0 || deleverDebtTarget != 0) return;
         // The DCA's Aave hop mints aPRIME to this loop but does not flip the
         // use-as-collateral flag, so without this the loop's borrow power stays 0.
@@ -362,6 +363,7 @@ contract SubLoop is
 
     /// @inheritdoc ILeveragedLoop
     function pokeRepay() external override nonReentrant whenNotPaused {
+        _dropMetDelever();
         if (unwindTargetEquity == 0 && deleverDebtTarget == 0) return;
         if (emergencyPaused && deleverDebtTarget == 0) return;
         // UNWIND SPIRAL STEP: while an unwind is open, synchronously sell an
@@ -388,6 +390,10 @@ contract SubLoop is
                     (uint256 pHollar, uint256 pPrime) = _oracleRate();
                     uint256 sellAmt = ((coll8 - minColl8) * 90 / 100) * 1e6 / pPrime;
                     if (unwindTranche > 0 && sellAmt > unwindTranche) sellAmt = unwindTranche;
+                    if (deleverDebtTarget == 0) {
+                        uint256 need = _unwindNeedAPrime(coll8, debt8, pPrime);
+                        if (sellAmt > need) sellAmt = need;
+                    }
                     uint256 apBal = primeAToken.balanceOf(address(this));
                     if (sellAmt > apBal) sellAmt = apBal;
                     if (sellAmt > 0) {
@@ -468,6 +474,27 @@ contract SubLoop is
         uint256 freed = avail - repayHollar;
         if (freed > 0) _creditFreed(freed);
         emit Repaid(deleverRepaid + repayHollar, healthFactor());
+    }
+
+    /// @dev A de-lever target only exists to bring HF back to targetHf. Once HF
+    ///      is there (target repaid, or the price recovered) the remainder is
+    ///      obsolete: drop it so pokeRepay stops selling and pokeBorrow resumes.
+    function _dropMetDelever() internal {
+        if (deleverDebtTarget != 0 && healthFactor() >= targetHf) deleverDebtTarget = 0;
+    }
+
+    /// @dev aPRIME (6dp) a leveraged unwind sale still needs. The proportional
+    ///      split frees (coll − debt)/coll of every HOLLAR it handles, so the
+    ///      open target needs target·coll/(coll − debt) of HOLLAR in hand; idle
+    ///      HOLLAR already counts toward it. Padded by the slippage allowance so
+    ///      the swap fee does not leave a sub-dollar tail for another sale.
+    function _unwindNeedAPrime(uint256 coll8, uint256 debt8, uint256 pPrime) internal view returns (uint256) {
+        if (coll8 <= debt8) return type(uint256).max;
+        uint256 need8 = (unwindTargetEquity / 1e10) * coll8 / (coll8 - debt8);
+        uint256 bal = hollar.balanceOf(address(this));
+        uint256 idle8 = bal > reservedFreed ? (bal - reservedFreed) / 1e10 : 0;
+        if (need8 <= idle8) return 0;
+        return (need8 - idle8) * 1e6 * 1_000_000 / (pPrime * (1_000_000 - dcaSlippagePpm));
     }
 
     /// @dev Credit freed equity HOLLAR to open unwind requests, pro-rata by the
