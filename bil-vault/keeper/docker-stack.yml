@@ -5,7 +5,7 @@
 #
 # Env vars expected at deploy time (export or use a .env loader):
 #   VAULT_ADDRESS         — proxy address from DEPLOYMENT.md step 1
-#   KEEPER_PRIVATE_KEY    — keeper's signing key (must hold CLAIM_OPERATOR_ROLE)
+#   KEEPER_PRIVATE_KEY    — keeper's signing key (needs WETH for gas; CLAIM_OPERATOR_ROLE only for optional auto-claim)
 #   RPC_URL               — Hydration RPC (defaults to nice.hydration.cloud below)
 #   POLL_INTERVAL_MS      — cycle interval, default 6s
 #   ALERT_WEBHOOK         — Discord webhook URL (optional)
