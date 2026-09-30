@@ -15,27 +15,9 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {MockSwapper} from "./mocks/MockSwapper.sol";
 
-/// @notice PoC for the historical-carry-capture finding
-///         (`propeller-how-it-works.md` → "direct harvest lets a new depositor
-///         capture historical carry", SubLoop.sol:508-541, Harvester.sol:104-139).
-///
-///         Anyone can call `SubLoop.harvest()` directly: it removes the surplus
-///         PRIME (carry earned by EXISTING holders) from the loop and parks it
-///         in the Harvester. The later `Harvester.harvest()` distributes the
-///         Harvester's ENTIRE parked PRIME balance using loop-share weights at
-///         THAT LATER MOMENT — not the weights from when the carry was earned.
-///
-///         Attack (one atomic bundle):
-///           1. attacker calls `SubLoop.harvest()`      → carry parked, loop NAV drops
-///           2. attacker deposits into the vault        → fresh shares minted at the
-///              pre-carry price (parked PRIME is not in totalAssets / loop NAV)
-///           3. attacker calls `Harvester.harvest()`    → parked carry compounds into
-///              the vault, raising the share price the attacker just bought into
-///
-///         The attacker walks away with ~their weight × the carry that was
-///         earned entirely by the honest holder's position. Existing holders
-///         cannot react: the three calls bundle atomically.
-contract CarryCapturePocTest is Test {
+/// @notice Deposits are priced against source carry that is accrued but not
+///         yet harvested, and the source skims only through the Harvester.
+contract DepositCarryPricingTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
     MockERC20 ethDebt;
@@ -56,8 +38,8 @@ contract CarryCapturePocTest is Test {
     Harvester harvester;
     PropellerFeeController fees;
 
-    address honest = makeAddr("honest");
-    address attacker = makeAddr("attacker");
+    address holder = makeAddr("holder");
+    address late = makeAddr("late");
 
     /// simulated PRIME yield accruing to the loop (USD, 6dp aPRIME)
     uint256 constant CARRY = 60e6; // $60 on a ~$2.2k seed
@@ -141,67 +123,64 @@ contract CarryCapturePocTest is Test {
         return vault.convertToAssets(vault.balanceOf(who));
     }
 
-    /// ── PoC: skim → deposit → distribute, atomically ──────────────────────
-    function test_poc_newDepositorCapturesHistoricalCarry() public {
-        // bootstrap (governance-only first deposit), then the honest holder
+    function _seedWithCarry() internal {
+        // bootstrap (governance-only first deposit), then the existing holder
         eth.mint(address(this), 0.01e18);
         eth.approve(address(vault), 0.01e18);
         vault.deposit(0.01e18, address(this));
-        _depositAs(honest, 1e18);
+        _depositAs(holder, 1e18);
         for (uint256 i = 0; i < 40; i++) loop.pokeBorrow();
-
-        // carry accrues to the loop — earned 100% by the CURRENT holders
+        // carry accrues to the loop while only the existing holders are in
         aPrime.mint(address(loop), CARRY);
-        uint256 honestBefore = _valueOf(honest);
-
-        // ── control: nobody attacks, the keeper harvests honestly ─────────
-        uint256 snap = vm.snapshot();
-        uint256[] memory minOuts = new uint256[](1);
-        harvester.harvest(minOuts);
-        uint256 honestGainControl = _valueOf(honest) - honestBefore;
-        emit log_named_decimal_uint("control: honest gain from own carry (ETH)", honestGainControl, 18);
-        assertGt(honestGainControl, 0, "control: carry reaches the honest holder");
-        vm.revertTo(snap);
-
-        // ── attack: three permissionless calls, one atomic bundle ─────────
-        vm.startPrank(attacker);
-        loop.harvest(); // 1. park the honest holder's carry in the Harvester
-        vm.stopPrank();
-        assertApproxEqAbs(prime.balanceOf(address(harvester)), CARRY, 1e3, "carry parked, loop NAV dropped");
-
-        _depositAs(attacker, 9e18); // 2. buy in at the pre-carry share price
-
-        vm.prank(attacker);
-        harvester.harvest(minOuts); // 3. distribute parked carry by TODAY's weights
-
-        // ── who got the carry? ────────────────────────────────────────────
-        uint256 honestGainAttack = _valueOf(honest) - honestBefore;
-        uint256 attackerGain = _valueOf(attacker) - 9e18;
-        emit log_named_decimal_uint("attack: honest gain (ETH)", honestGainAttack, 18);
-        emit log_named_decimal_uint("attack: attacker gain (ETH)", attackerGain, 18);
-
-        // attacker deposited 9 ETH against ~1.01 ETH of honest+bootstrap value,
-        // so ~90% of the parked carry lands on shares minted AFTER it was earned
-        assertGt(attackerGain, (honestGainControl * 80) / 100, "attacker captures >80% of the carry");
-        assertLt(honestGainAttack, (honestGainControl * 20) / 100, "honest holder keeps <20% of their own carry");
     }
 
-    /// ── sanity: the skim alone moves real value out of the loop ───────────
-    function test_poc_directSkimParksCarryBeforeDistribution() public {
-        eth.mint(address(this), 0.01e18);
-        eth.approve(address(vault), 0.01e18);
-        vault.deposit(0.01e18, address(this));
-        _depositAs(honest, 1e18);
-        for (uint256 i = 0; i < 40; i++) loop.pokeBorrow();
-        aPrime.mint(address(loop), CARRY);
+    /// A deposit made while carry is pending buys in at the value existing
+    /// shares already accrued, so the next harvest does not re-split it.
+    function test_lateDepositDoesNotShareAccruedCarry() public {
+        _seedWithCarry();
+        uint256 holderBefore = _valueOf(holder);
+        uint256[] memory minOuts = new uint256[](1);
 
+        uint256 snap = vm.snapshotState();
+        harvester.harvest(minOuts);
+        uint256 holderGainAlone = _valueOf(holder) - holderBefore;
+        assertGt(holderGainAlone, 0, "carry reaches the holder");
+        vm.revertToState(snap);
+
+        assertGt(fees.pendingCarry(address(vault)), 0, "carry pending before harvest");
+        _depositAs(late, 9e18);
+        harvester.harvest(minOuts);
+
+        uint256 holderGain = _valueOf(holder) - holderBefore;
+        uint256 lateValue = _valueOf(late);
+        emit log_named_decimal_uint("holder gain, harvested alone (ETH)", holderGainAlone, 18);
+        emit log_named_decimal_uint("holder gain, late deposit first (ETH)", holderGain, 18);
+        emit log_named_decimal_uint("late depositor value (ETH)", lateValue, 18);
+
+        assertApproxEqRel(holderGain, holderGainAlone, 0.02e18, "holder keeps the carry it accrued");
+        assertLe(lateValue, 9e18 + holderGainAlone / 50, "late deposit gains no accrued carry");
+    }
+
+    /// Only the Harvester can skim, so realised carry is always distributed in
+    /// the same call and never sits outside the vaults' pricing.
+    function test_sourceHarvestOnlyThroughHarvester() public {
+        _seedWithCarry();
         uint256 equityBefore = loop.totalEquity();
-        vm.prank(attacker); // no role needed — anyone can skim
+
+        vm.prank(late);
+        vm.expectRevert(SubLoop.NotHarvester.selector);
         loop.harvest();
 
-        assertApproxEqAbs(prime.balanceOf(address(harvester)), CARRY, 1e3, "full surplus parked in the Harvester");
-        assertApproxEqAbs(loop.totalEquity(), equityBefore - CARRY * 1e2, 1e6, "loop NAV dropped by the skim");
-        // and it sits there, undistributed, until ANY later caller runs
-        // Harvester.harvest with whatever the share weights are then
+        assertEq(prime.balanceOf(address(harvester)), 0, "nothing parked");
+        assertEq(loop.totalEquity(), equityBefore, "carry stays in the loop");
+    }
+
+    function test_pendingCarryClearsOnHarvest() public {
+        _seedWithCarry();
+        uint256 pending = fees.pendingCarry(address(vault));
+        // $60 carry at $3k ETH, net of the 5% fee
+        assertApproxEqRel(pending, uint256(60e18) / 3_000 * 95 / 100, 0.01e18);
+        harvester.harvest(new uint256[](1));
+        assertLt(fees.pendingCarry(address(vault)), pending / 100, "harvest realises the carry");
     }
 }

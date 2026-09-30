@@ -299,6 +299,7 @@ contract MultiVaultFlowTest is Test {
         // ── harvest skims gross PRIME yield MINUS the loop's borrow cost
         uint256 expectedLoopNet8 =
             (loopColl8 * PRIME_APY_BPS - loopDebt8 * BORROW_APY_BPS) / 10_000;
+        vm.prank(address(harvester));
         uint256 surplusPrime = loop.harvest(); // 6dp, $1 → 8dp USD = ×100
         assertApproxEqRel(surplusPrime * 100, expectedLoopNet8, 0.01e18, "skim = gross - loop borrow cost");
 
@@ -369,6 +370,7 @@ contract MultiVaultFlowTest is Test {
 
         // harvest with equity under basis is a no-op — carry must refill the
         // fee hole first (the cost is borne by yield, not by other vaults)
+        vm.prank(address(harvester));
         assertEq(loop.harvest(), 0, "no skim below cost basis");
 
         // ── 5% PRIME yield, then harvest+compound (30 bps haircut on the swap)

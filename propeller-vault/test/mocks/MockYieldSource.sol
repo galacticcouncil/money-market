@@ -66,6 +66,10 @@ contract MockYieldSource is IYieldSource {
         return _shares[vault] / 1e10;
     }
 
+    function carryOf(address) external pure returns (uint256) {
+        return 0;
+    }
+
     function sharesOf(address vault) external view returns (uint256) {
         return _shares[vault];
     }

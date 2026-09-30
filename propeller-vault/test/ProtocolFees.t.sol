@@ -7,6 +7,7 @@ import {HarvestTest} from "./Harvest.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {Harvester} from "../src/Harvester.sol";
+import {SubLoop} from "../src/SubLoop.sol";
 import {PropellerFeeController} from "../src/PropellerFeeController.sol";
 import {PropellerDiscount} from "../src/PropellerDiscount.sol";
 import {MockDiscountAToken, MockDiscountDebtToken} from "./mocks/MockDiscount.sol";
@@ -391,17 +392,15 @@ contract ProtocolFeesTest is HarvestTest {
         assertEq(fees.claimableProtocolFees(address(eth)), amount);
     }
 
-    function test_directSourceHarvestStillPaysFeeOnLaterDistribution() public {
+    function test_sourceHarvestOnlyThroughHarvester() public {
         _depositAndRamp();
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
         vm.prank(STRANGER);
+        vm.expectRevert(SubLoop.NotHarvester.selector);
         loop.harvest();
-        uint256 parked = prime.balanceOf(address(harvester));
-        assertGt(parked, 0);
-        assertEq(prime.balanceOf(STRANGER), 0);
+        assertEq(prime.balanceOf(address(harvester)), 0);
         _harvest();
-        uint256 gross = parked * 1e12 / 3_000;
-        assertEq(fees.claimableProtocolFees(address(eth)), gross * 500 / 10_000);
+        assertGt(fees.claimableProtocolFees(address(eth)), 0);
     }
 
     function test_settledWithdrawalIsNotUsedForFee() public {

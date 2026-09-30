@@ -116,8 +116,8 @@ contract Harvester is AccessControl, ReentrancyGuard {
         }
         require(registeredShares == total, "vault set incomplete");
         subLoop.harvest(); // PRIME → this Harvester (routed via SubLoop.harvester)
-        // distribute the FULL balance, not just this call's skim — a direct
-        // SubLoop.harvest() caller may have parked PRIME here; nothing strands.
+        // distribute the FULL balance, not just this call's skim, so unsolicited
+        // PRIME sent here is never stranded.
         uint256 surplus = prime.balanceOf(address(this));
         for (uint256 i = 0; i < n; i++) {
             address v = vaults[i];

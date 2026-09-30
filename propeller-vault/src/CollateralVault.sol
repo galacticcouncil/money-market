@@ -110,7 +110,7 @@ contract CollateralVault is
         uint256 shares; // pVault shares escrowed
         uint256 collateralOwed; // collateral to release on settle
         uint256 debtShare; // Main HOLLAR debt to repay (≈ loop equity freed)
-        uint256 synthShare; // synthetic to release+burn
+        uint256 synthShare; // unused: _repayMain burns at the live synthetic/debt ratio
         uint256 repaid; // Main debt repaid so far (proportional settle)
         uint256 collateralSettled; // collateral freed + ready to claim
         uint256 sharesBurned; // escrowed shares burned across partial claims
@@ -262,9 +262,7 @@ contract CollateralVault is
     }
 
     function exchangeRate() public view returns (uint256) {
-        uint256 supply = totalSupply() - totalQueuedShares;
-        if (supply == 0) return WAD;
-        return (_activeAssets() * WAD) / supply;
+        return convertToAssets(WAD);
     }
 
     function convertToShares(uint256 assets) public view returns (uint256) {
@@ -316,18 +314,24 @@ contract CollateralVault is
         if (depositsPaused) revert DepositsArePaused();
         if (assets == 0) revert ZeroAmount();
         if (isUnderfunded()) revert Underfunded();
-        // Governance funds the locked initial shares, never the first public user.
-        if (totalSupply() == 0 && !hasRole(ADMIN_ROLE, msg.sender)) revert BootstrapRequired();
         // one aToken balanceOf for both the cap check and share pricing
         uint256 totalA = totalAssets();
         if (totalA + assets > tvlCap) revert ExceedsTvlCap();
 
         uint256 supply = totalSupply() - totalQueuedShares;
-        shares = _previewShares(assets, totalA - totalQueuedCollateral, supply);
+        // New shares buy in at the value existing ones have already accrued,
+        // including source carry the next harvest compounds in (net of fee).
+        IPropellerFeeController controller = feeController;
+        uint256 carry = address(controller) == address(0) ? 0 : controller.pendingCarry(address(this));
+        shares = _previewShares(assets, totalA - totalQueuedCollateral + carry, supply);
         // Round in the depositor's favor without diluting existing holders.
         uint256 minimumAssets = totalA + (supply == 0 ? assets
             : Math.ceilDiv(shares * (totalA - totalQueuedCollateral), supply));
-        if (totalSupply() == 0) _mint(DEAD_ADDRESS, DEAD_SHARES);
+        // Governance funds the locked initial shares, never the first public user.
+        if (supply == 0) {
+            if (!hasRole(ADMIN_ROLE, msg.sender)) revert BootstrapRequired();
+            _mint(DEAD_ADDRESS, DEAD_SHARES);
+        }
         _mint(receiver, shares);
 
         // 1. Supply the collateral to the Main Aave position.
@@ -377,7 +381,7 @@ contract CollateralVault is
         whenNotPaused
         returns (uint256 requestId)
     {
-        if (shares == 0 || convertToAssets(shares) == 0) revert ZeroAmount();
+        if (convertToAssets(shares) == 0) revert ZeroAmount();
         if (msg.sender != owner) _spendAllowance(owner, msg.sender, shares);
 
         _transfer(owner, address(this), shares);
@@ -420,7 +424,6 @@ contract CollateralVault is
         uint256 debt = hollarDebtToken.balanceOf(address(this));
         uint256 committed = totalQueuedDebt + deleverTarget;
         uint256 debtShare = debt > committed ? ((debt - committed) * shares) / supply : 0;
-        uint256 synthShare = debt == 0 ? 0 : (syntheticSupplied * debtShare) / debt;
         uint256 loopSlice = (loopShares * shares) / supply;
 
         // Ask the shared loop to unwind this vault's proportional equity slice.
@@ -433,7 +436,6 @@ contract CollateralVault is
         _coverRounding(assetsBefore + collateralOwed - numerator / supply);
         r.collateralOwed = collateralOwed;
         r.debtShare = debtShare;
-        r.synthShare = synthShare;
         pendingWithdrawalShares -= shares;
         totalQueuedShares += shares;
         totalQueuedDebt += debtShare;

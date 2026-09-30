@@ -9,6 +9,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IPropellerFeeController} from "./interfaces/IPropellerFeeController.sol";
 import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "./interfaces/IAavePool.sol";
+import {IYieldSource} from "./interfaces/IYieldSource.sol";
 
 interface IFeeVault {
     function collateral() external view returns (address);
@@ -143,6 +144,22 @@ contract PropellerFeeController is AccessControl, ReentrancyGuard, IPropellerFee
         return Math.mulDiv(
             amountIn, pIn * (10 ** IERC20Metadata(asset).decimals()), pOut * (10 ** IERC20Metadata(tokenIn).decimals())
         );
+    }
+
+    /// @notice `vault`'s unharvested source carry in collateral units, net of
+    /// its protocol fee: what the next harvest will compound into the vault.
+    /// Deposits are priced against it, so new shares buy in at the value the
+    /// existing ones have already accrued.
+    function pendingCarry(address vault) external view override returns (uint256) {
+        Binding memory b = bindings[vault];
+        // Unbound vaults cannot be harvested, so nothing is pending for them.
+        if (b.asset == address(0)) return 0;
+        uint256 carry8 = IYieldSource(IFeeVault(vault).yieldSource()).carryOf(vault);
+        if (carry8 == 0) return 0;
+        address provider = IAavePool(IFeeVault(vault).pool()).ADDRESSES_PROVIDER();
+        uint256 price = IAaveOracle(IPoolAddressesProvider(provider).getPriceOracle()).getAssetPrice(b.asset);
+        uint256 gross = Math.mulDiv(carry8, 10 ** IERC20Metadata(b.asset).decimals(), price);
+        return gross - Math.mulDiv(gross, b.feeBps, BPS);
     }
 
     function collectFee(uint256 grossCollateral, address compoundCaller)

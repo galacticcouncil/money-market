@@ -190,6 +190,7 @@ contract HarvestTest is Test {
         aPrime.mint(address(loop), yieldPrime);
 
         // harvest mid-redemption: skims ONLY the yield, not the exiter's slice
+        vm.prank(address(harvester));
         uint256 surplusPrime = loop.harvest();
         assertApproxEqRel(surplusPrime, yieldPrime, 0.02e18, "skimmed only the carry");
         assertEq(loop.unwindTargetEquity(), inFlight, "in-flight equity untouched");

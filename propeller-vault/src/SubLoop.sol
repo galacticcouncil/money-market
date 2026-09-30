@@ -123,7 +123,7 @@ contract SubLoop is
     error ZeroAddress();
     error HealthyEnough();
     error InsufficientShares();
-    error HarvesterUnset();
+    error NotHarvester();
     error Underfunded();
     error InvalidParameters();
 
@@ -506,6 +506,9 @@ contract SubLoop is
     ///      keeps SubLoop swap-free — withdrawing the surplus leaves HF at target
     ///      (removed collateral was the cushion the yield created).
     function harvest() external override nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256 surplusPrime) {
+        // Skim and distribution run in one Harvester call, so realised carry is
+        // never held outside both the loop and the vaults' share pricing.
+        if (msg.sender != harvester) revert NotHarvester();
         uint256 equity18 = totalEquity() * 1e10;
         // in-flight unwind equity belongs to exiting vaults: their shares are
         // already burned (principalEquity dropped) but the equity stays in the
@@ -531,12 +534,6 @@ contract SubLoop is
             emit Harvested(0);
             return 0;
         }
-        // permissionless: surplus routes to the configured harvester (which splits it
-        // pro-rata), NEVER the caller. An earlier fallback paid `msg.sender` when the
-        // harvester was unset — since `initialize` never assigns one, that made the
-        // whole loop carry claimable by anyone in the deploy→wiring window. Fail
-        // closed instead: no harvester, no harvest.
-        if (harvester == address(0)) revert HarvesterUnset();
         pool.withdraw(address(prime), surplusPrime, address(this)); // HF stays ≥ target
         IERC20(address(prime)).safeTransfer(harvester, surplusPrime);
         emit Harvested(surplusPrime);
@@ -607,6 +604,16 @@ contract SubLoop is
     function equityOf(address vault) external view override returns (uint256) {
         if (_totalShares == 0) return 0;
         return (_liveEquity18() * _sharesOf[vault]) / _totalShares / 1e10;
+    }
+
+    /// @inheritdoc IYieldSource
+    /// @dev Same surplus `harvest` would skim (equity above principal and
+    ///      in-flight unwinds), split by loop shares.
+    function carryOf(address vault) external view override returns (uint256) {
+        uint256 equity18 = totalEquity() * 1e10;
+        uint256 reserved18 = principalEquity + unwindTargetEquity;
+        if (_totalShares == 0 || equity18 <= reserved18) return 0;
+        return ((equity18 - reserved18) * _sharesOf[vault]) / _totalShares / 1e10;
     }
 
     /// @inheritdoc IYieldSource

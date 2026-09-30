@@ -120,7 +120,6 @@ contract PermissionlessKeeperTest is Test {
         vm.startPrank(RANDO);
         loop.pokeBorrow();
         loop.pokeRepay();
-        loop.harvest();
         vault.pokeSettle();
         vault.rebalance();
         vault.maintainPeg();
@@ -181,7 +180,7 @@ contract PermissionlessKeeperTest is Test {
         vault.deposit(1e18, address(this));
         assertGt(loop.sharesOf(address(vault)), 0, "vault holds loop shares");
 
-        // simulate PRIME parked at the Harvester (e.g. a direct SubLoop.harvest caller)
+        // simulate unsolicited PRIME sitting at the Harvester
         uint256 parked = 50e6;
         prime.mint(address(harvester), parked);
 

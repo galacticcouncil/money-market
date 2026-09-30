@@ -91,8 +91,9 @@ is validated immediately before its compound call and again at completion.
 Local guards also protect collection, claims,
 and recipient changes. All swaps, accruals and supplies roll back on failure.
 
-Direct `SubLoop.harvest()` still forwards PRIME to the configured Harvester.
-The next distribution includes that parked balance and unsolicited PRIME.
+`SubLoop.harvest()` accepts only the configured Harvester, so every skim is
+distributed in the same call. Unsolicited PRIME sent to the Harvester is
+included in the next distribution.
 Only the authenticated Harvester-funded compound path pays fees. Unregistered
 or mismatched fee wiring cannot silently exempt a source-yield distribution.
 

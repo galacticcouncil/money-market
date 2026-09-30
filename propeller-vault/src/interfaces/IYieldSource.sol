@@ -56,6 +56,10 @@ interface IYieldSource {
     /// outstanding withdrawal liabilities. Not HOLLAR's 18-decimal units.
     function equityOf(address vault) external view returns (uint256);
 
+    /// @notice `vault`'s share of accrued, not yet harvested carry in USD8.
+    /// Already inside `equityOf`; vaults price deposits against it.
+    function carryOf(address vault) external view returns (uint256);
+
     /// @notice `vault`'s share balance in this source.
     function sharesOf(address vault) external view returns (uint256);
 
@@ -78,8 +82,8 @@ interface IYieldSource {
     // ── yield realisation ─────────────────────────────────────────────────
 
     /// @notice Realise accrued carry and forward it to the configured harvester
-    ///         for per-vault, in-kind distribution. Permissionless: the payout
-    ///         pins to the harvester, never to the caller.
+    ///         for per-vault, in-kind distribution. Only the harvester calls
+    ///         this, inside its own permissionless harvest.
     /// @return surplus The amount skimmed, in the source's own yield asset.
     function harvest() external returns (uint256 surplus);
 }

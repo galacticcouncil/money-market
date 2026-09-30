@@ -102,9 +102,9 @@ hold: it self-levers PRIME's own Aave supply APY.
 
 The loop's total equity (`totalEquity()`, Aave account value) grows over time as PRIME's
 supply APY accrues, pushing it above `principalEquity` (the HOLLAR cost basis every vault
-seeded). Anyone can call:
+seeded). Anyone can call `Harvester.harvest`, which drives both steps in one call:
 
-- **`SubLoop.harvest()`**: computes `surplus = totalEquity - principalEquity - unwindTargetEquity`
+- **`SubLoop.harvest()`** (Harvester only): computes `surplus = totalEquity - principalEquity - unwindTargetEquity`
   (in-flight redemptions are explicitly excluded — they're not carry, see
   `FUTURE_IMPROVEMENTS.md` bug G), gated by a minimum threshold so dust doesn't get skimmed,
   withdraws that surplus as **PRIME** (never touching principal — HF stays at target), and
@@ -113,6 +113,11 @@ seeded). Anyone can call:
   shares** and calls `compound(PRIME, cut, minOut, route)` on every registered vault in turn.
   A registry-completeness check (`registeredShares == totalShares`) fails loudly rather than
   silently stranding a vault's cut.
+
+Until it is harvested, a vault's share of the surplus is not in `totalAssets`. `deposit`
+therefore prices new shares against `totalAssets` plus `PropellerFeeController.pendingCarry`
+(the vault's unharvested carry in collateral, net of the protocol fee), so a deposit made
+just before a harvest buys in at the value existing shares have already accrued.
 - **`CollateralVault.compound()`**: swaps its PRIME cut into *that vault's own collateral*
   (ETH for the ETH vault, tBTC for the tBTC vault — never cross-contaminated) at an
   oracle-fair floor (controller `quoteCollateral`, AaveOracle-priced, so even a malicious caller-
