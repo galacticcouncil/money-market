@@ -42,15 +42,18 @@ Record all three. The proxy is the only one consumers should interact with.
 
 ## Step 2 — Grant operational roles
 
-`initialize` does **NOT** grant `GUARDIAN_ROLE` or `CLAIM_OPERATOR_ROLE`. The admin must grant these explicitly:
+`initialize` does **NOT** grant `GUARDIAN_ROLE` or `CLAIM_OPERATOR_ROLE`. The admin must grant `GUARDIAN_ROLE`; `CLAIM_OPERATOR_ROLE` is optional:
 
 ```solidity
 // GUARDIAN_ROLE — fast pause/unpause (technical committee)
 vault.grantRole(vault.GUARDIAN_ROLE(), HYDRATION_TECH_COMMITTEE);
 
-// CLAIM_OPERATOR_ROLE — auto-claim on behalf of opted-in users.
-// REQUIRED for the keeper bot's auto-claim loop to fire (see keeper/src/keeper.ts).
-// If skipped: pull-redemption still works, but users must call redeem() themselves.
+// CLAIM_OPERATOR_ROLE — OPTIONAL. only gates the auto-claim feature: the holder may
+// call redeem()/withdraw() for users who opted in via setAutoClaim(true), paying the
+// user's own address only (_authorizeClaim). The keeper's other duties (syncMaturities,
+// pokeDecentral, pokeQueue) are permissionless and run without it.
+// If skipped: the keeper detects the missing role and skips auto-claim; users call
+// redeem() themselves.
 vault.grantRole(vault.CLAIM_OPERATOR_ROLE(), KEEPER_ADDRESS);
 ```
 
@@ -58,7 +61,7 @@ Verify with:
 
 ```solidity
 vault.hasRole(vault.GUARDIAN_ROLE(), HYDRATION_TECH_COMMITTEE) == true
-vault.hasRole(vault.CLAIM_OPERATOR_ROLE(), KEEPER_ADDRESS) == true
+vault.hasRole(vault.CLAIM_OPERATOR_ROLE(), KEEPER_ADDRESS) == true  // only if auto-claim is enabled
 ```
 
 ---
@@ -88,12 +91,12 @@ The keeper requires:
 |---|---|
 | `RPC_URL` | Hydration RPC |
 | `VAULT_ADDRESS` | proxy address from Step 1 |
-| `KEEPER_PRIVATE_KEY` | the private key whose address holds `CLAIM_OPERATOR_ROLE` (Step 2) |
+| `KEEPER_PRIVATE_KEY` | keeper signing key. Needs WETH for gas; holding `CLAIM_OPERATOR_ROLE` (Step 2) is only needed for auto-claim |
 | `ALERT_WEBHOOK` | optional — **Discord webhook URL** (`https://discord.com/api/webhooks/<id>/<token>`). Alerts post as richer embeds with yellow (warn) / red (error) sidebar coloring and the vault address in the footer. |
 
 Verify before starting:
-- Keeper address has gas (HDX) on Hydration
-- `vault.hasRole(vault.CLAIM_OPERATOR_ROLE(), keeperAddress)` is `true`
+- Keeper address has gas on Hydration. EVM gas is paid in **WETH** (asset 20), not HDX
+- (auto-claim only) `vault.hasRole(vault.CLAIM_OPERATOR_ROLE(), keeperAddress)` is `true`. The keeper checks this every cycle and logs `auto-claim enabled` / `auto-claim disabled`
 
 **Production (Docker Swarm)** — image is published at `galacticcouncil/bil-keeper:latest`:
 
@@ -148,7 +151,7 @@ Once the seed deposit is in and the oracle returns a positive answer, wire exter
 |---|---|
 | Oracle wiring fails (`deploy` reverts at line 73-76) | Re-deploy — the failed proxy is unusable (init already consumed) |
 | Seed deposit reverts | Investigate Decentral pool state (paused? min-investment changed?); fix and retry |
-| Keeper can't auto-claim | Check `hasRole(CLAIM_OPERATOR_ROLE, keeperAddress)`; check at least one user has `autoClaimEnabled == true` |
+| Keeper can't auto-claim | Keeper log says `auto-claim disabled` → grant `CLAIM_OPERATOR_ROLE` (no restart needed); otherwise check the user has `autoClaimEnabled == true` |
 | Wrong admin granted at init | Cannot rotate `DEFAULT_ADMIN_ROLE` away cleanly — accept and grant additional admins, or UUPS-upgrade with a re-init shim |
 
 ---

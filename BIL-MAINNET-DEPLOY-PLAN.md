@@ -127,6 +127,8 @@ RPC=https://rpc.hydradx.cloud \
   node scripts/post-deploy-bil-vault.mjs
 ```
 
+`KEEPER_ADDRESS` is optional. It only grants `CLAIM_OPERATOR_ROLE` for auto-claim; omit it to skip.
+
 Idempotent — re-running skips already-granted roles + already-seeded
 positions. Total gas ~300K for grants + ~3M for seed (Decentral
 `createPosition` is the heavy step). Source ~100 HOLLAR on the deployer
@@ -152,7 +154,7 @@ Post-deploy invariants (script verifies last three automatically; see
 - `vault.exchangeRate() ≈ 1e18` (±10 wei)
 - `vault.getOraclePrice() > 0`
 - `vault.hasRole(GUARDIAN_ROLE, <tech-committee>) == true`
-- `vault.hasRole(CLAIM_OPERATOR_ROLE, <keeper>) == true`
+- `vault.hasRole(CLAIM_OPERATOR_ROLE, <keeper>) == true` (only if auto-claim is enabled; the keeper runs without it)
 - (after rotation) `vault.hasRole(ADMIN_ROLE, <deployer>) == false`
 
 ---
