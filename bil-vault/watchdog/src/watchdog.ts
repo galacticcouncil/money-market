@@ -28,10 +28,18 @@ const VAULT_ABI = parseAbi([
   'function getPosition(uint256) view returns (uint256 tokenId, uint256 principal, uint256 apyWad, uint256 depositTime, uint256 maturityTime, uint8 state)',
   'function paused() view returns (bool)',
   'function hasRole(bytes32, address) view returns (bool)',
+  'function positionPool(uint256) view returns (address)',
+]);
+
+const DECENTRAL_ABI = parseAbi([
+  'function getYieldWithdrawalRequest(uint256) view returns (uint256 amount, uint256 requestTimestamp, bool exists, bool approved)',
+  'function getPrincipalWithdrawalRequest(uint256) view returns (uint256 amount, uint256 requestTimestamp, uint256 availableTimestamp, bool exists, bool approved)',
 ]);
 
 const CLAIM_OPERATOR_ROLE = keccak256(toHex('CLAIM_OPERATOR_ROLE'));
 const STATE_NAMES = ['Active', 'YieldWithdrawalRequested', 'YieldClaimed', 'PrincipalWithdrawalRequested', 'Redeemed'];
+const YIELD_REQUESTED = 1;
+const PRINCIPAL_REQUESTED = 3;
 const REDEEMED = 4;
 const BATCH = 20;
 
@@ -44,6 +52,8 @@ export class BILWatchdog {
   private vault: Address = CONFIG.VAULT_ADDRESS;
   // requestId → chain ts when first seen settled (in-memory; a restart restarts the grace clock)
   private settledSince = new Map<bigint, number>();
+  // positionIndex → chain ts when decentral first allowed the next step (keeper should act within grace)
+  private readySince = new Map<bigint, number>();
   private open = new Map<string, Tracked>();
   private rpcFailures = 0;
   private rpcAlerted = false;
@@ -161,27 +171,75 @@ export class BILWatchdog {
       if (age >= CONFIG.CLAIM_GRACE_SECONDS) {
         issues.set(`claim:${id}`, {
           level: 'error',
-          text: `Unclaimed auto-claim: request ${id}, ${user}, ${fmt(bilSettled)} BIL → ${fmt(hollarOwed)} HOLLAR, settled ≥${Math.floor(age / 60)}m ago${keeperNote}`,
+          text: `Unclaimed auto-claim: request ${id}, ${user}, ${fmt(bilSettled)} BIL → ${fmt(hollarOwed)} HOLLAR, settled ≥${dur(age)} ago${keeperNote}`,
         });
       }
     }
     for (const id of this.settledSince.keys()) if (!live.has(id)) this.settledSince.delete(id);
 
-    // matured positions the keeper should be advancing
+    // matured positions: who is holding them up, the keeper or Decentral?
     const positions = await this.batch(posHead, posCount, (i) => read<[bigint, bigint, bigint, bigint, bigint, number]>('getPosition', [i]));
+    const ready = new Set<bigint>();
     for (const [i, [tokenId, principal, , , maturity, state]] of positions) {
       if (state === REDEEMED) continue;
       const over = now - Number(maturity);
       if (over < 0) continue;
-      const desc = `position ${i} (token ${tokenId}, ${fmt(principal)} HOLLAR) in ${STATE_NAMES[state] ?? state}, ${Math.floor(over / 3600)}h past maturity`;
+      const desc = `position ${i} (token ${tokenId}, ${fmt(principal)} HOLLAR) in ${STATE_NAMES[state] ?? state}, ${dur(over)} past maturity`;
+
+      let waiting: string | null = null;
+      if (state === 0) {
+        if (!paused && over >= CONFIG.MATURED_GRACE_SECONDS) {
+          issues.set(`pos:${i}`, { level: 'warn', text: `Matured but not advanced: ${desc}${keeperNote}` });
+        }
+      } else {
+        const d = await this.decentralStatus(i, tokenId, state, now, blockNumber);
+        waiting = d.waiting;
+        if (d.waiting && d.requestedAt !== null && now - d.requestedAt >= CONFIG.APPROVAL_SLA_SECONDS) {
+          issues.set(`approval:${i}`, {
+            level: 'warn',
+            text: `Decentral slow: ${desc}, ${d.waiting} for ${dur(now - d.requestedAt)} (pool approver must act; not a keeper fault)`,
+          });
+        }
+        if (!d.waiting) {
+          ready.add(i);
+          const since = this.readySince.get(i) ?? now;
+          this.readySince.set(i, since);
+          if (!paused && now - since >= CONFIG.CLAIM_GRACE_SECONDS) {
+            issues.set(`ready:${i}`, {
+              level: 'error',
+              text: `Keeper not advancing: ${desc}, Decentral allows the next step since ≥${dur(now - since)}${keeperNote}`,
+            });
+          }
+        }
+      }
       if (over >= CONFIG.STUCK_THRESHOLD_SECONDS) {
-        issues.set(`pos:${i}`, { level: 'error', text: `Stuck ${desc}` });
-      } else if (state === 0 && !paused && over >= CONFIG.MATURED_GRACE_SECONDS) {
-        issues.set(`pos:${i}`, { level: 'warn', text: `Matured but not advanced: ${desc}${keeperNote}` });
+        issues.set(`pos:${i}`, { level: 'error', text: `Stuck ${desc}${waiting ? ` (${waiting})` : ''}` });
       }
     }
+    for (const i of this.readySince.keys()) if (!ready.has(i)) this.readySince.delete(i);
 
     return { issues, now };
+  }
+
+  /// What the next Decentral step is waiting on (null = it can proceed), and since when.
+  private async decentralStatus(
+    index: bigint,
+    tokenId: bigint,
+    state: number,
+    now: number,
+    blockNumber: bigint,
+  ): Promise<{ waiting: string | null; requestedAt: number | null }> {
+    const pool = (await this.client.readContract({ address: this.vault, abi: VAULT_ABI, functionName: 'positionPool', args: [index], blockNumber })) as Address;
+    if (state === YIELD_REQUESTED) {
+      const [, requestedAt, exists, approved] = await this.client.readContract({ address: pool, abi: DECENTRAL_ABI, functionName: 'getYieldWithdrawalRequest', args: [tokenId], blockNumber });
+      if (exists && !approved) return { waiting: 'yield withdrawal not approved', requestedAt: Number(requestedAt) };
+    } else if (state === PRINCIPAL_REQUESTED) {
+      const [, requestedAt, availableAt, exists, approved] = await this.client.readContract({ address: pool, abi: DECENTRAL_ABI, functionName: 'getPrincipalWithdrawalRequest', args: [tokenId], blockNumber });
+      if (exists && !approved) return { waiting: 'principal withdrawal not approved', requestedAt: Number(requestedAt) };
+      if (exists && now < Number(availableAt)) return { waiting: `principal delay until ${new Date(Number(availableAt) * 1000).toISOString()}`, requestedAt: null };
+    }
+    // YIELD_CLAIMED: requestPrincipalWithdrawal needs nothing from Decentral
+    return { waiting: null, requestedAt: null };
   }
 
   private async batch<T>(from: bigint, to: bigint, fn: (i: bigint) => Promise<T>): Promise<[bigint, T][]> {
@@ -217,3 +275,5 @@ export class BILWatchdog {
 }
 
 const fmt = (v: bigint) => Number(formatEther(v)).toLocaleString('en-US', { maximumFractionDigits: 2 });
+
+const dur = (sec: number) => (sec < 3600 ? `${Math.floor(sec / 60)}m` : `${Math.floor(sec / 3600)}h`);
