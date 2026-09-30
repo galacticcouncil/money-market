@@ -49,6 +49,8 @@ contract CollateralVault is
     uint256 internal constant VARIABLE_RATE = 2;
     uint256 private constant DEAD_SHARES = 1000;
     address private constant DEAD_ADDRESS = address(0xdead);
+    /// @dev Bounds one settle pass so a long funded queue can't exceed block gas.
+    uint256 internal constant MAX_SETTLE_PER_CALL = 32;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -458,7 +460,9 @@ contract CollateralVault is
         if (hollarDebtToken.balanceOf(address(this)) == 0) deleverTarget = 0;
 
         uint256 head = queueHead;
-        while (!paused() && head < queueUnwind && deleverTarget == 0) {
+        uint256 end = queueUnwind;
+        if (end - head > MAX_SETTLE_PER_CALL) end = head + MAX_SETTLE_PER_CALL;
+        while (!paused() && head < end && deleverTarget == 0) {
             // A claim closes only after settlement has advanced past this head.
             Redemption storage r = redemptions[head];
             uint256 remainingDebt = r.debtShare - r.repaid;
