@@ -118,6 +118,13 @@ node --test-reporter=tap scripts/propeller/yield-ownership-study.test.mjs
 node scripts/propeller/yield-ownership-study.mjs
 ```
 
+The [dated evidence record](evidence/yield-ownership-2026-10-02/summary.json)
+separates these model checks from the Solidity regression and final runtime
+templates. Contract test success does not implement the ownership model.
+The atomic-harvest revision passes 297 Solidity tests with zero failures and
+11 optional skips. CollateralVault remains 24,438 bytes (138 bytes of headroom);
+SubLoop is 21,328 bytes under the recorded London/via-IR compiler settings.
+
 ## Conditions before #62 can become merge-ready
 
 - Implement the ownership component and the required source-unit adjustments;

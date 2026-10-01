@@ -1,0 +1,19 @@
+{
+  "assumptions": "Exact arithmetic; unit collateral/HOLLAR price; no route impact, leverage or gas simulation.",
+  "rejectedNavPricingEntrantBeforeHarvest": "20/21",
+  "collateralClaims": {
+    "incumbent": "1037/1000",
+    "entrant": "1"
+  },
+  "retainedCarry": {
+    "incumbent": "1/25",
+    "entrant": "0"
+  },
+  "harvest": {
+    "gross": "3/50",
+    "lost": "0",
+    "feePaid": "3/1000",
+    "interestPaid": "1/50",
+    "reward": "37/1000"
+  }
+}
