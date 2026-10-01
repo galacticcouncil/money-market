@@ -14,6 +14,10 @@ contract UniswapV3FeeSetter {
     /// Governance's EVM identity (the dispatcher's Aave manager); the only caller of the owner functions.
     address public constant MANAGER = 0xAa7e0000000000000000000000000000000Aa7e0;
 
+    /// The treasury's EVM identity: the first 20 bytes of PalletId("py/trsry")'s account, which
+    /// dispatcher.dispatchAsTreasury acts as. Every permissionless collect pays here.
+    address public constant TREASURY = 0x6d6f646C70792f74727372790000000000000000;
+
     /// Divisor for the protocol's share: 4 means 1/4 of the swap fee, on both tokens.
     uint8 public constant FEE_PROTOCOL = 4;
 
@@ -31,14 +35,18 @@ contract UniswapV3FeeSetter {
 
     /// Anyone: set one of our pools' protocol fee to 4/4, unless it already is.
     function setFee(IUniswapV3Pool pool) external {
-        // The pool's claims are untrusted; only the factory's list decides whether it is ours.
-        if (FACTORY.getPool(pool.token0(), pool.token1(), pool.fee()) != address(pool)) {
-            revert UnknownPool(address(pool));
-        }
+        _checkPool(pool);
         (,,,,, uint8 packed,) = pool.slot0();
         // token0's divisor is the low 4 bits, token1's the high 4 bits.
         if (packed % 16 == FEE_PROTOCOL && packed >> 4 == FEE_PROTOCOL) revert FeeAlreadySet(address(pool));
         pool.setFeeProtocol(FEE_PROTOCOL, FEE_PROTOCOL);
+    }
+
+    /// Anyone: send all of one of our pools' collected protocol fees to TREASURY; returns the amounts sent.
+    function collectToTreasury(IUniswapV3Pool pool) external returns (uint128 amount0, uint128 amount1) {
+        _checkPool(pool);
+        // The pool caps each request at what it holds, so the maximum takes everything.
+        return pool.collectProtocol(TREASURY, type(uint128).max, type(uint128).max);
     }
 
     /// Manager only: send a pool's collected protocol fees to `recipient`; returns the amounts sent.
@@ -55,5 +63,12 @@ contract UniswapV3FeeSetter {
         if (msg.sender != MANAGER) revert NotManager(msg.sender);
         if (newOwner == address(0)) revert ZeroOwner();
         FACTORY.setOwner(newOwner);
+    }
+
+    // The pool's claims are untrusted; only the factory's list decides whether it is ours.
+    function _checkPool(IUniswapV3Pool pool) private view {
+        if (FACTORY.getPool(pool.token0(), pool.token1(), pool.fee()) != address(pool)) {
+            revert UnknownPool(address(pool));
+        }
     }
 }

@@ -14,6 +14,7 @@ import {UniswapV3FeeSetter} from "../src/UniswapV3FeeSetter.sol";
 contract UniswapV3FeeSetterTest is Test {
     IUniswapV3Factory constant FACTORY = IUniswapV3Factory(0x776c4Fd6A6170165a91bA45Dec40a14bcc8eC354);
     address constant AAVE_MANAGER = 0xAa7e0000000000000000000000000000000Aa7e0; // factory owner today
+    address constant TREASURY = 0x6d6f646C70792f74727372790000000000000000; // py/trsry, truncated to 20 bytes
     IUniswapV3Pool constant POOL_1 = IUniswapV3Pool(0x5C6208A3c316A801f8996750aA7b6f45Fc988548); // aDOT/HOLLAR, 4/4
 
     address bob = makeAddr("bob"); // creates pools
@@ -346,6 +347,73 @@ contract UniswapV3FeeSetterTest is Test {
         vm.expectRevert(bytes(""));
         vm.prank(AAVE_MANAGER);
         setter.setFactoryOwner(AAVE_MANAGER);
+    }
+
+    // 23. After the handover, Carol collects pool 1's fees to the treasury: it receives the returned
+    //     amounts, and the pool keeps 1 wei of each token.
+    function test_strangerCollectsToTreasury_treasuryReceivesAll() public {
+        handOver();
+        assertEq(setter.TREASURY(), TREASURY);
+        IERC20 token0 = IERC20(POOL_1.token0()); // aDOT
+        IERC20 token1 = IERC20(POOL_1.token1()); // HOLLAR
+        (uint128 held0, uint128 held1) = POOL_1.protocolFees();
+        assertGt(held0, 1); // pool 1 has fees to collect at this block
+        assertGt(held1, 1);
+        uint256 before0 = token0.balanceOf(TREASURY);
+        uint256 before1 = token1.balanceOf(TREASURY);
+
+        vm.prank(carol);
+        (uint128 sent0, uint128 sent1) = setter.collectToTreasury(POOL_1);
+
+        assertEq(sent0, held0 - 1);
+        assertEq(sent1, held1 - 1);
+        // aDOT is an aToken: its scaled balances can round what arrives by 1 wei.
+        assertApproxEqAbs(token0.balanceOf(TREASURY) - before0, sent0, 1);
+        assertEq(token1.balanceOf(TREASURY) - before1, sent1);
+        (uint128 left0, uint128 left1) = POOL_1.protocolFees();
+        assertEq(left0, 1);
+        assertEq(left1, 1);
+    }
+
+    // 24. Before the handover, Carol's collectToTreasury reverts with no message: the pool's owner
+    //     check refuses, because the setter is not the owner yet.
+    function test_beforeHandover_collectToTreasuryReverts() public {
+        vm.expectRevert(bytes(""));
+        vm.prank(carol);
+        setter.collectToTreasury(POOL_1);
+    }
+
+    // 25. Mallory's fake copies pool 1's tokens and fee: refused with UnknownPool.
+    function test_collectToTreasury_fakePool_revertsUnknownPool() public {
+        handOver();
+        FakePool fake = new FakePool(POOL_1.token0(), POOL_1.token1(), POOL_1.fee(), 0);
+
+        vm.expectRevert(abi.encodeWithSelector(UniswapV3FeeSetter.UnknownPool.selector, address(fake)));
+        vm.prank(mallory);
+        setter.collectToTreasury(IUniswapV3Pool(address(fake)));
+    }
+
+    // 26. Carol's collect makes the pool emit CollectProtocol from the setter to the treasury.
+    function test_collectToTreasury_emitsCollectProtocolToTreasury() public {
+        handOver();
+        (uint128 held0, uint128 held1) = POOL_1.protocolFees();
+
+        vm.expectEmit(address(POOL_1));
+        emit IUniswapV3PoolEvents.CollectProtocol(address(setter), TREASURY, held0 - 1, held1 - 1);
+        vm.prank(carol);
+        setter.collectToTreasury(POOL_1);
+    }
+
+    // 27. A second collect right after the first sends nothing and does not revert.
+    function test_secondCollectToTreasury_returnsZero() public {
+        handOver();
+        vm.prank(carol);
+        setter.collectToTreasury(POOL_1);
+
+        vm.prank(carol);
+        (uint128 sent0, uint128 sent1) = setter.collectToTreasury(POOL_1);
+        assertEq(sent0, 0);
+        assertEq(sent1, 0);
     }
 }
 
