@@ -101,6 +101,9 @@ and the fee/interest/compounding order.
 
 ## Verification and Limits
 
+- The [2 October #60/#61/#63 integration](docs/pr-integration-2026-10-02.md)
+  passed **297 Solidity tests**, with zero failures and 11 optional skips, plus
+  19 keeper tests and its build. CollateralVault has 138 bytes of runtime headroom.
 - Ordinary Solidity regression: **287 passed, zero failed, 11 optional tests or
   setups skipped**. Detailed scope and logs are in the [RC record](docs/release-candidate.md).
 - Native HydraAugustus lifecycle and Main resizing passed on an `hdx.tarn`

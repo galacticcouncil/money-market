@@ -4,6 +4,11 @@
 RC1 designates this code/documentation checkpoint, not a production deployment,
 unconditional principal guarantee, audit sign-off or approval of market limits.
 
+**Later review checkpoint:** the [2 October PR integration record](pr-integration-2026-10-02.md)
+covers #60 → #61 → #63 with 297 passing tests and updated runtime sizes.
+The September results below retain their original scope. Yield ownership and
+deposit/harvest size and rate controls remain open.
+
 The candidate is on `feat/propeller-interest-buffer`; the name is historical.
 Sponsored operating buffers have been replaced. The commit containing this
 document identifies the candidate; [runtime hashes](evidence/route-execution-2026-09-23/summary.json)
