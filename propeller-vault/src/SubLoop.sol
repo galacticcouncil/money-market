@@ -57,16 +57,16 @@ contract SubLoop is
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
     /// @notice Registered CollateralVaults — the only callers of deposit/unwind.
     bytes32 public constant VAULT_ROLE = keccak256("VAULT_ROLE");
-    // KEEPER_ROLE removed: pokeBorrow/pokeRepay/harvest/deLever are permissionless
-    // (bounded, oracle-priced, no caller payout). harvest pays the stored harvester.
+    // KEEPER_ROLE removed: pokeBorrow/pokeRepay/deLever are permissionless
+    // (bounded, oracle-priced, no caller payout). Only Harvester pulls yield.
 
     // ── config ────────────────────────────────────────────────────────────
     IAavePool public pool;
     IERC20 public hollar;
     IERC20 public prime;
     IERC20 public primeAToken; // collateral receipt (this loop's Aave position)
-    /// @notice Recipient of harvested surplus PRIME (the Harvester). With
-    ///         harvest permissionless, the payout pins here regardless of caller.
+    /// @notice Only caller of harvest and recipient of surplus PRIME.
+    ///         Users trigger its permissionless, atomic distribution entry point.
     address public harvester;
 
     // ── policy params ─────────────────────────────────────────────────────

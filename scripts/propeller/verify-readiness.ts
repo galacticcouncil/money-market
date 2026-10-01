@@ -375,7 +375,7 @@ async function main() {
     const wiredHarvester = await sread(() => loopC.harvester());
     add(
       "F. Wiring",
-      "subLoop.harvester is set (harvest reverts HarvesterUnset otherwise)",
+      "subLoop.harvester is set (only the configured Harvester can pull yield)",
       eq(wiredHarvester, HARVESTER),
       `got ${wiredHarvester ?? "read reverted"}, expected ${HARVESTER}`
     );
