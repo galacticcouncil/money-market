@@ -61,6 +61,9 @@ but does not replace missing HOLLAR.
    costs. A harvest swaps the remaining allocation into each vault's collateral,
    charges its fee, services Main interest and compounds the remainder.
    No minimum yield or fixed APY is promised.
+   Anyone can trigger the Harvester; only that contract can pull source yield,
+   so the pull and distribution are atomic. Separate ownership of pre-entry
+   yield is [designed but not implemented](docs/yield-ownership.md).
 3. **Rebalance.** Collateral appreciation can permit more Main borrowing.
    Falling collateral value triggers a PRIME-loop unwind whose net HOLLAR
    repays Main. Ordinary resizing does not sell deposited collateral.

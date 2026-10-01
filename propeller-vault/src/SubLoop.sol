@@ -127,7 +127,7 @@ contract SubLoop is
     error ZeroAddress();
     error HealthyEnough();
     error InsufficientShares();
-    error HarvesterUnset();
+    error NotHarvester();
     error Underfunded();
     error InvalidParameters();
 
@@ -579,6 +579,9 @@ contract SubLoop is
     ///      keeps SubLoop swap-free — withdrawing the surplus leaves HF at target
     ///      (removed collateral was the cushion the yield created).
     function harvest() external override nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256 surplusPrime) {
+        // Keep the source pull and collateral distribution in one transaction.
+        // This closes the parked-yield window, not pre-harvest ownership capture.
+        if (msg.sender != harvester) revert NotHarvester();
         uint256 equity18 = totalEquity() * 1e10;
         // in-flight unwind equity belongs to exiting vaults: their shares are
         // already burned (principalEquity dropped) but the equity stays in the
@@ -607,12 +610,6 @@ contract SubLoop is
             emit Harvested(0);
             return 0;
         }
-        // permissionless: surplus routes to the configured harvester (which splits it
-        // pro-rata), NEVER the caller. An earlier fallback paid `msg.sender` when the
-        // harvester was unset — since `initialize` never assigns one, that made the
-        // whole loop carry claimable by anyone in the deploy→wiring window. Fail
-        // closed instead: no harvester, no harvest.
-        if (harvester == address(0)) revert HarvesterUnset();
         pool.withdraw(address(prime), surplusPrime, address(this)); // HF stays ≥ target
         IERC20(address(prime)).safeTransfer(harvester, surplusPrime);
         emit Harvested(surplusPrime);

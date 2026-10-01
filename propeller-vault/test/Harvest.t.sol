@@ -193,6 +193,7 @@ contract HarvestTest is Test {
         uint256 expected = (loop.totalEquity() * 1e10 - loop.principalEquity() - inFlight - retained) / 1e12;
 
         // harvest mid-redemption: skims ONLY the yield, not the exiter's slice
+        vm.prank(address(harvester));
         uint256 surplusPrime = loop.harvest();
         assertApproxEqAbs(surplusPrime, expected, 1, "skim only carry above cost allowance");
         assertEq(loop.unwindTargetEquity(), inFlight, "in-flight equity untouched");

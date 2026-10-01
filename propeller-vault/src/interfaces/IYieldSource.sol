@@ -82,8 +82,8 @@ interface IYieldSource {
     // ── yield realisation ─────────────────────────────────────────────────
 
     /// @notice Realise accrued carry and forward it to the configured harvester
-    ///         for per-vault, in-kind distribution. Permissionless: the payout
-    ///         pins to the harvester, never to the caller.
+    ///         for per-vault, in-kind distribution. Only the harvester calls
+    ///         this, inside its own permissionless harvest.
     /// @return surplus The amount skimmed, in the source's own yield asset.
     function harvest() external returns (uint256 surplus);
 }

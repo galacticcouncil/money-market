@@ -98,10 +98,15 @@ is validated immediately before its compound call and again at completion.
 Local guards also protect collection, claims,
 and recipient changes. All swaps, accruals and supplies roll back on failure.
 
-Direct `SubLoop.harvest()` still forwards PRIME to the configured Harvester.
-The next distribution includes that parked balance and unsolicited PRIME.
+Only the configured Harvester can call `SubLoop.harvest()`. Anyone can call the
+Harvester, which pulls source yield and distributes it atomically. Unsolicited
+PRIME transfers are included in its next distribution.
 Only the authenticated Harvester-funded compound path pays fees. Unregistered
 or mismatched fee wiring cannot silently exempt a source-yield distribution.
+
+This restriction closes the separate source-pull/distribution window. Depositing
+before yield is harvested can still capture earlier earnings within a vault;
+the [separate yield-ownership design](yield-ownership.md) remains unimplemented.
 
 ## Fresh deployment
 

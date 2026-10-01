@@ -198,15 +198,13 @@ contract AdminConfigTest is Test {
 
     // ── carry recipient ──────────────────────────────────────────────────────
 
-    /// `initialize` never assigns a harvester. An earlier fallback paid `msg.sender`
-    /// when it was unset, making the entire loop carry claimable by anyone in the
-    /// deploy-to-wiring window.
-    function test_harvestFailsClosedWhileHarvesterUnset() public {
+    /// `initialize` never assigns a harvester, and only the wired harvester can
+    /// skim: carry is never paid to an arbitrary caller or parked mid-flight.
+    function test_harvestOnlyByWiredHarvester() public {
         assertEq(loop.harvester(), address(0), "unset at deploy");
 
         // Build real carry: ramp the loop, then let PRIME appreciate so live equity
-        // exceeds the HOLLAR cost basis. Without surplus `harvest` is a no-op and
-        // there is nothing to misroute — the window only exists once carry accrues.
+        // exceeds the HOLLAR cost basis. Without surplus `harvest` is a no-op.
         _deposit();
         for (uint256 i = 0; i < 40; i++) {
             loop.pokeBorrow();
@@ -214,12 +212,15 @@ contract AdminConfigTest is Test {
         pool.setPrice(address(prime), 1.10e18);
         assertGt(loop.totalEquity() * 1e10, loop.principalEquity(), "carry accrued");
 
-        vm.expectRevert(SubLoop.HarvesterUnset.selector);
+        vm.expectRevert(SubLoop.NotHarvester.selector);
         loop.harvest();
 
-        // and once wired, the same call pays the harvester — never the caller
-        uint256 before = prime.balanceOf(address(this));
         loop.setHarvester(address(harvester));
+        vm.expectRevert(SubLoop.NotHarvester.selector);
+        loop.harvest();
+
+        uint256 before = prime.balanceOf(address(this));
+        vm.prank(address(harvester));
         loop.harvest();
         assertEq(prime.balanceOf(address(this)), before, "caller paid nothing");
         assertGt(prime.balanceOf(address(harvester)), 0, "carry routed to the harvester");
