@@ -24,3 +24,9 @@
 	path = bil-vault/lib/openzeppelin-contracts-v5
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
 	branch = release-v5.0
+[submodule "univ3-fee-setter/lib/forge-std"]
+	path = univ3-fee-setter/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "univ3-fee-setter/lib/v3-core"]
+	path = univ3-fee-setter/lib/v3-core
+	url = https://github.com/Uniswap/v3-core
