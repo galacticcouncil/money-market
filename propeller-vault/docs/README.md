@@ -53,6 +53,10 @@ launch decisions. Defaults and experimental limits are not deployment approvals.
 
 ## Verification and Research
 
+The [2 October PR integration checkpoint](pr-integration-2026-10-02.md) records
+the combined #60/#61/#63 regression and updated runtime sizes. Separate yield
+ownership and execution size/rate controls remain outstanding.
+
 [September 25 PR completion](pr60-completion.md) resolves the target-branch
 documentation conflicts and the model replay failures recorded in RC1. It
 includes a reproducible, fixture-selected verification command and hashed logs.
