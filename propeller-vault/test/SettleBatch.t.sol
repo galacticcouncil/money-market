@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
@@ -175,7 +176,18 @@ contract SettleBatchTest is Test {
 
         // fund the whole queue so no pass stops early on a shortfall
         uint256 shortfall = vault.totalQueuedDebt() - hollar.balanceOf(address(vault)) - loop.freedOf(address(vault));
-        hollar.mint(address(vault), shortfall + 1e18);
+        // Review-only adaptation: #60 assigns recovery funding to a cohort.
+        // Fund each exit explicitly instead of giving the first exit the
+        // entire queue's aggregate top-up as unsolicited vault cash.
+        PropellerMainDebt ledger = PropellerMainDebt(address(vault.mainDebt()));
+        uint256 queuedDebt = vault.totalQueuedDebt();
+        for (uint256 i; i <= userReq; ++i) {
+            (,,, uint256 requestDebt,,,,,) = vault.redemptions(i);
+            uint256 topUp = (shortfall + 1e18) * requestDebt / queuedDebt + 1;
+            hollar.mint(address(this), topUp);
+            hollar.approve(address(ledger), topUp);
+            ledger.fundPosition(i + 1, topUp);
+        }
 
         uint256 calls;
         uint256 maxPassGas;
