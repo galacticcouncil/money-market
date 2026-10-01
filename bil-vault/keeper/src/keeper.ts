@@ -80,6 +80,13 @@ const VAULT_ABI = [
     outputs: [{ name: '', type: 'uint256' }],
   },
   {
+    name: 'totalSettledBil',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
     name: 'minReinvestAmount',
     type: 'function',
     stateMutability: 'view',
@@ -274,13 +281,15 @@ export class BILKeeper {
     }
 
     // 3. Re-read state after position processing (it may have changed)
-    const [idleHollarAfter, totalQueuedBilAfter] = await Promise.all([
+    const [idleHollarAfter, totalQueuedBilAfter, totalSettledBilAfter] = await Promise.all([
       this.readContract('idleHollar'),
       this.readContract('totalQueuedBil'),
+      this.readContract('totalSettledBil'),
     ]);
 
     const idle = idleHollarAfter as bigint;
-    const queued = totalQueuedBilAfter as bigint;
+    // totalQueuedBil still counts settled-but-unclaimed shares; only the unsettled part needs funds
+    const queued = (totalQueuedBilAfter as bigint) - (totalSettledBilAfter as bigint);
     const minReinvest = minReinvestAmount as bigint;
 
     // 4. pokeQueue handles both queue processing and reinvestment
