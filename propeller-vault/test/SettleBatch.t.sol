@@ -176,7 +176,7 @@ contract SettleBatchTest is Test {
 
         // fund the whole queue so no pass stops early on a shortfall
         uint256 shortfall = vault.totalQueuedDebt() - hollar.balanceOf(address(vault)) - loop.freedOf(address(vault));
-        // Review-only adaptation: #60 assigns recovery funding to a cohort.
+        // Main debt accounting assigns recovery funding to a cohort.
         // Fund each exit explicitly instead of giving the first exit the
         // entire queue's aggregate top-up as unsolicited vault cash.
         PropellerMainDebt ledger = PropellerMainDebt(address(vault.mainDebt()));
