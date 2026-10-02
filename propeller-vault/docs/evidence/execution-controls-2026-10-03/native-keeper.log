@@ -1,0 +1,13 @@
+  harvest economics: valueUSD8=10624409100 gasUSD8=12272467 urgent=false execute=false
+batchedHarvestBudget 127368
+batchedHarvestLimit.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9 48293
+batchedHarvestLimit.0xc5a5c42992decbae36851359345fe25997f5c42d 48329
+  harvest economics: valueUSD8=21248818200 gasUSD8=12272480 urgent=false execute=true
+  bounded native harvest → 0xe7f54f3dc68210225d4143bd67972366aa94ddc88574c08c1920ad3f12d7827a
+  idle native peg: no useful work
+oversized.approve 24376
+
+Final resumed assertion run (accepts the exact native TradeSize selector):
+  idle native peg: no useful work
+
+Final status: native-execution-controls-passed

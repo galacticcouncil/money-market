@@ -8,8 +8,10 @@ import {ISubLoop} from "./interfaces/ISubLoop.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IPropellerFeeController} from "./interfaces/IPropellerFeeController.sol";
+import {ExecutionController} from "./ExecutionController.sol";
 
 interface ICompoundable {
+    function collateral() external view returns (address);
     function prepareHarvest() external returns (uint256);
     function compound(address tokenIn, uint256 amountIn, uint256 minOut, bytes calldata route) external;
 }
@@ -30,6 +32,8 @@ contract Harvester is AccessControl, ReentrancyGuard {
     address[] public vaults;
     mapping(address => bool) public isRegistered;
     IPropellerFeeController public feeController;
+    ExecutionController public executionController;
+    uint256 public lastHarvestAt;
 
     event HarvestRun(uint256 surplusPrime);
     event DeLeverRun();
@@ -42,9 +46,11 @@ contract Harvester is AccessControl, ReentrancyGuard {
     error NotRegistered();
     error FeeControllerUnset();
     error HarvestConfigurationChanged();
+    event ExecutionControllerSet(address indexed controller);
 
     constructor(address _subLoop, address _prime, address admin) {
         if (_subLoop == address(0) || _prime == address(0) || admin == address(0)) revert ZeroAddress();
+        lastHarvestAt = block.timestamp;
         subLoop = ISubLoop(_subLoop);
         prime = IERC20(_prime);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
@@ -103,10 +109,21 @@ contract Harvester is AccessControl, ReentrancyGuard {
         emit FeeControllerUpdated(controller);
     }
 
+    function setExecutionController(address controller) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        if (controller.code.length == 0 || address(executionController) != address(0)) revert ZeroAddress();
+        executionController = ExecutionController(controller);
+        emit ExecutionControllerSet(controller);
+    }
+
+    function _fit(address vault, uint256 amount) private view returns (uint256) {
+        if (address(executionController) == address(0)) return amount;
+        return executionController.fit(vault, address(prime), ICompoundable(vault).collateral(), amount);
+    }
+
     /// @notice Realize each vault's owned loop carry → distribute PRIME →
     ///         compound each vault's cut into its collateral.
     /// @param minOuts per-vault min collateral out (slippage bound); pass 0s in tests.
-    function harvest(uint256[] calldata minOuts) external nonReentrant {
+    function harvest(uint256[] calldata minOuts) external nonReentrant returns (uint256 surplus) {
         IPropellerFeeController controller = feeController;
         if (address(controller) == address(0)) revert FeeControllerUnset();
         uint256 version = controller.configurationVersion();
@@ -127,17 +144,30 @@ contract Harvester is AccessControl, ReentrancyGuard {
         require(registeredShares == total, "vault set incomplete");
         uint256 capacity = Math.min(totalWeight, subLoop.harvestCapacity());
         uint256 donated = prime.balanceOf(address(this));
-        uint256 surplus;
         uint256 totalBurned;
         for (uint256 i; i < n; ++i) {
             address v = vaults[i];
             uint256 amount;
             if (capacity != 0 && weights[i] != 0) {
-                (amount, burned[i]) = subLoop.harvestFor(v, Math.mulDiv(capacity, weights[i], totalWeight));
+                uint256 shares = Math.mulDiv(capacity, weights[i], totalWeight);
+                if (address(executionController) != address(0)) {
+                    uint256 expected = subLoop.previewHarvest(shares);
+                    uint256 bounded = _fit(v, expected);
+                    shares = expected == 0 ? 0 : Math.mulDiv(shares, bounded, expected);
+                    // Converting the bounded input back to shares rounds down.
+                    // Leave sub-minimum tails earning in the source.
+                    if (_fit(v, subLoop.previewHarvest(shares)) == 0) shares = 0;
+                }
+                (amount, burned[i]) = subLoop.harvestFor(v, shares);
                 totalBurned += burned[i];
                 surplus += amount;
             }
             uint256 gift = total == 0 ? 0 : Math.mulDiv(donated, beforeShares[i], total);
+            if (address(executionController) != address(0)) {
+                // Owned carry has priority. Do not make a second dust trade on
+                // the same route; parked donations cannot bypass the limits.
+                gift = amount == 0 ? _fit(v, gift) : 0;
+            }
             uint256 minimum = i < minOuts.length ? minOuts[i] : 0;
             uint256 yieldMinimum = amount == 0 ? 0 : Math.mulDiv(minimum, amount, amount + gift, Math.Rounding.Up);
             controller.validateVault(v, address(this));
@@ -160,6 +190,7 @@ contract Harvester is AccessControl, ReentrancyGuard {
             controller.validateVault(vaults[i], address(this));
             if (subLoop.sharesOf(vaults[i]) + burned[i] != beforeShares[i]) revert HarvestConfigurationChanged();
         }
+        if (surplus != 0) lastHarvestAt = block.timestamp;
         emit HarvestRun(surplus);
     }
 

@@ -7,6 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "./interfaces/IAavePool.sol";
+import {ExecutionController} from "./ExecutionController.sol";
 import {IYieldSource} from "./interfaces/IYieldSource.sol";
 import {ISwapper} from "./interfaces/ISwapper.sol";
 import {PropellerYieldAccounting} from "./PropellerYieldAccounting.sol";
@@ -14,6 +15,7 @@ import {IPropellerFeeController} from "./interfaces/IPropellerFeeController.sol"
 import {IMainDebt} from "./interfaces/IMainDebt.sol";
 
 interface IMainDebtVault {
+    function executionController() external view returns (ExecutionController);
     function pool() external view returns (IAavePool);
     function hollar() external view returns (IERC20);
     function hollarDebtToken() external view returns (IERC20);
@@ -426,9 +428,13 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
             ISwapper swapper = IMainDebtVault(vault).swapper();
             uint256 cashBefore = hollar.balanceOf(address(this));
             collateral.forceApprove(address(swapper), sellAmount);
+            ExecutionController control = IMainDebtVault(vault).executionController();
+            if (address(control) != address(0)) minimum = Math.max(minimum,
+                control.consume(address(collateral), address(hollar), sellAmount));
             swapper.sell(address(collateral), address(hollar), sellAmount, minimum, "");
             collateral.forceApprove(address(swapper), 0);
             uint256 received = hollar.balanceOf(address(this)) - cashBefore;
+            if (address(control) != address(0)) control.record(address(collateral), address(hollar), received);
             if (received == 0 || received < minimum
                 || collateral.balanceOf(address(this)) != before_ + amount - sellAmount) revert TransferMismatch();
             positions[0].cash += received;

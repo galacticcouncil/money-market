@@ -1,0 +1,11 @@
+native-control-artifacts-verified SubLoop: match except constructor immutables
+CollateralVault: match except constructor immutables
+Harvester: match except constructor immutables
+ExecutionController: match except constructor immutables
+SyntheticToken: match except constructor immutables
+PropellerFeeController: match except constructor immutables
+CompoundLogic: match except constructor immutables
+PropellerMainDebt: executable match; metadata differs
+PropellerYieldAccounting: match except constructor immutables
+PropellerMainDebt: executable match; metadata differs
+PropellerYieldAccounting: match except constructor immutables

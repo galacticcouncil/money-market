@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
+import {ExecutionController} from "../ExecutionController.sol";
 import {PropellerYieldAccounting} from "../PropellerYieldAccounting.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -81,7 +82,9 @@ contract CompoundLogic {
         IAavePool pool = v.pool();
         IERC20 collateral = v.collateral();
         (uint256 before8,,,,,) = pool.getUserAccountData(address(this));
-        collateral.safeTransferFrom(msg.sender, address(this), assets);
+        ExecutionController control = v.executionController();
+        address payer = msg.sender == address(control) ? control.caller() : msg.sender;
+        collateral.safeTransferFrom(payer, address(this), assets);
         collateral.forceApprove(address(pool), assets);
         pool.supply(address(collateral), assets, address(this), 0);
         (uint256 after8,,,,,) = pool.getUserAccountData(address(this));
@@ -150,6 +153,8 @@ contract CompoundLogic {
                 uint256 credit8 = Math.mulDiv(value8, Math.min(credit, v.totalAssets()), v.totalAssets());
                 add = Math.min(add, credit8 * maxLtv / 10_000 * 1e10);
             }
+            uint256 wanted = add;
+            add = Math.min(add, v.yieldSource().admissionCapacity());
             if (add == 0) return (shares, supplied, 0, credit);
             pool.borrow(address(hollar), add, 2, 0, address(this));
             ISyntheticToken synthetic = v.synthetic();
@@ -163,7 +168,9 @@ contract CompoundLogic {
             hollar.forceApprove(address(v.yieldSource()), add);
             shares += v.yieldSource().deposit(add);
             ledger.borrowed(previousDebt);
-            credit = 0;
+            // Preserve unused reinvestment credit when the shared trade budget
+            // only admits part of the intended additional borrow.
+            credit = Math.mulDiv(credit, wanted - add, wanted);
         } else if (ltv > maxLtv + 300) {
             uint256 activeShares = shares - v.yieldAccounting().reservedShares();
             uint256 equity8 = shares == 0 ? 0 : Math.mulDiv(v.yieldSource().equityOf(address(this)), activeShares, shares);
@@ -198,6 +205,9 @@ contract CompoundLogic {
         uint256 floor = controller.quoteCollateral(address(this), tokenIn, amountIn)
             * (10_000 - v.compoundSlippageBps()) / 10_000;
         if (minimum < floor) minimum = floor;
+        ExecutionController control = v.executionController();
+        if (address(control) != address(0)) minimum = Math.max(minimum,
+            control.consume(tokenIn, address(collateral), amountIn));
         if (tokenIn != address(collateral)) {
             IERC20(tokenIn).forceApprove(address(swapper), amountIn);
             swapper.sell(tokenIn, address(collateral), amountIn, minimum, route);
@@ -205,6 +215,7 @@ contract CompoundLogic {
             if (IERC20(tokenIn).balanceOf(address(this)) != inputBefore) revert PrincipalShortfall();
         }
         uint256 out = collateral.balanceOf(address(this)) - collateralBefore;
+        if (address(control) != address(0)) control.record(tokenIn, address(collateral), out);
         if (out == 0 || out < minimum) revert PrincipalShortfall();
         collateral.forceApprove(address(controller), out);
         uint256 service;

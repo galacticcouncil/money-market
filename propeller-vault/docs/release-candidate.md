@@ -11,8 +11,9 @@ The September results below retain their original scope. PR #62 adds
 Its [completion record](pr62-completion-2026-10-02.md) contains the new implementation evidence.
 The later [three-pass validation](pr62-three-pass-validation-2026-10-02.md)
 includes a fresh native lifecycle of the corrected ownership contracts on
-runtime 447 with unchanged oracle values and swap floors. Deposit/harvest size
-and rate controls, conversion economics and production policy remain open.
+runtime 447 with unchanged oracle values and swap floors. The later [execution controls implementation](execution-controls-implementation.md)
+adds admission/harvest bounds and economical keeper scheduling. Production policy,
+quote-aware UI integration and deployment activation remain open.
 
 The candidate is on `feat/propeller-interest-buffer`; the name is historical.
 Sponsored operating buffers have been replaced. The commit containing this
@@ -77,7 +78,7 @@ organic APY; preserving principal after external recovery is not self-funding.
 | PRIME reference and wiring              | Open       | Correct replacement feed, provenance/freshness approval, Aave and pool-peg governance wiring             |
 | Strict entry on unchanged market        | Native test passed; policy unapproved | #62 passes at the 2 October pin without a price/floor override; approve final limits and repeat against the production deployment |
 | Funded replenishment                    | Open       | Provider/inventory funding, executable spreads, size/day capacity and settlement/outage budgets          |
-| Admission and harvest sizing            | Open       | Initial/upward deposits and harvests bounded or queued; `deployTranche` alone does not cap them          |
+| Admission and harvest sizing            | Implemented for review; activation open | Shared controller, finite approved budgets, quote-aware clients and exact-deployment rehearsal required |
 | TVL/ramp/slippage policy                | Unapproved | Limits justified by market liquidity, money-market cash, HSM funding and keeper throughput               |
 | Governance recovery and operations      | Open       | Funded backstop, all-holder recovery procedure, monitored/redundant keepers and emergency drill          |
 | Final deployment and independent review | Open       | Exact-bytecode review, production adapter deployment/roles/routes, fresh end-to-end governance rehearsal |
@@ -88,7 +89,7 @@ organic APY; preserving principal after external recovery is not self-funding.
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Oracle and risk review    | Approve provenance, freshness/outage behavior and coordinated Aave/pool-peg wiring; replay gradual peg convergence.                               |
 | Liquidity and treasury    | Confirm funded PRIME replenishment, two-way execution budgets, shared stablecoin capacity and governance recovery funding.                        |
-| Contract engineering      | Bound admission/harvest sizes, close applicable accounting review findings and retain exact principal/claim ownership tests.                      |
+| Contract engineering      | Review execution-controller integration, close applicable accounting findings and retain exact principal/claim ownership tests.                      |
 | Research                  | Complete the provider-calibrated six-TVL coupled campaign. Snapshot-replay failures are closed; historical turnover is not a provider commitment. |
 | Governance and operations | Approve launch parameters, exact roles, monitored keepers, pause coverage and a rehearsed recovery process.                                       |
 | Release reviewers         | Review the exact final artifacts and sign off on the fresh governance/native acceptance run.                                                      |

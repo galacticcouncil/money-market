@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PropellerLooper } from '../src/looper.js';
-import { ROUNDING_POLICIES } from '../src/config.js';
+import { CONFIG, ROUNDING_POLICIES } from '../src/config.js';
 
 const LOOP = '0x0000000000000000000000000000000000000001';
 const VAULT = '0x0000000000000000000000000000000000000002';
@@ -20,6 +20,7 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
     deleverTarget: 0n, availableHollar: 0n, mainDebt: OTHER, ready: true, pendingUnwindOf: 0n, harvestable: false, ...overrides,
   };
   keeper.read = async (_abi: unknown, _address: string, fn: string) => {
+    if (state.failRead === fn) throw new Error('monitor unavailable');
     assert.ok(fn in state, `unexpected read ${fn}`);
     if (fn === 'paused' && _address !== LOOP) return state.vaultPaused || state.emergencyPaused;
     return state[fn];
@@ -27,6 +28,7 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
   keeper.blockTimestamp = async () => 100n;
   keeper.readLeverage = async () => null;
   keeper.poke = async (_abi: unknown, address: string, fn: string, _label: string, args: unknown[]) => {
+    if (fn === 'maintainPeg') return false; // real poke filters a zero-work peg simulation
     if (fn === 'startUnwinds') assert.deepEqual(args, [8n], 'native-tested start batch fits the keeper budget');
     calls.push(`${address}:${fn}`); return true;
   };
@@ -102,7 +104,7 @@ test('rounding monitor read failure alerts without blocking debt service', async
 
 test('harvest precedes optional ramp and reinvests in the same maintenance cycle', async () => {
   assert.deepEqual(await cycle({ harvestable: true, healthFactor: 2n * TARGET }, false, true), [
-    `${OTHER}:harvest`, `${LOOP}:pokeBorrow`, `${VAULT}:maintainPeg`, `${VAULT}:pokeSettle`, `${VAULT}:rebalance`,
+    `${OTHER}:harvest`, `${LOOP}:pokeBorrow`, `${VAULT}:pokeSettle`, `${VAULT}:rebalance`,
   ]);
 });
 test('empty harvests do not submit transactions or trigger extra maintenance', async () => {
@@ -111,4 +113,19 @@ test('empty harvests do not submit transactions or trigger extra maintenance', a
 test('harvest availability never bypasses emergency or local pause', async () => {
   assert.deepEqual(await cycle({ harvestable: true, emergencyPaused: true }, false, true), []);
   assert.deepEqual(await cycle({ harvestable: true, vaultPaused: true }, false, true), []);
+});
+
+test('a standby operator still acts on safety repayment while postponing optional ramp', async () => {
+  const [count, index] = [CONFIG.OPERATOR_COUNT, CONFIG.OPERATOR_INDEX];
+  CONFIG.OPERATOR_COUNT = 2;
+  CONFIG.OPERATOR_INDEX = 0; // timestamp 100 is operator 1's slot
+  try {
+    assert.deepEqual(await cycle({healthFactor: 2n * TARGET}), []);
+    assert.deepEqual(await cycle({healthFactor: TARGET - 1n}), [`${LOOP}:deLever`, `${LOOP}:pokeRepay`]);
+  } finally { CONFIG.OPERATOR_COUNT = count; CONFIG.OPERATOR_INDEX = index; }
+});
+
+test('a broken vault queue monitor cannot prevent source safety repayment', async () => {
+  assert.deepEqual(await cycle({healthFactor: TARGET - 1n, failRead: 'queueHead'}), [`${LOOP}:deLever`, `${LOOP}:pokeRepay`]);
+  assert.deepEqual(await cycle({healthFactor: TARGET * 2n, failRead: 'queueHead'}), []);
 });

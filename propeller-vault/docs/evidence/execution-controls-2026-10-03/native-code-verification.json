@@ -1,0 +1,258 @@
+{
+  "status": "native-control-artifacts-verified",
+  "rpc": "http://127.0.0.1:8164",
+  "fork": {
+    "chainId": 222222,
+    "block": "15306846",
+    "hash": "0x02f6c220e92ae361c69ffbc6fe624c691ce9b9191e49ef5d34d891cdd2f6de7c",
+    "runtime": {
+      "specName": "hydradx",
+      "implName": "hydradx",
+      "authoringVersion": 1,
+      "specVersion": 447,
+      "implVersion": 0,
+      "apis": [
+        [
+          "0xdf6acb689907609b",
+          5
+        ],
+        [
+          "0x37e397fc7c91f5e4",
+          2
+        ],
+        [
+          "0x40fe3ad401f8959a",
+          6
+        ],
+        [
+          "0xd2bc9897eed08f15",
+          3
+        ],
+        [
+          "0xf78b278be53f454c",
+          2
+        ],
+        [
+          "0xab3c0572291feb8b",
+          1
+        ],
+        [
+          "0xdd718d5cc53262d4",
+          1
+        ],
+        [
+          "0xea93e3f16f3d6962",
+          3
+        ],
+        [
+          "0x695c80446b8b3d4e",
+          1
+        ],
+        [
+          "0x9af86751b70c112d",
+          1
+        ],
+        [
+          "0xbc9d89904f5b923f",
+          1
+        ],
+        [
+          "0x37c8bb1350a9a2a8",
+          4
+        ],
+        [
+          "0x582211f65bb14b89",
+          6
+        ],
+        [
+          "0xe65b00e46cedd0aa",
+          2
+        ],
+        [
+          "0x0bb67a52fcd040ff",
+          1
+        ],
+        [
+          "0x34a3d488166b5a55",
+          1
+        ],
+        [
+          "0x542334fe4fd7cada",
+          1
+        ],
+        [
+          "0x6ff52ee858e6c5bd",
+          1
+        ],
+        [
+          "0xd7bdd8a272ca0d65",
+          2
+        ],
+        [
+          "0x04e70521a0d3d2f8",
+          1
+        ],
+        [
+          "0x91b1c8b16328eb92",
+          2
+        ],
+        [
+          "0x9ffb505aa738d69c",
+          1
+        ],
+        [
+          "0x2b5f5bcd2460e4f0",
+          1
+        ],
+        [
+          "0xa2b2b484fcb86943",
+          1
+        ],
+        [
+          "0x75fc5fbf0e9c71bc",
+          1
+        ],
+        [
+          "0x6aa673a4e69ae9a5",
+          1
+        ],
+        [
+          "0xfbc577b9d747efd6",
+          1
+        ]
+      ],
+      "transactionVersion": 1,
+      "stateVersion": 1
+    }
+  },
+  "verifiedAtBlock": "15307027",
+  "results": [
+    {
+      "name": "SubLoop",
+      "address": "0x1f10f3ba7acb61b2f50b9d6ddcf91a6f787c0e82",
+      "runtimeBytes": 23981,
+      "codeHash": "0x52914300987c3b6d6495390fabccb0f6b57c76b659d575c8ba4d8c7e40a77493",
+      "exactExceptImmutables": true,
+      "metadataOnlyDifference": false
+    },
+    {
+      "name": "CollateralVault",
+      "address": "0x525c7063e7c20997baae9bda922159152d0e8417",
+      "runtimeBytes": 24086,
+      "codeHash": "0x7ca5311b7c80b27d09843e84562fe80ef601360a1d183181f9b7a7d36c9650cb",
+      "exactExceptImmutables": true,
+      "metadataOnlyDifference": false
+    },
+    {
+      "name": "Harvester",
+      "address": "0xb82008565fdc7e44609fa118a4a681e92581e680",
+      "runtimeBytes": 9147,
+      "codeHash": "0xcdd14313c134bf094821a8a9b80182fb61182928953755f4ab5718a3d6a78454",
+      "exactExceptImmutables": true,
+      "metadataOnlyDifference": false
+    },
+    {
+      "name": "ExecutionController",
+      "address": "0x99dbe4aea58e518c50a1c04ae9b48c9f6354612f",
+      "runtimeBytes": 9813,
+      "codeHash": "0x560978f07eb16242f2c0820a5d3fe801149e69349b8b88fb1b0204b3ab836480",
+      "exactExceptImmutables": true,
+      "metadataOnlyDifference": false
+    },
+    {
+      "name": "SyntheticToken",
+      "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+      "runtimeBytes": 4827,
+      "codeHash": "0x52b09af2bc57a539994ebf86ed230c771d0e70389b8a56056114f1d26e09b78e",
+      "exactExceptImmutables": true,
+      "metadataOnlyDifference": false
+    },
+    {
+      "name": "PropellerFeeController",
+      "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+      "runtimeBytes": 8960,
+      "codeHash": "0xf1fbd3ccbb7c453e1343a4e019e1d7602aa1d165e3885f1442e43147595dfed1",
+      "exactExceptImmutables": true,
+      "metadataOnlyDifference": false
+    },
+    {
+      "name": "CompoundLogic",
+      "address": "0x4f4588Ed715A88420222a08c74e8D8c0f432Df96",
+      "runtimeBytes": 17150,
+      "codeHash": "0xedfec4db834009bfbb0f8822742ea245fd559f95a8ebc4f4c85067f87b93eba4",
+      "exactExceptImmutables": true,
+      "metadataOnlyDifference": false
+    },
+    {
+      "name": "PropellerMainDebt",
+      "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      "runtimeBytes": 17483,
+      "codeHash": "0x6f003e291b7fa0a63f39114093883d559d8f5f4ec09038f82cffda8f0a78450f",
+      "exactExceptImmutables": false,
+      "metadataOnlyDifference": true
+    },
+    {
+      "name": "PropellerYieldAccounting",
+      "address": "0x61c36a8d610163660E21a8b7359e1Cac0C9133e1",
+      "runtimeBytes": 12230,
+      "codeHash": "0xd428bc289d87c05d045ae925a058b0b82104dbbaa466f3da55f8051a75525dbb",
+      "exactExceptImmutables": true,
+      "metadataOnlyDifference": false
+    },
+    {
+      "name": "PropellerMainDebt",
+      "address": "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+      "runtimeBytes": 17483,
+      "codeHash": "0x790a7bf3f09dff5e268ad0063fc77ff730bd22472cf4d5f8d23980f96a5a6b2f",
+      "exactExceptImmutables": false,
+      "metadataOnlyDifference": true
+    },
+    {
+      "name": "PropellerYieldAccounting",
+      "address": "0xfBD745797A0fb50429f0a2b04581092798Fdf30B",
+      "runtimeBytes": 12230,
+      "codeHash": "0xbb49126b3d39cacf36ada2dfeb9198305915b0ab48e4826b2ac97594016dab35",
+      "exactExceptImmutables": true,
+      "metadataOnlyDifference": false
+    }
+  ],
+  "artifacts": {
+    "SubLoop": {
+      "file": "/tmp/propeller-controls-production/out/SubLoop.sol/SubLoop.json",
+      "sha256": "be6a36e43af5e1fb20e0bc4863e55416a224ff4216ceb34fa61f71e0628b1c94"
+    },
+    "CollateralVault": {
+      "file": "/tmp/propeller-controls-production/out/CollateralVault.sol/CollateralVault.json",
+      "sha256": "cba8909c583f5368bf956d0ac041d77854ef1f67f11fcdb52e4bbf0ebb915d39"
+    },
+    "Harvester": {
+      "file": "/tmp/propeller-controls-production/out/Harvester.sol/Harvester.json",
+      "sha256": "e8b9455670aa70885bf26fd17706110709e92e0d051debb5cda44233d8f88398"
+    },
+    "ExecutionController": {
+      "file": "/tmp/propeller-controls-production/out/ExecutionController.sol/ExecutionController.json",
+      "sha256": "599db0b633b5cf4bdf1155f59841634f73d767c2de072a55a4ee0d3ee8722e23"
+    },
+    "SyntheticToken": {
+      "file": "/tmp/propeller-controls-production/out/SyntheticToken.sol/SyntheticToken.json",
+      "sha256": "9f2797f2f481472940bd22e2eefb28105ef6339e78797df75785c13fa89a352c"
+    },
+    "PropellerFeeController": {
+      "file": "/tmp/propeller-controls-production/out/PropellerFeeController.sol/PropellerFeeController.json",
+      "sha256": "ebfcbb2a390ee73c89c889b3bbc54a0a8ff634817fbd773cdd13fea26ba4c3ae"
+    },
+    "CompoundLogic": {
+      "file": "/tmp/propeller-controls-production/out/CompoundLogic.sol/CompoundLogic.json",
+      "sha256": "166b726472b12e918ea61c1acef404950ae21b3d537db4542d4b2685fc6b7460"
+    },
+    "PropellerMainDebt": {
+      "file": "/tmp/propeller-controls-production/out/PropellerMainDebt.sol/PropellerMainDebt.json",
+      "sha256": "a43ca9196c9850550ff3cbfa4ede8b29d19947fa77b4401fa185e51684eab1ac"
+    },
+    "PropellerYieldAccounting": {
+      "file": "/tmp/propeller-controls-production/out/PropellerYieldAccounting.sol/PropellerYieldAccounting.json",
+      "sha256": "0ed2518a2a3be0b377e822f7337e79b10cc912de3deb5d7fbf7b5ce8130a17aa"
+    }
+  },
+  "limitation": "Local follow-up to a funded campaign, not a fresh exact-artifact production activation rehearsal"
+}

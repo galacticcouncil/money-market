@@ -1,0 +1,28 @@
+Missing dependencies found. Installing now...
+
+Warning: Your project has missing dependencies that could not be installed.
+Compiling 93 files with Solc 0.8.22
+Solc 0.8.22 finished in 69.87s
+Compiler run successful!
+
+Ran 17 tests for test/ExecutionControls.t.sol:ExecutionControlsTest
+[PASS] test_controlsBoundedHarvestLeavesOwnedYieldInvested() (gas: 14543110)
+[PASS] test_controlsClearingRecoveredSafetyTargetIsUsefulWork() (gas: 8311150)
+[PASS] test_controlsDirectEntryAndMissingQuotesCannotBypass() (gas: 2729399)
+[PASS] test_controlsExpiredForkedAndFutureQuotesRevert() (gas: 655592)
+[PASS] test_controlsExpiredPolicyNeverBlocksSafetyRepayment() (gas: 9007913)
+[PASS] test_controlsInitialDepositIsBoundedAndRollsBackDebtAndShares() (gas: 1744440)
+[PASS] test_controlsMinimumEntryAndGlobalBudgetAcrossDepositsAndRamp() (gas: 7023626)
+[PASS] test_controlsNewcomerCannotTakeYieldBetweenPartialHarvests() (gas: 15196568)
+[PASS] test_controlsPegHysteresisAndNoOpResults() (gas: 8372011)
+[PASS] test_controlsPreviewCannotMoveFundsEvenWhenMined() (gas: 5085702)
+[PASS] test_controlsQuoteDeteriorationRevertsAndRefundsBudget() (gas: 4807150)
+[PASS] test_controlsSecondVaultCannotObtainAnotherAdmissionBudget() (gas: 6779577)
+[PASS] test_controlsSmallerHarvestCanServiceDebtWhenFullBatchExceedsServiceLimit() (gas: 12689109)
+[PASS] test_controlsUpwardRebalanceMakesBoundedProgress() (gas: 12089487)
+[PASS] test_harvestCompoundsYieldIntoSharePrice() (gas: 9190280)
+[PASS] test_harvestSkipsInFlightUnwindEquity() (gas: 13459944)
+[PASS] test_primePriceAppreciationCompoundsToDeposit() (gas: 9207286)
+Suite result: ok. 17 passed; 0 failed; 0 skipped; finished in 47.77ms (367.52ms CPU time)
+
+Ran 1 test suite in 49.12ms (47.77ms CPU time): 17 tests passed, 0 failed, 0 skipped (17 total tests)

@@ -107,6 +107,7 @@ try {
   process.env.VAULT_ADDRESSES = [vault, tbtcVault].join(',');
   process.env.HARVESTER_ADDRESS = harvester;
   process.env.POOL_ADDRESS = pool;
+  process.env.GAS_ASSET_ADDRESS = input.market.collateral;
   process.env.PROPELLER_ROUNDING_RESERVES = JSON.stringify(input.roundingPolicies);
   const { PropellerLooper } = await import('../../propeller-vault/looper/dist/looper.js');
   const keeper = new PropellerLooper();

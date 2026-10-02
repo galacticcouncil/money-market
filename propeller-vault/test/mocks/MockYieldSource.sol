@@ -35,6 +35,9 @@ contract MockYieldSource is IYieldSource {
         hollar = IERC20(_hollar);
     }
 
+    function admissionCapacity() external pure returns (uint256) { return type(uint256).max; }
+    function previewHarvest(uint256) external pure returns (uint256) { return 0; }
+
     function deposit(uint256 hollarAmount) external returns (uint256 shares) {
         hollar.transferFrom(msg.sender, address(this), hollarAmount);
         shares = hollarAmount; // 1:1

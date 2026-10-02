@@ -19,6 +19,7 @@ import {IHollarDiscountDebtToken, IPropellerDiscount} from "./interfaces/IPropel
 import {IPropellerFeeController} from "./interfaces/IPropellerFeeController.sol";
 import {IMainDebt} from "./interfaces/IMainDebt.sol";
 import {PropellerYieldAccounting} from "./PropellerYieldAccounting.sol";
+import {ExecutionController} from "./ExecutionController.sol";
 import {CompoundLogic} from "./lib/CompoundLogic.sol";
 
 /// @title CollateralVault
@@ -325,7 +326,7 @@ contract CollateralVault is
         yieldAccounting.checkpoint(address(0), receiver);
         if (isUnderfunded()) revert Underfunded();
         // Governance funds the locked initial shares, never the first public user.
-        if (totalSupply() == 0 && !hasRole(ADMIN_ROLE, msg.sender)) revert BootstrapRequired();
+        if (totalSupply() == 0 && !hasRole(ADMIN_ROLE, _depositCaller())) revert BootstrapRequired();
         // one aToken balanceOf for both the cap check and share pricing
         uint256 totalA = totalAssets();
         if (totalA + assets > tvlCap) revert ExceedsTvlCap();
@@ -425,7 +426,10 @@ contract CollateralVault is
     ///         spiral has freed, then settle queued requests FIFO. For each
     ///         request, repay its Main debt slice, release+burn its synthetic,
     ///         withdraw its collateral, and mark it claimable.
-    function pokeSettle() external nonReentrant {
+    function pokeSettle() external nonReentrant returns (uint256 work) {
+        uint256 debtBefore = hollarDebtToken.balanceOf(address(this));
+        uint256 headBefore = queueHead;
+        bool accounting = mainDebt.pendingSourceAccounting();
         uint256 assetsBefore = totalAssets();
         uint256 freed = yieldSource.pullFreed();
         hollar.forceApprove(address(mainDebt), freed);
@@ -476,6 +480,8 @@ contract CollateralVault is
         // Aave's scaled aToken burn can cost an additional collateral base unit.
         _coverRounding(assetsBefore);
         _refreshDiscount();
+        work = freed + (debtBefore - Math.min(debtBefore, hollarDebtToken.balanceOf(address(this))))
+            + head - headBefore + (accounting ? 1 : 0);
     }
 
     /// @dev Use actual repayments and the live synthetic/debt ratio. Frozen
@@ -578,29 +584,33 @@ contract CollateralVault is
     /// @notice Rebalance the Main position back to the reserve's max LTV after a
     ///         collateral price move: borrow more (price up) or repay (price down),
     ///         growing/shrinking the loop and the synthetic in lockstep.
-    function rebalance() external nonReentrant whenNotPaused {
+    function rebalance() external nonReentrant whenNotPaused returns (uint256 work) {
         yieldAccounting.checkpoint(address(0), address(0));
         // Main resizing is not a safety de-lever: the synthetic floors its HF.
         // Finish existing commitments first; SubLoop safety repayment stays live.
         if (pendingWithdrawalShares != 0 || totalQueuedShares != 0 || deleverTarget != 0
-            || yieldSource.pendingUnwindOf(address(this)) != 0) return;
+            || yieldSource.pendingUnwindOf(address(this)) != 0) return 0;
+        uint256 before_ = loopShares;
         (loopShares, syntheticSupplied, deleverTarget, reinvestAssets) = abi.decode(
             Address.functionDelegateCall(compoundLogic, abi.encodeCall(CompoundLogic.rebalance, ())),
             (uint256, uint256, uint256, uint256));
         _refreshDiscount();
+        work = before_ > loopShares ? before_ - loopShares : loopShares - before_;
     }
 
     /// @notice Keep `synth·LT ≥ Main debt` as the HOLLAR debt accrues interest —
     ///         re-tops the synthetic so the principal stays un-liquidatable.
-    function maintainPeg() external nonReentrant {
+    function maintainPeg() external nonReentrant returns (uint256 add) {
         uint256 debt = hollarDebtToken.balanceOf(address(this));
         uint256 lt = synthLtBps();
         uint256 required = _bufferedSynthetic(debt, lt);
-        if (syntheticSupplied >= required) {
+        // Refill to 50bp only after half the buffer is used. Polling frequently
+        // must not top up a few wei of accrued interest every cycle.
+        if (syntheticSupplied >= Math.mulDiv(debt, BPS * 10025, lt * 10000, Math.Rounding.Up)) {
             emit SyntheticPegMaintained(0);
-            return;
+            return 0;
         }
-        uint256 add = required - syntheticSupplied;
+        add = required - syntheticSupplied;
         _supplySynth(add);
         emit SyntheticPegMaintained(int256(add));
     }
@@ -821,7 +831,19 @@ contract CollateralVault is
         if (!hasRole(role, account)) revert Unauthorized(account, role);
     }
 
+    function _depositCaller() internal view returns (address) {
+        return msg.sender == address(executionController) ? executionController.caller() : msg.sender;
+    }
+
+    function setExecutionController(address controller) external onlyRole(ADMIN_ROLE) {
+        if (controller.code.length == 0 || address(executionController) != address(0)) revert ZeroAddress();
+        executionController = ExecutionController(controller);
+        emit ExecutionControllerSet(controller);
+    }
+
+    event ExecutionControllerSet(address indexed controller);
     uint256[29] private __gap;
     PropellerYieldAccounting public yieldAccounting;
     uint256 public reinvestAssets;
+    ExecutionController public executionController;
 }

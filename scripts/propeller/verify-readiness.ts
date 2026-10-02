@@ -37,6 +37,8 @@ const RPC = process.env.RPC_URL || "https://hdx.tarn.hydration.cloud";
 const SYNTH = req("PROPELLER_SYNTH");
 const SUBLOOP = req("PROPELLER_SUBLOOP");
 const HARVESTER = req("PROPELLER_HARVESTER");
+const EXECUTION = req("PROPELLER_EXECUTION_CONTROLLER");
+const EXECUTION_POLICY = JSON.parse(req("PROPELLER_EXECUTION_POLICY"));
 const VAULTS = req("PROPELLER_VAULTS").split(",").map((v) => v.trim()).filter(Boolean);
 const SWAPPER = process.env.PROPELLER_SWAPPER;
 const GUARDIAN = process.env.PROPELLER_GUARDIAN;
@@ -53,7 +55,7 @@ const POOL = process.env.POOL || "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38";
 const GOV = "0xaa7e0000000000000000000000000000000aa7e0";
 const ROUNDING = parseRoundingPolicies(req("PROPELLER_ROUNDING_RESERVES"), VAULTS);
 
-for (const address of [SYNTH, SUBLOOP, HARVESTER, FEES, FEE_RECIPIENT, DISCOUNT, COMMITTEE, POOL, ...VAULTS]) {
+for (const address of [SYNTH, SUBLOOP, HARVESTER, EXECUTION, FEES, FEE_RECIPIENT, DISCOUNT, COMMITTEE, POOL, ...VAULTS]) {
   if (!ethers.utils.isAddress(address) || eq(address, ethers.constants.AddressZero)) {
     throw new Error(`invalid or zero deployment address: ${address}`);
   }
@@ -136,6 +138,58 @@ async function main() {
   console.log(`  vaults: ${VAULTS.join(", ")}\n`);
 
   const api = await ApiPromise.create({ provider: new WsProvider(WS), noInitWarn: true });
+
+  await section("E. Execution budgets and quotes", async () => {
+    const group = "E. Execution budgets and quotes";
+    const controller = new ethers.Contract(EXECUTION, [
+      ...ACCESS_ABI,
+      "function maxQuoteAge() view returns (uint64)", "function maxQuoteBlocks() view returns (uint64)",
+      "function lane(address,address,address) pure returns (bytes32)",
+      "function limits(bytes32) view returns (bytes32 group,uint128 minimum,uint128 maximum)",
+      "function budgets(bytes32) view returns (address token,uint128 capacity,uint128 refillPerSecond,uint128 credit,uint64 updatedAt,uint64 expiresAt)",
+      "function actions(address,bytes4) view returns (bool)",
+    ], provider);
+    const getters = ["executionController", "hollar", "prime", "primeAToken", "collateral", "mainDebt"]
+      .map(name => `function ${name}() view returns (address)`);
+    for (const target of [SUBLOOP, HARVESTER, ...VAULTS]) {
+      const bound = await new ethers.Contract(target, getters, provider).executionController();
+      add(group, `${target}: shared controller`, eq(bound, EXECUTION));
+    }
+    add(group, "governance administrator", await controller.hasRole(ethers.constants.HashZero, GOV));
+    add(group, "approved quote age", String(await controller.maxQuoteAge()) === String(EXECUTION_POLICY.maxQuoteAge));
+    add(group, "approved quote blocks", String(await controller.maxQuoteBlocks()) === String(EXECUTION_POLICY.maxQuoteBlocks));
+    const source = new ethers.Contract(SUBLOOP, getters, provider);
+    const hollar = await source.hollar(), prime = await source.prime();
+    const routes = [[SUBLOOP, hollar, await source.primeAToken()]];
+    const requiredActions = [[SUBLOOP, "pokeBorrow()"], [HARVESTER, "harvest(uint256[])"]];
+    for (const vault of VAULTS) {
+      const v = new ethers.Contract(vault, getters, provider);
+      const collateral = await v.collateral();
+      routes.push([vault, prime, collateral], [await v.mainDebt(), collateral, hollar]);
+      requiredActions.push([vault, "deposit(uint256,address)"], [vault, "rebalance()"]);
+    }
+    const now = (await provider.getBlock("latest")).timestamp;
+    const harvestGroups = new Set<string>();
+    for (const [consumer, input, output] of routes) {
+      const lane = await controller.lane(consumer, input, output);
+      const approved = EXECUTION_POLICY.limits.find((p: any) => eq(p.lane, lane));
+      const limit = await controller.limits(lane);
+      const budget = await controller.budgets(limit.group);
+      const policy = EXECUTION_POLICY.budgets.find((p: any) => eq(p.group, limit.group));
+      add(group, `${lane}: approved size`, !!approved && eq(approved.group, limit.group)
+        && limit.minimum.gt(0) && limit.maximum.gte(limit.minimum)
+        && limit.minimum.eq(approved.minimum) && limit.maximum.eq(approved.maximum));
+      add(group, `${lane}: approved active budget`, !!policy && eq(budget.token, input)
+        && budget.capacity.gte(limit.maximum) && budget.capacity.eq(policy.capacity)
+        && budget.refillPerSecond.eq(policy.refillPerSecond)
+        && budget.expiresAt.eq(policy.expiresAt) && budget.expiresAt.gt(now));
+      if (eq(input, prime)) harvestGroups.add(limit.group.toLowerCase());
+    }
+    add(group, "harvests share the PRIME route budget", harvestGroups.size === 1);
+    for (const [target, signature] of requiredActions) {
+      add(group, `${target}: ${signature} quote entrypoint`, await controller.actions(target, ethers.utils.id(signature).slice(0, 10)));
+    }
+  });
 
   await section("O. Main debt settlement", async () => {
     for (const vault of VAULTS) {
@@ -238,6 +292,7 @@ async function main() {
     SyntheticToken: SYNTH,
     SubLoop: SUBLOOP,
     Harvester: HARVESTER,
+    ExecutionController: EXECUTION,
     FeeController: FEES,
     DiscountController: DISCOUNT,
     Pool: POOL,
