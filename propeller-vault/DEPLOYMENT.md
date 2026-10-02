@@ -7,6 +7,11 @@ Audience: deployment, governance and operations reviewers. Complete the
 production transactions. This runbook supports a reviewed fresh deployment;
 it does not approve production settings or upgrade a live old-buffer deployment.
 
+The [#62 ownership implementation](docs/pr62-completion-2026-10-02.md) requires
+a fresh, matching vault/source/Main/ownership/fee/Harvester stack. Its new source
+cost bases and reward ownership cannot be initialized by preserving old storage
+slots alone. Do not apply this runbook as an upgrade of funded older vaults.
+
 **Check individual EVM outcomes.** `dispatcher.dispatchAsAaveManager` can report
 reverts as `ExecutedFailed` events while the enclosing extrinsic succeeds.
 Inspect every dispatched result and run the read-only readiness checker;
@@ -39,8 +44,9 @@ Keep signing secrets outside tracked files and archived evidence.
 
 Initialize the pinned `bil-vault/lib` dependencies and build with the
 [documented settings](README.md#build-and-test). Run serially against the same
-artifact directory. Recheck EIP-170: the candidate CollateralVault has only
-195 bytes of runtime headroom.
+artifact directory. Recheck EIP-170 against the exact final artifacts; the
+[current validation record](docs/pr62-completion-2026-10-02.md) supersedes earlier
+runtime sizes.
 
 From `propeller-vault`, the core deployment order is:
 
@@ -60,6 +66,8 @@ Continue in dependency order:
 
 1. Deploy one [Main debt ledger](script/DeployMainDebt.s.sol) per fresh vault
    using `MAIN_DEBT_VAULT`. Execute the printed governance `setMainDebt` call.
+   The ledger constructor also creates that vault's immutable yield-ownership
+   module; `setMainDebt` binds it to the vault. Verify all three addresses agree.
    The ledger requires no sponsored HOLLAR funding.
 2. Deploy and bind the [fee controller](script/DeployFees.s.sol) after the ledger
    binding. Register every vault and verify the recipient and 5% initial rate.
@@ -69,7 +77,7 @@ Continue in dependency order:
    wiring before the controlled bootstrap.
 
 Record implementation and proxy addresses, the constructor-created
-`CompoundLogic` helper, both immutable ledgers, adapter, controllers and
+`CompoundLogic` helper, each Main ledger and its ownership module, adapter, controllers and
 harvester. Compare deployed bytecode and proxy slots to the final artifacts;
 deployment success alone is insufficient.
 

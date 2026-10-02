@@ -1,0 +1,1168 @@
+{
+  "date": "2026-10-02",
+  "scope": "Implemented separate yield ownership, realized reward claims, fee vesting and prompt reinvestment; review evidence, not activation approval.",
+  "contractRegressionCommit": "08620fa3f827285e8c0601144cb535a04af33375",
+  "finalArtifactCommit": "08620fa3f827285e8c0601144cb535a04af33375",
+  "uiCommit": "c02aca4b9189256c106a179873e7d82faf884ceb",
+  "regressionToFinalRuntimeComparison": "All nine production executable runtime templates match every test batch after excluding trailing CBOR metadata. The production build sources match the tested commit.",
+  "settings": {
+    "solc": "0.8.22",
+    "evmVersion": "london",
+    "viaIR": true,
+    "optimizerRuns": 200
+  },
+  "forge": "forge Version: 1.5.1-stable\nCommit SHA: b0a9dd9ceda36f63e2326ce530c10e6916f4b8a2\nBuild Timestamp: 2025-12-22T11:39:01.425730780Z (1766403541)\nBuild Profile: maxperf",
+  "solidity": {
+    "mode": "Complete test coverage in four isolated compiler/test batches",
+    "files": 42,
+    "batches": [
+      {
+        "batch": 0,
+        "files": [
+          "test/Harvest.t.sol",
+          "test/HarvestMainDebt.t.sol",
+          "test/ProtocolFees.t.sol",
+          "test/YieldEntryFairness.t.sol",
+          "test/YieldCheckpointGas.t.sol",
+          "test/DcaDispatch.t.sol",
+          "test/PropellerDiscount.t.sol",
+          "test/PropellerDiscountFork.t.sol",
+          "test/ProtocolFeesFork.t.sol",
+          "test/SyntheticToken.t.sol"
+        ],
+        "contracts": [
+          "HarvestTest",
+          "HarvestMainDebtTest",
+          "ProtocolFeesTest",
+          "YieldEntryFairnessTest",
+          "YieldCheckpointGasTest",
+          "DcaDispatchTest",
+          "PropellerDiscountTest",
+          "PropellerDiscountForkTest",
+          "ProtocolFeesForkTest",
+          "SyntheticTokenTest"
+        ],
+        "suites": 10,
+        "passed": 104,
+        "failed": 0,
+        "skipped": 2,
+        "total": 106
+      },
+      {
+        "batch": 1,
+        "files": [
+          "test/MultiVaultFlow.t.sol",
+          "test/RecoveryE2E.t.sol",
+          "test/MainDebtCampaign.t.sol",
+          "test/Market90Days.t.sol",
+          "test/YieldFundedExecution.t.sol",
+          "test/SourceUpgradeCompatibility.t.sol"
+        ],
+        "contracts": [
+          "MultiVaultFlowTest",
+          "RecoveryE2ETest",
+          "MainDebtCampaignTest",
+          "Market90DaysTest",
+          "YieldFundedExecutionTest",
+          "SourceUpgradeCompatibilityTest"
+        ],
+        "suites": 6,
+        "passed": 81,
+        "failed": 0,
+        "skipped": 8,
+        "total": 89
+      },
+      {
+        "batch": 2,
+        "files": [
+          "test/PluggableYieldSource.t.sol",
+          "test/InterestPolicyEvidence.t.sol",
+          "test/MainDebt.t.sol",
+          "test/PrincipalRounding.t.sol",
+          "test/AccountingSafety.t.sol",
+          "test/WithdrawalCooldown.t.sol",
+          "test/SubLoopUnwind.t.sol",
+          "test/NegativeCarryView.t.sol",
+          "test/SynthLtvZero.t.sol",
+          "test/SubLoopDeploy.t.sol"
+        ],
+        "contracts": [
+          "PluggableYieldSourceTest",
+          "InterestPolicyEvidenceTest",
+          "MainDebtTest",
+          "PrincipalRoundingTest",
+          "VaultAccountingSafetyTest",
+          "SourceAccountingSafetyTest",
+          "WithdrawalCooldownTest",
+          "SourceEmergencyPauseTest",
+          "SubLoopUnwindTest",
+          "NegativeCarryViewTest",
+          "SynthLtvZeroTest",
+          "SubLoopDeployTest"
+        ],
+        "suites": 12,
+        "passed": 78,
+        "failed": 0,
+        "skipped": 0,
+        "total": 78
+      },
+      {
+        "batch": 3,
+        "files": [
+          "test/AdminConfig.t.sol",
+          "test/AdminSourceControl.t.sol",
+          "test/CollateralVaultDeposit.t.sol",
+          "test/CollateralVaultDiscount.t.sol",
+          "test/DeleverQueueInterference.t.sol",
+          "test/ExchangeRateSettleWindow.t.sol",
+          "test/GuardianPause.t.sol",
+          "test/IntegrationWithdraw.t.sol",
+          "test/KeeperOps.t.sol",
+          "test/PartialClaim.t.sol",
+          "test/PermissionlessKeeper.t.sol",
+          "test/SettleBatch.t.sol",
+          "test/SubLoopUnwindSizing.t.sol",
+          "test/UnwindSellPricing.t.sol",
+          "test/formal/VerityParity.t.sol",
+          "test/invariant/PropellerInvariant.t.sol"
+        ],
+        "contracts": [
+          "AdminConfigTest",
+          "AdminSourceControlTest",
+          "CollateralVaultDepositTest",
+          "CollateralVaultDiscountTest",
+          "DeleverQueueInterferenceTest",
+          "ExchangeRateSettleWindowTest",
+          "GuardianPauseTest",
+          "IntegrationWithdrawTest",
+          "KeeperOpsTest",
+          "PartialClaimTest",
+          "PermissionlessKeeperTest",
+          "SettleBatchTest",
+          "SubLoopUnwindSizingTest",
+          "UnwindSellPricingTest",
+          "VerityParityTest",
+          "PropellerInvariantTest"
+        ],
+        "suites": 16,
+        "passed": 67,
+        "failed": 0,
+        "skipped": 1,
+        "total": 68
+      }
+    ],
+    "suites": 44,
+    "passed": 330,
+    "failed": 0,
+    "skipped": 11,
+    "total": 341
+  },
+  "keeper": {
+    "passed": 22,
+    "failed": 0,
+    "build": "passed"
+  },
+  "storageChecker": {
+    "passed": 8,
+    "failed": 0
+  },
+  "ui": {
+    "accountingTestsPassed": 9,
+    "typescript": "passed",
+    "eslint": "passed",
+    "productionBuild": "passed with existing chunk-size warnings",
+    "abiFunctions": 42,
+    "visualOrNativeRehearsal": false
+  },
+  "runtimeTemplates": [
+    {
+      "contract": "CollateralVault",
+      "runtimeBytes": 23087,
+      "headroomBytes": 1489,
+      "initcodeTemplateBytes": 39276,
+      "runtimeTemplateHexSha256": "adb5fef7d12d3d2768b5eec47c3eb0e658c1c588441a076c662be0cc1a9975b0",
+      "initcodeTemplateHexSha256": "e6ae505eaa063b3909bb8067c28d5d40f181cdc899a873777d7d4e8c640560a0",
+      "linkReferences": {},
+      "immutableReferences": {
+        "356": [
+          {
+            "start": 11441,
+            "length": 32
+          },
+          {
+            "start": 12045,
+            "length": 32
+          },
+          {
+            "start": 13426,
+            "length": 32
+          }
+        ],
+        "8494": [
+          {
+            "start": 3556,
+            "length": 32
+          },
+          {
+            "start": 4494,
+            "length": 32
+          },
+          {
+            "start": 4869,
+            "length": 32
+          },
+          {
+            "start": 10001,
+            "length": 32
+          },
+          {
+            "start": 11750,
+            "length": 32
+          },
+          {
+            "start": 14902,
+            "length": 32
+          },
+          {
+            "start": 17223,
+            "length": 32
+          },
+          {
+            "start": 17267,
+            "length": 32
+          },
+          {
+            "start": 18002,
+            "length": 32
+          },
+          {
+            "start": 18465,
+            "length": 32
+          }
+        ]
+      }
+    },
+    {
+      "contract": "SubLoop",
+      "runtimeBytes": 22735,
+      "headroomBytes": 1841,
+      "initcodeTemplateBytes": 22966,
+      "runtimeTemplateHexSha256": "f0dddb6b98585bd25c35e992185073de59e230e1d3d0b1cd9ab67518ae135951",
+      "initcodeTemplateHexSha256": "c78c882513a559b3fcad2d1c66f08a0fd61588c299af965433acb7a36ee73db3",
+      "linkReferences": {},
+      "immutableReferences": {
+        "356": [
+          {
+            "start": 5466,
+            "length": 32
+          },
+          {
+            "start": 5763,
+            "length": 32
+          },
+          {
+            "start": 6937,
+            "length": 32
+          }
+        ]
+      }
+    },
+    {
+      "contract": "PropellerMainDebt",
+      "runtimeBytes": 16913,
+      "headroomBytes": 7663,
+      "initcodeTemplateBytes": 29786,
+      "runtimeTemplateHexSha256": "5aa5cc38bef1b1e2d1258411065a49ae81efcc28fd50b373b0451e448b07f4e0",
+      "initcodeTemplateHexSha256": "e185ebaae251c51ba449b60da7befee1e98a2ef1689c004bdcaceafdb5374219",
+      "linkReferences": {},
+      "immutableReferences": {
+        "13715": [
+          {
+            "start": 446,
+            "length": 32
+          },
+          {
+            "start": 651,
+            "length": 32
+          },
+          {
+            "start": 853,
+            "length": 32
+          },
+          {
+            "start": 1388,
+            "length": 32
+          },
+          {
+            "start": 1463,
+            "length": 32
+          },
+          {
+            "start": 1583,
+            "length": 32
+          },
+          {
+            "start": 1830,
+            "length": 32
+          },
+          {
+            "start": 2038,
+            "length": 32
+          },
+          {
+            "start": 2741,
+            "length": 32
+          },
+          {
+            "start": 4159,
+            "length": 32
+          },
+          {
+            "start": 4764,
+            "length": 32
+          },
+          {
+            "start": 5829,
+            "length": 32
+          },
+          {
+            "start": 6162,
+            "length": 32
+          },
+          {
+            "start": 6677,
+            "length": 32
+          },
+          {
+            "start": 7327,
+            "length": 32
+          },
+          {
+            "start": 7852,
+            "length": 32
+          },
+          {
+            "start": 8245,
+            "length": 32
+          },
+          {
+            "start": 8667,
+            "length": 32
+          },
+          {
+            "start": 10631,
+            "length": 32
+          },
+          {
+            "start": 10862,
+            "length": 32
+          },
+          {
+            "start": 11189,
+            "length": 32
+          },
+          {
+            "start": 13026,
+            "length": 32
+          },
+          {
+            "start": 13285,
+            "length": 32
+          },
+          {
+            "start": 15578,
+            "length": 32
+          }
+        ],
+        "13718": [
+          {
+            "start": 1322,
+            "length": 32
+          },
+          {
+            "start": 11294,
+            "length": 32
+          }
+        ],
+        "13721": [
+          {
+            "start": 717,
+            "length": 32
+          },
+          {
+            "start": 2302,
+            "length": 32
+          },
+          {
+            "start": 2537,
+            "length": 32
+          },
+          {
+            "start": 2674,
+            "length": 32
+          },
+          {
+            "start": 2827,
+            "length": 32
+          },
+          {
+            "start": 2936,
+            "length": 32
+          },
+          {
+            "start": 3078,
+            "length": 32
+          },
+          {
+            "start": 4224,
+            "length": 32
+          },
+          {
+            "start": 6605,
+            "length": 32
+          },
+          {
+            "start": 8001,
+            "length": 32
+          },
+          {
+            "start": 9465,
+            "length": 32
+          },
+          {
+            "start": 12062,
+            "length": 32
+          },
+          {
+            "start": 15439,
+            "length": 32
+          },
+          {
+            "start": 16313,
+            "length": 32
+          }
+        ],
+        "13724": [
+          {
+            "start": 557,
+            "length": 32
+          },
+          {
+            "start": 930,
+            "length": 32
+          },
+          {
+            "start": 4874,
+            "length": 32
+          },
+          {
+            "start": 7452,
+            "length": 32
+          },
+          {
+            "start": 10681,
+            "length": 32
+          },
+          {
+            "start": 10915,
+            "length": 32
+          },
+          {
+            "start": 13323,
+            "length": 32
+          },
+          {
+            "start": 15536,
+            "length": 32
+          }
+        ],
+        "13727": [
+          {
+            "start": 2170,
+            "length": 32
+          },
+          {
+            "start": 8179,
+            "length": 32
+          },
+          {
+            "start": 14514,
+            "length": 32
+          },
+          {
+            "start": 15647,
+            "length": 32
+          },
+          {
+            "start": 16363,
+            "length": 32
+          }
+        ]
+      }
+    },
+    {
+      "contract": "PropellerYieldAccounting",
+      "runtimeBytes": 11328,
+      "headroomBytes": 13248,
+      "initcodeTemplateBytes": 11660,
+      "runtimeTemplateHexSha256": "a76df86eb387dd5537ccc428b74b582bf3cd29cfda6085ae9b62960dad6ff672",
+      "initcodeTemplateHexSha256": "258e053b9e13bed58f6cd877fcdfcaf4f6ef4aa618b70edc9c422e723fb61373",
+      "linkReferences": {},
+      "immutableReferences": {
+        "16267": [
+          {
+            "start": 466,
+            "length": 32
+          },
+          {
+            "start": 650,
+            "length": 32
+          },
+          {
+            "start": 826,
+            "length": 32
+          },
+          {
+            "start": 894,
+            "length": 32
+          },
+          {
+            "start": 1049,
+            "length": 32
+          },
+          {
+            "start": 1140,
+            "length": 32
+          },
+          {
+            "start": 1219,
+            "length": 32
+          },
+          {
+            "start": 1373,
+            "length": 32
+          },
+          {
+            "start": 1574,
+            "length": 32
+          },
+          {
+            "start": 2178,
+            "length": 32
+          },
+          {
+            "start": 2880,
+            "length": 32
+          },
+          {
+            "start": 3245,
+            "length": 32
+          },
+          {
+            "start": 3795,
+            "length": 32
+          },
+          {
+            "start": 4491,
+            "length": 32
+          },
+          {
+            "start": 5000,
+            "length": 32
+          },
+          {
+            "start": 5631,
+            "length": 32
+          },
+          {
+            "start": 5900,
+            "length": 32
+          },
+          {
+            "start": 6328,
+            "length": 32
+          },
+          {
+            "start": 6819,
+            "length": 32
+          },
+          {
+            "start": 7272,
+            "length": 32
+          },
+          {
+            "start": 7799,
+            "length": 32
+          },
+          {
+            "start": 8116,
+            "length": 32
+          },
+          {
+            "start": 8542,
+            "length": 32
+          },
+          {
+            "start": 9797,
+            "length": 32
+          },
+          {
+            "start": 9869,
+            "length": 32
+          },
+          {
+            "start": 10303,
+            "length": 32
+          },
+          {
+            "start": 10615,
+            "length": 32
+          },
+          {
+            "start": 10770,
+            "length": 32
+          },
+          {
+            "start": 10959,
+            "length": 32
+          }
+        ]
+      }
+    },
+    {
+      "contract": "PropellerFeeController",
+      "runtimeBytes": 8960,
+      "headroomBytes": 15616,
+      "initcodeTemplateBytes": 9402,
+      "runtimeTemplateHexSha256": "52cabe574f3ad66aa1df308d5b0a641ce608c7c43459abaabebbc0bc4eb8f503",
+      "initcodeTemplateHexSha256": "fb706215b859c8ee00079e58e09cfe9d3c0d3601aa15a20c6c02f0415459fb6f",
+      "linkReferences": {}
+    },
+    {
+      "contract": "Harvester",
+      "runtimeBytes": 8212,
+      "headroomBytes": 16364,
+      "initcodeTemplateBytes": 8717,
+      "runtimeTemplateHexSha256": "61aa1cb3062e69cca24ea53d83c8b3e41b8cba132b428898594f287f9d2ccf0c",
+      "initcodeTemplateHexSha256": "0450af426079f936658daeb3ffaa32137f88fe8374513b22f0f4636ceddcf6a0",
+      "linkReferences": {},
+      "immutableReferences": {
+        "11188": [
+          {
+            "start": 267,
+            "length": 32
+          },
+          {
+            "start": 447,
+            "length": 32
+          },
+          {
+            "start": 647,
+            "length": 32
+          },
+          {
+            "start": 1775,
+            "length": 32
+          },
+          {
+            "start": 1907,
+            "length": 32
+          },
+          {
+            "start": 2337,
+            "length": 32
+          },
+          {
+            "start": 2540,
+            "length": 32
+          },
+          {
+            "start": 3640,
+            "length": 32
+          },
+          {
+            "start": 4161,
+            "length": 32
+          }
+        ],
+        "11191": [
+          {
+            "start": 549,
+            "length": 32
+          },
+          {
+            "start": 1254,
+            "length": 32
+          },
+          {
+            "start": 2004,
+            "length": 32
+          },
+          {
+            "start": 2936,
+            "length": 32
+          },
+          {
+            "start": 3011,
+            "length": 32
+          },
+          {
+            "start": 3112,
+            "length": 32
+          },
+          {
+            "start": 3189,
+            "length": 32
+          },
+          {
+            "start": 3255,
+            "length": 32
+          },
+          {
+            "start": 3349,
+            "length": 32
+          }
+        ]
+      }
+    },
+    {
+      "contract": "CompoundLogic",
+      "runtimeBytes": 15765,
+      "headroomBytes": 8811,
+      "initcodeTemplateBytes": 15793,
+      "runtimeTemplateHexSha256": "ddcfd94ff80e85c2ba6c4ee3e9b2a2f193248cb12381fe1a4ab5d81274171b1b",
+      "initcodeTemplateHexSha256": "41de5c2e8931a921259244b48f04addd6ff69c4bae906f6f631e088881569821",
+      "linkReferences": {}
+    },
+    {
+      "contract": "PropellerDiscount",
+      "runtimeBytes": 6740,
+      "headroomBytes": 17836,
+      "initcodeTemplateBytes": 8364,
+      "runtimeTemplateHexSha256": "772c90de33be5515dc0f174ee3807d41a9e28b2a8866e5886f90683a967d5f30",
+      "initcodeTemplateHexSha256": "76c4c157ed83402b6c3bebb84ea07a5e102ee6328d097d0941235b0cea14934a",
+      "linkReferences": {},
+      "immutableReferences": {
+        "11943": [
+          {
+            "start": 320,
+            "length": 32
+          },
+          {
+            "start": 1474,
+            "length": 32
+          },
+          {
+            "start": 1805,
+            "length": 32
+          },
+          {
+            "start": 3352,
+            "length": 32
+          },
+          {
+            "start": 5643,
+            "length": 32
+          },
+          {
+            "start": 5987,
+            "length": 32
+          }
+        ],
+        "11946": [
+          {
+            "start": 664,
+            "length": 32
+          },
+          {
+            "start": 1913,
+            "length": 32
+          },
+          {
+            "start": 2075,
+            "length": 32
+          },
+          {
+            "start": 4608,
+            "length": 32
+          }
+        ],
+        "11949": [
+          {
+            "start": 3830,
+            "length": 32
+          },
+          {
+            "start": 4320,
+            "length": 32
+          }
+        ],
+        "11951": [
+          {
+            "start": 1318,
+            "length": 32
+          },
+          {
+            "start": 3762,
+            "length": 32
+          }
+        ]
+      }
+    },
+    {
+      "contract": "SyntheticToken",
+      "runtimeBytes": 4827,
+      "headroomBytes": 19749,
+      "initcodeTemplateBytes": 5957,
+      "runtimeTemplateHexSha256": "09f1152bf3035dae04e45466cc7dae16e3a1eb682b4543a88e023a44eac3c3e4",
+      "initcodeTemplateHexSha256": "c362d5ca7b4f28868744dad0dbf58b86f84a01f5dc083f562c671b6c124371a8",
+      "linkReferences": {}
+    }
+  ],
+  "sources": {
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol": {
+      "sha256": "02d97180d60ce6d05fe0e682b51e7d654e800ec1f847c3592f31ea8f9f2af351",
+      "keccak256": "0xc8710577334e8d0799ae2b2a731b1924a7bddd64319da9787ddd2dc69bdd1ce5"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/access/IAccessControlUpgradeable.sol": {
+      "sha256": "6d3fbd4566bc123db1ee6ba2a1b79544b572df9b9cc9be360ddb3244dd07c86b",
+      "keccak256": "0xb8f5302f12138c5561362e88a78d061573e6298b7a1a5afe84a1e2c8d4d5aeaa"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/interfaces/IERC1967Upgradeable.sol": {
+      "sha256": "167828e6f725b1d47d82bc912fd0f1c6ed0fb67a4e5e06a4d62e72b4a53e95cf",
+      "keccak256": "0x47d6e06872b12e72c79d1b5eb55842f860b5fb1207b2317c2358d2766b950a7b"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/interfaces/draft-IERC1822Upgradeable.sol": {
+      "sha256": "a94576fd98585c07b2a9725f7c89c910a3a1909a03f49ec2df465327c6a0ffc3",
+      "keccak256": "0x77c89f893e403efc6929ba842b7ccf6534d4ffe03afe31670b4a528c0ad78c0f"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol": {
+      "sha256": "8e179cb7b9755bdeed75982a1ea0124626080d11ef4bd12fb514a18128a2f8af",
+      "keccak256": "0x7795808e3899c805254e3ae58074b20f799b466e3f43e057e47bedee5fb771f8"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/proxy/beacon/IBeaconUpgradeable.sol": {
+      "sha256": "e0ac7115916f0dce0a8e80769694736f3e674bdc5b2e5853964c82004b1e1cc5",
+      "keccak256": "0x24b86ac8c005b8c654fbf6ac34a5a4f61580d7273541e83e013e89d66fbf0908"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol": {
+      "sha256": "a2c4e5c274a586f145d278293ae33198cd8f412ab7e6d26f2394c8949b32b24b",
+      "keccak256": "0x89be10e757d242e9b18d5a32c9fbe2019f6d63052bbe46397a430a1d60d7f794"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol": {
+      "sha256": "4a86f9f9535a77b73779dc7f673023f3f6f20fce973fea7eff58981ea28acbbf",
+      "keccak256": "0xefb41f5c1a00249b7a99f0782f8c557865605426a3fb6e5fe9ae334293ae4f33"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/security/PausableUpgradeable.sol": {
+      "sha256": "75f05e967778c82f77388aab6cd9523400e894de0247156935f827b3ad5830a9",
+      "keccak256": "0xad32f6821f860555f9530902a65b54203a4f5db2117f4384ae47a124958078db"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol": {
+      "sha256": "82789e6bdc1d6b5d8348a741281ec7a1e46c602017e1e4b7ae805bd55bfed26b",
+      "keccak256": "0x2025ccf05f6f1f2fd4e078e552836f525a1864e3854ed555047cd732320ab29b"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol": {
+      "sha256": "41b11f70764d014fd808bcaa33aa16dbad5554263c4e7e9ef1f3359ada116a11",
+      "keccak256": "0xa9311aeb22f459e57d4dac77ee76cf43fb28ad3215278456211b5852b0e9e970"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol": {
+      "sha256": "78a6bc84bbb417f0d8a6b12e181e0f783151774f4f0c054c5d3f920e70d69f8c",
+      "keccak256": "0x0e1f0f5f62f67a881cd1a9597acbc0a5e4071f3c2c10449a183b922ae7272e3f"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/IERC20MetadataUpgradeable.sol": {
+      "sha256": "68bcca423fc72ec9625e219c9e36306c726a347e43f3711467c579bd3f6500c8",
+      "keccak256": "0x605434219ebbe4653f703640f06969faa5a1d78f0bfef878e5ddbb1ca369ceeb"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/utils/AddressUpgradeable.sol": {
+      "sha256": "db92fc1b515decad3a783b1422190877d2d70b907c6e36fb0998d9465aee42db",
+      "keccak256": "0x9c80f545915582e63fe206c6ce27cbe85a86fc10b9cd2a0e8c9488fb7c2ee422"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/utils/ContextUpgradeable.sol": {
+      "sha256": "2d3d7dc6e116cb8ebb8517208141cb3d0950b337a285f15f8476ec3df29d824e",
+      "keccak256": "0x75097e35253e7fb282ee4d7f27a80eaacfa759923185bf17302a89cbc059c5ef"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/utils/StorageSlotUpgradeable.sol": {
+      "sha256": "5b478023a1200e1364308ca06cdefec7cb7ab990a1cb904cbbdbaa7ba85076be",
+      "keccak256": "0x07ac95acad040f1fb1f6120dd0aa5f702db69446e95f82613721879d30de0908"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/utils/StringsUpgradeable.sol": {
+      "sha256": "357c8d1a0fb673fa10a884d6e27b383171ecc3eaf8dee8211de75f88ff77843d",
+      "keccak256": "0xb96dc79b65b7c37937919dcdb356a969ce0aa2e8338322bf4dc027a3c9c9a7eb"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/utils/introspection/ERC165Upgradeable.sol": {
+      "sha256": "f8d4b0a3c1d2a05d82534328734f4b2840dc39dcd14abd9e99ac037c94cb2448",
+      "keccak256": "0xd90d7723512df65ae417adaf0801042940f0dabd60039ceeaffe34aa5b238da1"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/utils/introspection/IERC165Upgradeable.sol": {
+      "sha256": "a39bc026ad6214e9ecd526bd4a1ddf9862d80bd4a9d0d031d9bafa4c3c147c0b",
+      "keccak256": "0xc6cef87559d0aeffdf0a99803de655938a7779ec0a3cd5d4383483ad85565a09"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/utils/math/MathUpgradeable.sol": {
+      "sha256": "fbf7ebc0f3c2cf5aef908ecce85e69af53db4e2c6652f61c8ac1e3f416c2fa99",
+      "keccak256": "0x2bc0007987c229ae7624eb29be6a9b84f6a6a5872f76248b15208b131ea41c4e"
+    },
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/utils/math/SignedMathUpgradeable.sol": {
+      "sha256": "4f06981f993ea4a96e078c2036b5a42e1edade38996e5180171d5fe4be2f18fe",
+      "keccak256": "0x88f6b7bba3ee33eeb741f9a0f5bc98b6e6e352d0fe4905377bb328590f84095a"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol": {
+      "sha256": "fa97ea556c990ee44f2ef4c80d4ef7d0af3f5f9b33a02142911140688106f5a9",
+      "keccak256": "0xa535a5df777d44e945dd24aa43a11e44b024140fc340ad0dfe42acf4002aade1"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol": {
+      "sha256": "7ebde70853ccafcf1876900dad458f46eb9444d591d39bfc58e952e2582f5587",
+      "keccak256": "0x287b55befed2961a7eabd7d7b1b2839cbca8a5b80ef8dcbb25ed3d4c2002c305"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
+      "sha256": "af5c8a77965cc82c33b7ff844deb9826166689e55dc037a7f2f790d057811990",
+      "keccak256": "0x8de418a5503946cabe331f35fe242d3201a73f67f77aaeb7110acb1f30423aca"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol": {
+      "sha256": "bbf4d26d660ce8f9c9887af3a46bf4eab5f4c15eb8413ad89b65ecdd05dee7a9",
+      "keccak256": "0xb264c03a3442eb37a68ad620cefd1182766b58bee6cec40343480392d6b14d69"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol": {
+      "sha256": "82dc918d8df553e2461b96595580e565424b407d73dab8a7ce4bde479810fb2a",
+      "keccak256": "0xabefac93435967b4d36a4fabcbdbb918d1f0b7ae3c3d85bc30923b326c927ed1"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/utils/Address.sol": {
+      "sha256": "8b85a2463eda119c2f42c34fa3d942b61aee65df381f48ed436fe8edb3a7d602",
+      "keccak256": "0x006dd67219697fe68d7fbfdea512e7c4cb64a43565ed86171d67e844982da6fa"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/utils/math/Math.sol": {
+      "sha256": "85a2caf3bd06579fb55236398c1321e15fd524a8fe140dff748c0f73d7a52345",
+      "keccak256": "0xe4455ac1eb7fc497bb7402579e7b4d64d928b846fce7d2b6fde06d366f21c2b3"
+    },
+    "src/CollateralVault.sol": {
+      "sha256": "c00741e18cc08c59b21dfda5c652be5e52e6827972ba314416dbd5a881f4f8f8",
+      "keccak256": "0xf16e80f97c66b2cced4f585cf4a22548aa5b04324b66fc0a0de8710621cdf444"
+    },
+    "src/PropellerMainDebt.sol": {
+      "sha256": "ea1df408ce8e541a450661e29278b6753385b1c0bb97c2f8b0007ae26ff0ba06",
+      "keccak256": "0xefcef387997074856e09cd87f16d709279026cdeb37d0aacff485279d71c92f3"
+    },
+    "src/PropellerYieldAccounting.sol": {
+      "sha256": "6cf9bef5b7636dca78b01a98c13e05b01d0914da7744b344e2048ad963289544",
+      "keccak256": "0xe43a877f54344cbe6b5bf7bbce88ca596135e61d27baaf96c41795abc8896ac3"
+    },
+    "src/interfaces/IAavePool.sol": {
+      "sha256": "668abed1251b5a5f56a3f7a85866a56cb8574bbdbe6f4b83dc1d1b6fd6334225",
+      "keccak256": "0x2aa4b16b73b84ad2de7e1aff42d6a8039b2efef811d2d38458a436e9f91ba48e"
+    },
+    "src/interfaces/IMainDebt.sol": {
+      "sha256": "a283cc417482a2ace94d02eada8a06b3a2a100270dc24b352b839e45a798fced",
+      "keccak256": "0xba64de98ab3d4e48a2b32a15d33692404b544209c22435b2763d37f59918fc55"
+    },
+    "src/interfaces/IPropellerDiscount.sol": {
+      "sha256": "acc6d8c987884127614c4905cbf44ac1b2caaf520083284fc459b97798ff3d2a",
+      "keccak256": "0x57a4cd3174e251fb87212df651e7607314e0c8bdbc15e3be79b60bb2945736ed"
+    },
+    "src/interfaces/IPropellerFeeController.sol": {
+      "sha256": "30238b01625d365ec62935b402228f33dc82e6e69de970f8d1e4a5b81f2afde8",
+      "keccak256": "0x5c68fae03730b98586586b6464760096adc23dea6230614cc0e1197d372f9ac7"
+    },
+    "src/interfaces/ISwapper.sol": {
+      "sha256": "bfee02ccfd61bbc85c9c02279423be2bd9b10f0a7b0dddcadd416a39b1b460e0",
+      "keccak256": "0x8bab030d1c35dd56d816e7bd60683cd203b510d12c57224ad84d0047c2353b71"
+    },
+    "src/interfaces/ISyntheticToken.sol": {
+      "sha256": "c1753bd8c2f86c959efd5b8ead8c96fdea7d3e461fbd2247c1fc39b4910afa00",
+      "keccak256": "0xd8c7d318cffc3feb3e169bc2b7c363c0b6d9d837e4a442d97ff0c8908010febb"
+    },
+    "src/interfaces/IYieldSource.sol": {
+      "sha256": "1b473c8bebef42b31ce11d60596aa9f2f9b3df9116dde79d9a4e9bf42f43a39f",
+      "keccak256": "0xecc444da661dcb84bb1616d30777775a0769a3c7b46b5f50e037d10b3d555a33"
+    },
+    "src/lib/CompoundLogic.sol": {
+      "sha256": "e478ac92e1f44bfc9c2996555f77708cfc86f11c0abaace66fea6eb140c76e80",
+      "keccak256": "0xb16e63f72ea922f228b1b1d0257a0f4c3c5cc04a6616f8650cd7d07ac48cf422"
+    },
+    "src/SubLoop.sol": {
+      "sha256": "531f5f1408f47308776e6497f957140c92c355a6c7c3c82e1635df3d5c3072f2",
+      "keccak256": "0x61e395fe156518b0a50183a2fc40e694e28e2a695bf1803ffd3608c8ebdf3356"
+    },
+    "src/interfaces/ISubLoop.sol": {
+      "sha256": "dbff17c76fbd028cd3e0d86a9cff4a0c4554c6bf5afaaaed9934d8b6d39fd30e",
+      "keccak256": "0x1fc3821706faad491bbf53921e9b02249d14a4e6105a9377a16aaf07dd28f356"
+    },
+    "src/lib/DcaDispatch.sol": {
+      "sha256": "705d55724ae7f61f27079daf4558b9e31fe6f54a57085471187e068508414a1c",
+      "keccak256": "0x6ed423c8942d1b604d4f75df7d4ba9c69086994d20dbf301f64a1b81e42c2c8b"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/access/AccessControl.sol": {
+      "sha256": "afd98330d27bddff0db7cb8fcf42bd4766dda5f60b40871a3bec6220f9c9edf7",
+      "keccak256": "0x0dd6e52cb394d7f5abe5dca2d4908a6be40417914720932de757de34a99ab87f"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/access/IAccessControl.sol": {
+      "sha256": "d03c1257f2094da6c86efa7aa09c1c07ebd33dd31046480c5097bc2542140e45",
+      "keccak256": "0x59ce320a585d7e1f163cd70390a0ef2ff9cec832e2aa544293a00692465a7a57"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/utils/Context.sol": {
+      "sha256": "b2cfee351bcafd0f8f27c72d76c054df9b571b62cfac4781ed12c86354e2a56c",
+      "keccak256": "0xa92e4fa126feb6907daa0513ddd816b2eb91f30a808de54f63c17d0e162c3439"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/utils/Strings.sol": {
+      "sha256": "cb2df477077a5963ab50a52768cb74ec6f32177177a78611ddbbe2c07e2d36de",
+      "keccak256": "0x3088eb2868e8d13d89d16670b5f8612c4ab9ff8956272837d8e90106c59c14a0"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol": {
+      "sha256": "8806a632d7b656cadb8133ff8f2acae4405b3a64d8709d93b0fa6a216a8a6154",
+      "keccak256": "0xd10975de010d89fd1c78dc5e8a9a7e7f496198085c151648f20cba166b32582b"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol": {
+      "sha256": "701e025d13ec6be09ae892eb029cd83b3064325801d73654847a5fb11c58b1e5",
+      "keccak256": "0x447a5f3ddc18419d41ff92b3773fb86471b1db25773e07f877f548918a185bf1"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/utils/math/SignedMath.sol": {
+      "sha256": "420a5a5d8d94611a04b39d6cf5f02492552ed4257ea82aba3c765b1ad52f77f6",
+      "keccak256": "0xf92515413956f529d95977adc9b0567d583c6203fc31ab1c23824c35187e3ddc"
+    },
+    "src/PropellerFeeController.sol": {
+      "sha256": "984ffed716231212dd409d444d5fb4302792ba88f4b5bff7d43cbc900f386052",
+      "keccak256": "0x13e0ca63a342fb2c2a87afd2734854ab6a49f550aeec01f0960a205ed1f1648d"
+    },
+    "src/Harvester.sol": {
+      "sha256": "e78a98cf76fef4b7c646d05452cd1fd507ac2554e49d3e124f48187cf11c6937",
+      "keccak256": "0xa4553991c9892118c9c4fb89103050a2b629890d8de886fe50bd5562cdc7dddf"
+    },
+    "src/PropellerDiscount.sol": {
+      "sha256": "aee101868f612e77dda4291f48b4e0ff54a1842b480cb77bc599edb536809f56",
+      "keccak256": "0xd7c6786e1794a150ad9dcece519dc8ab4e714f799f78b8653f959f900f7a3b7e"
+    },
+    "../bil-vault/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol": {
+      "sha256": "d20d52b4be98738b8aa52b5bb0f88943f62128969b33d654fbca731539a7fe0a",
+      "keccak256": "0xa56ca923f70c1748830700250b19c61b70db9a683516dc5e216694a50445d99c"
+    },
+    "src/SyntheticToken.sol": {
+      "sha256": "d429ec73e0379b4fddbfcb27c94d38e6e1ca88b4736c33279c4496def179ee07",
+      "keccak256": "0x2fe3f5c08e5cb401146a42056bbf8cd8dbec1fa310b76cfecaca5fd0fbc75ffc"
+    }
+  },
+  "logs": {
+    "solidity-0.log": {
+      "sha256": "66cc1be82c11b984055e87744df117b1506aa2dd4e653ba24f109f0cc4354bb1"
+    },
+    "solidity-0-command.json": {
+      "sha256": "e49eb0692c5b4356175759b68dbd900134859c89067868775cf22c51a7403c1a"
+    },
+    "solidity-1.log": {
+      "sha256": "0335a1997d4abd01c98ac2165eba8d4960d0ef57ce8b1591b5fbd084f27a037c"
+    },
+    "solidity-1-command.json": {
+      "sha256": "83d745ffb182db6053f37e9c8dea109362823bdf0e9756aed87971b1cba0e925"
+    },
+    "solidity-2.log": {
+      "sha256": "ce8653db690d85e0edc79ac87d3f3e508448dea87ab1f87e7d5b10fa3c75a576"
+    },
+    "solidity-2-command.json": {
+      "sha256": "507a32d539f4f526f5da554a37966834a0ee8c5403a08f00c3284474f3507081"
+    },
+    "solidity-3.log": {
+      "sha256": "1ac76a49c9ea9c35d9aa97f4be0e0a63817b6287f67d76cbea53a83a5f06aae9"
+    },
+    "solidity-3-command.json": {
+      "sha256": "6e7432a992b233653948909e74f81d135df077588538550f68a39558205ea26f"
+    },
+    "build.log": {
+      "sha256": "eab78535307f400c1a474d43c5091b81174bb406dc72ede313b2d6f433b921df"
+    },
+    "focused.log": {
+      "sha256": "fe675fe6bf7c1956b0c4defcf33e29f53935b9209d506737511f33ca0bc22d67"
+    },
+    "source-storage.log": {
+      "sha256": "c0be44c4e54777b608c24d7ee41f83a26cd8e9d2d6714c219e9acf9499198b58"
+    },
+    "storage-tests.log": {
+      "sha256": "bc623610ff4b152e0d98db01728b3596d1b3c6cec9124614af0ec713eaba7c8f"
+    },
+    "keeper-safety.log": {
+      "sha256": "f1f9f803a3918b98ca17df5cbfb95b400bbd52d3c5c66fe847df7810ce7f5ac8"
+    },
+    "keeper-rounding.log": {
+      "sha256": "3411348073099978f4288a9de1f3a7ec14e09ab8b8495178adbe4934012b1b67"
+    },
+    "keeper-build.log": {
+      "sha256": "629da133fd59012c7e5f97c21ad9dbf874436cd572d9b4d7c32f97e2b8bc7731"
+    },
+    "ui-accounting.log": {
+      "sha256": "6f8fe9bc8d4dff6be435134020ceba82722852402403ca658fffd9103222e919"
+    },
+    "ui-build.log": {
+      "sha256": "eee6e562bb2e9a2dbd3a5ada1b1b1942add80d0958886188185e0724de3f9e7e"
+    },
+    "ui-types.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ui-lint.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ui-abi.log": {
+      "sha256": "e69f782c00dbb8227ba14c1a5710dbef9cb380acb4cb5eae161061d9db830688"
+    },
+    "ui-ci.json": {
+      "sha256": "73fb99d71d538e78bbd8a39ae8b943db2c68fbf4444f25500816adf9f1412714"
+    },
+    "readiness-static.log": {
+      "sha256": "cf7b4ab46e60064c02fe66bc2023a99534ed133ec95c7c51206e683c3410a34f"
+    },
+    "dependency-pins.json": {
+      "sha256": "3d5f56813c4fb84b498b1091886935f98df8975c8f8ddf1155789a2cb2a0ad74"
+    },
+    "run-shard.py": {
+      "sha256": "32764f04f16aace68aea91daf0e643a6dd30d49320710457ef414f63b2e7bf30"
+    }
+  },
+  "dependencyPins": [
+    {
+      "dependency": "forge-std",
+      "commit": "0844d7e1fc5e60d77b68e469bff60265f236c398",
+      "solidityFilesMatched": 50
+    },
+    {
+      "dependency": "openzeppelin-contracts",
+      "commit": "dc44c9f1a4c3b10af99492eed84f83ed244203f6",
+      "solidityFilesMatched": 285
+    },
+    {
+      "dependency": "openzeppelin-contracts-upgradeable",
+      "commit": "2d081f24cac1a867f6f73d512f2022e1fa987854",
+      "solidityFilesMatched": 281
+    },
+    {
+      "dependency": "solmate",
+      "commit": "89365b880c4f3c786bdd453d4b8e8fe410344a69",
+      "solidityFilesMatched": 59
+    }
+  ],
+  "templateHashEncoding": "SHA-256 of compiler hexadecimal object with 0x removed; linked-library placeholders and immutable reference offsets are compiler templates, not deployed addresses. Initcode sizes exclude constructor arguments.",
+  "commands": {
+    "solidity": "Run all four batches with run-shard.py (0..3); exact executed arguments are in solidity-*-command.json. Equivalent unfiltered invocation: forge test --offline --evm-version london -vv.",
+    "build": "forge build --offline --evm-version london --skip test --skip script",
+    "keeperSafety": "node --import tsx --test-reporter=tap test/safety.test.ts",
+    "keeperRounding": "node --import tsx --test-reporter=tap test/rounding.test.ts",
+    "keeperBuild": "npm run build",
+    "sourceStorage": "node scripts/propeller/check-source-storage.mjs --artifact propeller-vault/out/SubLoop.sol/SubLoop.json",
+    "storageChecker": "node --test-reporter=tap scripts/propeller/source-storage.test.mjs",
+    "uiAbi": "node scripts/propeller/check-ui-abi.cjs /path/to/hydration-ui propeller-vault/out",
+    "uiTypes": "../../node_modules/.bin/tsc --noEmit -p tsconfig.json",
+    "uiLint": "../../node_modules/.bin/eslint src/modules/strategies/propeller src/i18n/locales/en/propeller.json",
+    "uiBuild": "node ../../node_modules/vite/bin/vite.js build",
+    "uiAccounting": "node ../../node_modules/vitest/vitest.mjs run src/modules/strategies/propeller/utils/accounting.test.ts"
+  },
+  "limits": [
+    "Fresh deployment only; no migration of funded older vaults.",
+    "Eleven optional fork/campaign skips; modeled source income, execution costs and explicit recovery funding are not native liquidity evidence.",
+    "Gas numbers are EVM mock measurements, not native throughput guarantees.",
+    "No fresh native acceptance run, independent audit, deployment, governance transaction or production activation.",
+    "Deposit/harvest size and rate controls and approved retention/slippage/replenishment policy remain open.",
+    "The current fixed 5,000,000 keeper gas setting is below the 7,372,545 worst settlement mock; native operation gas budgets remain an activation gate."
+  ],
+  "gas": {
+    "checkpointTransferTwoHolders": 481849,
+    "checkpointTransfer102Holders": 481850,
+    "settlementRequests": 401,
+    "settlementPasses": 13,
+    "maximumSettlementPass": 7372545,
+    "currentKeeperGasSetting": 5000000,
+    "scope": "EVM mocks; the keeper gas setting does not cover the measured worst-case settlement and requires native calibration before activation."
+  }
+}

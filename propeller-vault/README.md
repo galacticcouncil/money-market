@@ -108,10 +108,13 @@ and the fee/interest/compounding order.
 
 ## Verification and Limits
 
+- The [#62 implementation record](docs/pr62-completion-2026-10-02.md) covers
+  separate yield ownership, claimable earnings and prompt reinvestment. Use its
+  final regression and artifact sizes for the current ownership revision.
 - The [2 October #60/#61/#63 integration](docs/pr-integration-2026-10-02.md)
   passed **297 Solidity tests**, with zero failures and 11 optional skips, plus
-  19 keeper tests and its build. CollateralVault has 138 bytes of runtime headroom.
-- Ordinary Solidity regression: **287 passed, zero failed, 11 optional tests or
+  19 keeper tests and its build. That earlier CollateralVault had 138 bytes of runtime headroom.
+- September Solidity regression: **287 passed, zero failed, 11 optional tests or
   setups skipped**. Detailed scope and logs are in the [RC record](docs/release-candidate.md).
 - Native HydraAugustus lifecycle and Main resizing passed on an `hdx.tarn`
   fork with an explicitly changed oracle-reference fixture and recovery funding.
@@ -151,8 +154,9 @@ not native route coverage. See [verification commands](docs/main-debt-verificati
 ## Deployment and Upgrades
 
 Use the [deployment runbook](DEPLOYMENT.md) for fresh deployments only. No
-production migration from the superseded operating-buffer design is supplied.
-The current feature branch is `feat/propeller-interest-buffer`; its name is historical.
+production migration from funded older accounting is supplied. The ownership
+revision is reviewed in `prop_carry`, stacked on #60/#61/#63. The older
+`feat/propeller-interest-buffer` branch name is historical.
 
 Future source rotation should preserve the source proxy, storage and claim
 ownership. Compatibility tests and a [deferred rotation plan](docs/source-upgrades.md)

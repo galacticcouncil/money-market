@@ -1,0 +1,10 @@
+
+ RUN  v3.2.7 /tmp/propeller-ui-integration-20261002/apps/main
+
+ ✓ src/modules/strategies/propeller/utils/accounting.test.ts (9 tests) 3ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  16:01:22
+   Duration  319ms (transform 44ms, setup 0ms, collect 36ms, tests 3ms, environment 0ms, prepare 70ms)
+

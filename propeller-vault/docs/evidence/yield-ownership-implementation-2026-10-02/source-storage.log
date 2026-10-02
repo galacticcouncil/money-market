@@ -1,0 +1,8 @@
+{
+  "compatibleStoragePrefix": true,
+  "source": "src/SubLoop.sol",
+  "contract": "SubLoop",
+  "preservedEntries": 43,
+  "appendedEntries": 1,
+  "limitation": "No semantic, assembly-slot, economic or migration safety proof; gaps are conservatively frozen."
+}

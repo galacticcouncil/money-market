@@ -8,6 +8,7 @@ unconditional principal guarantee, audit sign-off or approval of market limits.
 covers #60 → #61 → #63 with 297 passing tests and updated runtime sizes.
 The September results below retain their original scope. PR #62 adds
 [separate yield ownership](yield-ownership.md) and faster eligible compounding.
+Its [completion record](pr62-completion-2026-10-02.md) contains the new implementation evidence.
 Deposit/harvest size and rate controls remain open; older native evidence does
 not validate the new ownership contracts.
 

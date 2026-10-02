@@ -1,0 +1,189 @@
+
+[2026-10-02T13:07:14.432Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.435Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.435Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.435Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T13:07:14.436Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.436Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T13:07:14.436Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+[ALERT] 0x0000000000000000000000000000000000000002: Main debt backing or source allocation incomplete; new ramp disabled
+
+[2026-10-02T13:07:14.437Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+[ALERT] 0x0000000000000000000000000000000000000002: Main debt backing or source allocation incomplete; new ramp disabled
+
+[2026-10-02T13:07:14.437Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.437Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T13:07:14.437Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T13:07:14.438Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.438Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T13:07:14.438Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.438Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.438Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.439Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.441Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T13:07:14.441Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.442Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T13:07:14.442Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+TAP version 13
+# Subtest: low HF schedules and services safety repayment without user redemptions
+ok 1 - low HF schedules and services safety repayment without user redemptions
+  ---
+  duration_ms: 2.314795
+  type: 'test'
+  ...
+# Subtest: an existing safety target is serviced even if HF recovered
+ok 2 - an existing safety target is serviced even if HF recovered
+  ---
+  duration_ms: 0.278345
+  type: 'test'
+  ...
+# Subtest: Main down-rebalance is settled with an empty redemption queue
+ok 3 - Main down-rebalance is settled with an empty redemption queue
+  ---
+  duration_ms: 0.298756
+  type: 'test'
+  ...
+# Subtest: active exits prevent ramping and share a single source repayment
+ok 4 - active exits prevent ramping and share a single source repayment
+  ---
+  duration_ms: 0.291596
+  type: 'test'
+  ...
+# Subtest: source pause stops swaps but not settlement of already freed funds
+ok 5 - source pause stops swaps but not settlement of already freed funds
+  ---
+  duration_ms: 0.356257
+  type: 'test'
+  ...
+# Subtest: idle healthy loop ramps normally
+ok 6 - idle healthy loop ramps normally
+  ---
+  duration_ms: 0.272295
+  type: 'test'
+  ...
+# Subtest: unfunded operating buffer blocks ramp but not repayment
+ok 7 - unfunded operating buffer blocks ramp but not repayment
+  ---
+  duration_ms: 0.393508
+  type: 'test'
+  ...
+# Subtest: late source recoveries are pulled even after collateral exits completed
+ok 8 - late source recoveries are pulled even after collateral exits completed
+  ---
+  duration_ms: 0.209104
+  type: 'test'
+  ...
+# Subtest: idle recovery surplus is not a repayment obligation
+ok 9 - idle recovery surplus is not a repayment obligation
+  ---
+  duration_ms: 0.229475
+  type: 'test'
+  ...
+# Subtest: cooldown-only requests do not start source repayment or ramping
+ok 10 - cooldown-only requests do not start source repayment or ramping
+  ---
+  duration_ms: 0.333587
+  type: 'test'
+  ...
+# Subtest: eligible requests start before a single source repayment and settlement
+ok 11 - eligible requests start before a single source repayment and settlement
+  ---
+  duration_ms: 0.219794
+  type: 'test'
+  ...
+# Subtest: local vault freeze prevents starts, FIFO settlement and new ramping
+ok 12 - local vault freeze prevents starts, FIFO settlement and new ramping
+  ---
+  duration_ms: 0.190614
+  type: 'test'
+  ...
+# Subtest: emergency freeze stops existing exit servicing without a safety target
+ok 13 - emergency freeze stops existing exit servicing without a safety target
+  ---
+  duration_ms: 0.209694
+  type: 'test'
+  ...
+# Subtest: source emergency preserves safety repayment and Main committed repayment
+ok 14 - source emergency preserves safety repayment and Main committed repayment
+  ---
+  duration_ms: 0.191614
+  type: 'test'
+  ...
+# Subtest: source swap pause postpones starting otherwise eligible unwinds
+ok 15 - source swap pause postpones starting otherwise eligible unwinds
+  ---
+  duration_ms: 0.186304
+  type: 'test'
+  ...
+# Subtest: rounding monitor read failure alerts without blocking debt service
+ok 16 - rounding monitor read failure alerts without blocking debt service
+  ---
+  duration_ms: 2.402767
+  type: 'test'
+  ...
+# Subtest: harvest precedes optional ramp and reinvests in the same maintenance cycle
+ok 17 - harvest precedes optional ramp and reinvests in the same maintenance cycle
+  ---
+  duration_ms: 0.218215
+  type: 'test'
+  ...
+# Subtest: empty harvests do not submit transactions or trigger extra maintenance
+ok 18 - empty harvests do not submit transactions or trigger extra maintenance
+  ---
+  duration_ms: 0.164313
+  type: 'test'
+  ...
+# Subtest: harvest availability never bypasses emergency or local pause
+ok 19 - harvest availability never bypasses emergency or local pause
+  ---
+  duration_ms: 0.230694
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 19.319796

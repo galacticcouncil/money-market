@@ -56,7 +56,8 @@ launch decisions. Defaults and experimental limits are not deployment approvals.
 
 The [2 October PR integration checkpoint](pr-integration-2026-10-02.md) records
 the combined #60/#61/#63 regression and updated runtime sizes. PR #62 implements separate yield
-ownership; see [its specification](yield-ownership.md) and final validation record.
+ownership; see [its specification](yield-ownership.md) and
+[implementation validation](pr62-completion-2026-10-02.md).
 Execution size/rate controls remain an activation gate.
 
 [September 25 PR completion](pr60-completion.md) resolves the target-branch
