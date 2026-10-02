@@ -151,6 +151,11 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
     function activeUnderfunded() public view override returns (bool) {
         uint256 debt = debtOf(0);
         if (debt == 0) return false;
+        // No amount of gross carry services interest at a 100% fee. Net cash
+        // or already fee-reserved receivables must cover that obligation first.
+        IPropellerFeeController controller = IMainDebtVault(vault).feeController();
+        if (address(controller) != address(0) && controller.protocolFeeBps(vault) == BPS
+            && interestOf(0) > activeFunds()) return true;
         PropellerYieldAccounting rewards = PropellerYieldAccounting(yieldAccounting);
         uint256 sourceBacking = IMainDebtVault(vault).yieldSource().equityOf(vault) * 1e10 - rewards.sourceValue();
         return sourceBacking + activeFunds() < debt || sourceBacking < rewards.requiredSourceBacking();

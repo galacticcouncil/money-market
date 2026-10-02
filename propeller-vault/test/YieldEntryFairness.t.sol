@@ -312,6 +312,29 @@ contract YieldEntryFairnessTest is HarvestTest {
         assertEq(vault.balanceOf(NEWCOMER), 0);
     }
 
+    function test_fullFeeRequiresNetFundingForMainInterestBeforeEntry() public {
+        _depositAndRamp();
+        fees.setProtocolFeeBps(address(vault), 10_000);
+        aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
+        hollarDebt.mint(address(vault), 25e18);
+        vault.maintainPeg();
+        assertTrue(vault.isUnderfunded(), "100 percent fees leave no net interest funding");
+        eth.mint(NEWCOMER, 1e18);
+        vm.startPrank(NEWCOMER);
+        eth.approve(address(vault), 1e18);
+        vm.expectRevert(PropellerMainDebt.UnfundedInterest.selector);
+        vault.deposit(1e18, NEWCOMER);
+        vm.stopPrank();
+        PropellerMainDebt ledger = PropellerMainDebt(address(vault.mainDebt()));
+        hollar.mint(address(this), 25e18);
+        hollar.approve(address(ledger), 25e18);
+        ledger.fundPosition(0, 25e18);
+        vm.prank(NEWCOMER);
+        vault.deposit(1e18, NEWCOMER);
+        assertEq(ledger.interestOf(0), 0);
+        assertEq(fees.claimableProtocolFees(address(hollar)), 0, "recovery funding is untaxed");
+    }
+
     function test_exitFeeUsesActualYieldAndLockedRateAcrossPartialReceipts() public {
         _depositAndRamp();
         PropellerMainDebt ledger = PropellerMainDebt(address(vault.mainDebt()));

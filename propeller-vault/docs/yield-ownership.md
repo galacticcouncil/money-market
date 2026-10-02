@@ -72,6 +72,14 @@ claim leaves the remaining fund units and their source value owned. The UI shows
 claimable collateral separately from estimated yield awaiting conversion, and
 retains the claim action even when ordinary wallet shares have been withdrawn.
 
+Ordinary reward claims redeem fungible reward-fund units at the current quoted
+fund NAV, capped by available unvested collateral shares. Claim liquidity is
+shared: an early claimant can take more than its proportional funded slice,
+leaving the remaining fund with more source exposure. Estimated source value
+can fall with market losses or realization costs. The separately vested shares
+of an exiting owner are excluded from that shared liquidity. This reward-fund
+tradeoff does not change the funded principal claim of the collateral shares.
+
 ## Withdrawals and fee consistency
 
 At unwind start, the withdrawing holder receives the waiting request's earned
@@ -110,6 +118,8 @@ ordinary harvest fees held in the deposited collateral. Treasury claims use the
 same `claimProtocolFees(asset)` entrypoint. At a 100% rate newly checkpointed
 yield leaves no user-owned earnings to fund Main servicing or an exit allowance;
 this can delay settlement. Previously vested rewards retain their ownership.
+Entry is blocked at that rate while Main interest exceeds available net funding,
+even if gross source equity exceeds the debt.
 Fee policy and funding constraints do not insure the position.
 
 ## Reinvestment and execution policy
