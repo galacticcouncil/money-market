@@ -26,7 +26,10 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
   };
   keeper.blockTimestamp = async () => 100n;
   keeper.readLeverage = async () => null;
-  keeper.poke = async (_abi: unknown, address: string, fn: string) => { calls.push(`${address}:${fn}`); return true; };
+  keeper.poke = async (_abi: unknown, address: string, fn: string, _label: string, args: unknown[]) => {
+    if (fn === 'startUnwinds') assert.deepEqual(args, [8n], 'native-tested start batch fits the keeper budget');
+    calls.push(`${address}:${fn}`); return true;
+  };
   await keeper.runCycle();
   return calls;
 }

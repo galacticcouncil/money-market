@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { parseRoundingPolicies } from './rounding-policy.js';
 
-const maxTxGas = process.env.MAX_TX_GAS || '12000000';
+const maxTxGas = process.env.MAX_TX_GAS || '16777216';
 if (!/^[1-9][0-9]*$/.test(maxTxGas)) throw new Error('MAX_TX_GAS must be a positive integer');
 
 export const CONFIG = {

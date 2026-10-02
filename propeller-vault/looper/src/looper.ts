@@ -201,7 +201,9 @@ export class PropellerLooper {
         now ??= await this.blockTimestamp();
         const eligibleAt = await this.read(VAULT_ABI, vault, 'unwindEligibleAt', [next]) as bigint;
         if (now >= eligibleAt) {
-          starting = await this.poke(VAULT_ABI, vault, 'startUnwinds', `startUnwinds ${short(vault)}`, [16n]);
+          // Native validation: 16 starts need over 13M gas before margins.
+          // Eight preserve more headroom for starting new exit cohorts.
+          starting = await this.poke(VAULT_ABI, vault, 'startUnwinds', `startUnwinds ${short(vault)}`, [8n]);
           started ||= starting;
         }
       }

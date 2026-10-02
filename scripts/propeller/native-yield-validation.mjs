@@ -199,14 +199,33 @@ try {
   await send('queueRecoveryApprove', hollar, tokenAbi, 'approve', [r.actor, 3200n * 10n ** 18n]);
   for (let i = 0; i < 2; ++i) await send(`queueRecovery${i}`, r.actor, actorArt.abi, 'fund',
     [hollar, buffer, BigInt(r.queue.first) + BigInt(i * 16) + 1n, 16n, 100n * 10n ** 18n]);
-  r.queue.headBefore = await vr('queueHead'); save();
-  const settled = await keeper.poke(artifact('CollateralVault').abi, vault, 'pokeSettle', 'native 32-request settlement');
-  r.queue.headAfter = await vr('queueHead');
-  r.checks.nativeQueueWithinKeeperBudget = settled && r.queue.headAfter === end;
-  r.status = r.checks.nativeQueueWithinKeeperBudget ? 'passed' : 'native-queue-budget-blocked';
-  r.limitations = ['Source income is a donated 1000 PRIME fixture, not organic APY', '32 exit cohorts receive 100 HOLLAR each to isolate settlement cost', 'Cooldown uses local native time advancement', 'Local execution is not production activation'];
-  save();
-  assert.equal(r.checks.nativeQueueWithinKeeperBudget, true, 'native queue cannot execute within keeper budget');
+  if (!r.checks.nativeQueueWithinKeeperBudget) {
+    r.queue.headBefore = await vr('queueHead'); save();
+    const settled = await keeper.poke(artifact('CollateralVault').abi, vault, 'pokeSettle', 'native 32-request settlement');
+    r.queue.headAfter = await vr('queueHead');
+    r.checks.nativeQueueWithinKeeperBudget = settled && r.queue.headAfter === end;
+    save();
+    assert.equal(r.checks.nativeQueueWithinKeeperBudget, true, 'native queue cannot execute within keeper budget');
+  }
+  if (!r.checks.nativeEightRequestStart) {
+    if (!r.extraQueue) { r.extraQueue = { first: await vr('queueTail') }; save(); }
+    await send('extraShares', vault, artifact('CollateralVault').abi, 'transfer', [r.actor, BigInt(r.queue.sharesPerRequest) * 8n]);
+    await send('extraRequests', r.actor, actorArt.abi, 'request', [vault, BigInt(r.queue.sharesPerRequest), 8n]);
+    if (!r.extraQueue.timeAdvanced) { await advance(43200n); r.extraQueue.timeAdvanced = true; save(); }
+    assert.equal(await keeper.poke(artifact('CollateralVault').abi, vault, 'startUnwinds', 'native eight-request start', [8n]), true);
+    assert.equal(await vr('queueUnwind'), BigInt(r.extraQueue.first) + 8n);
+    r.checks.nativeEightRequestStart = true; save();
+  }
+  if (!r.checks.nativeEightRequestSettlement) {
+    await send('extraRecoveryApprove', hollar, tokenAbi, 'approve', [r.actor, 800n * 10n ** 18n]);
+    await send('extraRecovery', r.actor, actorArt.abi, 'fund', [hollar, buffer, BigInt(r.extraQueue.first) + 1n, 8n, 100n * 10n ** 18n]);
+    assert.equal(await keeper.poke(artifact('CollateralVault').abi, vault, 'pokeSettle', 'native eight-request settlement'), true);
+    assert.equal(await vr('queueHead'), BigInt(r.extraQueue.first) + 8n);
+    r.checks.nativeEightRequestSettlement = true;
+  }
+  r.status = 'passed';
+  r.limitations = ['Source income is a donated 1000 PRIME fixture, not organic APY', '40 exit cohorts receive 100 HOLLAR each to isolate settlement cost', 'Cooldown uses local native time advancement', 'Local execution is not production activation'];
+  if (r.error) { r.priorFailure = r.error; }
   delete r.error;
   save();
   console.log('NATIVE OWNERSHIP AND QUEUE PASS', file);

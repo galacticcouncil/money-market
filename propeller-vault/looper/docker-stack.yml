@@ -21,7 +21,7 @@
 #   RPC_URL               — Hydration RPC (defaults below)
 #   POOL_ADDRESS          — aave main-market pool (for leverage logging)
 #   POLL_INTERVAL_MS      — cycle interval, default 30s
-#   MAX_TX_GAS            — gas budget per transaction, default 12000000
+#   MAX_TX_GAS            — gas budget per transaction, default 16777216
 #   RAMP_HF_BUFFER        — idle once HF ≤ target·(1+buffer), default 0.005
 #   SLOW_EVERY            — run peg/rebalance/harvest every N cycles, default 10
 #   ALERT_WEBHOOK         — Discord webhook URL (optional)
@@ -44,7 +44,7 @@ services:
       LOOPER_PRIVATE_KEY: ${LOOPER_PRIVATE_KEY:?LOOPER_PRIVATE_KEY required}
       POOL_ADDRESS: ${POOL_ADDRESS:-0x1b02E051683b5cfaC5929C25E84adb26ECf87B38}
       POLL_INTERVAL_MS: ${POLL_INTERVAL_MS:-30000}
-      MAX_TX_GAS: ${MAX_TX_GAS:-12000000}
+      MAX_TX_GAS: ${MAX_TX_GAS:-16777216}
       RAMP_HF_BUFFER: ${RAMP_HF_BUFFER:-0.005}
       SLOW_EVERY: ${SLOW_EVERY:-10}
       ALERT_WEBHOOK: ${ALERT_WEBHOOK:-}
