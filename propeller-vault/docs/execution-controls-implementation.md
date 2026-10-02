@@ -1,6 +1,10 @@
 # Deposit, harvest and keeper execution controls
 
 Review implementation for PR #62. This does not activate production policies.
+The latest [swap-cost analysis with operator-funded gas](sponsored-gas-swap-costs-2026-10-03.md)
+uses funded user crypto as the objective and records the $10/month shared
+infrastructure budget separately. It supersedes the gas-saving interpretation
+of the earlier model; it does not change live keeper policy.
 The [three-round operations model](operations-tuning-three-rounds-2026-10-03.md)
 includes this controller's gas and throughput limits, productive keeper writes,
 and explicit shared operating-cost sensitivities. Its returns remain conditional
