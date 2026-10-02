@@ -139,6 +139,12 @@ ramping, and runs Main maintenance/reinvestment after a successful harvest.
 Empty harvests do not create transactions. A keeper attempt is not a guarantee
 of execution or a promise of a particular APY.
 
+Main servicing uses the fresh net harvest to cover actual execution costs when
+its oracle-valued slice is insufficient. Only that transaction's fresh reward
+collateral can supplement the slice; existing funded collateral is unavailable.
+Unused HOLLAR allowance funded this way releases an equal source claim back to
+the existing reward fund, preserving unit ownership across the next checkpoint.
+
 The source's economic retention and minimum-yield policy remain separate launch
 parameters. Correct ownership does not itself eliminate their wait. Reducing a
 reserve requires an execution-cost coverage model; this PR does not authorize

@@ -1,0 +1,16 @@
+✔ identical layout preserves the baseline (1.552323ms)
+✔ append-only storage after the preserved gaps is allowed (1.052376ms)
+✔ a changed existing slot fails (2.287323ms)
+✔ packed offsets and scalar types cannot drift (2.245783ms)
+✔ mapping value structure remains part of the compatibility boundary (1.006725ms)
+✔ removal and inheritance reordering fail (0.997325ms)
+✔ gap consumption and compiler changes require separate review (1.166367ms)
+✔ compiler AST identifiers do not cause false incompatibility (0.271414ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 138.748394

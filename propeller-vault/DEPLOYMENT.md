@@ -59,7 +59,12 @@ forge script script/DeployVaultTBTC.s.sol:DeployVaultTBTC --rpc-url "$RPC" --evm
 These are simulation commands, not a single automatic deployment sequence.
 Each script requires its documented environment; later scripts consume addresses
 from the earlier actual deployment. Only an approved deployment adds
-`--broadcast --legacy --slow --gas-estimate-multiplier 200`.
+`--broadcast --legacy --slow`, after reviewing each transaction's native gas
+estimate and signed gas allowance. Do not copy a fixed multiplier: native storage
+growth charging can exceed Forge's EVM estimate, while runtime 447 enforces a
+16,777,216 gas cap per transaction. Even a 20% margin on the native vault creation
+estimate can exceed that cap. The local native harness uses `eth_estimateGas`
+with a 10% creation margin and checks the cap before submission.
 The tBTC script reuses the recorded CollateralVault implementation.
 
 Continue in dependency order:

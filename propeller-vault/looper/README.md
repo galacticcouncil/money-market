@@ -15,13 +15,27 @@ from calling `pokeBorrow()` repeatedly off-chain. That's this bot.
 - per-call amount capped when `deployTranche` is nonzero; activation requires an approved nonzero limit,
 - HOLLAR→aPRIME swap uses an Aave-oracle `minOut` to bound execution slippage.
 
-The signer needs **no role**, only target-chain transaction funding. A successful
+The signer needs **no role**, only target-chain transaction funding (WETH for
+Hydration's EVM gas). A successful
 call changes leverage and incurs execution costs. These controls do not bound
 initial/upward source deposits or harvest size; see the [RC admission gate](../docs/release-candidate.md#activation-gates).
 
 The keeper also starts eligible withdrawals, repays debt, settles requests,
 maintains synthetic collateral, and harvests. These operations require no keeper
 role; harvest pays the configured harvester, not the caller.
+
+Each submission is simulated and estimated using the current RPC fee quote.
+Gas and gas price receive a 20% margin. `MAX_TX_GAS` (default 16,777,216),
+the live block gas limit, and the native EIP-7825 transaction cap (16,777,216)
+all bound the submission; exceeding a budget alerts and skips the transaction.
+Failed estimation never falls back to a fixed gas allowance. Reverted receipts
+are reported and do not trigger follow-up work that assumes success.
+Operators must calibrate queue and route sizes on the deployed runtime: a
+budget rejection does not automatically split work or make an oversized call
+executable. Native 32-request settlement requires more than 12M gas before
+refunds, so lowering the operator budget can prevent queue progress. Starts
+use eight requests to retain extra headroom. The native deployment harness uses a separate 10% creation margin,
+since the corrected vault-plus-helper creation used 14,574,486 gas on runtime 447.
 
 ## Loop
 
@@ -30,7 +44,7 @@ Each cycle (`POLL_INTERVAL_MS`, default 30s):
 ```
 read source HF, repayment targets, route pause and emergency freeze
 read each vault's pause, queue cursors and Main repayment target
-  waiting request eligible by chain timestamp -> startUnwinds(16)
+  waiting request eligible by chain timestamp -> startUnwinds(8)
   source safety target or active unwind       -> pokeRepay()
   active vault settlement or Main repayment   -> pokeSettle()
   healthy, harvestable yield, no freeze       -> harvest()

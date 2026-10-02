@@ -1,0 +1,52 @@
+[
+  {
+    "estimate": false,
+    "decoded": {
+      "exitReason": {
+        "succeed": "Returned"
+      },
+      "value": "0x0000000000000000000000000000000000000000000000013965ddff5cb9b130",
+      "usedGas": {
+        "standard": "0x00000000000000000000000000000000000000000000000000000000000ac88a",
+        "effective": "0x00000000000000000000000000000000000000000000000000000000000ac88a"
+      },
+      "weightInfo": {
+        "refTimeLimit": 299891843000,
+        "proofSizeLimit": 3000000,
+        "refTimeUsage": 0,
+        "proofSizeUsage": 242026
+      },
+      "logs": [
+        {
+          "address": "0x61c36a8d610163660e21a8b7359e1cac0c9133e1",
+          "topics": [
+            "0xcf8d3b39a00999260b773ad427167d7b97d398e3da680c19a36f3bee20de3a38"
+          ],
+          "data": "0x0000000000000000000000000000000000000000000000009451e46072c0e64a000000000000000000000000000000000000000000000001bbdfedea13a412c4"
+        }
+      ]
+    }
+  },
+  {
+    "estimate": true,
+    "decoded": {
+      "exitReason": {
+        "error": {
+          "outOfGas": null
+        }
+      },
+      "value": "0x",
+      "usedGas": {
+        "standard": "0x0000000000000000000000000000000000000000000000000000000000b71b00",
+        "effective": "0x0000000000000000000000000000000000000000000000000000000000b71b00"
+      },
+      "weightInfo": {
+        "refTimeLimit": 299891843000,
+        "proofSizeLimit": 3000000,
+        "refTimeUsage": 0,
+        "proofSizeUsage": 239794
+      },
+      "logs": []
+    }
+  }
+]

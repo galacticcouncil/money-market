@@ -1,0 +1,11 @@
+endpoint: wss://hdx.tarn.hydration.cloud
+block: '0x02f6c220e92ae361c69ffbc6fe624c691ce9b9191e49ef5d34d891cdd2f6de7c'
+host: 127.0.0.1
+port: 8163
+db: /tmp/pr62-validation/native-fixed.sqlite
+build-block-mode: Manual
+runtime-log-level: 2
+import-storage:
+  Parameters:
+    RelayParentOffsetOverride: true
+runtime-call-cache-mb: 512

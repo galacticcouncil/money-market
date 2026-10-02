@@ -9,8 +9,10 @@ covers #60 → #61 → #63 with 297 passing tests and updated runtime sizes.
 The September results below retain their original scope. PR #62 adds
 [separate yield ownership](yield-ownership.md) and faster eligible compounding.
 Its [completion record](pr62-completion-2026-10-02.md) contains the new implementation evidence.
-Deposit/harvest size and rate controls remain open; older native evidence does
-not validate the new ownership contracts.
+The later [three-pass validation](pr62-three-pass-validation-2026-10-02.md)
+includes a fresh native lifecycle of the corrected ownership contracts on
+runtime 447 with unchanged oracle values and swap floors. Deposit/harvest size
+and rate controls, conversion economics and production policy remain open.
 
 The candidate is on `feat/propeller-interest-buffer`; the name is historical.
 Sponsored operating buffers have been replaced. The commit containing this
@@ -73,7 +75,7 @@ organic APY; preserving principal after external recovery is not self-funding.
 | Gate                                    | State      | Evidence required to close                                                                               |
 | --------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------- |
 | PRIME reference and wiring              | Open       | Correct replacement feed, provenance/freshness approval, Aave and pool-peg governance wiring             |
-| Strict entry on unchanged market        | Blocked    | Fresh native lifecycle passing approved limits without an oracle-price or relaxed-floor fixture          |
+| Strict entry on unchanged market        | Native test passed; policy unapproved | #62 passes at the 2 October pin without a price/floor override; approve final limits and repeat against the production deployment |
 | Funded replenishment                    | Open       | Provider/inventory funding, executable spreads, size/day capacity and settlement/outage budgets          |
 | Admission and harvest sizing            | Open       | Initial/upward deposits and harvests bounded or queued; `deployTranche` alone does not cap them          |
 | TVL/ramp/slippage policy                | Unapproved | Limits justified by market liquidity, money-market cash, HSM funding and keeper throughput               |

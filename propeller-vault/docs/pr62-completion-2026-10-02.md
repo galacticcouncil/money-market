@@ -1,5 +1,9 @@
 # PR #62: separate yield ownership and prompt reinvestment
 
+**Follow-up:** the [three-pass validation](pr62-three-pass-validation-2026-10-02.md)
+records the later servicing and keeper fixes, 338 passing Solidity tests, and
+fresh native execution. The results below retain their original commit scope.
+
 This implementation keeps funded collateral shares and withdrawal promises
 separate from unconverted strategy yield. A depositor entering just before
 harvest cannot acquire earlier holders' earnings. Transfers leave already-earned

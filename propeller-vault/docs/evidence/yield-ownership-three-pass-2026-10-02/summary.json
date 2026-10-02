@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-02",
+  "pr": "https://github.com/galacticcouncil/money-market/pull/62",
+  "contractCommit": "be347ca4501486288a6c452d3cfdcd9e325451f8",
+  "finalKeeperAndHarnessCommit": "9e0f40c5b40efb73f430394d16ac06176c048ed7",
+  "baseCommit": "f2c14639737ee3d72b1f5e53de7708fcbd267d3d",
+  "status": "three-passes-complete; review-ready; production-activation-not-approved",
+  "fork": {
+    "chainId": 222222,
+    "block": "15306846",
+    "hash": "0x02f6c220e92ae361c69ffbc6fe624c691ce9b9191e49ef5d34d891cdd2f6de7c"
+  },
+  "runtimeSpecVersion": 447,
+  "compiler": {
+    "solc": "0.8.22",
+    "evmVersion": "london",
+    "viaIR": true,
+    "optimizerRuns": 200,
+    "forge": "1.5.1"
+  },
+  "passes": [
+    {
+      "pass": 1,
+      "finding": "Fixed 5M keeper gas and fixed price cannot execute measured queue work",
+      "nextPass": "Use live simulation, gas/fee estimates and native limits; test actual creation and swaps"
+    },
+    {
+      "pass": 2,
+      "findings": [
+        "12M creation allowance exhausted; 20% native estimate margin exceeds transaction cap",
+        "Harvest interest reserve did not cover both real swaps"
+      ],
+      "nextPass": "Use explicit artifacts and capped 10% creation margin; pay servicing friction from fresh reward output while preserving surplus ownership; rebuild and fresh deploy"
+    },
+    {
+      "pass": 3,
+      "findings": [
+        "All regression and native ownership/reinvestment/lifecycle checks pass after fixes",
+        "Local estimate=true RPC differs from native production binary search",
+        "12M keeper budget blocks native 32-request settlement; calibrate to native cap and eight-request starts",
+        "Current reserve policy delays first modeled collateral to day 123; small harvests can waste significant operating gas"
+      ],
+      "result": "Fresh deployment, runtime binding checks, native real-keeper 32-request settlement and eight-request start/settlement all pass; economic and activation gates remain"
+    }
+  ],
+  "regression": {
+    "suites": 45,
+    "files": 43,
+    "passed": 338,
+    "failed": 0,
+    "skipped": 11
+  },
+  "keeper": {
+    "tests": 29,
+    "failed": 0,
+    "build": "passed",
+    "defaultMaxTxGas": "16777216",
+    "startBatch": 8,
+    "gasAndPriceMarginBps": 2000
+  },
+  "storage": {
+    "testsPassed": 8,
+    "preservedEntries": 43,
+    "appendedEntries": 1
+  },
+  "ui": {
+    "matchedAbiSignatures": 42,
+    "commit": "c02aca4b9189256c106a179873e7d82faf884ceb",
+    "scope": "ABI recheck only; prior full UI validation in initial implementation record"
+  },
+  "native": {
+    "lifecycle": "native-multi-user-multi-vault-campaign-passed",
+    "ownershipAndQueue": {
+      "yieldOwnership": true,
+      "reinvestment": true,
+      "nativeQueueWithinKeeperBudget": true,
+      "nativeEightRequestStart": true,
+      "nativeEightRequestSettlement": true
+    },
+    "reinvestment": {
+      "debtBefore": "72799676020861175677",
+      "sourceSharesBefore": "1632341722545322015",
+      "creditBefore": "316013947823061273",
+      "debtAfter": "661836729869707193886",
+      "sourceSharesAfter": "18132185631849657813"
+    },
+    "queue": {
+      "first": "2",
+      "sharesPerRequest": "156249999999984",
+      "timeAdvanced": true,
+      "headBefore": "2",
+      "headAfter": "34"
+    },
+    "extraQueue": {
+      "first": "34",
+      "timeAdvanced": true
+    },
+    "keeperTransactions": 42,
+    "maxKeeperGasAllowance": "16362510",
+    "relevantReceipts": [
+      {
+        "functionName": "pokeSettle",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "gas": "16362510",
+        "gasPrice": "5533239",
+        "localSignatureRetries": 0,
+        "hash": "0x4cf8df097bba5dfa4350e9d0cb68377eab68924b82f8eb0e47f2e5a667f1e494",
+        "status": "success",
+        "gasUsed": "10985168",
+        "effectiveGasPrice": "5533239"
+      },
+      {
+        "functionName": "startUnwinds",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "gas": "7565498",
+        "gasPrice": "5533158",
+        "localSignatureRetries": 0,
+        "hash": "0x8a7ff0986ff4d2bdc37ccf56322227edfa020f505162c921c127d0b42bbfb702",
+        "status": "success",
+        "gasUsed": "5587013",
+        "effectiveGasPrice": "5533158"
+      },
+      {
+        "functionName": "pokeSettle",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "gas": "5052065",
+        "gasPrice": "5533106",
+        "localSignatureRetries": 0,
+        "hash": "0x1856ab8d15f4697c119c472e9f5f57f3a5f935e3af03fbe5f0884363eb7f48df",
+        "status": "success",
+        "gasUsed": "3258461",
+        "effectiveGasPrice": "5533106"
+      }
+    ]
+  },
+  "economicModel": {
+    "days": 180,
+    "assumedPrimeIncomeAprBps": 500,
+    "assumedBorrowAprBps": 200,
+    "reserve100bps": {
+      "firstSourceHarvestDay": 113,
+      "firstAddedCollateralDay": 123,
+      "harvests": 34,
+      "addedEthWei": "20192029758242216"
+    },
+    "reserve10bpsSensitivity": {
+      "firstSourceHarvestDay": 13,
+      "firstAddedCollateralDay": 13,
+      "harvests": 84,
+      "addedEthWei": "61482886102620942"
+    },
+    "negativeSpread": {
+      "primeIncomeAprBps": 200,
+      "borrowAprBps": 500,
+      "harvests": 0
+    },
+    "productionParametersChanged": false
+  },
+  "limitations": [
+    "HydraAugustus candidate from separately pinned external source; not an independent audit",
+    "Donated PRIME fixture tests harvest execution, not realized yield",
+    "Explicit external HOLLAR donations for swap friction and recovery",
+    "Seven-day native time advance; 90-day paths are separate modeled tests",
+    "Source income is a donated 1000 PRIME fixture, not organic APY",
+    "40 exit cohorts receive 100 HOLLAR each to isolate settlement cost",
+    "Cooldown uses local native time advancement",
+    "Local execution is not production activation",
+    "Local keeper estimate RPC uses bounded normal-mode native simulation to match the pinned Hydration node feature",
+    "Core noSponsoredOperatingCapital assertion only checks initially empty Main cash; later campaign uses explicit external funding",
+    "Optional Solidity skips remain skips; no independent audit or production activation",
+    "Conversion delay and admission/harvest size/rate, minimum economic batch, liquidity and recovery policies remain release gates"
+  ],
+  "sourceSha256": {
+    "propeller-vault/looper/docker-stack.yml": "21762f8d5b375ac7c61c9f3a1f7886fee6b77cfa33ebfed6d6e7cc6cd5370b8d",
+    "propeller-vault/looper/src/config.ts": "05a44fe4b85342e43f17dd1cb008f38a5808faf4b23987d435873501da1c51e7",
+    "propeller-vault/looper/src/looper.ts": "ada578d71ab9c80b527ef9b2e9082e17b39a127c2bcf34711b907a96875669a7",
+    "propeller-vault/looper/test/safety.test.ts": "c91a96088662e1d1ceff811b9c4c0135ea7635c99b9cd7abeb031da3a7d915c3",
+    "propeller-vault/looper/test/transactions.test.ts": "e31719fd05cfd0dbafd013dde584199438017a42491c6b56d47df4cd4b940f23",
+    "propeller-vault/src/PropellerYieldAccounting.sol": "4cccc974de1fb8de8da5d7e916b64c58ad51caebe665644bea0a111d5919a32a",
+    "propeller-vault/src/lib/CompoundLogic.sol": "9bfdbde631c1d9dedda8e988d4b4853abe49afe53ca63766c9a23a7af427e95b",
+    "propeller-vault/test/HarvestMainDebt.t.sol": "0687bbfb87c74f98e1d3da6dbf6489ccc14463336e0c756acad3b38cd8a1a690",
+    "propeller-vault/test/YieldValidation.t.sol": "8519c4cfa99398bc41a5d32e98c72ec13e2af7a5bc3a20d15953b1a36a5eb417",
+    "propeller-vault/test/helpers/NativeQueueActor.sol": "c4439ae1b424aff8edf31cbb607871dd64bb1e71e04ce87657c1acf3dc5eadac",
+    "scripts/propeller/native-artifacts.mjs": "0fd18e310a283c8ea3ae93c7efb13de39958a69cb07f82e33e334f27262cbb51",
+    "scripts/propeller/native-campaign.mjs": "0273e60c0a85835decf0391f78a286945569846ee62884c72beee12d6bc7bd28",
+    "scripts/propeller/native-deploy.mjs": "2fc5a79941ef787720008eed0585374d57c91f581bafc93774eb4d821af74987",
+    "scripts/propeller/native-discount.mjs": "a62c6845ebfb5d07cfca7dfc4399822ec48bc09d2a431a93bc40a51687ff11f5",
+    "scripts/propeller/native-resize.mjs": "68c39a7d612caf54512bef038c19203ee23e903019dc769b92f932b21db9b912",
+    "scripts/propeller/native-verify.mjs": "c5ab601edb35e92167bb49408a0b34821038e815837c9cd72b8c24a540949863",
+    "scripts/propeller/native-yield-validation.mjs": "faab94b051d97ef5ee7f9721e9e47303c523457ca011a12b75b52826f2bb4bee"
+  },
+  "evidenceSha256": {
+    "native-checkpoint-estimation.json": "ce22107f3d442671ae2d1a767839e1c5979c6bc2de4bf98a8942c5897d362190",
+    "native-checkpoint-runtime.json": "5b12eca0e90bef8506dc55abcbe1e5c85c245a530c68229d60a99cf8aa54372c",
+    "native-fixed-chopsticks.yml": "3b0cb470e4946ab5786fdc91018a0f949eb1fd560a983590c71b43a4e5091f64",
+    "native-fixed-result.json": "d2dd5f5f49a91a2d133c816760387d43e8199aefdbd815e60e44e461be9facae",
+    "native-harvest-economics.json": "e457c35dd2379f6eb8fa05a236deb6ec41fbcd484268d6d799de979c6c020525",
+    "native-settlement-bounds.json": "787f7f59b8e6f8b0e0652add1ba0255b77e6dc87ee5336e9ddac801e2a6ac8c2",
+    "native-settlement-diagnosis.json": "67173a9ffc7ca615c3e8e0507c28e4e3eaa739384fe7b9b59a79ea70db74608a",
+    "native-yield-result.json": "a787ca2a2c2cc8febfc2aa0f706f8fa00cb8ede5576ca6f14eab592a635d4ddd",
+    "node-estimator-source.json": "94719639d6c6ff9ef4bd7c1aa9ec66d064c1dcd14191e00459f8a87dd8ac5727",
+    "pass1-build.json": "291b261fd3c9966ec0c14f9162c08bbcd54e15ec318216deec8d5dc911a99778",
+    "pass1-keeper.log": "14d31279711cf35e8b32f52402220531ab80d5421e189301ab7c9e61c580a5db",
+    "pass1-solidity-0.log": "76f88853297120d0c763efad573a09139dd38bc9abb8507cdf406c9499deb4ad",
+    "pass1-solidity-3.log": "97f8b0a5269ba30c432d0639a99e6448b41ee74d2b724956793f13ff3b5698dd",
+    "pass2-campaign.log": "7486b7eef58e97f05fea4577aeafee0033e4b1dae9288b47581baa6dbd635e73",
+    "pass2-deployment-diagnosis.json": "79fbe3509f24507ad17be38f7e5088d4faaf770f24ab0858eabd69423d0d488f",
+    "pass2-first-deployment-failure.json": "7c2acd1164ab5a9493d708065add3c784afcdae79692cecd2a35c73f01e43180",
+    "pass3-artifacts.json": "bd2b6f3d4bd860cf9730663c21ef30831b5b0e1800142e1f8f32af40f2c5517a",
+    "pass3-build-coherence.json": "c8c4d0a184fa69c87ddbd19255323343f58e4083568359fa023bfe3c0fc3fc1c",
+    "pass3-fix-tests.log": "dfb61a8bc189e3ec9355de6146c0f00354f22f547bb73f687a9e50225502dc13",
+    "pass3-keeper-build.log": "9f7d241ea4bbd7154c13c11f5dfc50a34a60f7748d3714e317e3bf050cfd4c7a",
+    "pass3-keeper-final-build.log": "9f7d241ea4bbd7154c13c11f5dfc50a34a60f7748d3714e317e3bf050cfd4c7a",
+    "pass3-keeper-final.log": "e3cb863f6aa0b7f76f723b02f51da3d9fdd083b43948e548cce067b413502e69",
+    "pass3-keeper.log": "c806f9e1885833f56df5dcb668ec71affcc822f65b85eb8540c9ec3b8d9c9919",
+    "pass3-native-campaign.log": "383ba0cea474aaa7f6c934e453929c5091be38cadfcf0e8e6c72e8ce1a51dad6",
+    "pass3-native-deploy.log": "1a4e1d80b57da6c91a1452c1166e4329db2c59dc1fca259afa91990863bbde09",
+    "pass3-native-discount.log": "4041d114f3696cdb26d661074a9171890d1edaef63f8b282a88644ee51515c39",
+    "pass3-native-verify.log": "d453374d0edb2e35b0c8fc74972ab14a552751e7bba131af28149745cfbbc267",
+    "pass3-native-yield.log": "c2d6a8f9bbe4acb26609ad4662db8c29f0066f034e03733703fa3754cdb79782",
+    "pass3-storage-tests.log": "a090eee187fff16f9d44b95df4c2da73c8eb2eaed46a1753047026585a3058db",
+    "pass3-storage.log": "c0be44c4e54777b608c24d7ee41f83a26cd8e9d2d6714c219e9acf9499198b58",
+    "pass3-ui-abi.log": "e69f782c00dbb8227ba14c1a5710dbef9cb380acb4cb5eae161061d9db830688",
+    "pinned-interest-rates.json": "3807a8308c6f49bea42d286ed7ee80591aedb951cbf3b422c485f95972cc7b9e",
+    "prime-reference.json": "896382dfa14784ea910367d41339625a72fe711eabc7cce89a5b22ebb0d8b66d",
+    "regression-batch-0.json": "3c4163aa0d05d10f1c8a03721583c3ec3a641403bc1e6978191bb0d09b7def2f",
+    "regression-batch-0.log": "bc800991056f71903288a1a4fee07d24359e03fa46ca5e2fa4e1c937ad838aa6",
+    "regression-batch-1.json": "875d93d9de68f199392953345fe87a46459770462cc469f68ee015f0f380243c",
+    "regression-batch-1.log": "ee55ae05fc7bdebbf6ab4b7c40116acca3814ccca09fd74eacc9e7c2a2cc5b35",
+    "regression-batch-2.json": "fa5e30e9f97c92250fc9ec410a582c32fc6d39229293427fe257becf4edca168",
+    "regression-batch-2.log": "9335f9ead57658fd53e20784e0bc15e74c901faa0def86e529fbe9c1bfbdf164",
+    "regression-batch-3.json": "96c89cb2742cc045e61ffaed74f7a8ad5c16305d8353e13348faac9c6bf08981",
+    "regression-batch-3.log": "aa6e0f49c63070c3ec763edc44323bb53ff34524cee6ad4f2d2e028fb60481bd",
+    "regression-coverage.json": "56048bf2fbaf3f6398c46a2e4e47aae1a99a20e128ae1ad021fda65576548ebf",
+    "upstream-pin.json": "c7a7459b171a7389a1fed57695c9e8fecfe9b7ab09c337bfe135741cd87d0f35"
+  },
+  "logNormalization": {
+    "pass3-keeper-build.log": {
+      "originalSha256": "629da133fd59012c7e5f97c21ad9dbf874436cd572d9b4d7c32f97e2b8bc7731",
+      "change": "Trim extra trailing newline only"
+    },
+    "pass3-keeper-final-build.log": {
+      "originalSha256": "629da133fd59012c7e5f97c21ad9dbf874436cd572d9b4d7c32f97e2b8bc7731",
+      "change": "Trim extra trailing newline only"
+    }
+  }
+}
