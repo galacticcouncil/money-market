@@ -1,0 +1,54 @@
+# BIL Vault Watchdog — Docker Swarm stack
+#
+# read-only monitor, independent of the keeper: no signing key, alerts discord when
+#   - an opted-in settled redemption stays unclaimed past CLAIM_GRACE_MINUTES
+#     (only if the keeper holds CLAIM_OPERATOR_ROLE; auto-claim is optional)
+#   - a matured position stays Active past MATURED_GRACE_MINUTES (keeper not poking)
+#   - Decentral allows a position's next step but the keeper hasn't taken it within CLAIM_GRACE_MINUTES
+#   - a Decentral withdrawal request stays unapproved past APPROVAL_SLA_HOURS (approver's job, not the keeper's)
+#   - any position sits STUCK_THRESHOLD_HOURS past maturity (also fires if the keeper is dead)
+#   - keeper gas (WETH) < MIN_KEEPER_WETH, vault paused, or the watchdog itself can't read the chain
+# alerts dedupe per issue, re-fire every REALERT_HOURS, and post a "resolved" when cleared.
+#
+# Deploy:
+#   docker stack deploy -c docker-stack.yml bil-watchdog
+
+version: "3.8"
+
+services:
+  watchdog:
+    image: ${IMAGE:-galacticcouncil/bil-watchdog:latest}
+    environment:
+      RPC_URL: ${RPC_URL:-https://rpc.hydradx.cloud}
+      VAULT_ADDRESS: ${VAULT_ADDRESS:?VAULT_ADDRESS required}
+      KEEPER_ADDRESS: ${KEEPER_ADDRESS:-}
+      ALERT_WEBHOOK: ${ALERT_WEBHOOK:?ALERT_WEBHOOK required}
+      POLL_INTERVAL_MS: ${POLL_INTERVAL_MS:-60000}
+      CLAIM_GRACE_MINUTES: ${CLAIM_GRACE_MINUTES:-10}
+      MATURED_GRACE_MINUTES: ${MATURED_GRACE_MINUTES:-60}
+      APPROVAL_SLA_HOURS: ${APPROVAL_SLA_HOURS:-24}
+      STUCK_THRESHOLD_HOURS: ${STUCK_THRESHOLD_HOURS:-96}
+      REALERT_HOURS: ${REALERT_HOURS:-6}
+      MIN_KEEPER_WETH: ${MIN_KEEPER_WETH:-0.02}
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 0
+        window: 60s
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.02"
+          memory: 48M
+      labels:
+        com.hydration.role: "bil-watchdog"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

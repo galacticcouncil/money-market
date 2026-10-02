@@ -1,0 +1,38 @@
+name: Foundry
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  test:
+    name: forge test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 16.x
+          registry-url: https://npm.pkg.github.com/
+          scope: "@aave"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PAT_PACKAGES_REGISTRY_READ_ONLY }}
+
+      # forge resolves @aave/@openzeppelin imports out of node_modules
+      - name: Install dependencies
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PAT_PACKAGES_REGISTRY_READ_ONLY }}
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Run tests
+        run: forge test -vvv
