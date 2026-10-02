@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { readFileSync, writeFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
+import { artifact } from './native-artifacts.mjs';
 const require = createRequire(new URL('../../package.json', import.meta.url));
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { blake2AsHex } = require('@polkadot/util-crypto');
@@ -21,7 +22,6 @@ const COMMITTEE = '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC';
 const GOV = '0xAa7e0000000000000000000000000000000Aa7e0';
 const { pool, collateral, aEth, hollarDebt } = result.market;
 const { vault, synth } = result.addresses;
-const artifact = name => JSON.parse(readFileSync(new URL(`../../propeller-vault/out/${name}.sol/${name}.json`, import.meta.url), 'utf8'));
 const save = () => writeFileSync(FILE, JSON.stringify(result, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2) + '\n');
 const ws = new WsProvider(`ws://127.0.0.1:${PORT}`, 2500, {}, 180_000);
 const api = await ApiPromise.create({ provider: ws, noInitWarn: true });

@@ -16,7 +16,7 @@ import { roundingAlert } from './rounding-policy.js';
 const hydration: Chain = {
   id: 222222,
   name: 'Hydration',
-  nativeCurrency: { name: 'HDX', symbol: 'HDX', decimals: 18 },
+  nativeCurrency: { name: 'WETH', symbol: 'WETH', decimals: 18 },
   rpcUrls: {
     default: { http: [CONFIG.RPC_URL] },
   },
@@ -96,6 +96,7 @@ function nonpayable(name: string) {
 }
 
 const WAD = 10n ** 18n;
+const MAX_NATIVE_TX_GAS = 1n << 24n; // EIP-7825; block gas can be higher.
 
 // ─── Maintainer ───────────────────────────────────────────────────────────────
 //
@@ -200,9 +201,8 @@ export class PropellerLooper {
         now ??= await this.blockTimestamp();
         const eligibleAt = await this.read(VAULT_ABI, vault, 'unwindEligibleAt', [next]) as bigint;
         if (now >= eligibleAt) {
-          await this.poke(VAULT_ABI, vault, 'startUnwinds', `startUnwinds ${short(vault)}`, [16n]);
-          starting = true;
-          started = true;
+          starting = await this.poke(VAULT_ABI, vault, 'startUnwinds', `startUnwinds ${short(vault)}`, [16n]);
+          started ||= starting;
         }
       }
       if (delever > 0n || (!frozen.has(vault) && (next > head || starting || sourcePending > 0n))) pending.push(vault);
@@ -290,20 +290,37 @@ export class PropellerLooper {
     args: readonly unknown[] = [],
   ): Promise<boolean> {
     try {
-      const { request } = await this.publicClient.simulateContract({
+      const [block, quotedPrice] = await Promise.all([
+        this.publicClient.getBlock({ blockTag: 'latest' }),
+        this.publicClient.getGasPrice(),
+      ]);
+      const limit = block.gasLimit < MAX_NATIVE_TX_GAS ? block.gasLimit : MAX_NATIVE_TX_GAS;
+      const budget = limit < CONFIG.MAX_TX_GAS ? limit : CONFIG.MAX_TX_GAS;
+      const gasPrice = (quotedPrice * 120n + 99n) / 100n;
+      const options = {
         account: this.account,
         address,
         abi: abi as any,
         functionName: functionName as any,
         args: args as any,
-      });
+        gas: budget,
+        gasPrice,
+      };
+      const { request } = await this.publicClient.simulateContract(options);
+      const estimate = await this.publicClient.estimateContractGas(options);
+      const gas = (estimate * 120n + 99n) / 100n;
+      if (gas > budget) {
+        console.error(`[ALERT] ${label}: gas estimate ${estimate} plus 20% margin exceeds budget ${budget}`);
+        return false;
+      }
       const hash = await this.walletClient.writeContract({
         ...request,
-        gasPrice: 1_500_000n,
-        gas: 5_000_000n,
+        gasPrice,
+        gas,
       } as any);
       console.log(`  ${label} → ${hash}`);
       const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== 'success') console.error(`[ALERT] ${label}: transaction reverted (${hash})`);
       return receipt.status === 'success';
     } catch (err) {
       // simulate reverts on no-op/guarded paths — expected, just skip.

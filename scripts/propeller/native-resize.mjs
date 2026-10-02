@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync } from "node:fs";
+import { artifact as art } from "./native-artifacts.mjs";
 const require = createRequire(import.meta.url);
 const { ApiPromise, WsProvider } = require("@polkadot/api");
 const {
@@ -26,12 +27,6 @@ const rpc = `http://127.0.0.1:${port}`,
 const result = JSON.parse(readFileSync(file));
 assert.equal(result.rpc, rpc);
 assert.equal(result.status, "native-multi-user-multi-vault-campaign-passed");
-const art = (n) =>
-  JSON.parse(
-    readFileSync(
-      new URL(`../../propeller-vault/out/${n}.sol/${n}.json`, import.meta.url)
-    )
-  );
 const abi = parseAbi([
   "function ADDRESSES_PROVIDER() view returns(address)",
   "function getPoolConfigurator() view returns(address)",

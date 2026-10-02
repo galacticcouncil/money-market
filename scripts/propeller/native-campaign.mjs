@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { readFileSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { probeRoutes } from "./probe-routes.mjs";
+import { artifact as art } from "./native-artifacts.mjs";
 const require = createRequire(new URL("../../package.json", import.meta.url));
 const { ApiPromise, WsProvider } = require("@polkadot/api");
 const {
@@ -28,20 +29,11 @@ const FILE = process.argv[2] || "/tmp/propeller-campaign-result-20260918.json";
 const ALLOW_RELAXED_FIXTURE =
   process.env.PROPELLER_ALLOW_RELAXED_TEST_FLOOR === "true";
 const ADAPTER_ARTIFACT = process.env.PROPELLER_ADAPTER_ARTIFACT;
+const unwindPrime = BigInt(process.env.PROPELLER_TEST_UNWIND_PRIME || '100');
+assert.ok(unwindPrime > 0n, 'local unwind tranche must be positive');
 const adapterName = ADAPTER_ARTIFACT ? "HydraAugustus" : "NativeRouteSwapper";
 const r = JSON.parse(readFileSync(FILE));
 assert.equal(r.rpc, RPC, "result belongs to another local fork");
-const art = (n) =>
-  n === "HydraAugustus"
-    ? JSON.parse(readFileSync(ADAPTER_ARTIFACT))
-    : JSON.parse(
-        readFileSync(
-          new URL(
-            `../../propeller-vault/out/${n}.sol/${n}.json`,
-            import.meta.url
-          )
-        )
-      );
 const accounts = [0, 1, 2].map((addressIndex) =>
   mnemonicToAccount(
     "test test test test test test test test test test test junk",
@@ -432,6 +424,8 @@ try {
     btc,
     ethBuffer,
     btcBuffer,
+    await vread(ethVault, "yieldAccounting"),
+    await vread(btc, "yieldAccounting"),
     fees,
     harvester,
     adapter,
@@ -527,8 +521,9 @@ try {
   );
   await write("tranches", source, art("SubLoop").abi, "setTranches", [
     1000n * 10n ** 18n,
-    100n * 10n ** 6n,
+    unwindPrime * 10n ** 6n,
   ]);
+  r.testOnlyPolicy.unwindTranchePrime = unwindPrime.toString();
   r.roundingPolicies = [];
   for (const [v, id] of [
     [ethVault, 34],

@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import { parseRoundingPolicies } from './rounding-policy.js';
 
+const maxTxGas = process.env.MAX_TX_GAS || '12000000';
+if (!/^[1-9][0-9]*$/.test(maxTxGas)) throw new Error('MAX_TX_GAS must be a positive integer');
+
 export const CONFIG = {
   RPC_URL: process.env.RPC_URL || 'https://hdx.tarn.hydration.cloud',
   // signer only pays gas — pokeBorrow is permissionless, no role required.
@@ -22,6 +25,9 @@ export const CONFIG = {
   POOL_ADDRESS: (process.env.POOL_ADDRESS ||
     '0x1b02E051683b5cfaC5929C25E84adb26ECf87B38') as `0x${string}`,
   POLL_INTERVAL_MS: Number(process.env.POLL_INTERVAL_MS || 30000),
+  // Operator budget, additionally bounded by the live block gas limit.
+  // An estimate above this limit is reported without submitting a doomed tx.
+  MAX_TX_GAS: BigInt(maxTxGas),
   // idle once HF is within this fraction above target — avoids burning gas on
   // borrow-to-floor no-ops. e.g. 0.005 = stop ramping at HF ≤ target·1.005.
   RAMP_HF_BUFFER: Number(process.env.RAMP_HF_BUFFER || 0.005),

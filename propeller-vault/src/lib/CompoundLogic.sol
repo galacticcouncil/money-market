@@ -216,9 +216,21 @@ contract CompoundLogic {
             service = out - controller.collectFee(out, msg.sender);
         }
         collateral.forceApprove(address(controller), 0);
-        collateral.forceApprove(address(buffer), service);
-        serviceRemainder = buffer.harvest(service);
-        out = reward + serviceRemainder;
+        // Pay execution costs from this harvest's owned reward fund when the
+        // oracle-valued servicing slice alone is insufficient after both swaps.
+        // Previously funded user collateral is never available to this call.
+        uint256 cashBefore = buffer.activeFunds();
+        uint256 fresh = reward + service;
+        collateral.forceApprove(address(buffer), fresh);
+        out = buffer.harvest(fresh);
+        uint256 spent = fresh - out;
+        uint256 rewardSpent = spent > service ? spent - service : 0;
+        reward = Math.min(reward, out);
+        serviceRemainder = out - reward;
+        uint256 cashAfter = buffer.activeFunds();
+        if (rewardSpent != 0 && cashAfter > cashBefore) {
+            v.yieldAccounting().retainServicingSurplus(Math.min(cashAfter - cashBefore, buffer.quoteHollar(rewardSpent)));
+        }
         collateral.forceApprove(address(buffer), 0);
         if (out != 0) {
             collateral.forceApprove(address(pool), out);

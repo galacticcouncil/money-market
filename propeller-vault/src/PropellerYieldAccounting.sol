@@ -286,6 +286,27 @@ contract PropellerYieldAccounting {
         harvestProtocolUnits = 0;
     }
 
+    /// @notice Extra cash from servicing funded by the reward fund releases an
+    /// equal source claim back to that fund. Keep the existing unit owners;
+    /// allocating this release at the next checkpoint would enrich newcomers.
+    function retainServicingSurplus(uint256 value) external onlyVault {
+        if (value == 0) return;
+        IYieldVault v = IYieldVault(vault);
+        IYieldSource s = v.yieldSource();
+        uint256 held = s.sharesOf(vault);
+        uint256 equity = s.equityOf(vault) * 1e10;
+        uint256 required = _required();
+        if (held == 0 || equity <= required) return;
+        uint256 available = Math.mulDiv(equity - required, held, equity);
+        uint256 reserved = reservedShares();
+        if (available <= reserved) return;
+        uint256 added = Math.min(available - reserved, Math.mulDiv(value, held, equity));
+        sourceShares += added;
+        uint256 basis = s.principalOf(vault);
+        uint256 released = Math.min(Math.mulDiv(added, equity, held), basis > required ? basis - required : 0);
+        if (released != 0) s.releasePrincipal(vault, released);
+    }
+
     /// @notice Materialize funded collateral shares only. Unconverted reward
     /// units remain owned; a partial claim cannot erase them.
     function claim(address owner, address receiver) external onlyVault returns (uint256 shares) {
