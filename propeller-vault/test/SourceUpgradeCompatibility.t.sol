@@ -141,10 +141,13 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
 
     function _yieldState(CollateralVault vault) internal view returns (bytes32) {
         PropellerYieldAccounting y = vault.yieldAccounting();
-        return keccak256(abi.encode(address(y), y.sourceShares(), y.protocolShares(),
-            y.totalUnits(), y.totalAssets(), y.rewardIndex(), y.requestIndex(0),
-            y.balanceOf(ETH_USER), y.balanceOf(BTC_USER), vault.balanceOf(address(y)), vault.reinvestAssets(),
-            y.totalVestedShares(), y.vestedShares(ETH_USER), y.vestedShares(BTC_USER), y.epoch(), y.unitScale()));
+        bytes32 totals = keccak256(abi.encode(y.sourceShares(), y.protocolShares(),
+            y.totalUnits(), y.totalAssets(), y.rewardIndex(), y.requestIndex(0)));
+        bytes32 owners = keccak256(abi.encode(y.balanceOf(ETH_USER), y.balanceOf(BTC_USER),
+            vault.balanceOf(address(y)), vault.reinvestAssets()));
+        bytes32 vested = keccak256(abi.encode(y.totalVestedShares(), y.vestedShares(ETH_USER),
+            y.vestedShares(BTC_USER), y.epoch(), y.unitScale()));
+        return keccak256(abi.encode(address(y), totals, owners, vested));
     }
 
     function _vaultState(CollateralVault vault) internal view returns (bytes32) {

@@ -22,11 +22,11 @@ import {PropellerYieldAccounting} from "./PropellerYieldAccounting.sol";
 import {CompoundLogic} from "./lib/CompoundLogic.sol";
 
 /// @title CollateralVault
-/// @notice One per supported volatile collateral (ETH, tBTC, DOT…). An ERC4626
-///         vault: "deposit ETH → pETH shares; redeem → ETH + yield". Non-rebasing
-///         exchange-rate model (share value = totalAssets / supply, denominated
-///         in the collateral), so harvested yield compounded into the Main
-///         position lifts the share price — hence "deposit X, earn more X".
+/// @notice One per supported volatile collateral (ETH, tBTC, DOT…). Shares
+///         represent funded collateral at the active collateral exchange rate.
+///         Strategy earnings have separate ownership: realized yield supplies
+///         collateral and mints backed reward shares, claimable via claimYield.
+///         Previously earned yield does not enrich newly deposited shares.
 ///
 /// @dev    Architecture A. On deposit the vault:
 ///           1. supplies collateral to the Aave money market (Main position),
@@ -34,8 +34,8 @@ import {CompoundLogic} from "./lib/CompoundLogic.sol";
 ///           3. mints + supplies SyntheticToken (= HOLLAR debt) → Main HF floored
 ///              → principal un-liquidatable at any collateral price,
 ///           4. routes the borrowed HOLLAR into the shared SubLoop.
-///         Withdraw reverses it (flash-assisted unwind of the loop slice, repay
-///         HOLLAR, burn synthetic, withdraw collateral). A target-LTV band keeps
+///         Withdrawal asynchronously unwinds the source slice, repays HOLLAR,
+///         burns synthetic and releases collateral. A target-LTV band keeps
 ///         the loop sized to the collateral value as price moves.
 ///
 ///         Patterned on HDCLVault.
