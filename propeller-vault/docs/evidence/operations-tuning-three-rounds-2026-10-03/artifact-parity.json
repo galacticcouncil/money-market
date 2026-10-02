@@ -1,0 +1,62 @@
+[
+  {
+    "name": "CollateralVault",
+    "creationSha256": "54497612f93db4562d96ad4a8068d69d3f6ea4e49932a0b65372cd2de2d73e8d",
+    "runtimeSha256": "f7df19776b83bd7032fd8257f9375f42a4b723a4a589471d96bed6f640b39073",
+    "equal": true
+  },
+  {
+    "name": "CompoundLogic",
+    "creationSha256": "515a21b66cc20f4c28ad2e1861d031eeca0e7d67b35a74c44062480015b9c64f",
+    "runtimeSha256": "d03a991c10c802eb012a3a296246d193dd07eb6ea70d0cd732715f6fc3a80bea",
+    "equal": true
+  },
+  {
+    "name": "SubLoop",
+    "creationSha256": "99640da7b1669cf434c7cca10991ab80ca453d012f09c8bfe4941e471d846c9b",
+    "runtimeSha256": "5dffe6bdfd30e17b7247f77859df56ec880a68e797ad60b48d0ea28f657926ef",
+    "equal": true
+  },
+  {
+    "name": "ExecutionController",
+    "creationSha256": "80f644000a993e68b112509e85f77caea7e3f9b3a51b6680ae35aae229e55d12",
+    "runtimeSha256": "d3cdbe2cffbf8798ba1da10acda9f8e38213891ecb664b7242be1b9d05fa8a0e",
+    "equal": true
+  },
+  {
+    "name": "Harvester",
+    "creationSha256": "49f19178661a4b6c4a0397333651047abe8e8557e9880db5bd68159a4ee0c8ca",
+    "runtimeSha256": "e3059ae026df8b05ddd2aa8b389887222bf8f4ba929927893a36238793b5eaf3",
+    "equal": true
+  },
+  {
+    "name": "PropellerMainDebt",
+    "creationSha256": "82f4e67adf71cbd63da8cda9ee59382203c7a3653c62424b2506e99dbb5e058f",
+    "runtimeSha256": "a01fa78613620f74f395d8515c294dc20a5b736056fef4b72d4a9100f7ce0914",
+    "equal": true
+  },
+  {
+    "name": "PropellerYieldAccounting",
+    "creationSha256": "f875361cfcad6531e14d33511fdeb4829b7b24c42592a80b0e399a191a533567",
+    "runtimeSha256": "41a47f6bb1b8fc9b453361094a1438d8882f6b08e81393d5722caaf4fccc39ad",
+    "equal": true
+  },
+  {
+    "name": "SyntheticToken",
+    "creationSha256": "2489879ccccbffdb868cacaa332d8eb4ce8f14cf3ce2f420e097afb174f80f1c",
+    "runtimeSha256": "2b8be101b859a8fb1e82d5d6c88cafb1f9bfd501dac78ffa5b49529a3607f8cb",
+    "equal": true
+  },
+  {
+    "name": "PropellerFeeController",
+    "creationSha256": "5a8a0a1a55252ec41998628fc09c6b2f6af4617c18d46d849831f28433e650ca",
+    "runtimeSha256": "dc69ab47a7f7a64acff19fa25bb1e7e3b4ab25b93cce3066105f5dc5518a5734",
+    "equal": true
+  },
+  {
+    "name": "PropellerDiscount",
+    "creationSha256": "937d29ca21bdb59c1efccb99685002b6a225addd6fdce74952ac97e541691eea",
+    "runtimeSha256": "506c797f3595d29439b6b6c24c6e5caa5748ae485f476a414f44c18c16fa0d23",
+    "equal": true
+  }
+]

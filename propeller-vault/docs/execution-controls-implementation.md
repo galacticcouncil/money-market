@@ -1,9 +1,10 @@
 # Deposit, harvest and keeper execution controls
 
 Review implementation for PR #62. This does not activate production policies.
-The [five-round model](mainnet-tuning-five-rounds-2026-10-02.md) predates this
-controller's extra gas and throughput limits; its APY figures are not new
-forecasts for this implementation. Validation and measured native gas are recorded
+The [three-round operations model](operations-tuning-three-rounds-2026-10-03.md)
+includes this controller's gas and throughput limits, productive keeper writes,
+and explicit shared operating-cost sensitivities. Its returns remain conditional
+on market rates and external liquidity replenishment. Validation and measured native gas are recorded
 in the [3 October verification report](execution-controls-validation-2026-10-03.md).
 
 ## Trade controls

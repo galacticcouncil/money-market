@@ -1,5 +1,12 @@
 # Propeller: five rounds of mainnet model tuning
 
+Historical model, before the execution controller and economical keeper. The
+[three-round operations model](operations-tuning-three-rounds-2026-10-03.md)
+supersedes its operating-cost and throughput assumptions and uses newer market
+inputs. It also separates unconverted user carry from protocol carry; this
+report's original marked-owned measure included both. The original funded-crypto
+results and evidence below are retained for comparison, not current forecasts.
+
 The best tested **execution-efficiency configuration** produces **3.38% ETH /
 3.58% BTC** first-year funded-crypto return after modeled keeper costs. The
 highest tested user-return policy, **100% Main interest discount and zero
