@@ -8,16 +8,16 @@ const VAULT = '0x0000000000000000000000000000000000000002';
 const OTHER = '0x0000000000000000000000000000000000000003';
 const TARGET = 1050000000000000000n;
 
-async function cycle(overrides: Record<string, bigint | boolean | string> = {}, multiple = false) {
+async function cycle(overrides: Record<string, bigint | boolean | string> = {}, multiple = false, harvest = false) {
   const calls: string[] = [];
   // Replace IO on the real scheduler; no RPC, wallets or transaction simulation.
   const keeper = Object.create(PropellerLooper.prototype) as any;
-  Object.assign(keeper, { cycle: 0, subLoop: LOOP, vaults: multiple ? [VAULT, OTHER] : [VAULT], harvester: '', pool: '' });
+  Object.assign(keeper, { cycle: 0, subLoop: LOOP, vaults: multiple ? [VAULT, OTHER] : [VAULT], harvester: harvest ? OTHER : '', pool: '' });
   const state: Record<string, bigint | boolean | string> = {
     healthFactor: TARGET, targetHf: TARGET, unwindTargetEquity: 0n,
     deleverDebtTarget: 0n, paused: false, emergencyPaused: false, vaultPaused: false,
     queueHead: 0n, queueTail: 0n, queueUnwind: 0n, unwindEligibleAt: 100n,
-    deleverTarget: 0n, availableHollar: 0n, mainDebt: OTHER, ready: true, pendingUnwindOf: 0n, ...overrides,
+    deleverTarget: 0n, availableHollar: 0n, mainDebt: OTHER, ready: true, pendingUnwindOf: 0n, harvestable: false, ...overrides,
   };
   keeper.read = async (_abi: unknown, _address: string, fn: string) => {
     assert.ok(fn in state, `unexpected read ${fn}`);
@@ -26,7 +26,7 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
   };
   keeper.blockTimestamp = async () => 100n;
   keeper.readLeverage = async () => null;
-  keeper.poke = async (_abi: unknown, address: string, fn: string) => calls.push(`${address}:${fn}`);
+  keeper.poke = async (_abi: unknown, address: string, fn: string) => { calls.push(`${address}:${fn}`); return true; };
   await keeper.runCycle();
   return calls;
 }
@@ -95,4 +95,17 @@ test('rounding monitor read failure alerts without blocking debt service', async
     assert.deepEqual(await cycle({deleverTarget:1n}), [`${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`]);
     assert.ok(errors.some(e=>String(e).includes('rounding monitor failed')));
   } finally { console.error=previous; ROUNDING_POLICIES.delete(VAULT); }
+});
+
+test('harvest precedes optional ramp and reinvests in the same maintenance cycle', async () => {
+  assert.deepEqual(await cycle({ harvestable: true, healthFactor: 2n * TARGET }, false, true), [
+    `${OTHER}:harvest`, `${LOOP}:pokeBorrow`, `${VAULT}:maintainPeg`, `${VAULT}:pokeSettle`, `${VAULT}:rebalance`,
+  ]);
+});
+test('empty harvests do not submit transactions or trigger extra maintenance', async () => {
+  assert.deepEqual(await cycle({ harvestable: false }, false, true), []);
+});
+test('harvest availability never bypasses emergency or local pause', async () => {
+  assert.deepEqual(await cycle({ harvestable: true, emergencyPaused: true }, false, true), []);
+  assert.deepEqual(await cycle({ harvestable: true, vaultPaused: true }, false, true), []);
 });

@@ -14,6 +14,11 @@ import {ISubLoop} from "./interfaces/ISubLoop.sol";
 import {IYieldSource, ILeveragedLoop} from "./interfaces/IYieldSource.sol";
 import {DcaDispatch} from "./lib/DcaDispatch.sol";
 
+interface ISourceYieldVault {
+    function burnYieldShares(uint256 shares) external;
+    function yieldAccounting() external view returns (address);
+}
+
 /// @title SubLoop
 /// @notice The single shared leveraged PRIME/HOLLAR loop (Aave isolation mode).
 ///         Deploy and unwind are **gradual and async**:
@@ -198,6 +203,7 @@ contract SubLoop is
         _sharesOf[msg.sender] += shares;
         _totalShares += shares;
         principalEquity += hollarAmount; // cost basis (seed)
+        principalOf[msg.sender] += hollarAmount;
 
         // FUTURE(matching): before funding the deploy DCA, match against
         //   outstanding unwindTargetEquity — pay an exiting vault directly from
@@ -216,6 +222,16 @@ contract SubLoop is
         whenNotEmergencyPaused
         returns (uint256 unwindId)
     {
+        return _requestUnwind(shares, Math.mulDiv(principalOf[msg.sender], shares, _sharesOf[msg.sender]));
+    }
+
+    function requestUnwindProtected(uint256 shares, uint256 basis)
+        external override onlyRole(VAULT_ROLE) nonReentrant whenNotEmergencyPaused returns (uint256)
+    {
+        return _requestUnwind(shares, basis);
+    }
+
+    function _requestUnwind(uint256 shares, uint256 protectedBasis) private returns (uint256 unwindId) {
         uint256 held = _sharesOf[msg.sender];
         if (shares == 0) revert ZeroAmount();
         if (shares > held) revert InsufficientShares();
@@ -225,7 +241,8 @@ contract SubLoop is
         uint256 equityHollar = (_liveEquity18() * shares) / totalSharesBefore;
         if (equityHollar == 0) revert Underfunded();
 
-        uint256 basis = (principalEquity * shares) / totalSharesBefore;
+        uint256 basis = Math.min(principalOf[msg.sender], protectedBasis);
+        principalOf[msg.sender] -= basis;
         principalEquity -= basis;
         if (equityHollar > basis) unwindYieldAllowance[msg.sender] += equityHollar - basis;
         _sharesOf[msg.sender] = held - shares;
@@ -305,7 +322,13 @@ contract SubLoop is
         //   maxDebt = collBase·wAvgLT / deployHfFloor.
         (uint256 collBase8, uint256 debtBase8, , uint256 wAvgLtBps, , ) =
             pool.getUserAccountData(address(this));
-        uint256 collWithLt8 = (collBase8 * wAvgLtBps) / 1e4; // 8dp USD
+        // Carry is waiting to buy the user's collateral. Do not borrow against
+        // it and buy more PRIME just before the harvester removes that carry.
+        uint256 equity8 = totalEquity();
+        uint256 basis8 = (principalEquity + unwindTargetEquity) / 1e10;
+        uint256 earned8 = equity8 > basis8 ? equity8 - basis8 : 0;
+        uint256 deployCollateral8 = collBase8 - Math.min(collBase8, earned8);
+        uint256 collWithLt8 = (deployCollateral8 * wAvgLtBps) / 1e4;
         uint256 maxDebt8 = (collWithLt8 * WAD) / deployHfFloor; // 8dp USD
         if (maxDebt8 <= debtBase8) {
             emit Borrowed(0, healthFactor());
@@ -578,41 +601,65 @@ contract SubLoop is
     ///      cost basis. The Harvester swaps it into each vault's collateral. This
     ///      keeps SubLoop swap-free — withdrawing the surplus leaves HF at target
     ///      (removed collateral was the cushion the yield created).
-    function harvest() external override nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256 surplusPrime) {
-        // Keep the source pull and collateral distribution in one transaction.
-        // This closes the parked-yield window, not pre-harvest ownership capture.
+    /// @notice Legacy zero-harvest probe. Realization requires explicit owned
+    /// source units; a global payout by current vault weights loses ownership.
+    function harvest() external override nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256) {
         if (msg.sender != harvester) revert NotHarvester();
-        uint256 equity18 = totalEquity() * 1e10;
-        // in-flight unwind equity belongs to exiting vaults: their shares are
-        // already burned (principalEquity dropped) but the equity stays in the
-        // loop until pokeRepay frees it. it is NOT carry — skimming it would
-        // pay one vault's principal out to the others' shareholders.
-        // Retain earned PRIME, not sponsored HOLLAR, against execution costs.
-        // A target above earned carry only suppresses harvest; it never creates
-        // a claim on deposits or requires an external bootstrap payment.
-        uint256 reserved18 = principalEquity + unwindTargetEquity + executionCostReserve();
-        if (equity18 <= reserved18) {
-            emit Harvested(0);
-            return 0;
+        if (harvestCapacity() != 0) revert InvalidParameters();
+        return 0;
+    }
+
+    function accountingLocked() external view override returns (bool) { return _reentrancyGuardEntered(); }
+
+    /// @notice Main recovery funding has released this much borrowed capital.
+    /// Only that vault's immutable ownership ledger may reclassify its basis.
+    function releasePrincipal(address vault, uint256 amount) external override nonReentrant {
+        if (!hasRole(VAULT_ROLE, vault) || msg.sender != ISourceYieldVault(vault).yieldAccounting()) {
+            revert InvalidParameters();
         }
-        uint256 surplus18 = equity18 - reserved18;
-        // guard: only harvest once carry exceeds the threshold fraction of basis
-        if (principalEquity != 0 && surplus18 * WAD < principalEquity * harvestThreshold) {
-            emit Harvested(0);
-            return 0;
-        }
-        // surplus (HOLLAR 18dp) → PRIME native (6dp) at the ORACLE rate — PRIME
-        // is not $1 (mirrors _fundDeploy); a /1e12 would over-withdraw by the
-        // PRIME premium and dip HF below target.
+        principalOf[vault] -= amount;
+        principalEquity -= amount;
+    }
+
+    function _harvestable() private view returns (uint256) {
+        uint256 equity = totalEquity() * 1e10;
+        uint256 reserved = principalEquity + unwindTargetEquity + executionCostReserve();
+        if (equity <= reserved) return 0;
+        (uint256 coll8, uint256 debt8,,uint256 lt,,) = pool.getUserAccountData(address(this));
+        uint256 protected8 = debt8 == 0 ? 0 : lt == 0 ? coll8
+            : Math.mulDiv(debt8, deployHfFloor * 10_000, WAD * lt, Math.Rounding.Up);
+        uint256 withdrawable = coll8 > protected8 ? (coll8 - protected8) * 1e10 : 0;
+        return Math.min(equity - reserved, withdrawable);
+    }
+
+    function harvestCapacity() public view override returns (uint256) {
+        uint256 available = _harvestable();
+        if (available == 0 || (principalEquity != 0 && available * WAD < principalEquity * harvestThreshold)) return 0;
+        return Math.mulDiv(available, _totalShares, _liveEquity18());
+    }
+
+    /// @notice Burn only the realized owner's units at the pre-withdrawal NAV.
+    /// The Harvester caps and distributes the batch before the first withdrawal.
+    function harvestFor(address vault, uint256 shares)
+        external override nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256 amount, uint256 burned)
+    {
+        if (msg.sender != harvester) revert NotHarvester();
+        if (shares == 0) return (0, 0);
+        if (shares > _sharesOf[vault]) revert InsufficientShares();
+        uint256 equity = _liveEquity18();
+        uint256 value = Math.mulDiv(equity, shares, _totalShares);
+        value = Math.min(value, _harvestable());
         (uint256 pHollar, uint256 pPrime) = _oracleRate();
-        surplusPrime = (surplus18 * pHollar) / pPrime / 1e12;
-        if (surplusPrime == 0) {
-            emit Harvested(0);
-            return 0;
-        }
-        pool.withdraw(address(prime), surplusPrime, address(this)); // HF stays ≥ target
-        IERC20(address(prime)).safeTransfer(harvester, surplusPrime);
-        emit Harvested(surplusPrime);
+        amount = Math.mulDiv(value, pHollar, pPrime * 1e12);
+        if (amount == 0) return (0, 0);
+        uint256 actualValue = Math.mulDiv(amount, pPrime * 1e12, pHollar);
+        burned = Math.mulDiv(actualValue, _totalShares, equity, Math.Rounding.Up);
+        ISourceYieldVault(vault).burnYieldShares(burned);
+        _sharesOf[vault] -= burned;
+        _totalShares -= burned;
+        pool.withdraw(address(prime), amount, address(this));
+        prime.safeTransfer(harvester, amount);
+        emit Harvested(amount);
     }
 
     /// @inheritdoc ILeveragedLoop
@@ -787,4 +834,5 @@ contract SubLoop is
     function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
     uint256[37] private __gap;
+    mapping(address => uint256) public override principalOf;
 }

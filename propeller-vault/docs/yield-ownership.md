@@ -1,147 +1,156 @@
-# Separate ownership of source yield
+# Separate ownership of Propeller yield
 
-**2 October 2026 — design candidate for #62; ownership accounting is not implemented.**
+PR #62 keeps collateral shares backed by actual collateral and records source
+yield separately in `PropellerYieldAccounting`. This is a fresh-deployment
+change: storage compatibility alone does not migrate existing balances into the
+new ownership ledger. Deploy the vault, source, Main ledger, Harvester and fee
+controller together. Do not upgrade a funded older vault into this accounting.
 
-The selected constraint is to preserve collateral-denominated claims. Deposits
-continue to mint against actual collateral backing. Unrealized PRIME yield must
-not increase the collateral share price or a fixed collateral withdrawal promise.
-This revision removes #62's proposed pending-carry deposit premium. It keeps the
-independent protection that only the configured Harvester can pull source yield,
-inside the same transaction that distributes it.
+## Ownership and entry
 
-The remaining deposit-before-harvest capture finding is still open. Neither the
-atomic-call restriction nor the model below fixes it in the production contracts.
-Keep #62 in draft and keep the release activation gate open until the ownership
-implementation and its integration tests exist.
+Before a deposit, ordinary share transfer, withdrawal snapshot or harvest, the
+vault checkpoints positive source equity after reserving active Main debt,
+operating cash and the realization fee needed to service accrued Main interest.
+Unfunded Main debt still blocks entry. Two USD8 quote quanta remain in active
+source backing to prevent floor rounding from creating an unpaid debt tail;
+this is a bounded rounding residual, not a percentage yield holdback.
 
-## Why deposit NAV pricing was rejected
+Checkpointed earnings split into user-owned source units and protocol fee units
+at the current fee rate. Fee ownership vests at this checkpoint; subsequent rate
+changes apply to subsequent allocations, including when the rate changes from
+100% to zero. Nothing is payable to the treasury until actually realized.
 
-With one collateral token backing one incumbent share, 0.1 tokens of unrealized
-yield, and a new one-token deposit, the proposed denominator mints `1 / 1.1`
-shares. Before harvest the entrant's collateral conversion is only `20 / 21`,
-about **0.952381 tokens**. The missing 0.047619 is an interest in unrealized source
-yield, not funded collateral. Later source recovery is not proof that the original
-deposit can be returned in the same asset. These are illustrative unit prices,
-not a native-chain withdrawal simulation.
+Unconverted user and protocol units are junior to the active Main obligation.
+They absorb source losses and accrued servicing needs before Main backing is
+impaired. Checkpoints write down that ownership when needed; a recapitalization
+to borrowed principal does not restore written-off earnings ahead of exits.
+Already-funded collateral rewards remain backed collateral claims.
 
-Adding that source NAV to withdrawal promises would require another conversion
-and funding mechanism and would change the product's accounting promise. Merely
-subtracting Main interest or a fee from the pending-carry quote does not resolve
-the distinction between an owned source asset and a funded collateral claim.
+A completely worthless reward fund starts a new accounting epoch. Repeated
+losses that leave only dust use lazy unit rescaling, avoiding unbounded growth
+in accounting units without scanning holders or changing the underlying assets.
 
-## Proposed accounting boundary
+A lazy index awards
+reward-fund units to the collateral holders who earned them. New deposits start
+at the current index. Transfers retain previously earned rewards with the sender;
+the recipient earns subsequently. No checkpoint, transfer or claim iterates
+through holders. Waiting withdrawal shares continue earning until their unwind
+starts, with a request-specific checkpoint preserving that entitlement.
 
-Keep two independently conserved ownership systems:
+`CollateralVault.totalAssets`, share conversions and fixed collateral withdrawal
+claims continue to describe funded collateral. They do not include source
+receivables. The synthetic token remains a health-factor support, not an asset
+available to pay holders.
 
-| Record | Meaning | Entry and realization rule |
-| --- | --- | --- |
-| Collateral shares | Existing collateral backing and settled collateral claims | Mint against actual collateral, as today. Never include unrealized source earnings. |
-| Source ownership units | A cohort's funded claim on source equity, including retained earnings | New seed buys units at pre-entry source NAV. It does not buy another cohort's profit entitlement. |
-| Main debt units/basis | Principal and indexed interest owned by that cohort | Allocate before entry, transfer or exit. Do not charge a newcomer for pre-entry Main interest. |
-| Retained source yield | Earned units reserved for execution costs | Keep their owner recorded while they remain invested. Release or actual cost consumes the relevant owner's units. |
-| Realized reward shares | Collateral already supplied from realized, after-fee, after-interest yield | Mint fully backed shares to a reward escrow and credit the beneficiary. Do not spread that reward through the exchange rate of all outstanding shares. |
+## Harvest and compounding
 
-The current source already prices vault deposits at NAV. The missing boundary is
-inside each collateral vault: its holders are currently pooled into one earning
-position. Introduce a per-vault ownership component rather than placing more
-unbounded state/logic in CollateralVault, which has only 138 bytes of runtime
-headroom after #61. Its records must reconcile to the vault's aggregate source
-shares and #60's Main-debt ledger; they must not be a second set of independently
-mintable claims on the same assets.
+The Harvester first checkpoints every registered vault and selects a proportional
+batch of eligible source units, capped by the source's harvest capacity. The source
+also caps withdrawals at the configured deployment health-factor floor, including
+when outside Main funding releases a large amount of source principal. The source
+burns only the units being realized at their pre-withdrawal value. Other holders'
+source-unit value is conserved apart from native-token rounding. Registry and
+fee-configuration checks still bracket the entire atomic distribution.
 
-The model materializes a cohort directly. A deployable representation must use
-lazy checkpoints and bounded batches, not iterate through every holder on deposit,
-transfer or harvest. The final representation and gas bounds remain implementation
-work; the model does not establish that an efficient representation already exists.
+Actual collateral receipts realize the protocol-owned portion, including its
+share of source gains/losses and swap execution. The reserved servicing portion
+pays Main interest first; the remaining owned-yield portion is supplied as
+collateral and mints backed vault shares to the reward fund. It does not raise
+every collateral holder's exchange rate and give past earnings to newcomers.
+Unsolicited compound contributions retain their existing donation treatment.
 
-## Realization sequence
+The reward fund owns both unconverted source units and funded collateral shares.
+Fund units are priced in HOLLAR precision from those assets; user-owned source
+units are already net of vested fees. This preserves ownership even for accruals
+smaller than one BTC base unit. Its already-funded collateral participates in future
+yield; the corresponding new earnings increase existing fund-unit value. An
+owner does not need to claim repeatedly to keep compounding.
 
-1. Checkpoint source ownership and indexed Main interest before entry, ownership
-   movement, an unwind snapshot, or a harvest batch. Preserve #60's existing cash,
-   cost and late-recovery reservations.
-2. Select only the owning cohort's available yield, after its retained execution
-   allowance. A partial harvest leaves the remainder invested and owned.
-3. Remove source value and **burn/reduce only the matching ownership units** at
-   pre-realization NAV. Withdrawing value while leaving every source unit intact
-   would lower newcomers' backing even if the cash payout went to old holders.
-   Existing `SubLoop.harvest` does not perform this accounting change yet.
-4. Allocate actual route output and actual execution loss to the same owner.
-   Apply the existing order: protocol fee, owned Main interest, then collateral
-   reward. Insufficient fresh yield leaves interest outstanding; previously
-   supplied collateral is not an interest-payment source.
-5. Supply the remainder as collateral and mint matching funded reward shares.
-   Crediting them through an escrow keeps realization bounded and leaves other
-   holders' collateral exchange rate unchanged. Beneficiaries must be able to
-   materialize their shares permissionlessly; escrow ownership must also be
-   included in future earnings so a delayed claim does not lose compounding.
+`claimYield(receiver)` exchanges the caller's reward units for available funded
+vault shares. It never pays an unconverted receivable as collateral. A partial
+claim leaves the remaining fund units and their source value owned. The UI shows
+claimable collateral separately from estimated yield awaiting conversion, and
+retains the claim action even when ordinary wallet shares have been withdrawn.
 
-Transfers and exits require explicit checkpoint rules. Proposed policy: an
-account retains separately accrued rewards; the receiving account starts a new
-earning interval. The implementation must preserve the associated source units,
-retained-yield rights and pre-transfer debt/interest obligations together. Simply
-moving collateral shares or resetting the receiver's reward index is insufficient.
-Prove this partition before enabling that path; no transfer behavior is changed
-by this design PR.
+## Withdrawals and fee consistency
 
-At unwind start, move the exiting portion of all ownership records into the exit
-cohort. Partial collateral claims must not close residual source/reward rights.
-The original owner retains subsequent recoveries, as in #60. Deficits may delay
-payment, but cannot erase the collateral claim or become another holder's debt.
+At unwind start, the withdrawing holder receives the waiting request's earned
+units. The owner's proportional fund allocation splits both its assets:
+unconverted source units join the unwind, while funded reward shares become a
+separate, vested claim for that owner. This preserves the next holder's source
+allocation regardless of exit processing order. Vested shares keep earning for
+their owner until claimed. The source records the actual
+principal basis separately from that yield, preserving the exit's earned
+execution allowance. The original-owner cash, indexed Main debt and late-recovery
+rules from #60 remain in force. Collateral claims are not silently reduced by a
+funding deficit.
 
-## Quantified example and executable study
+Unconverted user yield that follows an exit settles through its original owner's
+HOLLAR surplus claim. Its corresponding protocol units join that unwind too.
+Their ownership was already separated at checkpoint: they are not a second fee
+on the user's net reward. Both portions share actual execution costs. Active
+source yield reserved for Main servicing also records its fee at unwind start.
+The Main ledger reserves the maximum fee from partial receipts and reduces it
+as source costs arrive. It transfers the fee only when that source claim closes,
+so a late cost cannot retroactively make a paid fee consume principal. Partial
+surplus claims exclude this reserve, exposed through `surplusOf(id)`.
+Explicit Main recovery donations and recovered source principal are not charged.
+When Main funding or outside repayment releases source capital, the ledger
+reclassifies that capital without a yield fee before a newcomer can enter.
 
-The [exact-rational study](../../scripts/propeller/yield-ownership-study.mjs)
-uses unit collateral/HOLLAR prices and abstracts away leverage, Aave rounding,
-liquidity, oracle changes, gas and storage representation. It demonstrates the
-accounting boundary, not production execution or a promised APY.
+Owned source withdrawals can leave different vaults with different source cost
+bases. Following a loss, a global source recapitalization at unit NAV is not proof
+that every vault's Main obligation is restored. Recovery must check and, when
+necessary, explicitly fund each active Main cohort, including offline holders,
+before reopening. The recovery tests account for these outside contributions;
+they do not treat them as strategy income.
 
-An incumbent deposits 1 token, earns 0.1 source value, and accrues 0.02 Main
-interest. A newcomer deposits 1 token. Retain 0.04 of the incumbent's yield and
-realize 0.06 with a 5% fee:
+Exit fees accrue as HOLLAR to the existing fee controller, separately from
+ordinary harvest fees held in the deposited collateral. Treasury claims use the
+same `claimProtocolFees(asset)` entrypoint. At a 100% rate newly checkpointed
+yield leaves no user-owned earnings to fund Main servicing or an exit allowance;
+this can delay settlement. Previously vested rewards retain their ownership.
+Fee policy and funding constraints do not insure the position.
 
-| Result | Amount |
-| --- | ---: |
-| Fee on realized yield | 0.003 |
-| Main interest paid | 0.020 |
-| Funded reward for incumbent | 0.037 |
-| Incumbent collateral claim | 1.037 |
-| Newcomer collateral claim | 1.000 |
-| Incumbent's retained source yield | 0.040 |
-| Newcomer's pre-entry yield entitlement | 0 |
+## Reinvestment and execution policy
 
-Eight exact-arithmetic checks cover entry fairness, partial realization, retained
-yield release, fee/interest ordering, realized execution loss, insufficient yield,
-post-entry earnings and 100 partial harvests. Run from the repository root:
+Newly compounded collateral records borrowing capacity. `rebalance` can use that
+capacity without waiting for the five-percentage-point price-movement band. It
+borrows only within the current reserve LTV, routes HOLLAR synchronously into the
+source, and retains the existing pause, funding and outstanding-exit guards.
+Deposit and rebalance execution live in the vault's immutable helper to preserve
+the EIP-170 runtime limit; the helper writes no vault storage directly.
 
-```sh
-node --test-reporter=tap scripts/propeller/yield-ownership-study.test.mjs
-node scripts/propeller/yield-ownership-study.mjs
-```
+Source ramping excludes positive, unconverted carry from its borrowing budget:
+that carry is waiting to buy collateral, not to increase PRIME leverage again.
 
-The [dated evidence record](evidence/yield-ownership-2026-10-02/summary.json)
-separates these model checks from the Solidity regression and final runtime
-templates. Contract test success does not implement the ownership model.
-The atomic-harvest revision passes 297 Solidity tests with zero failures and
-11 optional skips. CollateralVault remains 24,438 bytes (138 bytes of headroom);
-SubLoop is 21,328 bytes under the recorded London/via-IR compiler settings.
+The keeper checks harvest availability each cycle, harvests before optional
+ramping, and runs Main maintenance/reinvestment after a successful harvest.
+Empty harvests do not create transactions. A keeper attempt is not a guarantee
+of execution or a promise of a particular APY.
 
-## Conditions before #62 can become merge-ready
+The source's economic retention and minimum-yield policy remain separate launch
+parameters. Correct ownership does not itself eliminate their wait. Reducing a
+reserve requires an execution-cost coverage model; this PR does not authorize
+lower production reserves, widen slippage, or claim that retained yield will be
+converted within a fixed time. Shared route budgets and liquidity-based partial
+trade limits remain in the execution-controls workstream.
 
-- Implement the ownership component and the required source-unit adjustments;
-  reconcile all asset, unit, debt, cash and escrow totals across both layers.
-- Prove deposit, transfer, multi-vault entry, delayed/partial harvest and exit
-  permutations, including price changes and non-unit collateral prices.
-- Test actual fees, Main discounts/interest, retained-yield cost consumption,
-  loss/recovery, donations and configuration changes without cross-owner subsidy.
-- Invert the earlier production-contract late-deposit characterization into a
-  passing prevention regression, and follow withdrawals through their final
-  collateral and source/reward claims.
-- Bound storage growth and gas for every public path; recheck bytecode sizes,
-  storage layout, keeper work and fresh native execution.
-- Expose funded reward claims separately from unrealized owned yield in the UI.
-  Until this is implemented, #3978 exposes #60's Main-debt recoveries only.
+## Validation and rollout
 
-This design is compatible with a shared execution budget and partial atomic
-harvests. Those size/rate controls remain a separate implementation. The ledger
-allows harvest scheduling to follow execution economics without making delayed
-yield available to newcomers; it does not establish the optimal trading policy.
+`test/YieldEntryFairness.t.sol` covers entry before harvest, entry followed by an
+exit before harvest, transfers, waiting requests, partial reward claims, continued
+compounding in escrow, fee vesting, losses and reinvestment below the old LTV trigger. The original
+capture tests first failed against the draft contracts; they are prevention
+regressions in this implementation. Fee, multi-vault, source compatibility,
+settlement and invariant suites must also pass on the final code.
+
+The earlier exact-rational study and dated evidence below are historical design
+artifacts, not proof of this implementation:
+
+- `scripts/propeller/yield-ownership-study.mjs`
+- `docs/evidence/yield-ownership-2026-10-02/`
+
+Review the final PR validation record for the tested commit, runtime sizes and
+remaining native-chain activation gates. No merge, deployment or production
+parameter change is performed by this implementation work.

@@ -6,8 +6,10 @@ unconditional principal guarantee, audit sign-off or approval of market limits.
 
 **Later review checkpoint:** the [2 October PR integration record](pr-integration-2026-10-02.md)
 covers #60 → #61 → #63 with 297 passing tests and updated runtime sizes.
-The September results below retain their original scope. Yield ownership and
-deposit/harvest size and rate controls remain open.
+The September results below retain their original scope. PR #62 adds
+[separate yield ownership](yield-ownership.md) and faster eligible compounding.
+Deposit/harvest size and rate controls remain open; older native evidence does
+not validate the new ownership contracts.
 
 The candidate is on `feat/propeller-interest-buffer`; the name is historical.
 Sponsored operating buffers have been replaced. The commit containing this

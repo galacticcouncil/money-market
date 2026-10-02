@@ -48,15 +48,16 @@ launch decisions. Defaults and experimental limits are not deployment approvals.
 | Main interest, execution allowance and incentives | [Yield-funded Main servicing](main-debt-servicing.md)              |
 | Discount authority, eligibility and cache refresh | [Main borrowing discount](main-borrow-discount.md)                 |
 | Fee basis, recipient and claims                   | [Per-vault protocol fees](protocol-fees.md)                        |
-| Unharvested yield ownership, design only          | [Separate ownership with preserved collateral claims](yield-ownership.md) |
+| Unharvested yield ownership          | [Separate ownership with preserved collateral claims](yield-ownership.md) |
 | Principal, delay, pauses, rounding and recovery   | [Principal preservation](principal-safety.md)                      |
 | Future source rotation                            | [Upgrade boundary and deferred implementation](source-upgrades.md) |
 
 ## Verification and Research
 
 The [2 October PR integration checkpoint](pr-integration-2026-10-02.md) records
-the combined #60/#61/#63 regression and updated runtime sizes. Separate yield
-ownership and execution size/rate controls remain outstanding.
+the combined #60/#61/#63 regression and updated runtime sizes. PR #62 implements separate yield
+ownership; see [its specification](yield-ownership.md) and final validation record.
+Execution size/rate controls remain an activation gate.
 
 [September 25 PR completion](pr60-completion.md) resolves the target-branch
 documentation conflicts and the model replay failures recorded in RC1. It

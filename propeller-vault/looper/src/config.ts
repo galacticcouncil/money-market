@@ -25,7 +25,8 @@ export const CONFIG = {
   // idle once HF is within this fraction above target — avoids burning gas on
   // borrow-to-floor no-ops. e.g. 0.005 = stop ramping at HF ≤ target·1.005.
   RAMP_HF_BUFFER: Number(process.env.RAMP_HF_BUFFER || 0.005),
-  // run the slow maintenance ops (peg/rebalance/harvest) every N cycles.
+  // Peg/rebalance run every N cycles and immediately after a successful harvest.
+  // Harvest availability is checked every cycle.
   SLOW_EVERY: Number(process.env.SLOW_EVERY || 10),
   ALERT_WEBHOOK: process.env.ALERT_WEBHOOK,
 };

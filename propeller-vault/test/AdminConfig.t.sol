@@ -221,9 +221,10 @@ contract AdminConfigTest is Test {
 
         uint256 before = prime.balanceOf(address(this));
         vm.prank(address(harvester));
+        vm.expectRevert(SubLoop.InvalidParameters.selector);
         loop.harvest();
         assertEq(prime.balanceOf(address(this)), before, "caller paid nothing");
-        assertGt(prime.balanceOf(address(harvester)), 0, "carry routed to the harvester");
+        assertEq(prime.balanceOf(address(harvester)), 0, "owned carry requires the atomic harvest path");
     }
 
     function test_setHarvesterRejectsZero() public {

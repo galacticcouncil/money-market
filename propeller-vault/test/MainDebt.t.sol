@@ -150,16 +150,16 @@ contract MainDebtTest is PluggableYieldSourceTest {
         PropellerMainDebt ledger = _ledger();
         for (uint256 id; id < 70; ++id) {
             vm.prank(address(vault));
-            ledger.startExit(id, address(this), 1, 1000, 100e18);
+            ledger.startExit(id, address(this), 1, 1000, 100e18, 100e18, 0);
         }
         hollar.mint(address(vault), 7100e18);
         vm.startPrank(address(vault));
         hollar.approve(address(ledger), 7100e18);
         ledger.creditSource(3500e18);
         vm.expectRevert(PropellerMainDebt.OutstandingDebt.selector);
-        ledger.startExit(70, address(this), 1, 1000, 100e18);
+        ledger.startExit(70, address(this), 1, 1000, 100e18, 100e18, 0);
         ledger.creditSource(0);
-        ledger.startExit(70, address(this), 1, 1000, 100e18);
+        ledger.startExit(70, address(this), 1, 1000, 100e18, 100e18, 0);
         assertEq(_cash(71), 0, "late exit cannot capture an earlier allocation");
         for (uint256 key = 1; key <= 70; ++key) assertEq(_cash(key), 50e18);
         ledger.creditSource(3600e18);
@@ -193,7 +193,7 @@ contract MainDebtTest is PluggableYieldSourceTest {
         PropellerMainDebt ledger = _ledger();
         for (uint256 id; id < 70; ++id) {
             vm.prank(address(vault));
-            ledger.startExit(id, address(this), 1, 1000, 100e18);
+            ledger.startExit(id, address(this), 1, 1000, 100e18, 100e18, 0);
         }
         hollar.mint(address(vault), 5950e18);
         vm.startPrank(address(vault));
@@ -208,7 +208,7 @@ contract MainDebtTest is PluggableYieldSourceTest {
         ledger.creditSource(700e18); // New receipt cannot alter the frozen first batch.
         for (uint256 key = 1; key <= 70; ++key) assertEq(_cash(key), 40e18);
         vm.expectRevert(PropellerMainDebt.OutstandingDebt.selector);
-        ledger.startExit(70, address(this), 1, 1000, 100e18);
+        ledger.startExit(70, address(this), 1, 1000, 100e18, 100e18, 0);
         ledger.creditSource(0);
         ledger.creditSource(0);
         ledger.creditSource(2450e18);

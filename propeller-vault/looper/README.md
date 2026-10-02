@@ -33,15 +33,18 @@ read each vault's pause, queue cursors and Main repayment target
   waiting request eligible by chain timestamp -> startUnwinds(16)
   source safety target or active unwind       -> pokeRepay()
   active vault settlement or Main repayment   -> pokeSettle()
+  healthy, harvestable yield, no freeze       -> harvest()
   healthy, no pending work, no freeze         -> pokeBorrow()
-periodically harvest(), maintainPeg(), pokeSettle(), then rebalance when allowed
+after a successful harvest, or periodically otherwise:
+  maintainPeg(), pokeSettle(), then rebalance when allowed
 ```
 
 The keeper checks each Main debt ledger's `ready()` state. Missing/unreadable
 accounting, insufficient backing or incomplete source allocation blocks new
 source ramping without disabling safety repayments. Settlement also runs for
-late source claims after collateral settlement. The slow cycle services Main
-interest from available proceeds; it never obtains treasury money or widens
+late source claims after collateral settlement. Every cycle can realize eligible yield before optional source ramping and then
+reinvest the resulting collateral. The periodic fallback also services Main
+interest from available proceeds; the keeper never obtains treasury money or widens
 slippage. See [yield funding and recovery](../docs/main-debt-servicing.md).
 
 The default cooldown is 12 hours BEFORE unwinding starts. It is configured per

@@ -5,6 +5,14 @@ not implemented or enabled.** This does not resolve the
 [RC activation gates](release-candidate.md#activation-gates). No production governance
 action, adapter selection, migration budget or slippage approval is implied.
 
+**October ownership revision:** #62 adds per-vault source principal, separate
+user/protocol yield ownership and reserved source fees. Its regression fingerprint
+includes those fields and reward-fund balances. The old storage prefix is retained,
+but this does not migrate an older funded deployment into the new accounting:
+#62 requires a fresh, consistently wired vault/source/Main/Harvester/fee stack.
+See [yield ownership](yield-ownership.md). The September design discussion below
+is not a migration recipe for that revision.
+
 ## Decision
 
 Keep the existing source proxy as the long-lived accounting endpoint. A future
@@ -16,7 +24,7 @@ Define and test the upgrade boundary now. Do not rely on developing a migration
 under emergency time pressure, or treat upgrade authority as proof that an
 arbitrary new implementation is compatible.
 
-No production Solidity changes are made for this preparation. The new Solidity
+The September preparation made no production Solidity changes. Its test Solidity
 implementations live only in `test/SourceUpgradeCompatibility.t.sol`; they are
 an append-only marker implementation and a deliberately broken counter fixture.
 Neither is a strategy adapter or a production upgrade candidate.
@@ -67,8 +75,9 @@ principal. Authorized UUPS upgrades do not enforce these rules automatically.
   bindings cannot simply be assumed venue-neutral.
 - The Main-debt ledger is non-upgradeable and the current vault disallows its
   live replacement. Resetting it would lose obligations and ownership.
-- The collateral vault has only 195 runtime bytes of headroom in the verified
-  London build. Keep strategy management outside that vault where possible;
+- The September reference build had only 195 bytes of vault runtime headroom.
+  #62 moves execution into an immutable helper; use its final artifact sizes.
+  Keep strategy management outside the vault where possible;
   neither storage gaps nor proxy upgradeability waive native code/gas limits.
 - Current emergency pauses are not a migration mode: the source emergency pause
   stops ordinary unwinds. A future rotation needs explicitly reviewed controls

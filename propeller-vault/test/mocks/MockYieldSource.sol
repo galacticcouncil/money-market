@@ -23,6 +23,7 @@ contract MockYieldSource is IYieldSource {
     }
 
     mapping(address => uint256) internal _shares;
+    mapping(address => uint256) public principalOf;
     mapping(address => uint256) internal _freed;
     uint256 internal _totalShares;
     uint256 public pullBps = 10_000;
@@ -38,16 +39,35 @@ contract MockYieldSource is IYieldSource {
         hollar.transferFrom(msg.sender, address(this), hollarAmount);
         shares = hollarAmount; // 1:1
         _shares[msg.sender] += shares;
+        principalOf[msg.sender] += shares;
         _totalShares += shares;
     }
 
-    function requestUnwind(uint256 shares) external returns (uint256 unwindId) {
+    function requestUnwind(uint256 shares) public returns (uint256 unwindId) {
+        uint256 basis = principalOf[msg.sender] * shares / _shares[msg.sender];
+        principalOf[msg.sender] -= basis;
+        return _unwind(shares);
+    }
+
+    function _unwind(uint256 shares) private returns (uint256) {
         require(_shares[msg.sender] >= shares, "insufficient shares");
         _shares[msg.sender] -= shares;
         _totalShares -= shares;
         _freed[msg.sender] += shares; // 1:1, freed synchronously
         return 0;
     }
+
+    function requestUnwindProtected(uint256 shares, uint256 basis) external returns (uint256) {
+        principalOf[msg.sender] -= basis;
+        return _unwind(shares);
+    }
+
+    function releasePrincipal(address vault, uint256 amount) external { principalOf[vault] -= amount; }
+
+    function accountingLocked() external pure returns (bool) { return false; }
+
+    function harvestCapacity() external pure returns (uint256) { return 0; }
+    function harvestFor(address, uint256) external pure returns (uint256, uint256) { return (0, 0); }
 
     function pullFreed() external returns (uint256 hollarSent) {
         hollarSent = _freed[msg.sender] * pullBps / 10_000;

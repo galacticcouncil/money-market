@@ -20,6 +20,9 @@ pragma solidity ^0.8.22;
 interface IYieldSource {
     /// @notice Source-wide freeze of user flows and new risk, not safety repayment.
     function emergencyPaused() external view returns (bool);
+    function accountingLocked() external view returns (bool);
+    function principalOf(address vault) external view returns (uint256);
+    function releasePrincipal(address vault, uint256 amount) external;
 
     // ── vault → source: put money in ──────────────────────────────────────
 
@@ -34,6 +37,7 @@ interface IYieldSource {
     ///         shares and grows the source's release target; the HOLLAR is freed
     ///         over blocks. Returns an id for tracking.
     function requestUnwind(uint256 shares) external returns (uint256 unwindId);
+    function requestUnwindProtected(uint256 shares, uint256 basis) external returns (uint256 unwindId);
 
     /// @notice Pull whatever HOLLAR has been freed for the calling vault so far
     ///         (≤ its outstanding request). Returns the amount actually sent.
@@ -86,6 +90,8 @@ interface IYieldSource {
     ///         this, inside its own permissionless harvest.
     /// @return surplus The amount skimmed, in the source's own yield asset.
     function harvest() external returns (uint256 surplus);
+    function harvestCapacity() external view returns (uint256 sourceShares);
+    function harvestFor(address vault, uint256 shares) external returns (uint256 amount, uint256 burned);
 }
 
 /// @title ILeveragedLoop

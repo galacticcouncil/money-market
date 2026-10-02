@@ -40,6 +40,7 @@ CollateralVault -> Aave Main position
 | [SyntheticToken](src/SyntheticToken.sol)                 | Non-cash collateral used to maintain the Main health-factor floor. It cannot fund repayments.             |
 | [SubLoop](src/SubLoop.sol)                               | Shared PRIME exposure, HOLLAR borrowing, incremental deployment/unwinding and retained execution yield.   |
 | [Harvester](src/Harvester.sol)                           | Splits harvestable PRIME among participating vaults; each vault compounds its allocation.                 |
+| [PropellerYieldAccounting](src/PropellerYieldAccounting.sol) | Separate pre-entry yield ownership, funded reward shares and realization accounting. |
 | [PropellerMainDebt](src/PropellerMainDebt.sol)           | Per-vault ledger separating active-holder and started-exit debt, cash, source claims and late recoveries. |
 | [PropellerFeeController](src/PropellerFeeController.sol) | Per-vault harvest fees held in underlying collateral for the configured recipient.                        |
 | [PropellerDiscount](src/PropellerDiscount.sol)           | Main-only HOLLAR interest discount for governance-enrolled vaults.                                        |
@@ -62,9 +63,12 @@ but does not replace missing HOLLAR.
    charges its fee, services Main interest and compounds the remainder.
    No minimum yield or fixed APY is promised.
    Anyone can trigger the Harvester; only that contract can pull source yield,
-   so the pull and distribution are atomic. Separate ownership of pre-entry
-   yield is [designed but not implemented](docs/yield-ownership.md).
-3. **Rebalance.** Collateral appreciation can permit more Main borrowing.
+   so the pull and distribution are atomic. [Separate yield ownership](docs/yield-ownership.md)
+   keeps prior earnings with their owners. Funded rewards compound while unclaimed;
+   `claimYield` adds their backed vault shares to the owner's wallet.
+3. **Rebalance.** Newly earned collateral permits additional Main borrowing
+   without waiting for the price-movement band. Collateral appreciation can
+   also permit more borrowing.
    Falling collateral value triggers a PRIME-loop unwind whose net HOLLAR
    repays Main. Ordinary resizing does not sell deposited collateral.
 4. **Request withdrawal.** `requestRedeem` escrows shares for the configured
@@ -91,7 +95,7 @@ compounded user yield are not implemented. See [principal and emergency policy](
 | Control                | Authority and RC behavior                                                                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Main interest discount | Governance and Technical Committee set one rate across eligible Main vaults; deployment defaults to zero until approved. Loop debt is not discounted. |
-| Protocol fee           | Governance sets a rate per vault, initially 5% of harvested collateral after swaps and before Main interest.                                          |
+| Protocol fee           | Governance sets a rate per vault, initially 5%. Yield ownership and its fee vest at checkpoint; collection waits for realization.                                          |
 | Treasury recipient     | Owner-configurable; all unclaimed fees follow the new recipient. Anyone may trigger payment to that recipient.                                        |
 | Withdrawal delay       | Governance-configurable per vault, initially 12 hours before unwinding; existing requests retain their eligibility time.                              |
 | Emergency freeze       | Guardian can freeze; governance reopens. Local vault freeze and source-wide emergency freeze are distinct from the source route kill switch.          |

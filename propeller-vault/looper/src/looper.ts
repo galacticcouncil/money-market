@@ -61,6 +61,7 @@ const VAULT_ABI = [
 ] as const;
 
 const HARVESTER_ABI = [
+  view('harvestable', 'bool'),
   {
     name: 'harvest',
     type: 'function',
@@ -99,9 +100,9 @@ const WAD = 10n ** 18n;
 // ─── Maintainer ───────────────────────────────────────────────────────────────
 //
 // Permissionless keeper for the Propeller loop. Drives every now-open op:
-//   fast (each cycle): pokeBorrow (ramp) · deLever (safety) · pokeRepay+pokeSettle
+//   fast (each cycle): harvest when available, then pokeBorrow (ramp) · deLever (safety) · pokeRepay+pokeSettle
 //                      (service withdrawals)
-//   slow (every SLOW_EVERY): maintainPeg · rebalance · harvest
+//   after harvest / every SLOW_EVERY: maintainPeg · rebalance
 // Each op self-gates on-chain, so a skipped read only wastes gas, never misbehaves.
 // Signs with a gas-only account — no role required (all targets are permissionless).
 
@@ -207,6 +208,16 @@ export class PropellerLooper {
       if (delever > 0n || (!frozen.has(vault) && (next > head || starting || sourcePending > 0n))) pending.push(vault);
     }
     const servicing = unwind > 0n || safetyDebt > 0n || pending.length > 0 || waiting;
+    let harvested = false;
+    if (this.harvester && !paused && !emergency && frozen.size === 0) {
+      try {
+        if (await this.read(HARVESTER_ABI, this.harvester, 'harvestable')) {
+          harvested = await this.poke(HARVESTER_ABI, this.harvester, 'harvest', 'harvest (skim+distribute)', [[]]);
+        }
+      } catch (error) {
+        console.error(`[ALERT] harvest preview failed: ${shortErr(error)}`);
+      }
+    }
     if (!paused) {
       if (hf < target) {
         await this.poke(SUBLOOP_ABI, this.subLoop, 'deLever', 'deLever (HF below floor)');
@@ -223,11 +234,7 @@ export class PropellerLooper {
     }
 
     // ── slow: peg / rebalance / harvest (self-gating no-ops) ────────────
-    if (this.cycle % CONFIG.SLOW_EVERY === 0) {
-      // Fresh harvested yield services Main interest; source equity backs later settlement.
-      if (this.harvester && !paused && !emergency && frozen.size === 0) {
-        await this.poke(HARVESTER_ABI, this.harvester, 'harvest', 'harvest (skim+distribute)', [[]]);
-      }
+    if (harvested || this.cycle % CONFIG.SLOW_EVERY === 0) {
       for (const vault of this.vaults) {
         await this.poke(VAULT_ABI, vault, 'maintainPeg', `maintainPeg ${short(vault)}`);
         if (!pending.includes(vault)) {
@@ -281,7 +288,7 @@ export class PropellerLooper {
     functionName: string,
     label: string,
     args: readonly unknown[] = [],
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       const { request } = await this.publicClient.simulateContract({
         account: this.account,
@@ -296,10 +303,12 @@ export class PropellerLooper {
         gas: 5_000_000n,
       } as any);
       console.log(`  ${label} → ${hash}`);
-      await this.publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+      return receipt.status === 'success';
     } catch (err) {
       // simulate reverts on no-op/guarded paths — expected, just skip.
       console.log(`  ${label}: skipped (${shortErr(err)})`);
+      return false;
     }
   }
 }
