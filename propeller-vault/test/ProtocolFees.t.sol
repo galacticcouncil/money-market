@@ -7,6 +7,7 @@ import {HarvestTest} from "./Harvest.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {Harvester} from "../src/Harvester.sol";
+import {SubLoop} from "../src/SubLoop.sol";
 import {PropellerFeeController} from "../src/PropellerFeeController.sol";
 import {PropellerDiscount} from "../src/PropellerDiscount.sol";
 import {MockDiscountAToken, MockDiscountDebtToken} from "./mocks/MockDiscount.sol";
@@ -195,8 +196,9 @@ contract ProtocolFeesTest is HarvestTest {
     }
 
     function test_rejectsZeroAndKnownCustodyRecipients() public {
-        address[7] memory invalid = [
-            address(0), address(fees), address(vault), address(harvester), address(loop), address(pool), address(aEth)
+        address[9] memory invalid = [
+            address(0), address(fees), address(vault), address(harvester), address(loop), address(pool), address(aEth),
+            address(vault.mainDebt()), address(vault.yieldAccounting())
         ];
         for (uint256 i; i < invalid.length; ++i) {
             vm.expectRevert(PropellerFeeController.InvalidAddress.selector);
@@ -391,20 +393,15 @@ contract ProtocolFeesTest is HarvestTest {
         assertEq(fees.claimableProtocolFees(address(eth)), amount);
     }
 
-    function test_directSourceHarvestStillPaysFeeOnLaterDistribution() public {
+    function test_sourceHarvestOnlyThroughHarvester() public {
         _depositAndRamp();
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
         vm.prank(STRANGER);
+        vm.expectRevert(SubLoop.NotHarvester.selector);
         loop.harvest();
-        uint256 parked = prime.balanceOf(address(harvester));
-        assertGt(parked, 0);
-        assertEq(prime.balanceOf(STRANGER), 0);
-        uint256 beforePrime = aPrime.balanceOf(address(loop));
+        assertEq(prime.balanceOf(address(harvester)), 0);
         _harvest();
-        // The smaller gross position can release further retained yield.
-        uint256 secondHarvest = beforePrime - aPrime.balanceOf(address(loop));
-        uint256 gross = (parked + secondHarvest) * 1e12 / 3_000;
-        assertEq(fees.claimableProtocolFees(address(eth)), gross * 500 / 10_000);
+        assertGt(fees.claimableProtocolFees(address(eth)), 0);
     }
 
     function test_settledWithdrawalIsNotUsedForFee() public {
@@ -449,6 +446,22 @@ contract ProtocolFeesTest is HarvestTest {
         assertLe(address(new CollateralVault()).code.length, 24_576);
         assertLe(address(fees).code.length, 24_576);
         assertLe(address(harvester).code.length, 24_576);
+        assertLe(address(vault.yieldAccounting()).code.length, 24_576);
+        assertLe(address(vault.mainDebt()).code.length, 24_576);
+        assertLe(vault.compoundLogic().code.length, 24_576);
+        assertLe(address(loop).code.length, 24_576);
+    }
+
+    function test_laterVaultCannotTakeEarlierVaultCarry() public {
+        _depositAndRamp();
+        aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
+        CollateralVault later = _secondVault();
+        _harvest();
+        uint256 units = later.yieldAccounting().balanceOf(address(this));
+        uint256 total = later.yieldAccounting().totalUnits();
+        uint256 pending = total == 0 ? 0 : later.yieldAccounting().totalAssets() * units / total;
+        assertLe(later.convertToAssets(later.balanceOf(address(this))) + pending, 1e18 + 1e9);
+        assertGt(vault.yieldAccounting().totalAssets(), 0.1e18);
     }
 
     function testFuzz_accrualClaimAndRotationConserveFees(uint256 seed) public {

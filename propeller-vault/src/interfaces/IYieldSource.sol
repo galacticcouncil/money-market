@@ -20,12 +20,17 @@ pragma solidity ^0.8.22;
 interface IYieldSource {
     /// @notice Source-wide freeze of user flows and new risk, not safety repayment.
     function emergencyPaused() external view returns (bool);
+    function accountingLocked() external view returns (bool);
+    function principalOf(address vault) external view returns (uint256);
+    function releasePrincipal(address vault, uint256 amount) external;
 
     // ── vault → source: put money in ──────────────────────────────────────
 
     /// @notice Take `hollarAmount` from the calling vault and credit it shares at
     ///         the source's current NAV. The HOLLAR need not be deployed by the
     ///         time this returns — only accounted.
+    function admissionCapacity() external view returns (uint256);
+    function previewHarvest(uint256 shares) external view returns (uint256);
     function deposit(uint256 hollarAmount) external returns (uint256 shares);
 
     // ── vault → source: take money out (async) ────────────────────────────
@@ -34,6 +39,7 @@ interface IYieldSource {
     ///         shares and grows the source's release target; the HOLLAR is freed
     ///         over blocks. Returns an id for tracking.
     function requestUnwind(uint256 shares) external returns (uint256 unwindId);
+    function requestUnwindProtected(uint256 shares, uint256 basis) external returns (uint256 unwindId);
 
     /// @notice Pull whatever HOLLAR has been freed for the calling vault so far
     ///         (≤ its outstanding request). Returns the amount actually sent.
@@ -82,10 +88,12 @@ interface IYieldSource {
     // ── yield realisation ─────────────────────────────────────────────────
 
     /// @notice Realise accrued carry and forward it to the configured harvester
-    ///         for per-vault, in-kind distribution. Permissionless: the payout
-    ///         pins to the harvester, never to the caller.
+    ///         for per-vault, in-kind distribution. Only the harvester calls
+    ///         this, inside its own permissionless harvest.
     /// @return surplus The amount skimmed, in the source's own yield asset.
     function harvest() external returns (uint256 surplus);
+    function harvestCapacity() external view returns (uint256 sourceShares);
+    function harvestFor(address vault, uint256 shares) external returns (uint256 amount, uint256 burned);
 }
 
 /// @title ILeveragedLoop
@@ -102,11 +110,11 @@ interface ILeveragedLoop is IYieldSource {
     /// @notice Deploy step: borrow and lever one bounded tranche in.
     ///         Permissionless — bounded by an HF floor, a tranche cap and an
     ///         oracle-fair min-out, so a caller can only advance state.
-    function pokeBorrow() external;
+    function pokeBorrow() external returns (uint256 borrowed);
 
     /// @notice Unwind step: repay debt with freed proceeds (raising HF) and
     ///         credit freed equity to unwinding vaults pro-rata. Permissionless.
-    function pokeRepay() external;
+    function pokeRepay() external returns (uint256 work);
 
     /// @notice Safety de-lever toward the target HF — the same spiral as an
     ///         unwind, but the freed HOLLAR repays debt with no payout.

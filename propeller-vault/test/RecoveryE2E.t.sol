@@ -63,6 +63,24 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         }
     }
 
+    function _fundActiveDeficit(CollateralVault v) internal {
+        // Owned-yield withdrawals give vaults different source cost bases.
+        // A shared recapitalization at unit NAV is not a targeted restoration
+        // of every vault's Main obligation. Fund each active cohort explicitly,
+        // including offline holders, before reopening user flows.
+        uint256 required = v.yieldAccounting().requiredSourceBacking();
+        uint256 available = loop.equityOf(address(v)) * 1e10 - v.yieldAccounting().sourceValue();
+        if (required <= available) return;
+        uint256 amount = required - available + 2e10;
+        PropellerMainDebt ledger = PropellerMainDebt(address(v.mainDebt()));
+        hollar.mint(DONOR, amount);
+        vm.startPrank(DONOR);
+        hollar.approve(address(ledger), amount);
+        ledger.fundPosition(0, amount);
+        vm.stopPrank();
+        assertTrue(ledger.ready(), "every active cohort is backed before reopening");
+    }
+
     function _modelLoopLiquidation() internal {
         // Model the terminal liquidation outcome, not an Aave liquidation engine:
         // an outside liquidator pays the loop debt and receives its PRIME.
@@ -177,6 +195,8 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         // No partial FIFO reopening: restore the full source backing first.
         _donate(address(loop), shortfall - first + 1e12);
         assertEq(loop.negativeCarryBps(), 0);
+        _fundActiveDeficit(ethVault);
+        _fundActiveDeficit(tbtcVault);
         loop.unpauseEmergency();
         uint256 rest = _request(ethVault, ETH_USER, ethVault.balanceOf(ETH_USER));
         uint256 second = _request(ethVault, SECOND_ETH_USER, ethVault.balanceOf(SECOND_ETH_USER));

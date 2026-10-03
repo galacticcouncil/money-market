@@ -5,6 +5,14 @@ operating-buffer proposal from the earlier PR #60 checkpoint.
 Fresh deployments only. The old buffer evidence is historical, not verification
 of these revised contracts. No production slippage setting is approved here.
 
+The #62 [ownership ledger](yield-ownership.md) separates earlier earnings from
+new collateral deposits. Entry backing must cover Main interest after the known
+protocol fee. Active resize receivables remain Main backing while in flight;
+transfers cannot reassign previously earned rewards during a resize. Fees on
+source unwinds remain reserved until the corresponding claim closes, so late
+execution costs can reduce them. The resize target decreases by actual fees as
+well as execution costs and debt repaid. User collateral promises remain fixed.
+
 ## Funding and Principal
 
 - Falling collateral prices trigger the existing banded Main rebalance. The

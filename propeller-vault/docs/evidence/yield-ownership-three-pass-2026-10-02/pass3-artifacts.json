@@ -1,0 +1,72 @@
+[
+  {
+    "contract": "CollateralVault",
+    "runtimeBytes": 23087,
+    "creationTemplateBytes": 39905,
+    "artifactSha256": "9b1711bbfd2f33a15c9c3e9490793dfba851b767a825eceaaebda17ccfb0f764",
+    "evmVersion": "london"
+  },
+  {
+    "contract": "SubLoop",
+    "runtimeBytes": 22735,
+    "creationTemplateBytes": 22966,
+    "artifactSha256": "6863f1bd52a32775d642f403a3630797d2a1eb30031224d0606ed2fce85867b9",
+    "evmVersion": "london"
+  },
+  {
+    "contract": "CompoundLogic",
+    "runtimeBytes": 16394,
+    "creationTemplateBytes": 16422,
+    "artifactSha256": "0d203c1ff9044cb865c170a875bf800cdf72372947d49cb3674919127507f9ec",
+    "evmVersion": "london"
+  },
+  {
+    "contract": "PropellerMainDebt",
+    "runtimeBytes": 16913,
+    "creationTemplateBytes": 30702,
+    "artifactSha256": "8022f9737bf6ef91e40bec57dfe15fa0f02481d5ec3d1494ae30dcb2e28b7ee5",
+    "evmVersion": "london"
+  },
+  {
+    "contract": "PropellerYieldAccounting",
+    "runtimeBytes": 12230,
+    "creationTemplateBytes": 12576,
+    "artifactSha256": "e09d06e51b67fa07602f2f48848872c72a02af7c5ab6a0dda179583c31f32cd6",
+    "evmVersion": "london"
+  },
+  {
+    "contract": "SyntheticToken",
+    "runtimeBytes": 4827,
+    "creationTemplateBytes": 5957,
+    "artifactSha256": "600514ffb4a16af87259da7542abc4b8914f72e01baae38e53f5f7db4aa46e14",
+    "evmVersion": "london"
+  },
+  {
+    "contract": "Harvester",
+    "runtimeBytes": 8212,
+    "creationTemplateBytes": 8717,
+    "artifactSha256": "b130f310744d819e4dbcdfc0aa5853ab31c0d5d5735dbd5da34065fe98ffbc1d",
+    "evmVersion": "london"
+  },
+  {
+    "contract": "PropellerFeeController",
+    "runtimeBytes": 8960,
+    "creationTemplateBytes": 9402,
+    "artifactSha256": "18bf4aab33ccf5e2cdba53c1131bf31f07b886c40360556f8a04648255f76007",
+    "evmVersion": "london"
+  },
+  {
+    "contract": "PropellerDiscount",
+    "runtimeBytes": 6740,
+    "creationTemplateBytes": 8364,
+    "artifactSha256": "2f5b08912a8192b86d8b982cf98712cf128f0b66955902cc8e6a369d8fc89ca3",
+    "evmVersion": "london"
+  },
+  {
+    "contract": "ERC1967Proxy",
+    "runtimeBytes": 209,
+    "creationTemplateBytes": 1046,
+    "artifactSha256": "a4f9d85cafb340bb4bcc87667cdec0779113eac8baafa8eeeac46ebe7d628092",
+    "evmVersion": "london"
+  }
+]

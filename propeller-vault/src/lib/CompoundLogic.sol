@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
+import {ExecutionController} from "../ExecutionController.sol";
+import {PropellerYieldAccounting} from "../PropellerYieldAccounting.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IMainDebtVault} from "../PropellerMainDebt.sol";
 import {IMainDebt} from "../interfaces/IMainDebt.sol";
+import {IYieldSource} from "../interfaces/IYieldSource.sol";
 import {IPropellerFeeController} from "../interfaces/IPropellerFeeController.sol";
 import {ISwapper} from "../interfaces/ISwapper.sol";
 import {IAavePool} from "../interfaces/IAavePool.sol";
@@ -13,8 +17,15 @@ import {ISyntheticToken} from "../interfaces/ISyntheticToken.sol";
 interface ICompoundVault is IMainDebtVault {
     function feeController() external view returns (IPropellerFeeController);
     function mainDebt() external view returns (IMainDebt);
+    function yieldAccounting() external view returns (PropellerYieldAccounting);
     function synthetic() external view returns (ISyntheticToken);
     function syntheticSupplied() external view returns (uint256);
+    function loopShares() external view returns (uint256);
+    function reinvestAssets() external view returns (uint256);
+    function totalAssets() external view returns (uint256);
+    function totalQueuedCollateral() external view returns (uint256);
+    function synthLtBps() external view returns (uint256);
+    function isUnderfunded() external view returns (bool);
 }
 
 /// @dev Stateless delegatecall implementation, deployed immutably with the vault
@@ -25,6 +36,9 @@ contract CompoundLogic {
     error ZeroAmount();
     error ZeroAddress();
     error PrincipalShortfall();
+    error Underfunded();
+    error NoLoopEquity();
+    event Rebalanced(uint256 ltvBefore, uint256 ltvAfter);
     event Harvested(uint256 collateralAmount);
 
     function repay(uint256 key, uint256 amount, uint256 recovery)
@@ -45,7 +59,137 @@ contract CompoundLogic {
         }
     }
 
-    function compound(address tokenIn, uint256 amountIn, uint256 minimum, bytes calldata route) external {
+    function isUnderfunded(address vault) external view returns (bool) {
+        ICompoundVault v = ICompoundVault(vault);
+        if (v.totalAssets() < v.totalQueuedCollateral()) return true;
+        uint256 debt = v.hollarDebtToken().balanceOf(vault);
+        if (debt == 0) return false;
+        uint256 backing8 = v.yieldSource().equityOf(vault)
+            + (v.yieldSource().pendingUnwindOf(vault) + v.hollar().balanceOf(vault)) / 1e10;
+        if (address(v.mainDebt()) != address(0)) {
+            if (v.mainDebt().activeUnderfunded()) return true;
+            backing8 += v.mainDebt().ownedCash() / 1e10;
+            backing8 -= v.yieldAccounting().sourceValue() / 1e10;
+            uint256 reserved = v.mainDebt().sourceFeeReserve() / 1e10;
+            if (reserved > backing8) return true;
+            backing8 -= reserved;
+        }
+        return v.yieldSource().negativeCarryBps() != 0 || backing8 < debt / 1e10;
+    }
+
+    function deposit(uint256 assets, uint256 previousDebt) external returns (uint256 shares, uint256 supplied) {
+        ICompoundVault v = ICompoundVault(address(this));
+        IAavePool pool = v.pool();
+        IERC20 collateral = v.collateral();
+        (uint256 before8,,,,,) = pool.getUserAccountData(address(this));
+        ExecutionController control = v.executionController();
+        address payer = msg.sender == address(control) ? control.caller() : msg.sender;
+        collateral.safeTransferFrom(payer, address(this), assets);
+        collateral.forceApprove(address(pool), assets);
+        pool.supply(address(collateral), assets, address(this), 0);
+        (uint256 after8,,,,,) = pool.getUserAccountData(address(this));
+        uint256 amount = (after8 - before8) * (pool.getConfiguration(address(collateral)) & 0xFFFF) / 10_000 * 1e10;
+        IERC20 hollar = v.hollar();
+        pool.borrow(address(hollar), amount, 2, 0, address(this));
+        supplied = Math.ceilDiv(amount * 10_000, v.synthLtBps());
+        supplied += supplied / 200;
+        ISyntheticToken synthetic = v.synthetic();
+        synthetic.mint(address(this), supplied);
+        IERC20(address(synthetic)).forceApprove(address(pool), supplied);
+        pool.supply(address(synthetic), supplied, address(this), 0);
+        pool.setUserUseReserveAsCollateral(address(synthetic), true);
+        hollar.forceApprove(address(v.yieldSource()), amount);
+        shares = v.yieldSource().deposit(amount);
+        v.mainDebt().borrowed(previousDebt);
+    }
+
+    function startExit(uint256 id, address owner, uint256 shares, uint256 supply)
+        external returns (uint256 remainingShares, uint256 debt)
+    {
+        ICompoundVault v = ICompoundVault(address(this));
+        IYieldSource source = v.yieldSource();
+        PropellerYieldAccounting rewards = v.yieldAccounting();
+        uint256 held = v.loopShares();
+        uint256 activeSlice = Math.mulDiv(held - rewards.reservedShares(), shares, supply);
+        (uint256 rewardSlice, uint256 feeSlice) = rewards.startExit(id, owner, shares);
+        uint256 slice = activeSlice + rewardSlice + feeSlice;
+        uint256 basis = Math.mulDiv(source.principalOf(address(this)), shares, supply);
+        uint256 before_ = source.pendingUnwindOf(address(this));
+        if (slice != 0) source.requestUnwindProtected(slice, basis);
+        uint256 claim = source.pendingUnwindOf(address(this)) - before_;
+        uint256 activeClaim = slice == 0 ? 0 : Math.mulDiv(claim, activeSlice, slice);
+        uint256 taxable = activeClaim > basis ? activeClaim - basis : 0;
+        uint256 fee = address(v.feeController()) == address(0) ? 0
+            : Math.mulDiv(taxable, v.feeController().protocolFeeBps(address(this)), 10_000);
+        if (slice != 0) fee += Math.mulDiv(claim, feeSlice, slice);
+        (,,uint256 cash) = v.mainDebt().activePosition();
+        debt = v.mainDebt().startExit(id, owner, shares, supply, claim, basis, fee);
+        if (slice == 0 && debt > Math.mulDiv(cash, shares, supply)) revert NoLoopEquity();
+        remainingShares = held - slice;
+    }
+
+    /// @dev State is returned to the vault; the immutable helper owns no slots.
+    function rebalance() external returns (uint256 shares, uint256 supplied, uint256 target, uint256 credit) {
+        ICompoundVault v = ICompoundVault(address(this));
+        IAavePool pool = v.pool();
+        IERC20 hollar = v.hollar();
+        IMainDebt ledger = v.mainDebt();
+        shares = v.loopShares();
+        supplied = v.syntheticSupplied();
+        credit = v.reinvestAssets();
+        (uint256 coll8, uint256 debt8,,,,) = pool.getUserAccountData(address(this));
+        uint256 value8 = coll8 > supplied / 1e10 ? coll8 - supplied / 1e10 : 0;
+        if (value8 == 0) return (shares, supplied, 0, credit);
+        uint256 ltv = debt8 * 10_000 / value8;
+        uint256 maxLtv = pool.getConfiguration(address(v.collateral())) & 0xFFFF;
+        uint256 targetDebt8 = value8 * maxLtv / 10_000;
+        if (ltv + 500 < maxLtv || (credit != 0 && debt8 < targetDebt8)) {
+            if (v.isUnderfunded()) revert Underfunded();
+            uint256 previousDebt = ledger.beforeDeposit();
+            uint256 add = (targetDebt8 - debt8) * 1e10;
+            if (ltv + 500 >= maxLtv) {
+                // Earned collateral bypasses price-move hysteresis, only up to
+                // its own borrowing capacity and the current reserve target.
+                uint256 credit8 = Math.mulDiv(value8, Math.min(credit, v.totalAssets()), v.totalAssets());
+                add = Math.min(add, credit8 * maxLtv / 10_000 * 1e10);
+            }
+            uint256 wanted = add;
+            add = Math.min(add, v.yieldSource().admissionCapacity());
+            if (add == 0) return (shares, supplied, 0, credit);
+            pool.borrow(address(hollar), add, 2, 0, address(this));
+            ISyntheticToken synthetic = v.synthetic();
+            uint256 extra = Math.ceilDiv(add * 10_000, v.synthLtBps());
+            extra += extra / 200;
+            synthetic.mint(address(this), extra);
+            IERC20(address(synthetic)).forceApprove(address(pool), extra);
+            pool.supply(address(synthetic), extra, address(this), 0);
+            pool.setUserUseReserveAsCollateral(address(synthetic), true);
+            supplied += extra;
+            hollar.forceApprove(address(v.yieldSource()), add);
+            shares += v.yieldSource().deposit(add);
+            ledger.borrowed(previousDebt);
+            // Preserve unused reinvestment credit when the shared trade budget
+            // only admits part of the intended additional borrow.
+            credit = Math.mulDiv(credit, wanted - add, wanted);
+        } else if (ltv > maxLtv + 300) {
+            uint256 activeShares = shares - v.yieldAccounting().reservedShares();
+            uint256 equity8 = shares == 0 ? 0 : Math.mulDiv(v.yieldSource().equityOf(address(this)), activeShares, shares);
+            uint256 repayment8 = Math.min(debt8 - targetDebt8, equity8);
+            uint256 slice = equity8 == 0 ? 0 : Math.mulDiv(activeShares, repayment8, equity8);
+            if (slice != 0) {
+                uint256 pending = v.yieldSource().pendingUnwindOf(address(this));
+                uint256 principal = v.yieldSource().principalOf(address(this));
+                uint256 basis = Math.mulDiv(principal, slice, activeShares);
+                v.yieldSource().requestUnwindProtected(slice, basis);
+                shares -= slice;
+                target = v.yieldSource().pendingUnwindOf(address(this)) - pending;
+                ledger.expectDelever(target, basis);
+            }
+        }
+        emit Rebalanced(ltv, v.hollarDebtToken().balanceOf(address(this)) / 1e10 * 10_000 / value8);
+    }
+
+    function compound(address tokenIn, uint256 amountIn, uint256 minimum, bytes calldata route) external returns (uint256 reward, uint256 serviceRemainder) {
         if (amountIn == 0) revert ZeroAmount();
         ICompoundVault v = ICompoundVault(address(this));
         IPropellerFeeController controller = v.feeController();
@@ -61,6 +205,9 @@ contract CompoundLogic {
         uint256 floor = controller.quoteCollateral(address(this), tokenIn, amountIn)
             * (10_000 - v.compoundSlippageBps()) / 10_000;
         if (minimum < floor) minimum = floor;
+        ExecutionController control = v.executionController();
+        if (address(control) != address(0)) minimum = Math.max(minimum,
+            control.consume(tokenIn, address(collateral), amountIn));
         if (tokenIn != address(collateral)) {
             IERC20(tokenIn).forceApprove(address(swapper), amountIn);
             swapper.sell(tokenIn, address(collateral), amountIn, minimum, route);
@@ -68,12 +215,33 @@ contract CompoundLogic {
             if (IERC20(tokenIn).balanceOf(address(this)) != inputBefore) revert PrincipalShortfall();
         }
         uint256 out = collateral.balanceOf(address(this)) - collateralBefore;
+        if (address(control) != address(0)) control.record(tokenIn, address(collateral), out);
         if (out == 0 || out < minimum) revert PrincipalShortfall();
         collateral.forceApprove(address(controller), out);
-        out -= controller.collectFee(out, msg.sender);
+        uint256 service;
+        if (v.yieldAccounting().harvestUnits() != 0) {
+            uint256 fee;
+            (reward, service, fee) = v.yieldAccounting().splitHarvest(out);
+            controller.collectHarvestFee(out, fee, msg.sender);
+        } else {
+            service = out - controller.collectFee(out, msg.sender);
+        }
         collateral.forceApprove(address(controller), 0);
-        collateral.forceApprove(address(buffer), out);
-        out = buffer.harvest(out);
+        // Pay execution costs from this harvest's owned reward fund when the
+        // oracle-valued servicing slice alone is insufficient after both swaps.
+        // Previously funded user collateral is never available to this call.
+        uint256 cashBefore = buffer.activeFunds();
+        uint256 fresh = reward + service;
+        collateral.forceApprove(address(buffer), fresh);
+        out = buffer.harvest(fresh);
+        uint256 spent = fresh - out;
+        uint256 rewardSpent = spent > service ? spent - service : 0;
+        reward = Math.min(reward, out);
+        serviceRemainder = out - reward;
+        uint256 cashAfter = buffer.activeFunds();
+        if (rewardSpent != 0 && cashAfter > cashBefore) {
+            v.yieldAccounting().retainServicingSurplus(Math.min(cashAfter - cashBefore, buffer.quoteHollar(rewardSpent)));
+        }
         collateral.forceApprove(address(buffer), 0);
         if (out != 0) {
             collateral.forceApprove(address(pool), out);

@@ -1,0 +1,400 @@
+Missing dependencies found. Installing now...
+
+Warning: Your project has missing dependencies that could not be installed.
+Compiling 109 files with Solc 0.8.22
+Solc 0.8.22 finished in 483.02s
+Compiler run successful with warnings:
+Warning (2018): Function state mutability can be restricted to pure
+   --> test/mocks/MockYieldSource.sol:109:5:
+    |
+109 |     function harvest() external returns (uint256 surplus) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to view
+   --> test/PermissionlessKeeper.t.sol:147:5:
+    |
+147 |     function test_harvestConfiguredAsHarvester() public {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Ran 10 tests for test/AdminConfig.t.sol:AdminConfigTest
+[PASS] test_addVaultRejectsDuplicates() (gas: 90272)
+[PASS] test_depositFailsClosedBeforeSynthReserveIsListed() (gas: 16413296)
+[PASS] test_harvestOnlyByWiredHarvester() (gas: 8306971)
+[PASS] test_registryIsAdminOnly() (gas: 140356)
+[PASS] test_removeVaultKeepsRegistryConsistent() (gas: 150859)
+[PASS] test_removeVaultRejectsUnregistered() (gas: 20421)
+[PASS] test_setHarvesterRejectsZero() (gas: 43529)
+[PASS] test_setSwapperRejectsZeroAndStrangers() (gas: 517226)
+[PASS] test_setSwapperRepointsWithoutUpgrade() (gas: 527720)
+[PASS] test_synthLtFollowsGovernance() (gas: 1289944)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 27.75ms (25.34ms CPU time)
+
+Ran 5 tests for test/KeeperOps.t.sol:KeeperOpsTest
+[PASS] test_maintainPegOnInterestAccrual() (gas: 126684)
+[PASS] test_rebalanceDeLeverIdempotent_noRedemptionDoS() (gas: 14086530)
+[PASS] test_rebalanceDownOnDrop() (gas: 12295993)
+[PASS] test_rebalanceFollowsGovernanceLtvChange() (gas: 872488)
+[PASS] test_rebalanceUpOnAppreciation() (gas: 870290)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 101.33ms (98.12ms CPU time)
+
+Ran 1 test for test/PartialClaim.t.sol:PartialClaimTest
+[PASS] test_partialClaimKeepsRequestActiveAndReturnsRemainder() (gas: 72558340)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 249.37ms (246.05ms CPU time)
+
+Ran 5 tests for test/PermissionlessKeeper.t.sol:PermissionlessKeeperTest
+[PASS] test_compoundEnforcesOracleFloor() (gas: 670675)
+[PASS] test_harvestConfiguredAsHarvester() (gas: 15369)
+[PASS] test_harvesterDistributesParkedBalance() (gas: 1793725)
+[PASS] test_keeperOpsCallableByAnyone() (gas: 523158)
+[PASS] test_pauseMatrix() (gas: 315174)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 10.00ms (6.10ms CPU time)
+
+Ran 5 tests for test/AdminSourceControl.t.sol:AdminSourceControlTest
+[PASS] test_onlyAdminControls() (gas: 506259)
+[PASS] test_setYieldSourceGuardsInFlightUnwind() (gas: 9257751)
+[PASS] test_setYieldSourceOnFreshVault() (gas: 516575)
+[PASS] test_setYieldSourceRevertsWhileFunded() (gas: 8575300)
+[PASS] test_setYieldSourceUnreachableOnceFunded() (gas: 564932963)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 1.88s (1.87s CPU time)
+
+Ran 2 tests for test/CollateralVaultDeposit.t.sol:CollateralVaultDepositTest
+[PASS] test_baselineWithoutSynthIsLiquidatable() (gas: 330392)
+[PASS] test_depositOpensMainLegAndSynthFloorsHf() (gas: 1277597)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 3.74ms (1.60ms CPU time)
+
+Ran 8 tests for test/CollateralVaultDiscount.t.sol:CollateralVaultDiscountTest
+[PASS] test_committeeCannotChangeVaultControllerOrEligibility() (gas: 266457)
+[PASS] test_detachImmediatelyClearsDiscountAndExitsStillWork() (gas: 2072732)
+[PASS] test_firstDepositRefreshesAfterSynthSupply() (gas: 1174764)
+[PASS] test_incrementalDepositAndPegMaintenanceRefreshBacking() (gas: 1544353)
+[PASS] test_legacyVaultWithoutControllerRemainsUndiscounted() (gas: 986794)
+[PASS] test_settleRefreshesAfterSyntheticWithdrawal() (gas: 2069128)
+[PASS] test_unregisterLeavesRepaymentAndPegMaintenanceAvailable() (gas: 2078992)
+[PASS] test_upRebalanceRefreshesAfterNewSynthetic() (gas: 1463219)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 13.73ms (11.80ms CPU time)
+
+Ran 4 tests for test/DeleverQueueInterference.t.sol:DeleverQueueInterferenceTest
+[PASS] test_rebalanceWaitsForQueuedExit() (gas: 55716188)
+Logs:
+  live debt        2250000000000000000000
+  queued debt      2024999999999997975000
+  non-queued debt  225000000000002025000
+  deleverTarget    0
+
+[PASS] test_requestRedeemBeforeRampHasRecognizedBacking() (gas: 2051835)
+[PASS] test_subLoopPreservesSharesAtZeroEquity() (gas: 1258328)
+[PASS] test_unwindSpiralTailRemainsClaimableUntilRecovery() (gas: 565094135)
+Logs:
+  spiral rounds       2000
+  repaid / debtShare  2249999971190000000000 2249999999999997750000
+  pendingUnwindOf     6719997750000
+  loop aPRIME left    42
+  unwindTargetEquity  6719997750000
+  queueHead / tail    0 1
+
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 1.98s (1.97s CPU time)
+
+Ran 2 tests for test/ExchangeRateSettleWindow.t.sol:ExchangeRateSettleWindowTest
+[PASS] test_depositInSettleWindowIsNotMisMinted() (gas: 14578424)
+[PASS] test_settleDoesNotDepressSharePrice() (gas: 13623371)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 103.93ms (100.68ms CPU time)
+
+Ran 4 tests for test/GuardianPause.t.sol:GuardianPauseTest
+[PASS] test_adminCanDelegateGuardianToTechCommittee() (gas: 148312)
+[PASS] test_freshDeployIsPausableByAdmin() (gas: 83448)
+[PASS] test_nonGuardianCannotPause() (gas: 59033)
+[PASS] test_pauseIsReversible() (gas: 97571)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 1.91ms (409.37µs CPU time)
+
+Ran 1 test for test/IntegrationWithdraw.t.sol:IntegrationWithdrawTest
+[PASS] test_depositRampWithdrawReturnsPrincipal() (gas: 71233034)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 268.24ms (266.14ms CPU time)
+
+Ran 2 tests for test/SettleBatch.t.sol:SettleBatchTest
+[PASS] test_longQueueSettlesInBoundedPasses() (gas: 286257577)
+Logs:
+  settle calls to drain the queue: 13
+  max gas for one settle pass: 7372545
+
+[PASS] test_singleRequestSettles() (gas: 14349223)
+Logs:
+  gas to settle 1 request: 609572
+
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 762.11ms (759.75ms CPU time)
+
+Ran 8 tests for test/SubLoopUnwindSizing.t.sol:SubLoopUnwindSizingTest
+[PASS] test_deleverStillRunsWhileUnhealthy() (gas: 8343450)
+[PASS] test_deleverTargetLapsesWhenHealthRecovers() (gas: 6876059)
+[PASS] test_idleHollarCoversUnwindBeforeSelling() (gas: 7087592)
+[PASS] test_pokeBorrowResumesAfterRecovery() (gas: 7018893)
+[PASS] test_reservedHollarIsNotAvailableToAnotherUnwind() (gas: 7649501)
+[PASS] test_subPrimeUnitClaimFinishesWithoutDebt() (gas: 776118)
+[PASS] test_subUsd8ClaimFinishesWithDebt() (gas: 7189984)
+[PASS] test_unwindSaleSizedToRemainingTarget() (gas: 7357676)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 165.07ms (164.14ms CPU time)
+
+Ran 1 test for test/UnwindSellPricing.t.sol:UnwindSellPricingTest
+[PASS] test_unwindSellSurvivesPrimeAppreciation() (gas: 9431215)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 35.79ms (32.57ms CPU time)
+
+Ran 1 test for test/formal/VerityParity.t.sol:VerityParityTest
+[SKIP: skipped] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 3.84ms (0.00ns CPU time)
+
+Ran 9 tests for test/invariant/PropellerInvariant.t.sol:PropellerInvariantTest
+[PASS] invariant_escrow() (runs: 256, calls: 12800, reverts: 1124)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1204  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1166  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1205  | 25      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1180  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1168  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1138  | 311     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1155  | 715     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1141  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1146  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1117  | 73      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1180  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_freedBacked() (runs: 256, calls: 12800, reverts: 1095)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1195  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1192  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1122  | 19      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1146  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1175  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1112  | 295     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1179  | 725     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1191  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1172  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1112  | 56      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1204  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_mainCashDebtAndSourceClaimsConserved() (runs: 256, calls: 12800, reverts: 1141)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1151  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1136  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1141  | 34      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1130  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1139  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1271  | 319     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1187  | 729     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1152  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1162  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1152  | 59      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1179  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_noSynthBorrow() (runs: 256, calls: 12800, reverts: 1067)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1172  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1133  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1162  | 19      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1206  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1220  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1161  | 342     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1097  | 635     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1146  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1184  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1178  | 71      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1141  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_principalClaimsPreserved() (runs: 256, calls: 12800, reverts: 1124)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1159  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1164  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1122  | 17      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1206  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1153  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1167  | 311     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1158  | 728     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1128  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1181  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1182  | 68      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1180  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_principalFloored() (runs: 256, calls: 12800, reverts: 1099)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1215  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1147  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1101  | 16      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1151  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1147  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1204  | 297     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1174  | 713     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1182  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1201  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1160  | 73      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1118  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_roundingReserveIsRingFenced() (runs: 256, calls: 12800, reverts: 1144)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1163  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1148  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1170  | 18      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1177  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1170  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1098  | 322     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1163  | 718     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1180  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1193  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1166  | 86      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1172  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_shareConservation() (runs: 256, calls: 12800, reverts: 1092)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1164  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1181  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1160  | 31      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1209  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1106  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1155  | 301     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1131  | 680     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1146  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1171  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1163  | 80      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1214  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_synthConserved() (runs: 256, calls: 12800, reverts: 1130)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1127  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1116  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1165  | 30      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1132  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1194  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1193  | 322     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1147  | 704     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1130  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1226  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1187  | 74      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1183  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 57.46s (165.33s CPU time)
+
+Ran 16 test suites in 57.83s (63.06s CPU time): 67 tests passed, 0 failed, 1 skipped (68 total tests)

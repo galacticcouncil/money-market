@@ -40,6 +40,7 @@ CollateralVault -> Aave Main position
 | [SyntheticToken](src/SyntheticToken.sol)                 | Non-cash collateral used to maintain the Main health-factor floor. It cannot fund repayments.             |
 | [SubLoop](src/SubLoop.sol)                               | Shared PRIME exposure, HOLLAR borrowing, incremental deployment/unwinding and retained execution yield.   |
 | [Harvester](src/Harvester.sol)                           | Splits harvestable PRIME among participating vaults; each vault compounds its allocation.                 |
+| [PropellerYieldAccounting](src/PropellerYieldAccounting.sol) | Separate pre-entry yield ownership, funded reward shares and realization accounting. |
 | [PropellerMainDebt](src/PropellerMainDebt.sol)           | Per-vault ledger separating active-holder and started-exit debt, cash, source claims and late recoveries. |
 | [PropellerFeeController](src/PropellerFeeController.sol) | Per-vault harvest fees held in underlying collateral for the configured recipient.                        |
 | [PropellerDiscount](src/PropellerDiscount.sol)           | Main-only HOLLAR interest discount for governance-enrolled vaults.                                        |
@@ -61,7 +62,13 @@ but does not replace missing HOLLAR.
    costs. A harvest swaps the remaining allocation into each vault's collateral,
    charges its fee, services Main interest and compounds the remainder.
    No minimum yield or fixed APY is promised.
-3. **Rebalance.** Collateral appreciation can permit more Main borrowing.
+   Anyone can trigger the Harvester; only that contract can pull source yield,
+   so the pull and distribution are atomic. [Separate yield ownership](docs/yield-ownership.md)
+   keeps prior earnings with their owners. Funded rewards compound while unclaimed;
+   `claimYield` adds their backed vault shares to the owner's wallet.
+3. **Rebalance.** Newly earned collateral permits additional Main borrowing
+   without waiting for the price-movement band. Collateral appreciation can
+   also permit more borrowing.
    Falling collateral value triggers a PRIME-loop unwind whose net HOLLAR
    repays Main. Ordinary resizing does not sell deposited collateral.
 4. **Request withdrawal.** `requestRedeem` escrows shares for the configured
@@ -88,7 +95,7 @@ compounded user yield are not implemented. See [principal and emergency policy](
 | Control                | Authority and RC behavior                                                                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Main interest discount | Governance and Technical Committee set one rate across eligible Main vaults; deployment defaults to zero until approved. Loop debt is not discounted. |
-| Protocol fee           | Governance sets a rate per vault, initially 5% of harvested collateral after swaps and before Main interest.                                          |
+| Protocol fee           | Governance sets a rate per vault, initially 5%. Yield ownership and its fee vest at checkpoint; collection waits for realization.                                          |
 | Treasury recipient     | Owner-configurable; all unclaimed fees follow the new recipient. Anyone may trigger payment to that recipient.                                        |
 | Withdrawal delay       | Governance-configurable per vault, initially 12 hours before unwinding; existing requests retain their eligibility time.                              |
 | Emergency freeze       | Guardian can freeze; governance reopens. Local vault freeze and source-wide emergency freeze are distinct from the source route kill switch.          |
@@ -101,10 +108,13 @@ and the fee/interest/compounding order.
 
 ## Verification and Limits
 
+- The [#62 implementation record](docs/pr62-completion-2026-10-02.md) covers
+  separate yield ownership, claimable earnings and prompt reinvestment. Use its
+  final regression and artifact sizes for the current ownership revision.
 - The [2 October #60/#61/#63 integration](docs/pr-integration-2026-10-02.md)
   passed **297 Solidity tests**, with zero failures and 11 optional skips, plus
-  19 keeper tests and its build. CollateralVault has 138 bytes of runtime headroom.
-- Ordinary Solidity regression: **287 passed, zero failed, 11 optional tests or
+  19 keeper tests and its build. That earlier CollateralVault had 138 bytes of runtime headroom.
+- September Solidity regression: **287 passed, zero failed, 11 optional tests or
   setups skipped**. Detailed scope and logs are in the [RC record](docs/release-candidate.md).
 - Native HydraAugustus lifecycle and Main resizing passed on an `hdx.tarn`
   fork with an explicitly changed oracle-reference fixture and recovery funding.
@@ -144,8 +154,9 @@ not native route coverage. See [verification commands](docs/main-debt-verificati
 ## Deployment and Upgrades
 
 Use the [deployment runbook](DEPLOYMENT.md) for fresh deployments only. No
-production migration from the superseded operating-buffer design is supplied.
-The current feature branch is `feat/propeller-interest-buffer`; its name is historical.
+production migration from funded older accounting is supplied. The ownership
+revision is reviewed in `prop_carry`, stacked on #60/#61/#63. The older
+`feat/propeller-interest-buffer` branch name is historical.
 
 Future source rotation should preserve the source proxy, storage and claim
 ownership. Compatibility tests and a [deferred rotation plan](docs/source-upgrades.md)

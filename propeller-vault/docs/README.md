@@ -48,14 +48,18 @@ launch decisions. Defaults and experimental limits are not deployment approvals.
 | Main interest, execution allowance and incentives | [Yield-funded Main servicing](main-debt-servicing.md)              |
 | Discount authority, eligibility and cache refresh | [Main borrowing discount](main-borrow-discount.md)                 |
 | Fee basis, recipient and claims                   | [Per-vault protocol fees](protocol-fees.md)                        |
+| Unharvested yield ownership          | [Separate ownership with preserved collateral claims](yield-ownership.md) |
 | Principal, delay, pauses, rounding and recovery   | [Principal preservation](principal-safety.md)                      |
 | Future source rotation                            | [Upgrade boundary and deferred implementation](source-upgrades.md) |
 
 ## Verification and Research
 
 The [2 October PR integration checkpoint](pr-integration-2026-10-02.md) records
-the combined #60/#61/#63 regression and updated runtime sizes. Separate yield
-ownership and execution size/rate controls remain outstanding.
+the combined #60/#61/#63 regression and updated runtime sizes. PR #62 implements separate yield
+ownership; see [its specification](yield-ownership.md) and
+[implementation validation](pr62-completion-2026-10-02.md).
+The later [execution-controls implementation](execution-controls-implementation.md)
+adds size/rate controls; production policy configuration remains an activation gate.
 
 [September 25 PR completion](pr60-completion.md) resolves the target-branch
 documentation conflicts and the model replay failures recorded in RC1. It
@@ -66,6 +70,9 @@ includes a reproducible, fixture-selected verification command and hashed logs.
 | [RC verification](release-candidate.md#verification)                                                                                       | Current candidate summary; use this before historical test counts.                                           |
 | [Production adapter and execution calibration](route-execution-calibration.md)                                                             | Conditional native lifecycle, real-route quotes, Main resizing and 2,220 retention/cost scenario executions. |
 | [PRIME validation](prime-pricing-replenishment.md)                                                                                         | Dated production reads, replacement feed checks, mint/bridge state and observed replenishment.               |
+| [Swap costs with operator-funded gas](sponsored-gas-swap-costs-2026-10-03.md) | Re-ranked existing APY cases; fees and price impact separated from external operator expenses. |
+| [PRIME recovery history and perfect arbitrage](prime-recovery-history-2026-10-03.md) | Exact Neckwork reserves, finite Treasury DCA, competing flow and conditional replenishment timing. |
+| [Four rounds of historical APY modeling](historical-apy-four-rounds-2026-10-03.md) | 90 days of exact oracle/index/pool inputs, observed versus perfect arbitrage, actual bull/pullback/saw regimes and held-out controls. |
 | [Main debt verification](main-debt-verification.md)                                                                                        | Earlier 370-case contract campaign and native entry rejection; retained as dated evidence.                   |
 | [Source compatibility](source-upgrades.md#checks-added-now)                                                                                | Storage and accounting tests, not a migration implementation.                                                |
 | [Lean](../formal/README.md) and [Verity](../formal/bridge/README.md)                                                                       | Formal artifacts with separate scope and assumptions.                                                        |

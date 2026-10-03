@@ -226,8 +226,10 @@ contract MultiVaultFlowTest is Test {
         // yield-on-deposit tracks the vault's OWN max LTV: tBTC (80%) beats ETH (75%)
         // ethGain/1.0 vs tbtcGain/0.1 — both ≈ ltv·leverage·5%, ratio 75:80
         assertGt(tbtcGain * 10, ethGain, "tBTC %-yield > ETH %-yield (higher LTV)");
-        assertGt(ethVault.exchangeRate(), 1e18, "pETH share price rose");
-        assertGt(tbtcVault.exchangeRate(), 1e18, "ptBTC share price rose");
+        vm.prank(ETH_USER);
+        ethShares += ethVault.claimYield(ETH_USER);
+        vm.prank(BTC_USER);
+        assertGt(tbtcVault.claimYield(BTC_USER), 0, "BTC earnings become funded receipt shares");
 
         // ── 5. exit: ETH user redeems everything — principal + compounded yield
         uint256 tbtcVaultCollBefore = aTbtc.balanceOf(address(tbtcVault));
@@ -305,14 +307,13 @@ contract MultiVaultFlowTest is Test {
         uint256 retained8 = loop.executionCostReserve() / 1e10;
         uint256 expectedLoopNet8 =
             (loopColl8 * PRIME_APY_BPS - loopDebt8 * BORROW_APY_BPS) / 10_000 - retained8;
-        uint256 surplusPrime = loop.harvest(); // 6dp, $1 → 8dp USD = ×100
+        uint256 primeBefore = aPrime.balanceOf(address(loop));
+        harvester.harvest(new uint256[](2));
+        uint256 surplusPrime = primeBefore - aPrime.balanceOf(address(loop)); // PRIME 6dp
         assertApproxEqRel(surplusPrime * 100, expectedLoopNet8, 0.01e18,
             "skim = gross - loop borrow cost - retained execution yield");
 
-        // distribute + compound into each collateral
-        uint256[] memory minOuts = new uint256[](2);
-        harvester.harvest(minOuts);
-
+        // Source withdrawal and per-collateral compounding are atomic.
         // ── economic net per deposit = compounded gain − own Main interest,
         //    must apply the protocol fee BEFORE subtracting Main interest.
         uint256 spreadBps = PRIME_APY_BPS - BORROW_APY_BPS; // 210
@@ -379,14 +380,17 @@ contract MultiVaultFlowTest is Test {
 
         // harvest with equity under basis is a no-op — carry must refill the
         // fee hole first (the cost is borne by yield, not by other vaults)
+        vm.prank(address(harvester));
         assertEq(loop.harvest(), 0, "no skim below cost basis");
 
         // ── 5% PRIME yield, then harvest+compound (30 bps haircut on the swap)
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) * 5 / 100);
         uint256 harvestable8 = loop.totalEquity() - loop.principalEquity() / 1e10
             - loop.executionCostReserve() / 1e10;
-        uint256 expectedGrossEth = harvestable8 * loop.sharesOf(address(ethVault))
-            / loop.totalShares() * 9950 / 10_000 * 1e10 / 3000;
+        uint256 ethWeight = ethVault.prepareHarvest();
+        uint256 btcWeight = tbtcVault.prepareHarvest();
+        uint256 expectedGrossEth = harvestable8 * ethWeight
+            / (ethWeight + btcWeight) * 9950 / 10_000 * 1e10 / 3000;
         uint256[] memory minOuts = new uint256[](2);
         harvester.harvest(minOuts);
 
@@ -394,14 +398,16 @@ contract MultiVaultFlowTest is Test {
         // frictionless gain was ~0.2316 ETH; with the ramp-fee hole (~1% of
         // the carry) and the 30 bps compound haircut it lands just below
         assertLt(ethGain, 0.2316e18, "swap costs reduce the realized gain");
-        uint256 grossEthGain = fees.claimableProtocolFees(address(eth)) * 20;
+        uint256 grossEthGain = ethGain + fees.claimableProtocolFees(address(eth));
         assertApproxEqAbs(grossEthGain, expectedGrossEth, 2e10,
             "compound only carry above the execution holdback, after modeled swap costs");
-        // Inverting the floored 5% fee reconstructs gross within 19 token wei.
-        assertApproxEqAbs(ethGain, grossEthGain - fees.claimableProtocolFees(address(eth)), 19,
-            "fresh after-fee yield reaches collateral backing");
+        // Protocol source units and servicing fees are rounded independently.
+        assertApproxEqAbs(fees.claimableProtocolFees(address(eth)), grossEthGain / 20, 1,
+            "five-percent fee, allowing one unit of source/receipt rounding");
 
         // An incomplete exit is a partial payment, never a finalized haircut.
+        vm.prank(ETH_USER);
+        ethShares += ethVault.claimYield(ETH_USER);
         vm.prank(ETH_USER);
         uint256 reqId = ethVault.requestRedeem(ethShares, ETH_USER);
         vm.warp(vm.getBlockTimestamp() + ethVault.withdrawalDelay());

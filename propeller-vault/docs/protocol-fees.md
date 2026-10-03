@@ -3,10 +3,11 @@
 Fresh-deployment feature. This is not a migration or an authorization to deploy.
 
 Main servicing follows [the yield-funded waterfall](main-debt-servicing.md):
-the fee base remains fresh harvested collateral after swaps and BEFORE interest.
+the fee is realized from fresh harvested collateral after swaps and BEFORE interest.
 Only the after-fee remainder can be converted to HOLLAR for active Main interest;
 any remaining collateral is compounded. PRIME retained for future source execution
-costs is not yet harvested collateral and is not charged a harvest fee. Treasury fees,
+costs has no payable fee until realized. Its protocol ownership is recorded with
+its user ownership at checkpoint. Treasury fees,
 deposited principal and previously compounded collateral are not used by this path.
 The fee is a fraction of harvested collateral yield, not of principal or TVL.
 
@@ -15,14 +16,25 @@ The fee is a fraction of harvested collateral yield, not of principal or TVL.
 - Every registered collateral vault starts at **5% (500 bps)**.
 - Governance sets each vault independently in `0..10000` bps, inclusive. There
   is no global rate, fallback, inherited default, or additional policy cap.
-- The basis is actual collateral received after the harvest swap, before Main
+- Yield checkpoints split eligible source units into user and protocol ownership
+  at that checkpoint's rate. Later rate changes cannot reassign those units.
+  Both portions absorb subsequent source losses before Main backing. Collection
+  is based on actual collateral received after the harvest swap, before Main
   borrowing interest. SubLoop's own borrowing costs are already reflected in
   harvestable equity. This is not a net-profit fee or loss-carryforward system.
-- At 100%, all harvested collateral goes to treasury and none is supplied for
-  users. Main borrowing interest still applies, so net user yield can be negative.
-- Deposits, principal, withdrawals, collateral price gains, Main aToken interest,
-  and caller-funded compound donations are not taxed.
-- The current rate applies when previously unprocessed yield is distributed.
+- At 100%, newly checkpointed yield belongs to the protocol. Previously vested
+  user earnings keep their ownership. Main borrowing interest still applies,
+  so net user yield can be negative and servicing can be delayed.
+- Deposits, principal, collateral price gains, Main aToken interest and
+  caller-funded compound donations are not taxed. Explicit Main recovery funding
+  that releases source principal is allocated without a yield fee.
+  Unconverted user rewards following an exit are already net of vested fees.
+  Corresponding protocol units follow the same unwind and share its execution
+  costs. Fee cash stays reserved until the source claim closes, so later costs
+  can still reduce it; `surplusOf(id)` excludes the reserve.
+  Active source yield reserved for Main servicing pays a snapshotted exit rate
+  on actual HOLLAR receipts, after execution costs and before debt servicing.
+- The current rate applies when previously unprocessed yield is checkpointed.
   Changing rates does not change already accrued fees.
 
 The borrowing discount is a separate policy: its existing governance/technical
@@ -33,15 +45,17 @@ The deployer receives no role unless explicitly selected as governance.
 ## Money flow
 
 ```text
-SubLoop -> full PRIME balance at Harvester -> pro-rata allocation to each vault
+SubLoop -> burn owned yield units -> Harvester -> owning vault
 vault -> swap PRIME to its collateral -> measure gross receipts
     fee -> PropellerFeeController (uninvested underlying collateral)
-    net -> Main Aave supply (backs user shares)
+    net -> owned Main interest -> Aave collateral -> backed reward shares
 any caller -> claimProtocolFees(asset) -> current treasury recipient
 ```
 
 For a 0.01 tBTC harvest at 500 bps, treasury accrues 0.0005 tBTC and users
-compound 0.0095 tBTC. Treasury receives neither PRIME nor aTokens/vault shares.
+compound 0.0095 tBTC. Treasury receives neither PRIME nor aTokens/vault shares. Exit source-yield
+fees are instead held and claimed in HOLLAR; principal and recovery donations
+are excluded from that fee base.
 It may later deposit its paid collateral through the ordinary vault workflow.
 
 Fees leave the vault in the compound transaction. They are never included in
@@ -63,6 +77,8 @@ no fee-disabled fallback during incomplete deployment wiring.
 | Call | Authority / effect |
 | --- | --- |
 | `registerVault(vault, harvester)` | Governance approves the binding; first registration stores 500 bps; rebinding preserves its rate. |
+| `collectHarvestFee(gross, fee, caller)` | Bound vault only, validates Harvester; realizes its ownership ledger's vested fee allocation. |
+| `collectSourceFee(amount)` | Bound Main ledger only; receives accounted HOLLAR fees from actual exit yield receipts. |
 | `protocolFeeBps(vault)` | Explicit stored rate; unknown vaults revert. |
 | `setProtocolFeeBps(vault, bps)` | Governance; rejects unknown vaults and values above 10000. |
 | `setFeeRecipient(recipient)` | Governance/admin; redirects **all** unclaimed fees. |
@@ -86,7 +102,7 @@ and token support; address checks cannot prove those properties.
 ## Atomic harvest
 
 Before harvesting, Harvester requires its controller, validates every registered
-vault's controller/asset/source/Harvester binding, and snapshots source-share
+vault's controller/asset/source/Harvester binding, and snapshots source-share balances and owned-yield
 weights. Registry completeness is checked before distribution. Rates and
 bindings live in the controller, not in extra per-vault policy storage.
 
@@ -98,10 +114,17 @@ is validated immediately before its compound call and again at completion.
 Local guards also protect collection, claims,
 and recipient changes. All swaps, accruals and supplies roll back on failure.
 
-Direct `SubLoop.harvest()` still forwards PRIME to the configured Harvester.
-The next distribution includes that parked balance and unsolicited PRIME.
-Only the authenticated Harvester-funded compound path pays fees. Unregistered
+Only the configured Harvester can realize owned source units through
+`SubLoop.harvestFor(vault, shares)`. Anyone can call the
+Harvester, which pulls source yield and distributes it atomically. Unsolicited
+PRIME transfers are included in its next distribution.
+The authenticated Harvester-funded compound path pays collateral fees; the
+bound Main ledger collects fees on active servicing yield realized through an exit. Unregistered
 or mismatched fee wiring cannot silently exempt a source-yield distribution.
+
+The [yield-ownership ledger](yield-ownership.md) checkpoints earnings before
+holder changes and burns only the owning source units on realization. It keeps
+funded collateral claims separate from estimated unconverted yield.
 
 ## Fresh deployment
 

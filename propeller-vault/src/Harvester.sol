@@ -8,15 +8,18 @@ import {ISubLoop} from "./interfaces/ISubLoop.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IPropellerFeeController} from "./interfaces/IPropellerFeeController.sol";
+import {ExecutionController} from "./ExecutionController.sol";
 
 interface ICompoundable {
+    function collateral() external view returns (address);
+    function prepareHarvest() external returns (uint256);
     function compound(address tokenIn, uint256 amountIn, uint256 minOut, bytes calldata route) external;
 }
 
 /// @title Harvester
 /// @notice Keeper entrypoint orchestrating harvest / de-lever across the shared
 ///         SubLoop and the registered CollateralVaults. `harvest` skims the loop
-///         carry (surplus PRIME), splits it pro-rata by each vault's loop shares,
+///         carry (surplus PRIME), splits it by each vault's eligible owned units,
 ///         and compounds each cut into that vault's collateral (in-kind yield).
 contract Harvester is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -29,6 +32,8 @@ contract Harvester is AccessControl, ReentrancyGuard {
     address[] public vaults;
     mapping(address => bool) public isRegistered;
     IPropellerFeeController public feeController;
+    ExecutionController public executionController;
+    uint256 public lastHarvestAt;
 
     event HarvestRun(uint256 surplusPrime);
     event DeLeverRun();
@@ -41,9 +46,11 @@ contract Harvester is AccessControl, ReentrancyGuard {
     error NotRegistered();
     error FeeControllerUnset();
     error HarvestConfigurationChanged();
+    event ExecutionControllerSet(address indexed controller);
 
     constructor(address _subLoop, address _prime, address admin) {
         if (_subLoop == address(0) || _prime == address(0) || admin == address(0)) revert ZeroAddress();
+        lastHarvestAt = block.timestamp;
         subLoop = ISubLoop(_subLoop);
         prime = IERC20(_prime);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
@@ -92,52 +99,98 @@ contract Harvester is AccessControl, ReentrancyGuard {
         return vaults.length;
     }
 
+    function harvestable() external view returns (bool) {
+        return prime.balanceOf(address(this)) != 0 || subLoop.harvestCapacity() != 0;
+    }
+
     function setFeeController(address controller) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (controller == address(0)) revert ZeroAddress();
         feeController = IPropellerFeeController(controller);
         emit FeeControllerUpdated(controller);
     }
 
-    /// @notice Skim loop carry → distribute PRIME pro-rata by loop shares →
+    function setExecutionController(address controller) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        if (controller.code.length == 0 || address(executionController) != address(0)) revert ZeroAddress();
+        executionController = ExecutionController(controller);
+        emit ExecutionControllerSet(controller);
+    }
+
+    function _fit(address vault, uint256 amount) private view returns (uint256) {
+        if (address(executionController) == address(0)) return amount;
+        return executionController.fit(vault, address(prime), ICompoundable(vault).collateral(), amount);
+    }
+
+    /// @notice Realize each vault's owned loop carry → distribute PRIME →
     ///         compound each vault's cut into its collateral.
     /// @param minOuts per-vault min collateral out (slippage bound); pass 0s in tests.
-    function harvest(uint256[] calldata minOuts) external nonReentrant {
+    function harvest(uint256[] calldata minOuts) external nonReentrant returns (uint256 surplus) {
         IPropellerFeeController controller = feeController;
         if (address(controller) == address(0)) revert FeeControllerUnset();
         uint256 version = controller.configurationVersion();
         uint256 total = subLoop.totalShares();
         uint256 n = vaults.length;
+        uint256[] memory beforeShares = new uint256[](n);
         uint256[] memory weights = new uint256[](n);
+        uint256[] memory burned = new uint256[](n);
         uint256 registeredShares;
+        uint256 totalWeight;
         for (uint256 i; i < n; ++i) {
             controller.validateVault(vaults[i], address(this));
-            weights[i] = subLoop.sharesOf(vaults[i]);
-            registeredShares += weights[i];
+            beforeShares[i] = subLoop.sharesOf(vaults[i]);
+            registeredShares += beforeShares[i];
+            weights[i] = ICompoundable(vaults[i]).prepareHarvest();
+            totalWeight += weights[i];
         }
         require(registeredShares == total, "vault set incomplete");
-        subLoop.harvest(); // PRIME → this Harvester (routed via SubLoop.harvester)
-        // distribute the FULL balance, not just this call's skim — a direct
-        // SubLoop.harvest() caller may have parked PRIME here; nothing strands.
-        uint256 surplus = prime.balanceOf(address(this));
-        for (uint256 i = 0; i < n; i++) {
+        uint256 capacity = Math.min(totalWeight, subLoop.harvestCapacity());
+        uint256 donated = prime.balanceOf(address(this));
+        uint256 totalBurned;
+        for (uint256 i; i < n; ++i) {
             address v = vaults[i];
-            uint256 cut = total == 0 ? 0 : Math.mulDiv(surplus, weights[i], total);
-            if (cut == 0) continue;
-            prime.forceApprove(v, 0);
-            prime.forceApprove(v, cut);
-            // A previous vault's external calls must not rewire this vault's hook.
+            uint256 amount;
+            if (capacity != 0 && weights[i] != 0) {
+                uint256 shares = Math.mulDiv(capacity, weights[i], totalWeight);
+                if (address(executionController) != address(0)) {
+                    uint256 expected = subLoop.previewHarvest(shares);
+                    uint256 bounded = _fit(v, expected);
+                    shares = expected == 0 ? 0 : Math.mulDiv(shares, bounded, expected);
+                    // Converting the bounded input back to shares rounds down.
+                    // Leave sub-minimum tails earning in the source.
+                    if (_fit(v, subLoop.previewHarvest(shares)) == 0) shares = 0;
+                }
+                (amount, burned[i]) = subLoop.harvestFor(v, shares);
+                totalBurned += burned[i];
+                surplus += amount;
+            }
+            uint256 gift = total == 0 ? 0 : Math.mulDiv(donated, beforeShares[i], total);
+            if (address(executionController) != address(0)) {
+                // Owned carry has priority. Do not make a second dust trade on
+                // the same route; parked donations cannot bypass the limits.
+                gift = amount == 0 ? _fit(v, gift) : 0;
+            }
+            uint256 minimum = i < minOuts.length ? minOuts[i] : 0;
+            uint256 yieldMinimum = amount == 0 ? 0 : Math.mulDiv(minimum, amount, amount + gift, Math.Rounding.Up);
             controller.validateVault(v, address(this));
-            ICompoundable(v).compound(address(prime), cut, i < minOuts.length ? minOuts[i] : 0, "");
-            prime.forceApprove(v, 0);
+            if (amount != 0) {
+                prime.forceApprove(v, amount);
+                ICompoundable(v).compound(address(prime), amount, yieldMinimum, "");
+                prime.forceApprove(v, 0);
+            }
+            if (gift != 0) {
+                prime.forceApprove(v, gift);
+                ICompoundable(v).compound(address(prime), gift, minimum - yieldMinimum, "");
+                prime.forceApprove(v, 0);
+                surplus += gift;
+            }
         }
-        // Detect even a policy change followed by a restoration during a callback.
-        if (controller.configurationVersion() != version || subLoop.totalShares() != total) {
+        if (controller.configurationVersion() != version || subLoop.totalShares() + totalBurned != total) {
             revert HarvestConfigurationChanged();
         }
         for (uint256 i; i < n; ++i) {
             controller.validateVault(vaults[i], address(this));
-            if (subLoop.sharesOf(vaults[i]) != weights[i]) revert HarvestConfigurationChanged();
+            if (subLoop.sharesOf(vaults[i]) + burned[i] != beforeShares[i]) revert HarvestConfigurationChanged();
         }
+        if (surplus != 0) lastHarvestAt = block.timestamp;
         emit HarvestRun(surplus);
     }
 

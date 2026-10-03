@@ -1,7 +1,8 @@
 import {
   createPublicClient,
   createWalletClient,
-  http,
+  http, fallback, encodeFunctionData, decodeAbiParameters, parseAbi,
+  type Hex,
   type PublicClient,
   type WalletClient,
   type Address,
@@ -9,6 +10,7 @@ import {
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { CONFIG, ROUNDING_POLICIES } from './config.js';
+import { EXECUTION_ABI, executionQuotes, worthwhileHarvest, operatorTurn, type Fill } from './execution-policy.js';
 import { roundingAlert } from './rounding-policy.js';
 
 // ─── Hydration chain definition ──────────────────────────────────────────────
@@ -16,7 +18,7 @@ import { roundingAlert } from './rounding-policy.js';
 const hydration: Chain = {
   id: 222222,
   name: 'Hydration',
-  nativeCurrency: { name: 'HDX', symbol: 'HDX', decimals: 18 },
+  nativeCurrency: { name: 'WETH', symbol: 'WETH', decimals: 18 },
   rpcUrls: {
     default: { http: [CONFIG.RPC_URL] },
   },
@@ -61,12 +63,14 @@ const VAULT_ABI = [
 ] as const;
 
 const HARVESTER_ABI = [
+  view('harvestable', 'bool'),
+  view('lastHarvestAt', 'uint256'),
   {
     name: 'harvest',
     type: 'function',
     stateMutability: 'nonpayable',
     inputs: [{ name: 'minOuts', type: 'uint256[]' }],
-    outputs: [],
+    outputs: [{type: 'uint256'}],
   },
 ] as const;
 
@@ -91,19 +95,18 @@ function view(name: string, out: string) {
   return { name, type: 'function', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: out }] } as const;
 }
 function nonpayable(name: string) {
-  return { name, type: 'function', stateMutability: 'nonpayable', inputs: [], outputs: [] } as const;
+  return { name, type: 'function', stateMutability: 'nonpayable', inputs: [], outputs: name === 'deLever' ? [] : [{type: 'uint256'}] } as const;
 }
 
 const WAD = 10n ** 18n;
+const MAX_NATIVE_TX_GAS = 1n << 24n; // EIP-7825; block gas can be higher.
 
 // ─── Maintainer ───────────────────────────────────────────────────────────────
 //
-// Permissionless keeper for the Propeller loop. Drives every now-open op:
-//   fast (each cycle): pokeBorrow (ramp) · deLever (safety) · pokeRepay+pokeSettle
-//                      (service withdrawals)
-//   slow (every SLOW_EVERY): maintainPeg · rebalance · harvest
-// Each op self-gates on-chain, so a skipped read only wastes gas, never misbehaves.
-// Signs with a gas-only account — no role required (all targets are permissionless).
+// Permissionless keeper: safety repayment and peg maintenance precede optional
+// quoted harvest/ramp work. Independent operators rotate optional transactions;
+// every operator monitors risk. Zero-work previews skip paid submissions.
+// The signer pays gas and needs no maintenance role.
 
 export class PropellerLooper {
   private publicClient: PublicClient;
@@ -114,6 +117,9 @@ export class PropellerLooper {
   private harvester: Address;
   private pool: Address;
   private cycle = 0;
+  private receiptPending = false;
+  private receiptSince = 0;
+  private pendingHash?: Hex;
 
   constructor() {
     this.account = privateKeyToAccount(CONFIG.PRIVATE_KEY);
@@ -122,11 +128,11 @@ export class PropellerLooper {
     this.harvester = CONFIG.HARVESTER_ADDRESS;
     this.pool = CONFIG.POOL_ADDRESS;
 
-    this.publicClient = createPublicClient({ chain: hydration, transport: http(CONFIG.RPC_URL) });
+    this.publicClient = createPublicClient({ chain: hydration, transport: fallback(CONFIG.RPC_URLS.map(url => http(url, {timeout: 15000}))) });
     this.walletClient = createWalletClient({
       account: this.account,
       chain: hydration,
-      transport: http(CONFIG.RPC_URL),
+      transport: fallback(CONFIG.RPC_URLS.map(url => http(url, {timeout: 15000}))),
     });
   }
 
@@ -143,6 +149,12 @@ export class PropellerLooper {
       this.read(SUBLOOP_ABI, this.subLoop, 'emergencyPaused'),
     ])) as [bigint, bigint, bigint, bigint, boolean, boolean];
 
+    // Safety actions precede optional trading, even on a standby operator.
+    if (!paused && hf < target) await this.poke(SUBLOOP_ABI, this.subLoop, 'deLever', 'deLever (HF below floor)');
+    const safetyAttempted = !paused && (safetyDebt > 0n || hf < target);
+    if (safetyAttempted) await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeRepay', 'pokeRepay (safety debt)');
+    for (const vault of this.vaults) await this.poke(VAULT_ABI, vault, 'maintainPeg', `maintainPeg ${short(vault)}`);
+    const turn = operatorTurn(await this.blockTimestamp(), CONFIG.OPERATOR_SLOT_SECONDS, CONFIG.OPERATOR_COUNT, CONFIG.OPERATOR_INDEX);
     const leverage = await this.readLeverage();
     console.log(
       `  HF ${fmtHf(hf)} → target ${fmtHf(target)}` +
@@ -184,36 +196,65 @@ export class PropellerLooper {
           console.error(`[ALERT] ${vault}: rounding monitor failed: ${shortErr(error)}`);
         }
       }
-      const [head, tail, next, delever, vaultPaused, sourcePending] = (await Promise.all([
-        this.read(VAULT_ABI, vault, 'queueHead'),
-        this.read(VAULT_ABI, vault, 'queueTail'),
-        this.read(VAULT_ABI, vault, 'queueUnwind'),
-        this.read(VAULT_ABI, vault, 'deleverTarget'),
-        this.read(VAULT_ABI, vault, 'paused'),
-        this.read(SUBLOOP_ABI, this.subLoop, 'pendingUnwindOf', [vault]),
-      ])) as [bigint, bigint, bigint, bigint, boolean, bigint];
-      if (vaultPaused || emergency) frozen.add(vault);
-      waiting ||= tail > next;
-      let starting = false;
-      if (tail > next && !paused && !frozen.has(vault)) {
-        now ??= await this.blockTimestamp();
-        const eligibleAt = await this.read(VAULT_ABI, vault, 'unwindEligibleAt', [next]) as bigint;
-        if (now >= eligibleAt) {
-          await this.poke(VAULT_ABI, vault, 'startUnwinds', `startUnwinds ${short(vault)}`, [16n]);
-          starting = true;
-          started = true;
+      try {
+        const [head, tail, next, delever, vaultPaused, sourcePending] = (await Promise.all([
+          this.read(VAULT_ABI, vault, 'queueHead'),
+          this.read(VAULT_ABI, vault, 'queueTail'),
+          this.read(VAULT_ABI, vault, 'queueUnwind'),
+          this.read(VAULT_ABI, vault, 'deleverTarget'),
+          this.read(VAULT_ABI, vault, 'paused'),
+          this.read(SUBLOOP_ABI, this.subLoop, 'pendingUnwindOf', [vault]),
+        ])) as [bigint, bigint, bigint, bigint, boolean, bigint];
+        if (vaultPaused || emergency) frozen.add(vault);
+        waiting ||= tail > next;
+        let starting = false;
+        if (tail > next && !paused && !frozen.has(vault)) {
+          now ??= await this.blockTimestamp();
+          const eligibleAt = await this.read(VAULT_ABI, vault, 'unwindEligibleAt', [next]) as bigint;
+          if (now >= eligibleAt) {
+            // Native validation: 16 starts need over 13M gas before margins.
+            // Eight preserve more headroom for starting new exit cohorts.
+            starting = await this.poke(VAULT_ABI, vault, 'startUnwinds', `startUnwinds ${short(vault)}`, [8n]);
+            started ||= starting;
+          }
         }
+        if (delever > 0n || (!frozen.has(vault) && (next > head || starting || sourcePending > 0n))) pending.push(vault);
+      } catch (error) {
+        funded = false;
+        waiting = true;
+        frozen.add(vault);
+        console.error(`[ALERT] ${vault}: queue monitor failed; optional risk disabled: ${shortErr(error)}`);
       }
-      if (delever > 0n || (!frozen.has(vault) && (next > head || starting || sourcePending > 0n))) pending.push(vault);
     }
     const servicing = unwind > 0n || safetyDebt > 0n || pending.length > 0 || waiting;
+    let harvested = false;
+    if (turn && this.harvester && !paused && !emergency && frozen.size === 0) {
+      try {
+        if (await this.read(HARVESTER_ABI, this.harvester, 'harvestable')) {
+          harvested = await this.poke(HARVESTER_ABI, this.harvester, 'harvest', 'harvest (skim+distribute)', [[]]);
+        }
+      } catch (error) {
+        console.error(`[ALERT] harvest preview failed: ${shortErr(error)}`);
+      }
+    }
+    if (harvested) {
+      // Harvest servicing can change Main readiness. Do not ramp from the
+      // pre-harvest snapshot, even within this same scheduler cycle.
+      for (const vault of this.vaults) {
+        try {
+          const ledger = await this.read(VAULT_ABI, vault, 'mainDebt') as Address;
+          funded &&= await this.read([view('ready', 'bool')], ledger, 'ready') as boolean;
+        } catch (error) {
+          funded = false;
+          console.error(`[ALERT] ${vault}: post-harvest backing read failed: ${shortErr(error)}`);
+        }
+      }
+    }
     if (!paused) {
-      if (hf < target) {
-        await this.poke(SUBLOOP_ABI, this.subLoop, 'deLever', 'deLever (HF below floor)');
-      } else if (funded && !emergency && frozen.size === 0 && !servicing && hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n) {
+      if (turn && hf >= target && funded && !emergency && frozen.size === 0 && !servicing && hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n) {
         await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeBorrow', 'pokeBorrow (ramp)');
       }
-      if (safetyDebt > 0n || hf < target || (!emergency && (unwind > 0n || pending.length > 0 || started))) {
+      if (!safetyAttempted && !emergency && (unwind > 0n || pending.length > 0 || started)) {
         await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeRepay', 'pokeRepay (unwind/safety debt)');
       }
     }
@@ -222,26 +263,124 @@ export class PropellerLooper {
       await this.poke(VAULT_ABI, vault, 'pokeSettle', `pokeSettle ${short(vault)}`);
     }
 
-    // ── slow: peg / rebalance / harvest (self-gating no-ops) ────────────
-    if (this.cycle % CONFIG.SLOW_EVERY === 0) {
-      // Fresh harvested yield services Main interest; source equity backs later settlement.
-      if (this.harvester && !paused && !emergency && frozen.size === 0) {
-        await this.poke(HARVESTER_ABI, this.harvester, 'harvest', 'harvest (skim+distribute)', [[]]);
-      }
+    // Optional writes are rotated between independently funded operators.
+    if (harvested || this.cycle % CONFIG.SLOW_EVERY === 0) {
       for (const vault of this.vaults) {
-        await this.poke(VAULT_ABI, vault, 'maintainPeg', `maintainPeg ${short(vault)}`);
         if (!pending.includes(vault)) {
           await this.poke(VAULT_ABI, vault, 'pokeSettle', `service Main interest ${short(vault)}`);
         }
-        if (!paused && !emergency && !frozen.has(vault) && !servicing) {
+        if (turn && !paused && !emergency && !frozen.has(vault) && !servicing) {
           await this.poke(VAULT_ABI, vault, 'rebalance', `rebalance ${short(vault)}`);
         }
       }
     }
   }
 
+  async monitorSafety(): Promise<void> {
+    // Separate read loop: slow simulation/receipts never stop risk monitoring.
+    const block = await this.publicClient.getBlock({blockTag: 'latest'});
+    if (this.pendingHash) {
+      try {
+        const receipt = await this.publicClient.getTransactionReceipt({hash: this.pendingHash});
+        if (receipt.status === 'reverted') console.error(`[ALERT] pending transaction reverted: ${this.pendingHash}`);
+        this.receiptPending = false;
+        this.pendingHash = undefined;
+      } catch { /* Not found/RPC failure leaves the signer locked until confirmed. */ }
+    }
+    if (this.receiptPending && Date.now() - this.receiptSince > 120000) {
+      console.error('[ALERT] transaction receipt pending for over two minutes; redundant operator must continue maintenance');
+    }
+    if (BigInt(Math.floor(Date.now() / 1000)) - block.timestamp > BigInt(CONFIG.RPC_STALE_SECONDS)) {
+      console.error('[ALERT] RPC head is stale; inspect independent operator/RPC health');
+    }
+    const [hf, target] = await Promise.all([
+      this.read(SUBLOOP_ABI, this.subLoop, 'healthFactor'), this.read(SUBLOOP_ABI, this.subLoop, 'targetHf'),
+    ]) as [bigint, bigint];
+    if (hf < target) console.error(`[ALERT] source HF ${fmtHf(hf)} below target ${fmtHf(target)}`);
+    for (const vault of this.vaults) {
+      try {
+        const [supplied, lt, debtToken, ledger] = await Promise.all([
+          this.read([view('syntheticSupplied', 'uint256')], vault, 'syntheticSupplied'),
+          this.read([view('synthLtBps', 'uint256')], vault, 'synthLtBps'),
+          this.read([view('hollarDebtToken', 'address')], vault, 'hollarDebtToken'),
+          this.read(VAULT_ABI, vault, 'mainDebt'),
+        ]) as [bigint, bigint, Address, Address];
+        const debt = await this.read(parseAbi(['function balanceOf(address) view returns (uint256)']), debtToken, 'balanceOf', [vault]) as bigint;
+        if (supplied * lt < debt * 10025n) console.error(`[ALERT] ${vault}: synthetic buffer needs replenishing`);
+        const [ready, interest] = await Promise.all([
+          this.read([view('ready', 'bool')], ledger, 'ready'),
+          this.read(parseAbi(['function interestOf(uint256) view returns (uint256)']), ledger, 'interestOf', [0n]),
+        ]) as [boolean, bigint];
+        if (!ready) console.error(`[ALERT] ${vault}: Main backing/accounting incomplete`);
+        if (interest / 10n ** 10n >= CONFIG.MAIN_INTEREST_URGENT_USD8) console.error(`[ALERT] ${vault}: Main interest needs urgent harvest/service`);
+      } catch (error) { console.error(`[ALERT] ${vault}: safety monitor failed: ${shortErr(error)}`); }
+    }
+  }
+
+  private async harvestWorthwhile(primeAmount: bigint, gasWei: bigint, now: bigint): Promise<boolean> {
+    const prime = await this.read([view('prime', 'address')], this.subLoop, 'prime') as Address;
+    const provider = await this.read([view('ADDRESSES_PROVIDER', 'address')], this.pool, 'ADDRESSES_PROVIDER') as Address;
+    const oracle = await this.read([view('getPriceOracle', 'address')], provider, 'getPriceOracle') as Address;
+    const priceAbi = parseAbi(['function getAssetPrice(address) view returns (uint256)']);
+    const [primePrice, ethPrice, decimals, last] = await Promise.all([
+      this.read(priceAbi, oracle, 'getAssetPrice', [prime]),
+      this.read(priceAbi, oracle, 'getAssetPrice', [CONFIG.GAS_ASSET_ADDRESS]),
+      this.read([view('decimals', 'uint8')], prime, 'decimals'),
+      this.read(HARVESTER_ABI, this.harvester, 'lastHarvestAt'),
+    ]) as [bigint, bigint, number, bigint];
+    if (!primePrice || !ethPrice) throw new Error('missing economic price');
+    let interest = 0n;
+    for (const vault of this.vaults) {
+      const ledger = await this.read(VAULT_ABI, vault, 'mainDebt') as Address;
+      interest += await this.read(parseAbi(['function interestOf(uint256) view returns (uint256)']), ledger, 'interestOf', [0n]) as bigint;
+    }
+    const urgent = interest / 10n ** 10n >= CONFIG.MAIN_INTEREST_URGENT_USD8;
+    const value = primeAmount * primePrice / 10n ** BigInt(decimals);
+    const cost = gasWei * ethPrice / WAD;
+    const execute = worthwhileHarvest(value, cost, CONFIG.HARVEST_MIN_USD8, CONFIG.HARVEST_MAX_GAS_BPS,
+      urgent, now - last, CONFIG.HARVEST_MAX_DELAY_SECONDS);
+    console.log(`  harvest economics: valueUSD8=${value} gasUSD8=${cost} urgent=${urgent} execute=${execute}`);
+    return execute;
+  }
+
   private async blockTimestamp(): Promise<bigint> {
     return (await this.publicClient.getBlock({ blockTag: 'latest' })).timestamp;
+  }
+
+  private async quoteAction(target: Address, data: Hex, operation: string, blockNumber: bigint, gas: bigint) {
+    const options = {account: this.account, address: CONFIG.EXECUTION_CONTROLLER,
+      abi: EXECUTION_ABI, blockNumber, gas} as const;
+    try {
+      return (await this.publicClient.simulateContract({...options, functionName: 'preview', args: [target, data]})).result;
+    } catch (initial) {
+      if (!executionReverted(initial)) throw initial;
+      // A large fill can fail while smaller fills still meet the same oracle
+      // floor or Main-service budget. Reduce primary trades, never price floors.
+      const getter = async (address: Address, name: string) => this.publicClient.readContract({
+        address, abi: [view(name, 'address')], functionName: name, blockNumber,
+      }) as Promise<Address>;
+      const routes: Address[][] = [];
+      if (operation === 'harvest') {
+        const prime = await getter(this.subLoop, 'prime');
+        for (const vault of this.vaults) routes.push([vault, prime, await getter(vault, 'collateral')]);
+      } else routes.push([this.subLoop, await getter(this.subLoop, 'hollar'), await getter(this.subLoop, 'primeAToken')]);
+      let caps = await Promise.all(routes.map(async route => {
+        const args = route as [Address, Address, Address];
+        const [lane, amountIn] = await Promise.all([
+          this.publicClient.readContract({...options, functionName: 'lane', args}),
+          this.publicClient.readContract({...options, functionName: 'available', args}),
+        ]);
+        return {lane, amountIn, minOut: 0n};
+      }));
+      caps = caps.filter(c => c.amountIn > 0n);
+      for (let attempt = 0; attempt < 4 && caps.length; ++attempt) {
+        caps = caps.map(c => ({...c, amountIn: c.amountIn > 1n ? c.amountIn / 2n : 1n}));
+        try {
+          return (await this.publicClient.simulateContract({...options, functionName: 'previewBounded', args: [target, data, caps]})).result;
+        } catch (error) { if (!executionReverted(error)) throw error; }
+      }
+      throw initial;
+    }
   }
 
   private async readLeverage(): Promise<number | null> {
@@ -281,25 +420,85 @@ export class PropellerLooper {
     functionName: string,
     label: string,
     args: readonly unknown[] = [],
-  ): Promise<void> {
+  ): Promise<boolean> {
+    if (this.receiptPending) return false;
     try {
-      const { request } = await this.publicClient.simulateContract({
+      const [block, quotedPrice] = await Promise.all([
+        this.publicClient.getBlock({ blockTag: 'latest' }),
+        this.publicClient.getGasPrice(),
+      ]);
+      const limit = block.gasLimit < MAX_NATIVE_TX_GAS ? block.gasLimit : MAX_NATIVE_TX_GAS;
+      const budget = limit < CONFIG.MAX_TX_GAS ? limit : CONFIG.MAX_TX_GAS;
+      const gasPrice = (quotedPrice * 120n + 99n) / 100n;
+      let options: any = {
         account: this.account,
         address,
         abi: abi as any,
         functionName: functionName as any,
         args: args as any,
-      });
+        gas: budget,
+        gasPrice,
+      };
+      const guarded = CONFIG.EXECUTION_CONTROLLER && ['harvest', 'pokeBorrow', 'rebalance'].includes(functionName);
+      if (guarded) {
+        const quoted = await this.publicClient.getBlock({blockNumber: block.number - 1n});
+        const data = encodeFunctionData({abi: abi as any, functionName, args});
+        const [result, fills] = await this.quoteAction(address, data, functionName, quoted.number, budget) as readonly [Hex, readonly Fill[]];
+        if (!hasWork(result)) return false;
+        const serviceLanes = new Set<string>();
+        if (functionName === 'harvest') {
+          const get = async (target: Address, name: string) => await this.publicClient.readContract({
+            address: target, abi: [view(name, 'address')], functionName: name, blockNumber: quoted.number,
+          }) as Address;
+          const hollar = await get(this.subLoop, 'hollar');
+          for (const vault of this.vaults) {
+            const lane = await this.publicClient.readContract({address: CONFIG.EXECUTION_CONTROLLER,
+              abi: EXECUTION_ABI, functionName: 'lane', blockNumber: quoted.number,
+              args: [await get(vault, 'mainDebt'), await get(vault, 'collateral'), hollar]});
+            serviceLanes.add(lane.toLowerCase());
+          }
+        }
+        options = {...options, address: CONFIG.EXECUTION_CONTROLLER, abi: EXECUTION_ABI, functionName: 'execute',
+          args: [address, data, quoted.number, quoted.hash, quoted.timestamp + BigInt(CONFIG.QUOTE_TTL_SECONDS),
+            executionQuotes(fills, CONFIG.QUOTE_DRIFT_BPS, serviceLanes)]};
+      }
+      const simulated = await this.publicClient.simulateContract(options);
+      if (!hasWork(simulated.result)) {
+        console.log(`  ${label}: no useful work`);
+        return false;
+      }
+      const { request } = simulated;
+      const estimate = await this.publicClient.estimateContractGas(options);
+      const gas = (estimate * 120n + 99n) / 100n;
+      if (gas > budget) {
+        console.error(`[ALERT] ${label}: gas estimate ${estimate} plus 20% margin exceeds budget ${budget}`);
+        return false;
+      }
+      if (functionName === 'harvest') {
+        const amount = guarded ? decodeAbiParameters([{type: 'uint256'}], simulated.result as Hex)[0] : simulated.result as bigint;
+        if (!await this.harvestWorthwhile(amount, gas * gasPrice, block.timestamp)) return false;
+      }
       const hash = await this.walletClient.writeContract({
         ...request,
-        gasPrice: 1_500_000n,
-        gas: 5_000_000n,
+        gasPrice,
+        gas,
       } as any);
       console.log(`  ${label} → ${hash}`);
-      await this.publicClient.waitForTransactionReceipt({ hash });
+      this.receiptPending = true;
+      this.receiptSince = Date.now();
+      this.pendingHash = hash;
+      // A timeout must not start a second nonce stream. Monitoring continues;
+      // another operator has its own signer and can take the next duty slot.
+      const wait = this.publicClient.waitForTransactionReceipt({hash, timeout: 0});
+      const receipt = await wait;
+      this.receiptPending = false;
+      this.pendingHash = undefined;
+      if (receipt.status !== 'success') console.error(`[ALERT] ${label}: transaction reverted (${hash})`);
+      return receipt.status === 'success';
     } catch (err) {
       // simulate reverts on no-op/guarded paths — expected, just skip.
       console.log(`  ${label}: skipped (${shortErr(err)})`);
+      return false;
     }
   }
 }
@@ -319,4 +518,19 @@ function shortErr(err: unknown): string {
   const m = (err as Error)?.message ?? String(err);
   const reason = m.match(/reason:\s*([^\n]+)/)?.[1] ?? m.split('\n')[0];
   return reason.slice(0, 80);
+}
+
+function hasWork(result: unknown): boolean {
+  if (typeof result === 'bigint') return result > 0n;
+  if (typeof result === 'string' && result !== '0x') return decodeAbiParameters([{type: 'uint256'}], result as Hex)[0] > 0n;
+  return true; // legacy void safety/start operations retain their on-chain guards
+}
+
+function executionReverted(error: unknown): boolean {
+  let cause = error as any;
+  while (cause) {
+    if (cause.name === 'ExecutionRevertedError' || cause.name === 'ContractFunctionRevertedError' || cause.code === 3) return true;
+    cause = cause.cause;
+  }
+  return false;
 }

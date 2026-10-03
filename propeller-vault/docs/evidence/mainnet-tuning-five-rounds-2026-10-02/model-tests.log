@@ -1,0 +1,13 @@
+✔ uses PRIME-specific net APY, preserves daily compounding, adds only Aave income (0.987805ms)
+✔ rejects failed or incomplete campaigns instead of returning a fabricated zero (1.098986ms)
+✔ keeper costs and exit shortfalls remain separate from funded crypto (0.388076ms)
+✔ higher APY cannot win through subsidy, insolvency or a missing asset case (0.419157ms)
+✔ daily no-op budget and source funding losses cannot disappear from economics (0.198383ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 69.698507

@@ -1,0 +1,39 @@
+{
+  "cases": 64,
+  "simulatedDays": 24090,
+  "rounds": [
+    {
+      "round": 1,
+      "candidate": "threshold-25",
+      "meanReturnPct": 3.2789185519397233
+    },
+    {
+      "round": 2,
+      "candidate": "trade-8000-daily-5000",
+      "meanReturnPct": 3.5108099447390426
+    },
+    {
+      "round": 3,
+      "candidate": "threshold-30-ramp-1h",
+      "meanReturnPct": 3.5541203919513267
+    }
+  ],
+  "terminal": [
+    {
+      "asset": 1,
+      "sourceSaleSteps": 7,
+      "gasAllowance": 26400000,
+      "gasUsd": 0.387968051227304,
+      "sourceTradingUsd": 35.32603277276385,
+      "scope": "Additional indicative terminal cost; not included in funded-return headline. No executed exit or redemption-time guarantee."
+    },
+    {
+      "asset": 0,
+      "sourceSaleSteps": 6,
+      "gasAllowance": 23400000,
+      "gasUsd": 0.3438807726787467,
+      "sourceTradingUsd": 33.10150669534665,
+      "scope": "Additional indicative terminal cost; not included in funded-return headline. No executed exit or redemption-time guarantee."
+    }
+  ]
+}

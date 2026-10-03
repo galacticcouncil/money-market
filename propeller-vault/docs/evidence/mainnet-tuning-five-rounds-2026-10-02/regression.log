@@ -1,0 +1,33 @@
+Missing dependencies found. Installing now...
+
+Warning: Your project has missing dependencies that could not be installed.
+Compiling 2 files with Solc 0.8.22
+Solc 0.8.22 finished in 137.71s
+Compiler run successful!
+
+Ran 3 tests for test/MainnetTuning.t.sol:MainnetTuningTest
+[PASS] test_harvestCompoundsYieldIntoSharePrice() (gas: 9164989)
+[PASS] test_harvestSkipsInFlightUnwindEquity() (gas: 13416205)
+[PASS] test_primePriceAppreciationCompoundsToDeposit() (gas: 9182059)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 41.81ms (97.38ms CPU time)
+
+Ran 6 tests for test/HarvestMainDebt.t.sol:HarvestMainDebtTest
+[PASS] test_feeThenInterestThenCollateralWithoutPrefunding() (gas: 8979369)
+[PASS] test_harvestCompoundsYieldIntoSharePrice() (gas: 9165007)
+[PASS] test_harvestSkipsInFlightUnwindEquity() (gas: 13416204)
+[PASS] test_insufficientYieldNeverPullsPreviouslyCompoundedCollateral() (gas: 8916494)
+[PASS] test_ownedIncomePaysBothSwapCostsAndRetainsUnusedAllowance() (gas: 10636483)
+[PASS] test_primePriceAppreciationCompoundsToDeposit() (gas: 9181941)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 50.14ms (179.73ms CPU time)
+
+Ran 7 tests for test/YieldValidation.t.sol:YieldValidationTest
+[PASS] testFuzz_rewardFundConservesOwnershipAcrossMixedActions(uint256) (runs: 256, μ: 42414511, ~: 43211203)
+[PASS] test_harvestCompoundsYieldIntoSharePrice() (gas: 9164989)
+[PASS] test_harvestSkipsInFlightUnwindEquity() (gas: 13416238)
+[PASS] test_negativeSpreadCannotFabricateHarvestedCollateral() (gas: 15069010)
+[PASS] test_primePriceAppreciationCompoundsToDeposit() (gas: 9181984)
+[PASS] test_realizationDelayWithFivePercentPrimeAndTwoPercentBorrow() (gas: 73760464)
+[PASS] test_realizationWithTenBpsExecutionReserveIsStillNotImmediate() (gas: 169488600)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 44.37s (45.44s CPU time)
+
+Ran 3 test suites in 44.37s (44.46s CPU time): 16 tests passed, 0 failed, 0 skipped (16 total tests)

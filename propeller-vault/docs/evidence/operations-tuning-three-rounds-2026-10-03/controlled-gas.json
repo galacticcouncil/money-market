@@ -1,0 +1,183 @@
+{
+  "rpc": "http://127.0.0.1:8164",
+  "scope": "State-specific read-only native bounds. Productive and zero-work paths are distinguished; no annual gas guarantee.",
+  "rows": [
+    {
+      "label": "source.ramp",
+      "target": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "work": "0",
+      "fills": [],
+      "gasUpperBound": "147816",
+      "allowance": "177380",
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": true
+        },
+        {
+          "gas": "282815",
+          "success": true
+        },
+        {
+          "gas": "151907",
+          "success": true
+        },
+        {
+          "gas": "86453",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        },
+        {
+          "gas": "119180",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        },
+        {
+          "gas": "135543",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        },
+        {
+          "gas": "143725",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        },
+        {
+          "gas": "147816",
+          "success": true
+        }
+      ]
+    },
+    {
+      "label": "ETH.rebalance",
+      "target": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "work": "0",
+      "fills": [],
+      "gasUpperBound": "1002809",
+      "allowance": "1203371",
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        },
+        {
+          "gas": "806447",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        },
+        {
+          "gas": "937355",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        },
+        {
+          "gas": "1002809",
+          "success": true
+        },
+        {
+          "gas": "970082",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        }
+      ]
+    },
+    {
+      "label": "BTC.rebalance",
+      "target": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "work": "0",
+      "fills": [],
+      "gasUpperBound": "1002809",
+      "allowance": "1203371",
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        },
+        {
+          "gas": "806447",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        },
+        {
+          "gas": "937355",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        },
+        {
+          "gas": "1002809",
+          "success": true
+        },
+        {
+          "gas": "970082",
+          "success": false,
+          "error": "Execution reverted with reason: 0x."
+        }
+      ]
+    }
+  ],
+  "block": "15307040",
+  "quoteBlock": "15307039",
+  "gasPrice": "4613374"
+}

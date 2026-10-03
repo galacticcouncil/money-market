@@ -5,6 +5,7 @@ import {MultiVaultFlowTest} from "./MultiVaultFlow.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
+import {PropellerYieldAccounting} from "../src/PropellerYieldAccounting.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 
@@ -104,7 +105,7 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
     function _sourceVaultState(CollateralVault vault) internal view returns (bytes32) {
         address v = address(vault);
         return keccak256(abi.encode(loop.sharesOf(v), loop.equityOf(v), loop.pendingUnwindOf(v),
-            loop.freedOf(v), loop.unwindYieldAllowance(v), loop.unwindExecutionCost(v)));
+            loop.freedOf(v), loop.unwindYieldAllowance(v), loop.unwindExecutionCost(v), loop.principalOf(v)));
     }
 
     function _sourceState() internal view returns (bytes32) {
@@ -129,10 +130,24 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
         bytes32 totals = keccak256(abi.encode(ledger.totalUnits(), ledger.ownedCash(),
             ledger.sourceOutstanding(), ledger.activeSourceRemaining(), ledger.sourceHead(), ledger.sourceTail()));
         bytes32 allocation = keccak256(abi.encode(ledger.sourceCostCheckpoint(),
-            ledger.unallocatedSource(), ledger.unallocatedCost(), hollar.balanceOf(address(ledger))));
+            ledger.unallocatedSource(), ledger.unallocatedCost(), hollar.balanceOf(address(ledger)),
+            ledger.sourceFeeReserve(), ledger.activeFunds(),
+            _read(address(ledger), abi.encodeWithSignature("sourceFees(uint256)", 0)),
+            _read(address(ledger), abi.encodeWithSignature("sourceFees(uint256)", 1))));
         return keccak256(abi.encode(totals, allocation,
             _read(address(ledger), abi.encodeWithSignature("positions(uint256)", 0)),
             _read(address(ledger), abi.encodeWithSignature("positions(uint256)", 1))));
+    }
+
+    function _yieldState(CollateralVault vault) internal view returns (bytes32) {
+        PropellerYieldAccounting y = vault.yieldAccounting();
+        bytes32 totals = keccak256(abi.encode(y.sourceShares(), y.protocolShares(),
+            y.totalUnits(), y.totalAssets(), y.rewardIndex(), y.requestIndex(0)));
+        bytes32 owners = keccak256(abi.encode(y.balanceOf(ETH_USER), y.balanceOf(BTC_USER),
+            vault.balanceOf(address(y)), vault.reinvestAssets()));
+        bytes32 vested = keccak256(abi.encode(y.totalVestedShares(), y.vestedShares(ETH_USER),
+            y.vestedShares(BTC_USER), y.epoch(), y.unitScale()));
+        return keccak256(abi.encode(address(y), totals, owners, vested));
     }
 
     function _vaultState(CollateralVault vault) internal view returns (bytes32) {
@@ -145,7 +160,7 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
         bytes32 holders = keccak256(abi.encode(vault.balanceOf(ETH_USER), vault.balanceOf(BTC_USER),
             vault.balanceOf(address(vault)), vault.paused(), vault.depositsPaused(), vault.withdrawalDelay(),
             address(vault.yieldSource()), address(vault.mainDebt()), address(vault.feeController())));
-        return keccak256(abi.encode(accounting, queue, holders,
+        return keccak256(abi.encode(accounting, queue, holders, _yieldState(vault),
             _read(address(vault), abi.encodeWithSignature("redemptions(uint256)", 0)), _ledgerState(vault)));
     }
 

@@ -2,6 +2,10 @@
 
 **2 October 2026 — review evidence for #60 → #61 → #63. Production activation remains blocked.**
 
+The later [#62 completion record](pr62-completion-2026-10-02.md) extends this
+checkpoint with implemented yield ownership. The results and open #62 item below
+describe this earlier integration checkpoint.
+
 This checkpoint composes Main-debt servicing from #60, bounded settlement from
 #61 and unwind sizing from #63. It does not implement #62's separate yield
 ownership or deposit/harvest size and rate controls. The September RC evidence

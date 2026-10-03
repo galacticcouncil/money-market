@@ -15,13 +15,30 @@ from calling `pokeBorrow()` repeatedly off-chain. That's this bot.
 - per-call amount capped when `deployTranche` is nonzero; activation requires an approved nonzero limit,
 - HOLLAR→aPRIME swap uses an Aave-oracle `minOut` to bound execution slippage.
 
-The signer needs **no role**, only target-chain transaction funding. A successful
-call changes leverage and incurs execution costs. These controls do not bound
-initial/upward source deposits or harvest size; see the [RC admission gate](../docs/release-candidate.md#activation-gates).
+The signer needs **no role**, only target-chain transaction funding (WETH for
+Hydration's EVM gas). A successful
+call changes leverage and incurs execution costs. The shared [execution controller](../docs/execution-controls-implementation.md) additionally
+bounds initial deposits, upward rebalances and harvest trades. Controlled trades
+use recent block-bound quotes while retaining their oracle floors.
 
 The keeper also starts eligible withdrawals, repays debt, settles requests,
 maintains synthetic collateral, and harvests. These operations require no keeper
 role; harvest pays the configured harvester, not the caller.
+
+Each submission is simulated. Zero-work results are skipped before estimation,
+so successful no-ops do not become paid transactions. Productive calls are
+estimated using the current RPC fee quote.
+Gas and gas price receive a 20% margin. `MAX_TX_GAS` (default 16,777,216),
+the live block gas limit, and the native EIP-7825 transaction cap (16,777,216)
+all bound the submission; exceeding a budget alerts and skips the transaction.
+Failed estimation never falls back to a fixed gas allowance. Reverted receipts
+are reported and do not trigger follow-up work that assumes success.
+Operators must calibrate queue and route sizes on the deployed runtime: a
+budget rejection does not automatically split work or make an oversized call
+executable. Native 32-request settlement requires more than 12M gas before
+refunds, so lowering the operator budget can prevent queue progress. Starts
+use eight requests to retain extra headroom. The native deployment harness uses a separate 10% creation margin,
+and records the exact artifact, receipt and remaining transaction headroom.
 
 ## Loop
 
@@ -29,19 +46,26 @@ Each cycle (`POLL_INTERVAL_MS`, default 30s):
 
 ```
 read source HF, repayment targets, route pause and emergency freeze
+  low HF                                  -> schedule safety repayment first
 read each vault's pause, queue cursors and Main repayment target
-  waiting request eligible by chain timestamp -> startUnwinds(16)
+  waiting request eligible by chain timestamp -> startUnwinds(8)
   source safety target or active unwind       -> pokeRepay()
   active vault settlement or Main repayment   -> pokeSettle()
-  healthy, no pending work, no freeze         -> pokeBorrow()
-periodically harvest(), maintainPeg(), pokeSettle(), then rebalance when allowed
+  healthy, worthwhile harvest, duty slot      -> quoted bounded harvest()
+  healthy, no pending work, duty slot         -> quoted bounded pokeBorrow()
+  synthetic buffer below 25bp                 -> top up to 50bp
+after a successful harvest, or periodically otherwise:
+  pokeSettle(), then quoted rebalance when allowed
+independent read loop, including during slow writes/receipt waits:
+  source HF, synthetic coverage, Main backing/interest, stale RPC, stuck receipts
 ```
 
 The keeper checks each Main debt ledger's `ready()` state. Missing/unreadable
 accounting, insufficient backing or incomplete source allocation blocks new
 source ramping without disabling safety repayments. Settlement also runs for
-late source claims after collateral settlement. The slow cycle services Main
-interest from available proceeds; it never obtains treasury money or widens
+late source claims after collateral settlement. Every cycle can realize eligible yield before optional source ramping and then
+reinvest the resulting collateral. The periodic fallback also services Main
+interest from available proceeds; the keeper never obtains treasury money or widens
 slippage. See [yield funding and recovery](../docs/main-debt-servicing.md).
 
 The default cooldown is 12 hours BEFORE unwinding starts. It is configured per
@@ -118,5 +142,34 @@ Swarm:
 docker stack deploy -c docker-stack.yml propeller-looper
 ```
 
-See `docker-stack.yml` for the full env list. Keep `replicas: 1` — two loopers
-would collide on the signer's tx nonce.
+See `docker-stack.yml` for the full environment. Keep one process per signer.
+Deploy a second stack/operator with a different key and RPC infrastructure.
+Both set `OPERATOR_COUNT=2`; assign indexes `0` and `1`. Optional work rotates
+in 60-second slots. Both monitor and perform urgent source repayment continuously;
+a failed operator does not block the other's slot. Do not share signer keys.
+
+Set `EXECUTION_CONTROLLER` to the common controller and `GAS_ASSET_ADDRESS` to
+the approved oracle-listed token used to value the gas asset. `RPC_URLS` is a
+comma-separated fallback list, defaulting to `RPC_URL`. The Docker
+stack requires the controller, gas asset and operator index explicitly.
+
+Default scheduling values (operator examples, not approved production policies):
+
+| Variable | Default | Meaning |
+| --- | ---: | --- |
+| `HARVEST_MIN_USD8` | `100000000` | $1 minimum gross harvest for ordinary batching |
+| `HARVEST_MAX_GAS_BPS` | `10` | Gas budget up to 0.1% of gross converted yield |
+| `HARVEST_MAX_DELAY_SECONDS` | `86400` | Bypass economic delay after a day, when a safe harvest exists |
+| `MAIN_INTEREST_URGENT_USD8` | `1000000000` | Urgent Main interest threshold; HOLLAR valued at par |
+| `QUOTE_TTL_SECONDS` | `60` | Quote deadline, must fit the controller deployment |
+| `QUOTE_DRIFT_BPS` | `2` | Additional tolerance from observed output; cannot widen oracle floors |
+| `SAFETY_INTERVAL_MS` | `30000` | Independent read-loop interval |
+| `RPC_STALE_SECONDS` | `120` | Alert threshold for an old chain head |
+| `OPERATOR_SLOT_SECONDS` | `60` | Optional-work duty-slot duration |
+
+A submitted transaction keeps its signer locked until its receipt is known.
+Read monitoring continues while a receipt is pending and alerts after two minutes.
+An RPC failure does not trigger a blind duplicate send; a confirmed receipt from
+the monitor releases the lock. Connect `[ALERT]` logs to the operators' monitoring
+pipeline and rehearse handover before launch. No alerts are sent externally by
+default. See the [configuration and activation checklist](../docs/execution-controls-implementation.md#activation-configuration).

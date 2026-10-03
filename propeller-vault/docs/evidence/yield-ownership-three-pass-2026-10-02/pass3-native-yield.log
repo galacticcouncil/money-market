@@ -1,0 +1,82 @@
+checkpoint gas 710202
+transferAfterIncome gas 613175
+  native owned harvest → 0x663d227cb3eed453ef03bfd5ef7e520942c789c6c0dcbe05ec2c539520cc4d65
+claimOwnedYield gas 842633
+
+[2026-10-02T17:14:31.530Z] maintainer cycle #1
+  HF 1.324 → target 1.050   leverage 2.98×
+  harvest (skim+distribute) → 0x856978be934507eacab9b93292c924e043efb66f2cedf90d09a8ae92e6e89ff0
+  pokeRepay (unwind/safety debt) → 0x419146027ba76495e673e9428c138c9aa699846d62f87dcb6cb5d8568aa3d71c
+  pokeSettle 0xdc64…f6c9 → 0x41d3ac50007a48f71dbbc88b92ef19474646476f664dbdfa9054cf10c292f16d
+  pokeSettle 0xc5a5…c42d → 0x915d5422f18eaafeb43199a7bb00fec6ca68c14cfba789d80e91ec7ec5148f14
+  maintainPeg 0xdc64…f6c9 → 0xe27b197e6b7d762c88edbdcc69400fdf73e224892d2887c0ccad581647da042c
+  maintainPeg 0xc5a5…c42d → 0x32b2d7c67c84ef7cb2054674c0d63d6e7cf58e7c6ad59854e636d2a5f50cb55d
+
+[2026-10-02T17:16:55.549Z] maintainer cycle #2
+  HF 1.306 → target 1.050   leverage 3.07×
+  harvest (skim+distribute) → 0x32feb640ae6e14d4b14226b4bc00b72d660765e8627981a7fb8c32462f6b0ff8
+  pokeRepay (unwind/safety debt) → 0x56740b71919ac2b5adf11126445304bff40b39c34a967688d1dba3d3226633c9
+  pokeSettle 0xdc64…f6c9 → 0x7a68dcedc4e193d64f35e90cc10a04495541a720f5f4f8afe5392426a02266cc
+  pokeSettle 0xc5a5…c42d → 0x1b75726836c6aba2ece7c4b10acef750ab6068fdcdf96fe8444a352c0b8701be
+  maintainPeg 0xdc64…f6c9 → 0x1599b6093bef6790312b6a92db9765d7712c0f21ff2e5ef0c94b157f869e5683
+  maintainPeg 0xc5a5…c42d → 0xff856a408ff06aa6dd1e1bd48063a6315a3560f5294c0c6086a07dbdd1623263
+
+[2026-10-02T17:19:15.547Z] maintainer cycle #3
+  HF 1.302 → target 1.050   leverage 3.08×
+  harvest (skim+distribute) → 0x156be4673367b4a94377ef32860d6111181d40db9ebc85a557ed0f3533417780
+  pokeRepay (unwind/safety debt) → 0x8fa1336aea0e017f84acd94fd3fc18a6cdc0e9993532451adf8629e1e8f7b928
+  pokeSettle 0xdc64…f6c9 → 0xb41dd8dea2b060f9aac87babe22b2ffface3e02892f8d29f026c0b190a44bbbc
+  pokeSettle 0xc5a5…c42d → 0xf4ff44413e0f8a448a4d02f38956e85f8bf81ba9e89f00bf63109ef964015066
+  maintainPeg 0xdc64…f6c9 → 0x081325884f44052f1c82cdfb5875b40699778690e8df1c9d91e7576f2247145d
+  maintainPeg 0xc5a5…c42d → 0x09ff174806ca25f3f92fdd5dfb92d438862030b19932406c79a5700e31ef763a
+
+[2026-10-02T17:21:40.031Z] maintainer cycle #4
+  HF 1.299 → target 1.050   leverage 3.10×
+  harvest (skim+distribute) → 0x83c900f1367a64539904b1f5479fd21b474acd2eca9de68a7c4ae48862777d04
+  pokeRepay (unwind/safety debt) → 0xec792f42859f5d5fae07ad2feca469ea6922b80cd9a910dec7684b104dab2df1
+  pokeSettle 0xdc64…f6c9 → 0x21bad9a11e9faf129cff62bbd63a943a3e61dce180ee2cd285e4f6ac331d31c2
+  pokeSettle 0xc5a5…c42d → 0x279bd7e391b622804a00e60589f418b3e6e5eed21442ca246ccc081e4a091503
+  maintainPeg 0xdc64…f6c9 → 0x5fc8c8b34ce0b264ef68fb2286816af37f3b327fc4481ee57cfe3071670e2317
+  maintainPeg 0xc5a5…c42d → 0x83e79776c27b614cdc91e7a3f1868b899c78a8aba5cd60fced9f07146827d1b9
+
+[2026-10-02T17:24:01.880Z] maintainer cycle #5
+  HF 1.296 → target 1.050   leverage 3.12×
+  harvest (skim+distribute) → 0xff034d3f252560c49a792051ee919eadfe479d45475ff6059461b8fc0564bf8e
+  pokeRepay (unwind/safety debt) → 0xc805428844ca89442664b9385515273cdce47dd47f1a1014135a683b00386313
+  pokeSettle 0xdc64…f6c9 → 0xf2e7d6133889e83f948cf947949156a1677fda9eb5ab2c2a68d4eb60aee7bf10
+  pokeSettle 0xc5a5…c42d → 0x2049153865b9387471aa8c5206236b8c1199a6527ec9529460c01c137928afa9
+  maintainPeg 0xdc64…f6c9 → 0x08675cbca8ce827ccc87a211c94ad601bab65f0149b4f5bc173f152b204eaf5e
+  maintainPeg 0xc5a5…c42d → 0xeb67f5a827dc6964078e3c30334955852182113c1ada2f89dc86438ab15f9aef
+
+[2026-10-02T17:26:29.765Z] maintainer cycle #10
+  HF 1.293 → target 1.050   leverage 3.13×
+  harvest (skim+distribute) → 0x30d345fbab51bb0788d08df3e9190b42130315cbb35587623b288908de2d28bf
+  pokeBorrow (ramp) → 0xa3e238796c3b2eb2592f907a3405ffe7f23a3aa62dcef2c639e20b072ce6999d
+  maintainPeg 0xdc64…f6c9 → 0x8b76e31a2cc47a01ab163250cb0e8c343165764947d46e942945acf1a87e3d31
+  service Main interest 0xdc64…f6c9 → 0xbb5175f42063bb30af58ece7144acc629680e32ee7bbf81367c6ab48e3d51f86
+  rebalance 0xdc64…f6c9 → 0x8e19dfb6dd4eec89fd22ca45cd1a3c537085266656ad713fbc2cec42cdbc95ce
+  maintainPeg 0xc5a5…c42d → 0x9d1306e396a7413f69d9eda30b7bc52c224e0de3dfa003e018bbaa9d83f2d8f0
+  service Main interest 0xc5a5…c42d → 0x33d35b6f1a510d44c77a60c8aa07fa09c193f20709822eb2c897ecbe6568a77d
+  rebalance 0xc5a5…c42d → 0x7235d4c563458e578351afc79243e1f7f95821723a7858f0897c11e3c4a4f355
+queue0 gas 3388304
+queue1 gas 3354104
+queue2 gas 3354104
+queue3 gas 3354104
+start2 gas 11524598
+start18 gas 10597517
+queueRecoveryApprove gas 46187
+queueRecovery0 gas 377129
+queueRecovery1 gas 372329
+  native 32-request settlement: skipped (0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000)
+AssertionError [ERR_ASSERTION]: native queue cannot execute within keeper budget
+
+false !== true
+
+  native 32-request settlement → 0x4cf8df097bba5dfa4350e9d0cb68377eab68924b82f8eb0e47f2e5a667f1e494
+extraShares gas 541975
+extraRequests gas 3371204
+  native eight-request start → 0x8a7ff0986ff4d2bdc37ccf56322227edfa020f505162c921c127d0b42bbfb702
+extraRecoveryApprove gas 46199
+extraRecovery gas 227438
+  native eight-request settlement → 0x1856ab8d15f4697c119c472e9f5f57f3a5f935e3af03fbe5f0884363eb7f48df
+NATIVE OWNERSHIP AND QUEUE PASS /tmp/pr62-validation/native-yield-result.json

@@ -1,0 +1,18 @@
+Missing dependencies found. Installing now...
+
+Warning: Your project has missing dependencies that could not be installed.
+No files changed, compilation skipped
+
+Ran 2 tests for test/SettleBatch.t.sol:SettleBatchTest
+[PASS] test_longQueueSettlesInBoundedPasses() (gas: 286257577)
+Logs:
+  settle calls to drain the queue: 13
+  max gas for one settle pass: 7372545
+
+[PASS] test_singleRequestSettles() (gas: 14349223)
+Logs:
+  gas to settle 1 request: 609572
+
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 781.63ms (818.24ms CPU time)
+
+Ran 1 test suite in 783.22ms (781.63ms CPU time): 2 tests passed, 0 failed, 0 skipped (2 total tests)

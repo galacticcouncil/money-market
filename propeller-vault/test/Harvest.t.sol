@@ -153,7 +153,6 @@ contract HarvestTest is Test {
     /// deposit. Net effect on a 1 ETH deposit ≈ maxLtv·loopLeverage·6%.
     function test_primePriceAppreciationCompoundsToDeposit() public {
         _depositAndRamp();
-        uint256 equityBasis = loop.totalEquity(); // ~2250e8 ($2250 seed)
         uint256 hfBefore = loop.healthFactor();
 
         pool.setPrice(address(prime), 1.06e18); // PRIME +6%
@@ -193,7 +192,9 @@ contract HarvestTest is Test {
         uint256 expected = (loop.totalEquity() * 1e10 - loop.principalEquity() - inFlight - retained) / 1e12;
 
         // harvest mid-redemption: skims ONLY the yield, not the exiter's slice
-        uint256 surplusPrime = loop.harvest();
+        uint256 beforePrime = aPrime.balanceOf(address(loop));
+        harvester.harvest(new uint256[](1));
+        uint256 surplusPrime = beforePrime - aPrime.balanceOf(address(loop));
         assertApproxEqAbs(surplusPrime, expected, 1, "skim only carry above cost allowance");
         assertEq(loop.unwindTargetEquity(), inFlight, "in-flight equity untouched");
 

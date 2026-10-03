@@ -7,11 +7,15 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "./interfaces/IAavePool.sol";
+import {ExecutionController} from "./ExecutionController.sol";
 import {IYieldSource} from "./interfaces/IYieldSource.sol";
 import {ISwapper} from "./interfaces/ISwapper.sol";
+import {PropellerYieldAccounting} from "./PropellerYieldAccounting.sol";
+import {IPropellerFeeController} from "./interfaces/IPropellerFeeController.sol";
 import {IMainDebt} from "./interfaces/IMainDebt.sol";
 
 interface IMainDebtVault {
+    function executionController() external view returns (ExecutionController);
     function pool() external view returns (IAavePool);
     function hollar() external view returns (IERC20);
     function hollarDebtToken() external view returns (IERC20);
@@ -20,6 +24,7 @@ interface IMainDebtVault {
     function swapper() external view returns (ISwapper);
     function compoundSlippageBps() external view returns (uint16);
     function paused() external view returns (bool);
+    function feeController() external view returns (IPropellerFeeController);
 }
 
 interface IReserveRate {
@@ -35,6 +40,7 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
     uint256 private constant BPS = 10_000;
     uint256 private constant RAY = 1e27;
     address public immutable override vault;
+    address public immutable override yieldAccounting;
     IERC20 public immutable hollar;
     IERC20 public immutable debtToken;
     IAavePool public immutable pool;
@@ -48,6 +54,12 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
     }
     // Key zero is active holders; withdrawal id N uses key N+1.
     mapping(uint256 => Position) public positions;
+    struct SourceFee {
+        uint256 yieldRemaining;
+        uint256 feeRemaining;
+    }
+    mapping(uint256 => SourceFee) public sourceFees;
+    uint256 public override sourceFeeReserve;
     uint256 public totalUnits;
     uint256 public override ownedCash;
     uint256 public sourceHead = 1;
@@ -81,6 +93,7 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
     constructor(address vault_) {
         if (vault_ == address(0)) revert InvalidConfiguration();
         vault = vault_;
+        yieldAccounting = address(new PropellerYieldAccounting(vault_));
         IMainDebtVault v = IMainDebtVault(vault_);
         hollar = v.hollar();
         debtToken = v.hollarDebtToken();
@@ -118,12 +131,36 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
         return debt > principal ? debt - principal : 0;
     }
 
+    function quoteCollateral(uint256 amount) external view override returns (uint256) {
+        return _quote(address(hollar), address(IMainDebtVault(vault).collateral()), amount, Math.Rounding.Down);
+    }
+
+    function quoteHollar(uint256 amount) external view override returns (uint256) {
+        return _quote(address(IMainDebtVault(vault).collateral()), address(hollar), amount, Math.Rounding.Down);
+    }
+
+    function activePosition() external view override returns (uint256 debt, uint256 principal, uint256 cash) {
+        return (debtOf(0), positions[0].principal, positions[0].cash);
+    }
+
+    function activeFunds() public view override returns (uint256) {
+        uint256 gross = positions[0].cash + activeSourceRemaining;
+        return gross - Math.min(gross, sourceFees[0].feeRemaining);
+    }
+
+    function pendingSourceAccounting() external view override returns (bool) { return _pendingAllocation(); }
+
     function activeUnderfunded() public view override returns (bool) {
         uint256 debt = debtOf(0);
         if (debt == 0) return false;
-        uint256 backing = IMainDebtVault(vault).yieldSource().equityOf(vault) * 1e10
-            + positions[0].cash + activeSourceRemaining;
-        return backing < debt;
+        // No amount of gross carry services interest at a 100% fee. Net cash
+        // or already fee-reserved receivables must cover that obligation first.
+        IPropellerFeeController controller = IMainDebtVault(vault).feeController();
+        if (address(controller) != address(0) && controller.protocolFeeBps(vault) == BPS
+            && interestOf(0) > activeFunds()) return true;
+        PropellerYieldAccounting rewards = PropellerYieldAccounting(yieldAccounting);
+        uint256 sourceBacking = IMainDebtVault(vault).yieldSource().equityOf(vault) * 1e10 - rewards.sourceValue();
+        return sourceBacking + activeFunds() < debt || sourceBacking < rewards.requiredSourceBacking();
     }
 
     function ready() external view returns (bool) {
@@ -161,7 +198,8 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
         totalUnits += units;
     }
 
-    function startExit(uint256 id, address owner, uint256 shares, uint256 supply, uint256 sourceClaim)
+    function startExit(uint256 id, address owner, uint256 shares, uint256 supply,
+        uint256 sourceClaim, uint256 sourcePrincipal, uint256 sourceFee)
         external override onlyVault nonReentrant returns (uint256 debt)
     {
         // Allocate already-received source cash before admitting a new claim.
@@ -184,13 +222,28 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
         exit.principal = debt;
         exit.owner = owner;
         exit.sourceRemaining = sourceClaim;
+        IPropellerFeeController controller = IMainDebtVault(vault).feeController();
+        if (address(controller) != address(0)) {
+            uint256 yield = sourceClaim > sourcePrincipal ? sourceClaim - sourcePrincipal : 0;
+            uint256 fee = Math.min(sourceFee, yield);
+            sourceFees[key] = SourceFee(yield, fee);
+            sourceFeeReserve += fee;
+        } else if (sourceFee != 0) {
+            revert InvalidConfiguration();
+        }
         sourceOutstanding += sourceClaim;
         sourceTail = key + 1;
         emit ExitReserved(id, exit.cash, debt, sourceClaim);
     }
 
-    function expectDelever(uint256 amount) external override onlyVault {
-        if (allocationAmount != 0 || allocationCost != 0 || _pendingAllocation()) revert OutstandingDebt();
+    function expectDelever(uint256 amount, uint256 sourcePrincipal) external override onlyVault {
+        if (activeSourceRemaining != 0 || allocationAmount != 0 || allocationCost != 0 || _pendingAllocation()) revert OutstandingDebt();
+        IPropellerFeeController controller = IMainDebtVault(vault).feeController();
+        uint256 yield = amount > sourcePrincipal ? amount - sourcePrincipal : 0;
+        uint256 fee = address(controller) == address(0) ? 0
+            : Math.mulDiv(yield, controller.protocolFeeBps(vault), BPS);
+        sourceFees[0] = SourceFee(yield, fee);
+        sourceFeeReserve += fee;
         activeSourceRemaining += amount;
         sourceOutstanding += amount;
     }
@@ -207,6 +260,7 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
             unallocatedSource += amount;
             ownedCash += amount;
         }
+        uint256 feesPaid;
         if (allocationAmount == 0 && allocationCost == 0) {
             if (unallocatedSource == 0 && unallocatedCost == 0) return 0;
             if (unallocatedSource + unallocatedCost > sourceOutstanding) revert TransferMismatch();
@@ -219,8 +273,12 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
             (activeCredit, activeCost) = _allocate(activeSourceRemaining);
             activeSourceRemaining -= activeCredit + activeCost;
             positions[0].cash += activeCredit;
+            feesPaid = _settleSourceFee(0, activeSourceRemaining, activeCost);
             if (activeCredit != 0) emit SourceCredited(0, activeCredit, activeSourceRemaining);
             if (activeCost != 0) emit SourceYieldSpent(0, activeCost);
+            // The resize target is net repayment funding, including actual
+            // source expenses and fees; neither is an unpaid user debt claim.
+            activeCost += feesPaid;
         }
         uint256 cursor = allocationCursor;
         for (uint256 i; cursor < allocationTail && i < 64; ++i) {
@@ -228,10 +286,18 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
             (uint256 credited, uint256 cost) = _allocate(p.sourceRemaining);
             p.sourceRemaining -= credited + cost;
             p.cash += credited;
+            feesPaid += _settleSourceFee(cursor, p.sourceRemaining, cost);
             if (credited != 0) emit SourceCredited(cursor, credited, p.sourceRemaining);
             if (cost != 0) emit SourceYieldSpent(cursor, cost);
             if (cursor == sourceHead && p.sourceRemaining == 0) ++sourceHead;
             ++cursor;
+        }
+        if (feesPaid != 0) {
+            ownedCash -= feesPaid;
+            IPropellerFeeController controller = IMainDebtVault(vault).feeController();
+            hollar.forceApprove(address(controller), feesPaid);
+            controller.collectSourceFee(feesPaid);
+            hollar.forceApprove(address(controller), 0);
         }
         allocationCursor = cursor;
         if (cursor == allocationTail) {
@@ -240,6 +306,22 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
             allocationCost = 0;
             allocationWeight = 0;
         }
+    }
+
+    function _settleSourceFee(uint256 key, uint256 remaining, uint256 cost) private returns (uint256 charged) {
+        SourceFee storage fee = sourceFees[key];
+        uint256 beforeFee = fee.feeRemaining;
+        uint256 beforeYield = fee.yieldRemaining;
+        fee.yieldRemaining -= Math.min(beforeYield, cost);
+        if (beforeYield != 0) fee.feeRemaining = Math.mulDiv(beforeFee, fee.yieldRemaining, beforeYield);
+        // A fee on an unfinished claim stays reserved: later costs can still
+        // reduce it even after an outside Main repayment or a partial surplus.
+        if (remaining == 0) {
+            charged = fee.feeRemaining;
+            positions[key].cash -= charged;
+            delete sourceFees[key];
+        }
+        sourceFeeReserve -= beforeFee - fee.feeRemaining;
     }
 
     function _allocate(uint256 weight) private returns (uint256 credited, uint256 cost) {
@@ -297,14 +379,15 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
         uint256 limit = key == 0 && principalLimit != 0
             ? Math.min(debt, principalLimit)
             : interest + Math.min(p.principal, principalLimit);
-        uint256 amount = Math.min(p.cash, limit);
+        uint256 spendable = p.cash - Math.min(p.cash, sourceFees[key].feeRemaining);
+        uint256 amount = Math.min(spendable, limit);
         if (amount != 0) {
             (paid, reduced) = _pay(amount);
             // Finish a scaled-debt rounding tail from this cohort's own cash.
             // A partial liquidity-limited repayment is not a rounding retry.
-            if (paid == amount && reduced < amount && p.cash > paid) {
+            if (paid == amount && reduced < amount && spendable > paid) {
                 (uint256 extraCash, uint256 extraDebt) = _pay(
-                    Math.min(p.cash - paid, amount - reduced + _roundingQuantum()));
+                    Math.min(spendable - paid, amount - reduced + _roundingQuantum()));
                 paid += extraCash;
                 reduced += extraDebt;
             }
@@ -333,6 +416,7 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
         if (collateral.balanceOf(address(this)) != before_ + amount) revert TransferMismatch();
         uint256 wanted = interestOf(0);
         uint256 cash = positions[0].cash;
+        cash -= Math.min(cash, sourceFees[0].feeRemaining);
         uint256 sellAmount;
         if (wanted > cash && amount != 0) {
             uint256 needed = wanted - cash;
@@ -344,9 +428,13 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
             ISwapper swapper = IMainDebtVault(vault).swapper();
             uint256 cashBefore = hollar.balanceOf(address(this));
             collateral.forceApprove(address(swapper), sellAmount);
+            ExecutionController control = IMainDebtVault(vault).executionController();
+            if (address(control) != address(0)) minimum = Math.max(minimum,
+                control.consume(address(collateral), address(hollar), sellAmount));
             swapper.sell(address(collateral), address(hollar), sellAmount, minimum, "");
             collateral.forceApprove(address(swapper), 0);
             uint256 received = hollar.balanceOf(address(this)) - cashBefore;
+            if (address(control) != address(0)) control.record(address(collateral), address(hollar), received);
             if (received == 0 || received < minimum
                 || collateral.balanceOf(address(this)) != before_ + amount - sellAmount) revert TransferMismatch();
             positions[0].cash += received;
@@ -369,6 +457,12 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
             outputPrice * 10 ** IERC20Metadata(input).decimals(), rounding);
     }
 
+    function surplusOf(uint256 id) public view returns (uint256) {
+        Position storage p = positions[id + 1];
+        if (p.units != 0) return 0;
+        return p.cash - Math.min(p.cash, sourceFees[id + 1].feeRemaining);
+    }
+
     /// @notice Permissionless, but the recipient is the original withdrawal owner.
     /// Later source recoveries remain independently claimable, without a haircut.
     function claimSurplus(uint256 id) external nonReentrant returns (uint256 amount) {
@@ -376,8 +470,8 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
         Position storage p = positions[id + 1];
         if (p.owner == address(0)) revert InvalidConfiguration();
         if (p.units != 0) revert OutstandingDebt();
-        amount = p.cash;
-        p.cash = 0;
+        amount = surplusOf(id);
+        p.cash -= amount;
         ownedCash -= amount;
         hollar.safeTransfer(p.owner, amount);
         emit SurplusClaimed(id, p.owner, amount);

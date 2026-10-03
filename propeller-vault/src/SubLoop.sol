@@ -12,7 +12,13 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "./interfaces/IAavePool.sol";
 import {ISubLoop} from "./interfaces/ISubLoop.sol";
 import {IYieldSource, ILeveragedLoop} from "./interfaces/IYieldSource.sol";
+import {ExecutionController} from "./ExecutionController.sol";
 import {DcaDispatch} from "./lib/DcaDispatch.sol";
+
+interface ISourceYieldVault {
+    function burnYieldShares(uint256 shares) external;
+    function yieldAccounting() external view returns (address);
+}
 
 /// @title SubLoop
 /// @notice The single shared leveraged PRIME/HOLLAR loop (Aave isolation mode).
@@ -57,16 +63,16 @@ contract SubLoop is
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
     /// @notice Registered CollateralVaults — the only callers of deposit/unwind.
     bytes32 public constant VAULT_ROLE = keccak256("VAULT_ROLE");
-    // KEEPER_ROLE removed: pokeBorrow/pokeRepay/harvest/deLever are permissionless
-    // (bounded, oracle-priced, no caller payout). harvest pays the stored harvester.
+    // KEEPER_ROLE removed: pokeBorrow/pokeRepay/deLever are permissionless
+    // (bounded, oracle-priced, no caller payout). Only Harvester pulls yield.
 
     // ── config ────────────────────────────────────────────────────────────
     IAavePool public pool;
     IERC20 public hollar;
     IERC20 public prime;
     IERC20 public primeAToken; // collateral receipt (this loop's Aave position)
-    /// @notice Recipient of harvested surplus PRIME (the Harvester). With
-    ///         harvest permissionless, the payout pins here regardless of caller.
+    /// @notice Only caller of harvest and recipient of surplus PRIME.
+    ///         Users trigger its permissionless, atomic distribution entry point.
     address public harvester;
 
     // ── policy params ─────────────────────────────────────────────────────
@@ -127,7 +133,7 @@ contract SubLoop is
     error ZeroAddress();
     error HealthyEnough();
     error InsufficientShares();
-    error HarvesterUnset();
+    error NotHarvester();
     error Underfunded();
     error InvalidParameters();
 
@@ -198,6 +204,7 @@ contract SubLoop is
         _sharesOf[msg.sender] += shares;
         _totalShares += shares;
         principalEquity += hollarAmount; // cost basis (seed)
+        principalOf[msg.sender] += hollarAmount;
 
         // FUTURE(matching): before funding the deploy DCA, match against
         //   outstanding unwindTargetEquity — pay an exiting vault directly from
@@ -216,6 +223,16 @@ contract SubLoop is
         whenNotEmergencyPaused
         returns (uint256 unwindId)
     {
+        return _requestUnwind(shares, Math.mulDiv(principalOf[msg.sender], shares, _sharesOf[msg.sender]));
+    }
+
+    function requestUnwindProtected(uint256 shares, uint256 basis)
+        external override onlyRole(VAULT_ROLE) nonReentrant whenNotEmergencyPaused returns (uint256)
+    {
+        return _requestUnwind(shares, basis);
+    }
+
+    function _requestUnwind(uint256 shares, uint256 protectedBasis) private returns (uint256 unwindId) {
         uint256 held = _sharesOf[msg.sender];
         if (shares == 0) revert ZeroAmount();
         if (shares > held) revert InsufficientShares();
@@ -225,7 +242,8 @@ contract SubLoop is
         uint256 equityHollar = (_liveEquity18() * shares) / totalSharesBefore;
         if (equityHollar == 0) revert Underfunded();
 
-        uint256 basis = (principalEquity * shares) / totalSharesBefore;
+        uint256 basis = Math.min(principalOf[msg.sender], protectedBasis);
+        principalOf[msg.sender] -= basis;
         principalEquity -= basis;
         if (equityHollar > basis) unwindYieldAllowance[msg.sender] += equityHollar - basis;
         _sharesOf[msg.sender] = held - shares;
@@ -291,9 +309,9 @@ contract SubLoop is
     ///      deployHfFloor, caps the amount at deployTranche, and swaps with an
     ///      oracle-fair minOut. A caller can only advance the ramp (or waste gas
     ///      on a no-op at floor), never extract value, so no role is needed.
-    function pokeBorrow() external override nonReentrant whenNotPaused whenNotEmergencyPaused {
+    function pokeBorrow() external override nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256 borrowed) {
         _dropMetDelever();
-        if (unwindTargetEquity != 0 || deleverDebtTarget != 0) return;
+        if (unwindTargetEquity != 0 || deleverDebtTarget != 0) return 0;
         // The DCA's Aave hop mints aPRIME to this loop but does not flip the
         // use-as-collateral flag, so without this the loop's borrow power stays 0.
         // Enable PRIME as collateral once it holds aPRIME (Aave no-ops if already on).
@@ -305,11 +323,17 @@ contract SubLoop is
         //   maxDebt = collBase·wAvgLT / deployHfFloor.
         (uint256 collBase8, uint256 debtBase8, , uint256 wAvgLtBps, , ) =
             pool.getUserAccountData(address(this));
-        uint256 collWithLt8 = (collBase8 * wAvgLtBps) / 1e4; // 8dp USD
+        // Carry is waiting to buy the user's collateral. Do not borrow against
+        // it and buy more PRIME just before the harvester removes that carry.
+        uint256 equity8 = totalEquity();
+        uint256 basis8 = (principalEquity + unwindTargetEquity) / 1e10;
+        uint256 earned8 = equity8 > basis8 ? equity8 - basis8 : 0;
+        uint256 deployCollateral8 = collBase8 - Math.min(collBase8, earned8);
+        uint256 collWithLt8 = (deployCollateral8 * wAvgLtBps) / 1e4;
         uint256 maxDebt8 = (collWithLt8 * WAD) / deployHfFloor; // 8dp USD
         if (maxDebt8 <= debtBase8) {
             emit Borrowed(0, healthFactor());
-            return;
+            return 0;
         }
         // HOLLAR is 18dp and $1 ⇒ amount(18dp) = borrowBase(8dp) · 1e10.
         uint256 borrowHollar = (maxDebt8 - debtBase8) * 1e10;
@@ -318,13 +342,15 @@ contract SubLoop is
         // into pool-143 and trip slippage. Tranche it — the keeper calls
         // pokeBorrow repeatedly to ramp (gradual, like the old deploy DCA).
         if (deployTranche > 0 && borrowHollar > deployTranche) borrowHollar = deployTranche;
+        if (address(executionController) != address(0)) borrowHollar = Math.min(borrowHollar, admissionCapacity());
         if (borrowHollar == 0) {
             emit Borrowed(0, healthFactor());
-            return;
+            return 0;
         }
         pool.borrow(address(hollar), borrowHollar, VARIABLE_RATE, 0, address(this));
         _fundDeploy(borrowHollar);
         emit Borrowed(borrowHollar, healthFactor());
+        return borrowHollar;
     }
 
     /// @dev Synchronous HOLLAR→aPRIME via pallet_route::sell (no DCA). The route
@@ -343,7 +369,16 @@ contract SubLoop is
         uint256 fairOut = (amount * pHollar) / pPrime / 1e12;
         if (amount > type(uint128).max) revert InvalidParameters();
         uint128 minOut = _minimumOut(fairOut);
+        ExecutionController control = executionController;
+        uint256 before_;
+        if (address(control) != address(0)) {
+            uint256 quoted = control.consume(address(hollar), address(primeAToken), amount);
+            if (quoted > type(uint128).max) revert InvalidParameters();
+            minOut = uint128(Math.max(minOut, quoted));
+            before_ = primeAToken.balanceOf(address(this));
+        }
         DcaDispatch.routerSell(hollarAssetId, aPrimeAssetId, uint128(amount), minOut, _deployRoute());
+        if (address(control) != address(0)) control.record(address(hollar), address(primeAToken), primeAToken.balanceOf(address(this)) - before_);
         pool.setUserUseReserveAsCollateral(address(prime), true);
     }
 
@@ -377,10 +412,14 @@ contract SubLoop is
     }
 
     /// @inheritdoc ILeveragedLoop
-    function pokeRepay() external override nonReentrant whenNotPaused {
+    function pokeRepay() external override nonReentrant whenNotPaused returns (uint256 work) {
+        uint256 previousTarget = deleverDebtTarget;
         _dropMetDelever();
-        if (unwindTargetEquity == 0 && deleverDebtTarget == 0) return;
-        if (emergencyPaused && deleverDebtTarget == 0) return;
+        // Clearing a completed safety commitment is useful work too: otherwise
+        // a keeper that skips zero-work simulations would leave ramping blocked.
+        work = previousTarget > deleverDebtTarget ? 1 : 0;
+        if (unwindTargetEquity == 0 && deleverDebtTarget == 0) return work;
+        if (emergencyPaused && deleverDebtTarget == 0) return work;
         // UNWIND SPIRAL STEP: while an unwind is open, synchronously sell an
         // HF-safe sliver of aPRIME → HOLLAR via the router (no DCA — the router
         // executes through pool reserves with a min-out, so the unpriceable
@@ -420,7 +459,7 @@ contract SubLoop is
                 }
             } else if (debt8 == 0) {
                 deleverDebtTarget = 0;
-                if (emergencyPaused) return;
+                if (emergencyPaused) return 0;
                 (uint256 pHollar, uint256 pPrime) = _oracleRate();
                 uint256 sellAmt = Math.mulDiv(unwindTargetEquity, pHollar, pPrime * 1e12, Math.Rounding.Up);
                 uint256 apBal = primeAToken.balanceOf(address(this));
@@ -440,7 +479,7 @@ contract SubLoop is
         if (avail == 0) {
             // Neither an HF block nor rounding proves a claim is unrecoverable.
             emit Repaid(0, healthFactor());
-            return;
+            return work;
         }
 
         // Safety de-lever first: the FULL proceeds repay loop debt (no payout,
@@ -457,13 +496,13 @@ contract SubLoop is
             avail -= deleverRepaid;
             if (avail == 0) {
                 emit Repaid(deleverRepaid, healthFactor());
-                return;
+                return deleverRepaid;
             }
         }
 
         if (emergencyPaused) {
             emit Repaid(deleverRepaid, healthFactor());
-            return;
+            return deleverRepaid;
         }
 
         // The DCA already withdrew the collateral that produced `avail`. Repay
@@ -487,6 +526,7 @@ contract SubLoop is
         uint256 freed = avail - repayHollar;
         if (freed > 0) _creditFreed(freed);
         emit Repaid(deleverRepaid + repayHollar, healthFactor());
+        return deleverRepaid + repayHollar + freed;
     }
 
     function _sellForUnwind(uint256 amount, uint256 fairOut) internal {
@@ -578,44 +618,65 @@ contract SubLoop is
     ///      cost basis. The Harvester swaps it into each vault's collateral. This
     ///      keeps SubLoop swap-free — withdrawing the surplus leaves HF at target
     ///      (removed collateral was the cushion the yield created).
-    function harvest() external override nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256 surplusPrime) {
-        uint256 equity18 = totalEquity() * 1e10;
-        // in-flight unwind equity belongs to exiting vaults: their shares are
-        // already burned (principalEquity dropped) but the equity stays in the
-        // loop until pokeRepay frees it. it is NOT carry — skimming it would
-        // pay one vault's principal out to the others' shareholders.
-        // Retain earned PRIME, not sponsored HOLLAR, against execution costs.
-        // A target above earned carry only suppresses harvest; it never creates
-        // a claim on deposits or requires an external bootstrap payment.
-        uint256 reserved18 = principalEquity + unwindTargetEquity + executionCostReserve();
-        if (equity18 <= reserved18) {
-            emit Harvested(0);
-            return 0;
+    /// @notice Legacy zero-harvest probe. Realization requires explicit owned
+    /// source units; a global payout by current vault weights loses ownership.
+    function harvest() external override nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256) {
+        if (msg.sender != harvester) revert NotHarvester();
+        if (harvestCapacity() != 0) revert InvalidParameters();
+        return 0;
+    }
+
+    function accountingLocked() external view override returns (bool) { return _reentrancyGuardEntered(); }
+
+    /// @notice Main recovery funding has released this much borrowed capital.
+    /// Only that vault's immutable ownership ledger may reclassify its basis.
+    function releasePrincipal(address vault, uint256 amount) external override nonReentrant {
+        if (!hasRole(VAULT_ROLE, vault) || msg.sender != ISourceYieldVault(vault).yieldAccounting()) {
+            revert InvalidParameters();
         }
-        uint256 surplus18 = equity18 - reserved18;
-        // guard: only harvest once carry exceeds the threshold fraction of basis
-        if (principalEquity != 0 && surplus18 * WAD < principalEquity * harvestThreshold) {
-            emit Harvested(0);
-            return 0;
-        }
-        // surplus (HOLLAR 18dp) → PRIME native (6dp) at the ORACLE rate — PRIME
-        // is not $1 (mirrors _fundDeploy); a /1e12 would over-withdraw by the
-        // PRIME premium and dip HF below target.
+        principalOf[vault] -= amount;
+        principalEquity -= amount;
+    }
+
+    function _harvestable() private view returns (uint256) {
+        uint256 equity = totalEquity() * 1e10;
+        uint256 reserved = principalEquity + unwindTargetEquity + executionCostReserve();
+        if (equity <= reserved) return 0;
+        (uint256 coll8, uint256 debt8,,uint256 lt,,) = pool.getUserAccountData(address(this));
+        uint256 protected8 = debt8 == 0 ? 0 : lt == 0 ? coll8
+            : Math.mulDiv(debt8, deployHfFloor * 10_000, WAD * lt, Math.Rounding.Up);
+        uint256 withdrawable = coll8 > protected8 ? (coll8 - protected8) * 1e10 : 0;
+        return Math.min(equity - reserved, withdrawable);
+    }
+
+    function harvestCapacity() public view override returns (uint256) {
+        uint256 available = _harvestable();
+        if (available == 0 || (principalEquity != 0 && available * WAD < principalEquity * harvestThreshold)) return 0;
+        return Math.mulDiv(available, _totalShares, _liveEquity18());
+    }
+
+    /// @notice Burn only the realized owner's units at the pre-withdrawal NAV.
+    /// The Harvester caps and distributes the batch before the first withdrawal.
+    function harvestFor(address vault, uint256 shares)
+        external override nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256 amount, uint256 burned)
+    {
+        if (msg.sender != harvester) revert NotHarvester();
+        if (shares == 0) return (0, 0);
+        if (shares > _sharesOf[vault]) revert InsufficientShares();
+        uint256 equity = _liveEquity18();
+        uint256 value = Math.mulDiv(equity, shares, _totalShares);
+        value = Math.min(value, _harvestable());
         (uint256 pHollar, uint256 pPrime) = _oracleRate();
-        surplusPrime = (surplus18 * pHollar) / pPrime / 1e12;
-        if (surplusPrime == 0) {
-            emit Harvested(0);
-            return 0;
-        }
-        // permissionless: surplus routes to the configured harvester (which splits it
-        // pro-rata), NEVER the caller. An earlier fallback paid `msg.sender` when the
-        // harvester was unset — since `initialize` never assigns one, that made the
-        // whole loop carry claimable by anyone in the deploy→wiring window. Fail
-        // closed instead: no harvester, no harvest.
-        if (harvester == address(0)) revert HarvesterUnset();
-        pool.withdraw(address(prime), surplusPrime, address(this)); // HF stays ≥ target
-        IERC20(address(prime)).safeTransfer(harvester, surplusPrime);
-        emit Harvested(surplusPrime);
+        amount = Math.mulDiv(value, pHollar, pPrime * 1e12);
+        if (amount == 0) return (0, 0);
+        uint256 actualValue = Math.mulDiv(amount, pPrime * 1e12, pHollar);
+        burned = Math.mulDiv(actualValue, _totalShares, equity, Math.Rounding.Up);
+        ISourceYieldVault(vault).burnYieldShares(burned);
+        _sharesOf[vault] -= burned;
+        _totalShares -= burned;
+        pool.withdraw(address(prime), amount, address(this));
+        prime.safeTransfer(harvester, amount);
+        emit Harvested(amount);
     }
 
     /// @inheritdoc ILeveragedLoop
@@ -789,5 +850,27 @@ contract SubLoop is
 
     function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
+    /// @notice All initial deposits, upward rebalances and loop ramps share this capacity.
+    function admissionCapacity() public view override returns (uint256) {
+        return address(executionController) == address(0) ? type(uint256).max
+            : executionController.available(address(this), address(hollar), address(primeAToken));
+    }
+
+    function previewHarvest(uint256 shares) external view override returns (uint256) {
+        if (_totalShares == 0) return 0;
+        uint256 value = Math.min(Math.mulDiv(_liveEquity18(), shares, _totalShares), _harvestable());
+        (uint256 pHollar, uint256 pPrime) = _oracleRate();
+        return Math.mulDiv(value, pHollar, pPrime * 1e12);
+    }
+
+    function setExecutionController(address controller) external onlyRole(ADMIN_ROLE) {
+        if (controller.code.length == 0 || address(executionController) != address(0)) revert InvalidParameters();
+        executionController = ExecutionController(controller);
+        emit ExecutionControllerSet(controller);
+    }
+
+    event ExecutionControllerSet(address indexed controller);
     uint256[37] private __gap;
+    mapping(address => uint256) public override principalOf;
+    ExecutionController public executionController;
 }
