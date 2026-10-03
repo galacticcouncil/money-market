@@ -165,3 +165,9 @@ Before unpausing public deposits:
 The controller does not implement deposit/exit matching, a collateral admission
 queue, automatic treasury funding, a provider replenishment service or a revised
 source-loss policy. Those must not be assumed in return estimates.
+
+The [four-round historical model](historical-apy-four-rounds-2026-10-03.md)
+tests these controls against 90 days of pool, oracle and interest-index inputs.
+It finds no supported parameter improvement on its held-out period. Adaptive
+harvest sizing helps the ideal-liquidity BTC diagnostic, but observed entry
+quotes remain the dominant constraint. It changes no activation settings.
