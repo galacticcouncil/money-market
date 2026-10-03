@@ -5,34 +5,92 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   FOUNDRY_PROFILE: ci
 
 jobs:
   test:
-    name: forge test
-    runs-on: ubuntu-latest
+    name: Root contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          persist-credentials: false
+
+      - name: Initialize test library
+        run: git submodule update --init --depth 1 lib/forge-std
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 16.x
-          registry-url: https://npm.pkg.github.com/
-          scope: "@aave"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.PAT_PACKAGES_REGISTRY_READ_ONLY }}
+          node-version: 22.x
+          cache: npm
 
-      # forge resolves @aave/@openzeppelin imports out of node_modules
+      # Forge only needs Solidity imports. Skip the package's publish/Hardhat
+      # lifecycle and unrelated native builds; all locked packages are public.
       - name: Install dependencies
-        run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.PAT_PACKAGES_REGISTRY_READ_ONLY }}
+        run: npm ci --ignore-scripts
 
+      # This exact revision must be present in the repository Actions allowlist.
+      # Match the toolchain used for the recorded Propeller regression artifacts.
       - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
+        with:
+          version: v1.5.1
 
       - name: Run tests
-        run: forge test -vvv
+        run: forge test --use 0.8.22 -vvv
+
+  propeller:
+    name: Propeller contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Initialize Propeller libraries
+        run: >-
+          git submodule update --init --depth 1
+          bil-vault/lib/forge-std
+          bil-vault/lib/openzeppelin-contracts
+          bil-vault/lib/openzeppelin-contracts-upgradeable
+          bil-vault/lib/solmate
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Install storage-check dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
+        with:
+          version: v1.5.1
+
+      # London matches the native deployment evidence. Separate output trees
+      # keep dynamically linked test artifacts out of the production build.
+      - name: Build production contracts and check sizes
+        working-directory: propeller-vault
+        run: >-
+          forge build --evm-version london --skip test --skip script --sizes
+          --out out-production --cache-path cache-production
+
+      - name: Run contract regression
+        working-directory: propeller-vault
+        run: forge test --evm-version london --dynamic-test-linking -vv
+
+      - name: Test and check source storage compatibility
+        run: |
+          node --test scripts/propeller/source-storage.test.mjs
+          node scripts/propeller/check-source-storage.mjs --artifact propeller-vault/out-production/SubLoop.sol/SubLoop.json

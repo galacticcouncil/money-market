@@ -1,0 +1,41 @@
+name: Propeller keeper
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  keeper:
+    name: Build and test keeper
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: propeller-vault/looper
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: propeller-vault/looper/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build keeper
+        run: npm run build
+
+      - name: Run keeper tests
+        run: npm test
