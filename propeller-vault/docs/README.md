@@ -1,11 +1,13 @@
 # Propeller Team Documentation
 
-**23 September 2026 | RC1 for review | Production activation blocked**
+**4 October 2026 | PR #62 for review | Production activation blocked**
 
 Propeller's current design uses harvest-time Main interest servicing,
 source-funded resizing and an earned PRIME execution allowance. It does not
 require sponsored HOLLAR operating capital. The candidate is on
-`feat/propeller-interest-buffer`; the branch name predates that decision.
+`prop_carry`. The [latest validation](deferred-deployment-validation-2026-10-04.md)
+covers deferred deposits, shared swap controls, oracle price bounds and keeper
+size selection. Earlier reports retain their original artifact scope.
 
 ## Start Here
 

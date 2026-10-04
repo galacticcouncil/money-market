@@ -178,6 +178,7 @@ contract PermissionlessKeeperTest is Test {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         vault.deposit(1e18, address(this));
+        vault.rebalance();
         assertGt(loop.sharesOf(address(vault)), 0, "vault holds loop shares");
 
         // simulate unsolicited PRIME sitting at the Harvester

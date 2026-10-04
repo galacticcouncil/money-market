@@ -119,9 +119,11 @@ contract MultiVaultFlowTest is Test {
         eth.mint(address(this), 1e12);
         eth.approve(address(ethVault), 1e12);
         ethVault.deposit(1e12, address(this));
+        ethVault.rebalance(); // Explicit keeper deployment before exercising a live position.
         tbtc.mint(address(this), 1e12);
         tbtc.approve(address(tbtcVault), 1e12);
         tbtcVault.deposit(1e12, address(this));
+        tbtcVault.rebalance(); // Explicit keeper deployment before exercising a live position.
     }
 
     function _deployVault(string memory n, string memory s, address coll, address aTok)
@@ -167,12 +169,14 @@ contract MultiVaultFlowTest is Test {
         vm.startPrank(ETH_USER);
         eth.approve(address(ethVault), 1e18);
         uint256 ethShares = ethVault.deposit(1e18, ETH_USER);
+        ethVault.rebalance(); // Explicit keeper deployment before exercising a live position.
         vm.stopPrank();
 
         tbtc.mint(BTC_USER, 0.1e18);
         vm.startPrank(BTC_USER);
         tbtc.approve(address(tbtcVault), 0.1e18);
         tbtcVault.deposit(0.1e18, BTC_USER);
+        tbtcVault.rebalance(); // Explicit keeper deployment before exercising a live position.
         vm.stopPrank();
 
         // loop seeded with both Main borrows: $2250 + $4800 = $7050
@@ -273,11 +277,13 @@ contract MultiVaultFlowTest is Test {
         vm.startPrank(ETH_USER);
         eth.approve(address(ethVault), 1e18);
         ethVault.deposit(1e18, ETH_USER);
+        ethVault.rebalance(); // Explicit keeper deployment before exercising a live position.
         vm.stopPrank();
         tbtc.mint(BTC_USER, 0.1e18);
         vm.startPrank(BTC_USER);
         tbtc.approve(address(tbtcVault), 0.1e18);
         tbtcVault.deposit(0.1e18, BTC_USER);
+        tbtcVault.rebalance(); // Explicit keeper deployment before exercising a live position.
         vm.stopPrank();
         for (uint256 i = 0; i < 40; i++) {
             loop.pokeBorrow();
@@ -359,6 +365,7 @@ contract MultiVaultFlowTest is Test {
         vm.startPrank(ETH_USER);
         eth.approve(address(ethVault), 1e18);
         uint256 ethShares = ethVault.deposit(1e18, ETH_USER);
+        ethVault.rebalance(); // Explicit keeper deployment before exercising a live position.
         vm.stopPrank();
         // The first entry's execution deficit must recover before new entry.
         assertTrue(tbtcVault.isUnderfunded());
@@ -368,6 +375,7 @@ contract MultiVaultFlowTest is Test {
         vm.startPrank(BTC_USER);
         tbtc.approve(address(tbtcVault), 0.1e18);
         tbtcVault.deposit(0.1e18, BTC_USER);
+        tbtcVault.rebalance(); // Explicit keeper deployment before exercising a live position.
         vm.stopPrank();
         for (uint256 i = 0; i < 40; i++) {
             loop.pokeBorrow();

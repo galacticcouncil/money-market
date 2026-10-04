@@ -14,7 +14,9 @@ contract MainDebtTest is PluggableYieldSourceTest {
     function _deposit(uint256 amount) internal returns (uint256) {
         eth.mint(address(this), amount);
         eth.approve(address(vault), amount);
-        return vault.deposit(amount, address(this));
+        uint256 shares = vault.deposit(amount, address(this));
+        vault.rebalance();
+        return shares;
     }
 
     function _cash(uint256 key) internal view returns (uint256 value) {
@@ -57,6 +59,7 @@ contract MainDebtTest is PluggableYieldSourceTest {
         PropellerMainDebt ledger = new PropellerMainDebt(address(vault));
         vault.setMainDebt(address(ledger));
         vault.deposit(1e18, address(this));
+        vault.rebalance();
         assertEq(ledger.ownedCash(), 0);
         assertEq(hollar.balanceOf(address(ledger)), 0);
         assertGt(hollarDebt.balanceOf(address(vault)), 0);

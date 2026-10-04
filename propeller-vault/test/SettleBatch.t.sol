@@ -119,6 +119,7 @@ contract SettleBatchTest is Test {
         eth.approve(address(vault), amount);
         shares = vault.deposit(amount, who);
         vm.stopPrank();
+        vault.rebalance();
     }
 
     function _requestAs(address who, uint256 shares) internal returns (uint256 requestId) {

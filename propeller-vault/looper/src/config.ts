@@ -10,6 +10,8 @@ function integer(name: string, fallback: number, min = 1, max = Number.MAX_SAFE_
   return value;
 }
 const operatorCount = integer('OPERATOR_COUNT', 1);
+const sponsoredGas = process.env.SPONSORED_GAS ?? 'true';
+if (!['true', 'false'].includes(sponsoredGas)) throw new Error('SPONSORED_GAS must be true or false');
 
 export const CONFIG = {
   RPC_URL: process.env.RPC_URL || 'https://hdx.tarn.hydration.cloud',
@@ -39,6 +41,9 @@ export const CONFIG = {
   RPC_STALE_SECONDS: integer('RPC_STALE_SECONDS', 120),
   QUOTE_TTL_SECONDS: integer('QUOTE_TTL_SECONDS', 60),
   QUOTE_DRIFT_BPS: BigInt(integer('QUOTE_DRIFT_BPS', 2, 0, 100)),
+  QUOTE_SIZE_STEPS: integer('QUOTE_SIZE_STEPS', 6, 1, 12),
+  SLICE_PRICE_TOLERANCE_BPS: BigInt(integer('SLICE_PRICE_TOLERANCE_BPS', 1, 0, 100)),
+  SPONSORED_GAS: sponsoredGas === 'true',
   HARVEST_MIN_USD8: BigInt(integer('HARVEST_MIN_USD8', 100000000)),
   HARVEST_MAX_GAS_BPS: BigInt(integer('HARVEST_MAX_GAS_BPS', 10, 1, 10000)),
   HARVEST_MAX_DELAY_SECONDS: BigInt(integer('HARVEST_MAX_DELAY_SECONDS', 86400)),

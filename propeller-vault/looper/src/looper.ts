@@ -1,7 +1,7 @@
 import {
   createPublicClient,
   createWalletClient,
-  http, fallback, encodeFunctionData, decodeAbiParameters, parseAbi,
+  http, fallback, encodeFunctionData, decodeAbiParameters, parseAbi, toHex,
   type Hex,
   type PublicClient,
   type WalletClient,
@@ -10,7 +10,7 @@ import {
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { CONFIG, ROUNDING_POLICIES } from './config.js';
-import { EXECUTION_ABI, executionQuotes, worthwhileHarvest, operatorTurn, type Fill } from './execution-policy.js';
+import { EXECUTION_ABI, executionQuotes, worthwhileHarvest, operatorTurn, efficientCandidate, type Fill } from './execution-policy.js';
 import { roundingAlert } from './rounding-policy.js';
 
 // ─── Hydration chain definition ──────────────────────────────────────────────
@@ -49,6 +49,7 @@ const VAULT_ABI = [
   view('queueUnwind', 'uint256'),
   view('paused', 'bool'),
   view('deleverTarget', 'uint256'),
+  view('reinvestAssets', 'uint256'),
   {
     name: 'unwindEligibleAt', type: 'function', stateMutability: 'view',
     inputs: [{ name: 'requestId', type: 'uint256' }], outputs: [{ name: '', type: 'uint256' }],
@@ -122,6 +123,7 @@ export class PropellerLooper {
   private pendingHash?: Hex;
 
   constructor() {
+    if (!CONFIG.EXECUTION_CONTROLLER) throw new Error('EXECUTION_CONTROLLER is required for swap execution');
     this.account = privateKeyToAccount(CONFIG.PRIVATE_KEY);
     this.subLoop = CONFIG.SUBLOOP_ADDRESS;
     this.vaults = CONFIG.VAULT_ADDRESSES;
@@ -163,6 +165,7 @@ export class PropellerLooper {
 
     // Main rebalances create repayment work even when no user has redeemed.
     const pending: Address[] = [];
+    const deployment = new Set<Address>();
     const frozen = new Set<Address>();
     let funded = true;
     let waiting = false;
@@ -197,14 +200,16 @@ export class PropellerLooper {
         }
       }
       try {
-        const [head, tail, next, delever, vaultPaused, sourcePending] = (await Promise.all([
+        const [head, tail, next, delever, vaultPaused, sourcePending, undeployed] = (await Promise.all([
           this.read(VAULT_ABI, vault, 'queueHead'),
           this.read(VAULT_ABI, vault, 'queueTail'),
           this.read(VAULT_ABI, vault, 'queueUnwind'),
           this.read(VAULT_ABI, vault, 'deleverTarget'),
           this.read(VAULT_ABI, vault, 'paused'),
           this.read(SUBLOOP_ABI, this.subLoop, 'pendingUnwindOf', [vault]),
-        ])) as [bigint, bigint, bigint, bigint, boolean, bigint];
+          this.read(VAULT_ABI, vault, 'reinvestAssets'),
+        ])) as [bigint, bigint, bigint, bigint, boolean, bigint, bigint];
+        if (undeployed > 0n) deployment.add(vault);
         if (vaultPaused || emergency) frozen.add(vault);
         waiting ||= tail > next;
         let starting = false;
@@ -250,8 +255,22 @@ export class PropellerLooper {
         }
       }
     }
+    // Pending deposits and freshly earned collateral get first use of entry
+    // liquidity, before more source leverage. Rotate vault order for progress
+    // when several vaults share a limited entry budget.
+    let rebalanced = false;
+    for (let i = 0; i < this.vaults.length; ++i) {
+      const vault = this.vaults[(i + this.cycle - 1) % this.vaults.length];
+      if ((deployment.has(vault) || harvested || this.cycle % CONFIG.SLOW_EVERY === 0)
+          && turn && !paused && !emergency && !frozen.has(vault) && !servicing) {
+        const changed = await this.poke(VAULT_ABI, vault, 'rebalance', `deploy/rebalance ${short(vault)}`);
+        rebalanced ||= changed;
+      }
+    }
     if (!paused) {
-      if (turn && hf >= target && funded && !emergency && frozen.size === 0 && !servicing && hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n) {
+      // A deployment can incur execution costs; a down-rebalance can open an
+      // unwind. Re-read all safety/backing state next cycle before adding leverage.
+      if (!rebalanced && turn && hf >= target && funded && !emergency && frozen.size === 0 && !servicing && hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n) {
         await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeBorrow', 'pokeBorrow (ramp)');
       }
       if (!safetyAttempted && !emergency && (unwind > 0n || pending.length > 0 || started)) {
@@ -268,9 +287,6 @@ export class PropellerLooper {
       for (const vault of this.vaults) {
         if (!pending.includes(vault)) {
           await this.poke(VAULT_ABI, vault, 'pokeSettle', `service Main interest ${short(vault)}`);
-        }
-        if (turn && !paused && !emergency && !frozen.has(vault) && !servicing) {
-          await this.poke(VAULT_ABI, vault, 'rebalance', `rebalance ${short(vault)}`);
         }
       }
     }
@@ -324,11 +340,11 @@ export class PropellerLooper {
     const priceAbi = parseAbi(['function getAssetPrice(address) view returns (uint256)']);
     const [primePrice, ethPrice, decimals, last] = await Promise.all([
       this.read(priceAbi, oracle, 'getAssetPrice', [prime]),
-      this.read(priceAbi, oracle, 'getAssetPrice', [CONFIG.GAS_ASSET_ADDRESS]),
+      CONFIG.SPONSORED_GAS ? Promise.resolve(0n) : this.read(priceAbi, oracle, 'getAssetPrice', [CONFIG.GAS_ASSET_ADDRESS]),
       this.read([view('decimals', 'uint8')], prime, 'decimals'),
       this.read(HARVESTER_ABI, this.harvester, 'lastHarvestAt'),
     ]) as [bigint, bigint, number, bigint];
-    if (!primePrice || !ethPrice) throw new Error('missing economic price');
+    if (!primePrice || (!CONFIG.SPONSORED_GAS && !ethPrice)) throw new Error('missing economic price');
     let interest = 0n;
     for (const vault of this.vaults) {
       const ledger = await this.read(VAULT_ABI, vault, 'mainDebt') as Address;
@@ -350,37 +366,78 @@ export class PropellerLooper {
   private async quoteAction(target: Address, data: Hex, operation: string, blockNumber: bigint, gas: bigint) {
     const options = {account: this.account, address: CONFIG.EXECUTION_CONTROLLER,
       abi: EXECUTION_ABI, blockNumber, gas} as const;
-    try {
-      return (await this.publicClient.simulateContract({...options, functionName: 'preview', args: [target, data]})).result;
-    } catch (initial) {
-      if (!executionReverted(initial)) throw initial;
-      // A large fill can fail while smaller fills still meet the same oracle
-      // floor or Main-service budget. Reduce primary trades, never price floors.
-      const getter = async (address: Address, name: string) => this.publicClient.readContract({
-        address, abi: [view(name, 'address')], functionName: name, blockNumber,
-      }) as Promise<Address>;
-      const routes: Address[][] = [];
-      if (operation === 'harvest') {
-        const prime = await getter(this.subLoop, 'prime');
-        for (const vault of this.vaults) routes.push([vault, prime, await getter(vault, 'collateral')]);
-      } else routes.push([this.subLoop, await getter(this.subLoop, 'hollar'), await getter(this.subLoop, 'primeAToken')]);
-      let caps = await Promise.all(routes.map(async route => {
-        const args = route as [Address, Address, Address];
-        const [lane, amountIn] = await Promise.all([
-          this.publicClient.readContract({...options, functionName: 'lane', args}),
-          this.publicClient.readContract({...options, functionName: 'available', args}),
-        ]);
-        return {lane, amountIn, minOut: 0n};
-      }));
-      caps = caps.filter(c => c.amountIn > 0n);
-      for (let attempt = 0; attempt < 4 && caps.length; ++attempt) {
-        caps = caps.map(c => ({...c, amountIn: c.amountIn > 1n ? c.amountIn / 2n : 1n}));
-        try {
-          return (await this.publicClient.simulateContract({...options, functionName: 'previewBounded', args: [target, data, caps]})).result;
-        } catch (error) { if (!executionReverted(error)) throw error; }
+    const boundTargets = new Set([this.subLoop, target, ...(operation === 'harvest' ? this.vaults : [])]);
+    for (const address of boundTargets) {
+      const bound = await this.publicClient.readContract({address,
+        abi: [view('executionController', 'address')], functionName: 'executionController', blockNumber}) as Address;
+      if (!CONFIG.EXECUTION_CONTROLLER || bound.toLowerCase() !== CONFIG.EXECUTION_CONTROLLER.toLowerCase()) {
+        throw new Error(`execution controller mismatch at ${address}`);
       }
-      throw initial;
     }
+    type Candidate = {result: Hex; fills: readonly Fill[]};
+    const candidates: Candidate[] = [];
+    let initial: unknown;
+    try {
+      const [result, fills] = (await this.publicClient.simulateContract({
+        ...options, functionName: 'preview', args: [target, data],
+      })).result;
+      if (!fills.length) return [result, fills] as const;
+      candidates.push({result, fills});
+    } catch (error) {
+      if (!executionReverted(error)) throw error;
+      initial = error;
+    }
+    const getter = async (address: Address, name: string) => this.publicClient.readContract({
+      address, abi: [view(name, 'address')], functionName: name, blockNumber,
+    }) as Promise<Address>;
+    const urgent = operation === 'pokeRepay' && (await this.publicClient.readContract({
+      address: this.subLoop, abi: [view('deleverDebtTarget', 'uint256')],
+      functionName: 'deleverDebtTarget', blockNumber,
+    }) as bigint) > 0n;
+    // Urgent repayment takes the first acceptable quote; it still obeys the
+    // same size and price bounds, but does not spend extra time optimizing.
+    if (urgent && candidates.length) return [candidates[0].result, candidates[0].fills] as const;
+    const routes: Address[][] = [];
+    if (operation === 'harvest') {
+      const prime = await getter(this.subLoop, 'prime');
+      for (const vault of this.vaults) routes.push([vault, prime, await getter(vault, 'collateral')]);
+    } else {
+      const hollar = await getter(this.subLoop, 'hollar'), aPrime = await getter(this.subLoop, 'primeAToken');
+      routes.push(operation === 'pokeRepay' ? [this.subLoop, aPrime, hollar] : [this.subLoop, hollar, aPrime]);
+    }
+    let caps = await Promise.all(routes.map(async route => {
+      const args = route as [Address, Address, Address];
+      const [lane, available] = await Promise.all([
+        this.publicClient.readContract({...options, functionName: 'lane', args}),
+        this.publicClient.readContract({...options, functionName: urgent ? 'availableSafety' : 'available', args}),
+      ]);
+      const [, minimum] = await this.publicClient.readContract({...options, functionName: 'limits', args: [lane]});
+      const first = candidates[0]?.fills.find(f => f.lane.toLowerCase() === lane.toLowerCase());
+      const amountIn = first && first.amountIn < available ? first.amountIn : available;
+      return {lane, amountIn, minimum, minOut: 0n};
+    }));
+    caps = caps.filter(c => c.amountIn > 0n);
+    const primary = new Set(caps.map(c => c.lane.toLowerCase()));
+    for (let attempt = 0; attempt < CONFIG.QUOTE_SIZE_STEPS && caps.length; ++attempt) {
+      // Always sample the lane minimum within the bounded RPC budget. A large
+      // TVL must not hide a good small quote beyond six successive halvings.
+      const smaller = caps.map(c => ({...c, amountIn: attempt + 1 === CONFIG.QUOTE_SIZE_STEPS
+        ? c.minimum : c.amountIn / 2n > c.minimum ? c.amountIn / 2n : c.minimum}));
+      if (smaller.every((c, i) => c.amountIn === caps[i].amountIn)) break;
+      caps = smaller;
+      try {
+        const [result, fills] = (await this.publicClient.simulateContract({...options,
+          functionName: 'previewBounded', args: [target, data, caps],
+        })).result;
+        if (fills.length) candidates.push({result, fills});
+        else if (!candidates.length && hasWork(result)) return [result, fills] as const;
+        if (urgent && candidates.length) break;
+      } catch (error) { if (!executionReverted(error)) throw error; }
+    }
+    if (!candidates.length) throw initial ?? new Error('no executable slice');
+    const chosen = efficientCandidate(candidates, primary, CONFIG.SLICE_PRICE_TOLERANCE_BPS);
+    console.log(`  compared ${candidates.length} executable sizes at block ${blockNumber}`);
+    return [chosen.result, chosen.fills] as const;
   }
 
   private async readLeverage(): Promise<number | null> {
@@ -439,8 +496,9 @@ export class PropellerLooper {
         gas: budget,
         gasPrice,
       };
-      const guarded = CONFIG.EXECUTION_CONTROLLER && ['harvest', 'pokeBorrow', 'rebalance'].includes(functionName);
+      const guarded = ['harvest', 'pokeBorrow', 'rebalance', 'pokeRepay'].includes(functionName);
       if (guarded) {
+        if (!CONFIG.EXECUTION_CONTROLLER) throw new Error('missing execution controller; swap action disabled');
         const quoted = await this.publicClient.getBlock({blockNumber: block.number - 1n});
         const data = encodeFunctionData({abi: abi as any, functionName, args});
         const [result, fills] = await this.quoteAction(address, data, functionName, quoted.number, budget) as readonly [Hex, readonly Fill[]];
@@ -468,7 +526,13 @@ export class PropellerLooper {
         return false;
       }
       const { request } = simulated;
-      const estimate = await this.publicClient.estimateContractGas(options);
+      // Send the gas ceiling explicitly: viem's estimateContractGas omits it
+      // from the RPC payload. Reserve room for our 20% submission margin.
+      const estimate = BigInt(await this.publicClient.request({method: 'eth_estimateGas', params: [{
+        from: this.account.address, to: options.address,
+        data: encodeFunctionData({abi: options.abi, functionName: options.functionName, args: options.args}),
+        gas: toHex(budget * 100n / 120n), gasPrice: toHex(gasPrice),
+      }, 'latest']}));
       const gas = (estimate * 120n + 99n) / 100n;
       if (gas > budget) {
         console.error(`[ALERT] ${label}: gas estimate ${estimate} plus 20% margin exceeds budget ${budget}`);
@@ -478,6 +542,9 @@ export class PropellerLooper {
         const amount = guarded ? decodeAbiParameters([{type: 'uint256'}], simulated.result as Hex)[0] : simulated.result as bigint;
         if (!await this.harvestWorthwhile(amount, gas * gasPrice, block.timestamp)) return false;
       }
+      // Some RPCs return used gas even for a reverted estimate. A final
+      // simulation at the actual allowance also rechecks the quote and work.
+      if (!hasWork((await this.publicClient.simulateContract({...options, gas})).result)) return false;
       const hash = await this.walletClient.writeContract({
         ...request,
         gasPrice,

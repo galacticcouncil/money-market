@@ -475,6 +475,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         eth.mint(address(this), 1e8);
         eth.approve(address(vault), 1e8);
         vault.deposit(1e8, address(this));
+        vault.rebalance();
         for (uint256 i; i < 40; ++i) loop.pokeBorrow();
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
         eth.mint(NEWCOMER, 1e8);

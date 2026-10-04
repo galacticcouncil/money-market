@@ -121,6 +121,7 @@ contract PropellerInvariantTest is Test {
         vault.deposit(1e18, address(this));
         // Ensure every fuzz sequence starts with real public funds at risk.
         handler.deposit(1e18);
+        vault.rebalance();
         // permissionless: handler calls keeper ops without any grant
 
         targetContract(address(handler));

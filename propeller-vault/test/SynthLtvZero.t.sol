@@ -64,13 +64,15 @@ contract SynthLtvZeroTest is Test {
         loop.setTranches(10_000_000e18, 10_000_000e6);
     }
 
-    function test_ltvZeroSynthRejectsDepositAtomically() public {
+    function test_ltvZeroSynthRejectsDeploymentAtomically() public {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
-        vm.expectRevert("MockPool: ltv 0");
         vault.deposit(1e18, address(this));
-        assertEq(eth.balanceOf(address(this)), 1e18);
-        assertEq(vault.totalSupply(), 0);
+        vm.expectRevert("MockPool: ltv 0");
+        vault.rebalance();
+        assertEq(aEth.balanceOf(address(vault)), 1e18);
+        assertEq(vault.totalSupply(), 1e18);
+        assertEq(vault.reinvestAssets(), 1e18);
         assertEq(hollarDebt.balanceOf(address(vault)), 0);
         assertEq(vault.syntheticSupplied(), 0);
     }
@@ -78,18 +80,20 @@ contract SynthLtvZeroTest is Test {
     function test_governanceLtvBumpPlusNextSupplyRecovers() public {
         eth.mint(address(this), 2e18);
         eth.approve(address(vault), 2e18);
-        vm.expectRevert("MockPool: ltv 0");
         vault.deposit(1e18, address(this));
+        vm.expectRevert("MockPool: ltv 0");
+        vault.rebalance();
 
         // remedy step 1: governance lists the synth with a small non-zero LTV.
         // NOT retroactive — the existing position is still un-flagged…
         pool.setLtv(address(synth), 100);
         (uint256 collBefore8,,,,,) = pool.getUserAccountData(address(vault));
-        assertEq(collBefore8, 0, "failed deposit left no position");
+        assertEq(collBefore8, 3_000e8, "collateral stays funded without debt");
 
         // remedy step 2: the NEXT synth supply (any deposit / peg top-up) hits
         // the vault's explicit setUserUseReserveAsCollateral → floor engages
-        vault.deposit(2e18, address(this));
+        vault.deposit(1e18, address(this));
+        vault.rebalance();
         (uint256 collAfter8,,,,,) = pool.getUserAccountData(address(vault));
         assertGt(collAfter8, 10_000e8, "synth now in totalCollateralBase");
 

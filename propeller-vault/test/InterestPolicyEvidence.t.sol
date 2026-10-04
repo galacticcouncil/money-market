@@ -11,6 +11,7 @@ contract InterestPolicyEvidenceTest is PluggableYieldSourceTest {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         shares = vault.deposit(1e18, address(this));
+        vault.rebalance();
     }
 
     function _growCollateral(uint256 amount) internal {

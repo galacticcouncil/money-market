@@ -314,15 +314,18 @@ contract CollateralVault is
     //                         USER FUNCTIONS
     // ══════════════════════════════════════════════════════════════════════
 
-    /// @notice ERC4626 deposit. Pulls `assets` collateral, opens/extends the
-    ///         leveraged position, mints shares to `receiver`.
+    /// @notice Capability marker: deposits mint funded shares without swaps.
+    function deferredDeployment() external pure returns (bool) { return true; }
+
+    /// @notice Supply collateral and mint funded shares. No borrowing or swaps
+    /// occur here; keepers deploy available collateral through quoted rebalances.
     function deposit(uint256 assets, address receiver) external nonReentrant whenNotPaused returns (uint256 shares) {
         if (receiver == address(0)) revert ZeroAddress();
         if (depositsPaused) revert DepositsArePaused();
         if (assets == 0) revert ZeroAmount();
         if (address(mainDebt) == address(0)) revert ZeroAddress();
         if (deleverTarget != 0) revert Underfunded();
-        uint256 debtBefore = mainDebt.beforeDeposit();
+        mainDebt.beforeDeposit();
         yieldAccounting.checkpoint(address(0), receiver);
         if (isUnderfunded()) revert Underfunded();
         // Governance funds the locked initial shares, never the first public user.
@@ -339,10 +342,8 @@ contract CollateralVault is
         if (totalSupply() == 0) _mint(DEAD_ADDRESS, DEAD_SHARES);
         _mint(receiver, shares);
 
-        (uint256 addedShares, uint256 addedSynthetic) = abi.decode(Address.functionDelegateCall(compoundLogic,
-            abi.encodeCall(CompoundLogic.deposit, (assets, debtBefore))), (uint256, uint256));
-        loopShares += addedShares;
-        syntheticSupplied += addedSynthetic;
+        Address.functionDelegateCall(compoundLogic, abi.encodeCall(CompoundLogic.deposit, (assets)));
+        reinvestAssets += assets;
         _refreshDiscount();
         if (syntheticSupplied * synthLtBps() / BPS < hollarDebtToken.balanceOf(address(this))) revert PrincipalNotFloored();
         _coverRounding(minimumAssets);
@@ -397,6 +398,9 @@ contract CollateralVault is
         Redemption storage r = redemptions[requestId];
         uint256 shares = r.shares;
         uint256 supply = totalSupply() - totalQueuedShares;
+
+        // Undeployed borrowing capacity follows the exiting funded shares too.
+        reinvestAssets -= Math.mulDiv(reinvestAssets, shares, supply);
 
         // Waiting shares earned yield and incurred debt until this start.
         // The resulting collateral promise stays fixed through settlement.

@@ -190,6 +190,7 @@ contract SubLoop is
         returns (uint256 shares)
     {
         if (hollarAmount == 0) revert ZeroAmount();
+        if (deployTranche != 0 && hollarAmount > deployTranche) revert InvalidParameters();
         // Pending withdrawals are liabilities, not backing for live shares.
         // Quote before pulling cash, which is itself included in totalEquity.
         uint256 gross18 = totalEquity() * 1e10;
@@ -372,7 +373,7 @@ contract SubLoop is
         ExecutionController control = executionController;
         uint256 before_;
         if (address(control) != address(0)) {
-            uint256 quoted = control.consume(address(hollar), address(primeAToken), amount);
+            uint256 quoted = control.consume(address(hollar), address(primeAToken), amount, fairOut);
             if (quoted > type(uint128).max) revert InvalidParameters();
             minOut = uint128(Math.max(minOut, quoted));
             before_ = primeAToken.balanceOf(address(this));
@@ -530,10 +531,22 @@ contract SubLoop is
     }
 
     function _sellForUnwind(uint256 amount, uint256 fairOut) internal {
+        ExecutionController control = executionController;
+        uint256 minimum;
+        if (address(control) != address(0)) {
+            uint256 wanted = amount;
+            (amount, minimum) = control.prepare(address(primeAToken), address(hollar), amount, fairOut,
+                deleverDebtTarget != 0);
+            if (amount == 0) return;
+            fairOut = Math.mulDiv(fairOut, amount, wanted);
+        }
         if (amount > type(uint128).max) revert InvalidParameters();
+        minimum = Math.max(minimum, _minimumOut(fairOut));
+        if (minimum > type(uint128).max) revert InvalidParameters();
         uint256 before_ = hollar.balanceOf(address(this));
-        DcaDispatch.routerSell(aPrimeAssetId, hollarAssetId, uint128(amount), _minimumOut(fairOut), _unwindRoute());
+        DcaDispatch.routerSell(aPrimeAssetId, hollarAssetId, uint128(amount), uint128(minimum), _unwindRoute());
         uint256 received = hollar.balanceOf(address(this)) - before_;
+        if (address(control) != address(0)) control.record(address(primeAToken), address(hollar), received);
         if (received >= fairOut || deleverDebtTarget != 0) return;
         uint256 cost = fairOut - received;
         uint256 target = unwindTargetEquity;
@@ -852,8 +865,9 @@ contract SubLoop is
 
     /// @notice All initial deposits, upward rebalances and loop ramps share this capacity.
     function admissionCapacity() public view override returns (uint256) {
-        return address(executionController) == address(0) ? type(uint256).max
+        uint256 capacity = address(executionController) == address(0) ? type(uint256).max
             : executionController.available(address(this), address(hollar), address(primeAToken));
+        return deployTranche == 0 ? capacity : Math.min(capacity, deployTranche);
     }
 
     function previewHarvest(uint256 shares) external view override returns (uint256) {

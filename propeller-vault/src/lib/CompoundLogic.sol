@@ -77,30 +77,17 @@ contract CompoundLogic {
         return v.yieldSource().negativeCarryBps() != 0 || backing8 < debt / 1e10;
     }
 
-    function deposit(uint256 assets, uint256 previousDebt) external returns (uint256 shares, uint256 supplied) {
+    /// @notice Supply collateral without borrowing or trading. Deployment is a
+    /// separately quoted rebalance; waiting collateral incurs no HOLLAR debt.
+    function deposit(uint256 assets) external {
         ICompoundVault v = ICompoundVault(address(this));
         IAavePool pool = v.pool();
         IERC20 collateral = v.collateral();
-        (uint256 before8,,,,,) = pool.getUserAccountData(address(this));
         ExecutionController control = v.executionController();
         address payer = msg.sender == address(control) ? control.caller() : msg.sender;
         collateral.safeTransferFrom(payer, address(this), assets);
         collateral.forceApprove(address(pool), assets);
         pool.supply(address(collateral), assets, address(this), 0);
-        (uint256 after8,,,,,) = pool.getUserAccountData(address(this));
-        uint256 amount = (after8 - before8) * (pool.getConfiguration(address(collateral)) & 0xFFFF) / 10_000 * 1e10;
-        IERC20 hollar = v.hollar();
-        pool.borrow(address(hollar), amount, 2, 0, address(this));
-        supplied = Math.ceilDiv(amount * 10_000, v.synthLtBps());
-        supplied += supplied / 200;
-        ISyntheticToken synthetic = v.synthetic();
-        synthetic.mint(address(this), supplied);
-        IERC20(address(synthetic)).forceApprove(address(pool), supplied);
-        pool.supply(address(synthetic), supplied, address(this), 0);
-        pool.setUserUseReserveAsCollateral(address(synthetic), true);
-        hollar.forceApprove(address(v.yieldSource()), amount);
-        shares = v.yieldSource().deposit(amount);
-        v.mainDebt().borrowed(previousDebt);
     }
 
     function startExit(uint256 id, address owner, uint256 shares, uint256 supply)
@@ -202,12 +189,12 @@ contract CompoundLogic {
         uint256 inputBefore = IERC20(tokenIn).balanceOf(address(this));
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
         if (IERC20(tokenIn).balanceOf(address(this)) != inputBefore + amountIn) revert PrincipalShortfall();
-        uint256 floor = controller.quoteCollateral(address(this), tokenIn, amountIn)
-            * (10_000 - v.compoundSlippageBps()) / 10_000;
+        uint256 fairOut = controller.quoteCollateral(address(this), tokenIn, amountIn);
+        uint256 floor = fairOut * (10_000 - v.compoundSlippageBps()) / 10_000;
         if (minimum < floor) minimum = floor;
         ExecutionController control = v.executionController();
         if (address(control) != address(0)) minimum = Math.max(minimum,
-            control.consume(tokenIn, address(collateral), amountIn));
+            control.consume(tokenIn, address(collateral), amountIn, fairOut));
         if (tokenIn != address(collateral)) {
             IERC20(tokenIn).forceApprove(address(swapper), amountIn);
             swapper.sell(tokenIn, address(collateral), amountIn, minimum, route);

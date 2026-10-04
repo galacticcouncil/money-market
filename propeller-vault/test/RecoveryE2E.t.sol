@@ -35,6 +35,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         token.approve(address(vault), assets);
         vault.deposit(assets, user);
         vm.stopPrank();
+        vault.rebalance();
     }
 
     function _request(CollateralVault vault, address user, uint256 shares) internal returns (uint256) {

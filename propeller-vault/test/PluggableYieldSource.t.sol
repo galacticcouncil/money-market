@@ -78,11 +78,13 @@ contract PluggableYieldSourceTest is Test {
     }
 
     function test_depositRedeemClaimThroughNonLeveragedSource() public {
-        // deposit 1 ETH — the borrowed HOLLAR routes into the generic source
+        // Fund collateral, then explicitly deploy HOLLAR into the generic source.
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         uint256 shares = vault.deposit(1e18, address(this));
         assertGt(shares, 0, "shares minted");
+        assertEq(vault.loopShares(), 0, "deposit waits for deployment");
+        vault.rebalance();
 
         assertGt(vault.loopShares(), 0, "vault holds shares in the generic source");
         assertGt(source.equityOf(address(vault)), 0, "source reports the vault's equity");

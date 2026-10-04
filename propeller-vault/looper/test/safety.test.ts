@@ -17,7 +17,7 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
     healthFactor: TARGET, targetHf: TARGET, unwindTargetEquity: 0n,
     deleverDebtTarget: 0n, paused: false, emergencyPaused: false, vaultPaused: false,
     queueHead: 0n, queueTail: 0n, queueUnwind: 0n, unwindEligibleAt: 100n,
-    deleverTarget: 0n, availableHollar: 0n, mainDebt: OTHER, ready: true, pendingUnwindOf: 0n, harvestable: false, ...overrides,
+    deleverTarget: 0n, reinvestAssets: 0n, availableHollar: 0n, mainDebt: OTHER, ready: true, pendingUnwindOf: 0n, harvestable: false, ...overrides,
   };
   keeper.read = async (_abi: unknown, _address: string, fn: string) => {
     if (state.failRead === fn) throw new Error('monitor unavailable');
@@ -104,11 +104,19 @@ test('rounding monitor read failure alerts without blocking debt service', async
 
 test('harvest precedes optional ramp and reinvests in the same maintenance cycle', async () => {
   assert.deepEqual(await cycle({ harvestable: true, healthFactor: 2n * TARGET }, false, true), [
-    `${OTHER}:harvest`, `${LOOP}:pokeBorrow`, `${VAULT}:pokeSettle`, `${VAULT}:rebalance`,
+    `${OTHER}:harvest`, `${VAULT}:rebalance`, `${VAULT}:pokeSettle`,
   ]);
 });
 test('empty harvests do not submit transactions or trigger extra maintenance', async () => {
   assert.deepEqual(await cycle({ harvestable: false }, false, true), []);
+});
+
+test('pending collateral deploys first and extra leverage waits for refreshed backing next cycle', async () => {
+  assert.deepEqual(await cycle({reinvestAssets: 1n, healthFactor: 2n * TARGET}), [
+    `${VAULT}:rebalance`,
+  ]);
+  assert.deepEqual(await cycle({reinvestAssets: 1n, queueTail: 1n, unwindEligibleAt: 101n}), []);
+  assert.deepEqual(await cycle({reinvestAssets: 1n, emergencyPaused: true}), []);
 });
 test('harvest availability never bypasses emergency or local pause', async () => {
   assert.deepEqual(await cycle({ harvestable: true, emergencyPaused: true }, false, true), []);

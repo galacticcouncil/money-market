@@ -37,7 +37,9 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
     function _deposit(uint256 amount) internal returns (uint256) {
         eth.mint(address(this), amount);
         eth.approve(address(vault), amount);
-        return vault.deposit(amount, address(this));
+        uint256 shares = vault.deposit(amount, address(this));
+        vault.rebalance();
+        return shares;
     }
 
     function test_twoQueuedHalvesReturnAllPrincipal() public {

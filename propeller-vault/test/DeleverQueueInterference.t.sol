@@ -119,6 +119,7 @@ contract DeleverQueueInterferenceTest is Test {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         vault.deposit(1e18, address(this));
+        vault.rebalance(); // Explicit keeper deployment before exercising a live position.
         for (uint256 i = 0; i < 40; i++) {
             loop.pokeBorrow();
         }
@@ -278,6 +279,7 @@ contract DeleverQueueInterferenceTest is Test {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         vault.deposit(1e18, address(this)); // NO pokeBorrow ramp
+        vault.rebalance(); // Explicit keeper deployment before exercising a live position.
 
         assertGt(vault.loopShares(), 0, "vault holds loop shares");
         assertGt(loop.totalEquity(), 0, "deposit enables PRIME collateral immediately");
@@ -302,6 +304,7 @@ contract DeleverQueueInterferenceTest is Test {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         vault.deposit(1e18, address(this));
+        vault.rebalance(); // Explicit keeper deployment before exercising a live position.
         pool.setPrice(address(prime), 0);
 
         assertEq(loop.totalEquity(), 0, "un-ramped loop reports zero equity");

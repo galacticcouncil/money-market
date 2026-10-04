@@ -147,6 +147,9 @@ async function main() {
       "function lane(address,address,address) pure returns (bytes32)",
       "function limits(bytes32) view returns (bytes32 group,uint128 minimum,uint128 maximum)",
       "function budgets(bytes32) view returns (address token,uint128 capacity,uint128 refillPerSecond,uint128 credit,uint64 updatedAt,uint64 expiresAt)",
+      "function pacing(bytes32) view returns (uint64 interval,uint64 nextAt,uint256 lastBlock)",
+      "function maxShortfallBps(bytes32) view returns (uint16)",
+      "function safetyLanes(bytes32) view returns (bool)",
       "function actions(address,bytes4) view returns (bool)",
     ], provider);
     const getters = ["executionController", "hollar", "prime", "primeAToken", "collateral", "mainDebt"]
@@ -160,13 +163,16 @@ async function main() {
     add(group, "approved quote blocks", String(await controller.maxQuoteBlocks()) === String(EXECUTION_POLICY.maxQuoteBlocks));
     const source = new ethers.Contract(SUBLOOP, getters, provider);
     const hollar = await source.hollar(), prime = await source.prime();
-    const routes = [[SUBLOOP, hollar, await source.primeAToken()]];
-    const requiredActions = [[SUBLOOP, "pokeBorrow()"], [HARVESTER, "harvest(uint256[])"]];
+    const aPrime = await source.primeAToken();
+    const routes = [[SUBLOOP, hollar, aPrime], [SUBLOOP, aPrime, hollar]];
+    const requiredActions = [[SUBLOOP, "pokeBorrow()"], [SUBLOOP, "pokeRepay()"], [HARVESTER, "harvest(uint256[])"]];
     for (const vault of VAULTS) {
       const v = new ethers.Contract(vault, getters, provider);
       const collateral = await v.collateral();
+      add(group, `${vault}: deposit defers all deployment`, await new ethers.Contract(vault,
+        ["function deferredDeployment() pure returns (bool)"], provider).deferredDeployment() === true);
       routes.push([vault, prime, collateral], [await v.mainDebt(), collateral, hollar]);
-      requiredActions.push([vault, "deposit(uint256,address)"], [vault, "rebalance()"]);
+      requiredActions.push([vault, "rebalance()"]);
     }
     const now = (await provider.getBlock("latest")).timestamp;
     const harvestGroups = new Set<string>();
@@ -176,6 +182,8 @@ async function main() {
       const limit = await controller.limits(lane);
       const budget = await controller.budgets(limit.group);
       const policy = EXECUTION_POLICY.budgets.find((p: any) => eq(p.group, limit.group));
+      const pacing = await controller.pacing(limit.group);
+      const safety = eq(consumer, SUBLOOP) && eq(input, aPrime) && eq(output, hollar);
       add(group, `${lane}: approved size`, !!approved && eq(approved.group, limit.group)
         && limit.minimum.gt(0) && limit.maximum.gte(limit.minimum)
         && limit.minimum.eq(approved.minimum) && limit.maximum.eq(approved.maximum));
@@ -183,6 +191,14 @@ async function main() {
         && budget.capacity.gte(limit.maximum) && budget.capacity.eq(policy.capacity)
         && budget.refillPerSecond.eq(policy.refillPerSecond)
         && budget.expiresAt.eq(policy.expiresAt) && budget.expiresAt.gt(now));
+      add(group, `${lane}: approved total MM-oracle shortfall`, !!approved
+        && Number.isInteger(approved.maxShortfallBps) && approved.maxShortfallBps >= 0
+        && approved.maxShortfallBps < 10000
+        && Number(await controller.maxShortfallBps(lane)) === approved.maxShortfallBps);
+      add(group, `${lane}: approved minimum spacing`, !!policy
+        && String(pacing.interval) === String(policy.minIntervalSeconds));
+      add(group, `${lane}: safety only for source repayment`, !!approved && approved.safety === safety
+        && await controller.safetyLanes(lane) === safety);
       if (eq(input, prime)) harvestGroups.add(limit.group.toLowerCase());
     }
     add(group, "harvests share the PRIME route budget", harvestGroups.size === 1);

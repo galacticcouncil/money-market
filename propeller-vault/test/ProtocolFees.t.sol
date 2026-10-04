@@ -67,6 +67,7 @@ contract ProtocolFeesTest is HarvestTest {
         eth.mint(address(this), 1e18);
         eth.approve(address(v), 1e18);
         v.deposit(1e18, address(this));
+        v.rebalance();
     }
 
     function test_initialFivePercentAndIdleCollateralExcluded() public {

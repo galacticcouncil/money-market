@@ -117,6 +117,7 @@ contract NegativeCarryViewTest is Test {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         vault.deposit(1e18, address(this));
+        vault.rebalance();
         for (uint256 i = 0; i < 40; i++) {
             loop.pokeBorrow();
         }

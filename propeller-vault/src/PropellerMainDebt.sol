@@ -423,14 +423,14 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
             uint256 slippage = IMainDebtVault(vault).compoundSlippageBps();
             sellAmount = Math.min(amount, _quote(address(hollar), address(collateral),
                 Math.mulDiv(needed, BPS, BPS - slippage, Math.Rounding.Up), Math.Rounding.Up));
-            uint256 minimum = Math.mulDiv(_quote(address(collateral), address(hollar), sellAmount,
-                Math.Rounding.Down), BPS - slippage, BPS);
+            uint256 fairOut = _quote(address(collateral), address(hollar), sellAmount, Math.Rounding.Down);
+            uint256 minimum = Math.mulDiv(fairOut, BPS - slippage, BPS);
             ISwapper swapper = IMainDebtVault(vault).swapper();
             uint256 cashBefore = hollar.balanceOf(address(this));
             collateral.forceApprove(address(swapper), sellAmount);
             ExecutionController control = IMainDebtVault(vault).executionController();
             if (address(control) != address(0)) minimum = Math.max(minimum,
-                control.consume(address(collateral), address(hollar), sellAmount));
+                control.consume(address(collateral), address(hollar), sellAmount, fairOut));
             swapper.sell(address(collateral), address(hollar), sellAmount, minimum, "");
             collateral.forceApprove(address(swapper), 0);
             uint256 received = hollar.balanceOf(address(this)) - cashBefore;

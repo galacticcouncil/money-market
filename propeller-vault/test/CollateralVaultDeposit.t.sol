@@ -122,10 +122,14 @@ contract CollateralVaultDepositTest is Test {
         loop.registerVault(address(vault));
     }
 
-    function test_depositOpensMainLegAndSynthFloorsHf() public {
+    function test_depositWaitsDebtFreeThenDeploymentSynthFloorsHf() public {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         vault.deposit(1e18, address(this));
+        assertEq(hollarDebt.balanceOf(address(vault)), 0, "waiting deposit has no HOLLAR debt");
+        assertEq(vault.loopShares(), 0, "deposit never trades");
+        assertEq(vault.reinvestAssets(), 1e18, "collateral awaits deployment");
+        vault.rebalance();
 
         // Main legs opened
         assertEq(aEth.balanceOf(address(vault)), 1e18, "ETH supplied");

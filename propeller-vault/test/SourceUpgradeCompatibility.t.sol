@@ -52,11 +52,13 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
             vm.startPrank(BTC_USER);
             tbtc.approve(address(tbtcVault), 1e17);
             tbtcVault.deposit(1e17, BTC_USER);
+            tbtcVault.rebalance();
         } else {
             eth.mint(ETH_USER, 1e18);
             vm.startPrank(ETH_USER);
             eth.approve(address(ethVault), 1e18);
             ethVault.deposit(1e18, ETH_USER);
+            ethVault.rebalance();
         }
         vm.stopPrank();
     }

@@ -14,6 +14,7 @@ contract PrincipalRoundingTest is PluggableYieldSourceTest {
         eth.approve(address(vault), assets);
         shares = vault.deposit(assets, user);
         vm.stopPrank();
+        vault.rebalance();
     }
 
     function _yield(uint256 assets) internal {

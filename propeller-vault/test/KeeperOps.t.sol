@@ -59,6 +59,7 @@ contract KeeperOpsTest is Test {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         vault.deposit(1e18, address(this));
+        vault.rebalance();
     }
 
     function _ramp() internal {

@@ -17,6 +17,7 @@ contract ExecutionControlsTest is HarvestTest {
     bytes32 constant ENTRY = keccak256("entry");
     bytes32 constant HARVEST = keccak256("harvest");
     bytes32 constant SERVICE = keccak256("service");
+    bytes32 constant UNWIND = keccak256("unwind");
     bytes32 constant QUOTED_HASH = keccak256("quoted block");
 
     function _enable() private {
@@ -26,12 +27,19 @@ contract ExecutionControlsTest is HarvestTest {
         control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18, uint64(block.timestamp + 30 days));
         control.configureBudget(HARVEST, address(prime), 150e6, 1e6, uint64(block.timestamp + 30 days));
         control.configureBudget(SERVICE, address(eth), 1e18, 1e15, uint64(block.timestamp + 30 days));
+        control.configureBudget(UNWIND, address(aPrime), 5000e6, 1e6, uint64(block.timestamp + 30 days));
         control.configureLimit(address(loop), address(hollar), address(aPrime), ENTRY, 10e18, 2500e18);
         control.configureLimit(address(vault), address(prime), address(eth), HARVEST, 1e6, 100e6);
         control.configureLimit(address(vault.mainDebt()), address(eth), address(hollar), SERVICE, 1, 1e18);
+        control.configureLimit(address(loop), address(aPrime), address(hollar), UNWIND, 1, 2500e6);
+        control.configurePrice(control.lane(address(loop), address(hollar), address(aPrime)), 10, false);
+        control.configurePrice(control.lane(address(vault), address(prime), address(eth)), 10, false);
+        control.configurePrice(control.lane(address(vault.mainDebt()), address(eth), address(hollar)), 10, false);
+        control.configurePrice(control.lane(address(loop), address(aPrime), address(hollar)), 10, true);
         control.configureAction(address(vault), CollateralVault.deposit.selector, true);
         control.configureAction(address(vault), CollateralVault.rebalance.selector, true);
         control.configureAction(address(loop), SubLoop.pokeBorrow.selector, true);
+        control.configureAction(address(loop), SubLoop.pokeRepay.selector, true);
         control.configureAction(address(harvester), Harvester.harvest.selector, true);
         loop.setExecutionController(address(control));
         vault.setExecutionController(address(control));
@@ -46,27 +54,33 @@ contract ExecutionControlsTest is HarvestTest {
     }
 
     function _execute(address target, bytes memory data) private returns (bytes memory) {
+        vm.roll(block.number + 1);
+        vm.setBlockhash(block.number - 1, QUOTED_HASH);
         ExecutionController.Quote[] memory quotes = _quotes(target, data);
-        return control.execute(target, data, 99, QUOTED_HASH, block.timestamp + 60, quotes);
+        return control.execute(target, data, block.number - 1, QUOTED_HASH, block.timestamp + 60, quotes);
     }
 
     function _deposit(uint256 amount) private {
         eth.mint(address(this), amount);
         eth.approve(address(vault), amount);
-        _execute(address(vault), abi.encodeCall(CollateralVault.deposit, (amount, address(this))));
+        vault.deposit(amount, address(this));
     }
 
-    function test_controlsInitialDepositIsBoundedAndRollsBackDebtAndShares() public {
+    function test_controlsLargeDepositWaitsAndDeploymentIsSliced() public {
         _enable();
         eth.mint(address(this), 2e18);
         eth.approve(address(vault), 2e18);
-        uint256 credit = loop.admissionCapacity();
-        vm.expectRevert(ExecutionController.TradeSize.selector);
-        control.preview(address(vault), abi.encodeCall(CollateralVault.deposit, (2e18, address(this))));
-        assertEq(vault.totalSupply(), 0);
+        vault.deposit(2e18, address(this));
+        assertEq(vault.totalAssets(), 2e18);
         assertEq(hollarDebt.balanceOf(address(vault)), 0);
-        assertEq(eth.balanceOf(address(this)), 2e18);
-        assertEq(loop.admissionCapacity(), credit);
+        assertEq(loop.admissionCapacity(), 2500e18, "deposit spends no trade budget");
+        _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        assertEq(hollarDebt.balanceOf(address(vault)), 2500e18);
+        assertGt(vault.reinvestAssets(), 0, "remainder waits debt-free");
+        assertEq(hollar.balanceOf(address(vault)), 0);
+        _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        assertEq(hollarDebt.balanceOf(address(vault)), 4500e18);
+        assertEq(vault.reinvestAssets(), 0);
     }
 
     function test_controlsPreviewCannotMoveFundsEvenWhenMined() public {
@@ -83,26 +97,27 @@ contract ExecutionControlsTest is HarvestTest {
         assertEq(vault.balanceOf(address(control)), 0);
     }
 
-    function test_controlsDirectEntryAndMissingQuotesCannotBypass() public {
+    function test_controlsDirectDepositCannotBypassDeploymentQuotes() public {
         _enable();
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
-        vm.expectRevert(ExecutionController.QuoteRequired.selector);
         vault.deposit(1e18, address(this));
-        vm.expectRevert(ExecutionController.TradeSize.selector);
-        control.execute(address(vault), abi.encodeCall(CollateralVault.deposit, (1e18, address(this))),
+        vm.expectRevert(ExecutionController.QuoteRequired.selector);
+        vault.rebalance();
+        control.execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()),
             99, QUOTED_HASH, block.timestamp + 60, new ExecutionController.Quote[](0));
-        assertEq(vault.totalSupply(), 0);
+        assertEq(hollarDebt.balanceOf(address(vault)), 0, "no quotes means no deploy capacity");
+        assertGt(vault.totalSupply(), 0, "collateral shares remain funded");
     }
 
     function test_controlsMinimumEntryAndGlobalBudgetAcrossDepositsAndRamp() public {
         _enable();
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
-        vm.expectRevert(ExecutionController.TradeSize.selector);
-        control.preview(address(vault), abi.encodeCall(CollateralVault.deposit, (1e12, address(this))));
-        _deposit(1e18); // 2250 HOLLAR
-        _deposit(1e18); // 2250 HOLLAR, same timestamp
+        _deposit(2e18);
+        _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        vm.roll(block.number + 1);
         assertEq(loop.admissionCapacity(), 500e18);
         uint256 borrowed = abi.decode(_execute(address(loop), abi.encodeCall(SubLoop.pokeBorrow, ())), (uint256));
         assertEq(borrowed, 500e18);
@@ -177,7 +192,7 @@ contract ExecutionControlsTest is HarvestTest {
         pool.setPrice(address(prime), 0.99e18);
         loop.deLever();
         uint256 debt = hollarDebt.balanceOf(address(loop));
-        loop.pokeRepay();
+        _execute(address(loop), abi.encodeCall(SubLoop.pokeRepay, ()));
         assertLt(hollarDebt.balanceOf(address(loop)), debt);
     }
 
@@ -195,18 +210,18 @@ contract ExecutionControlsTest is HarvestTest {
 
     function test_controlsQuoteDeteriorationRevertsAndRefundsBudget() public {
         _enable();
-        eth.mint(address(this), 1e18);
-        eth.approve(address(vault), 1e18);
-        bytes memory data = abi.encodeCall(CollateralVault.deposit, (1e18, address(this)));
+        _deposit(1e18);
+        uint256 shares = vault.totalSupply();
+        bytes memory data = abi.encodeCall(CollateralVault.rebalance, ());
         ExecutionController.Quote[] memory q = _quotes(address(vault), data);
-        MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(3); // worse than the fresh 2bp quote
+        MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(3);
         vm.expectRevert(DcaDispatch.DispatchFailed.selector);
         control.execute(address(vault), data, 99, QUOTED_HASH, block.timestamp + 60, q);
         assertEq(loop.admissionCapacity(), 2500e18);
         assertEq(hollarDebt.balanceOf(address(vault)), 0);
-        assertEq(vault.totalSupply(), 0);
-        MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(101); // forged quote cannot relax 1% oracle floor
-        q[0].minOut = 1;
+        assertEq(vault.totalSupply(), shares, "waiting collateral remains funded");
+        MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(11);
+        q[0].minOut = 1; // cannot relax the independent 10bp MM-oracle floor
         vm.expectRevert(DcaDispatch.DispatchFailed.selector);
         control.execute(address(vault), data, 99, QUOTED_HASH, block.timestamp + 60, q);
     }
@@ -236,17 +251,125 @@ contract ExecutionControlsTest is HarvestTest {
         loop.registerVault(address(second));
         _enable();
         second.setExecutionController(address(control));
-        control.configureAction(address(second), CollateralVault.deposit.selector, true);
+        control.configureAction(address(second), CollateralVault.rebalance.selector, true);
         _deposit(1e18);
-        eth.mint(address(this), 1e18);
-        eth.approve(address(second), 1e18);
-        _execute(address(second), abi.encodeCall(CollateralVault.deposit, (1e18, address(this))));
-        assertEq(loop.admissionCapacity(), 500e18);
-        eth.mint(address(this), 1e18);
-        eth.approve(address(second), 1e18);
-        vm.expectRevert(ExecutionController.TradeSize.selector);
-        control.preview(address(second), abi.encodeCall(CollateralVault.deposit, (1e18, address(this))));
-        assertEq(hollarDebt.balanceOf(address(second)), 2250e18);
+        eth.mint(address(this), 2e18);
+        eth.approve(address(second), 2e18);
+        second.deposit(2e18, address(this));
+        _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        _execute(address(second), abi.encodeCall(CollateralVault.rebalance, ()));
+        vm.roll(block.number + 1);
+        assertEq(loop.admissionCapacity(), 250e18);
+        _execute(address(second), abi.encodeCall(CollateralVault.rebalance, ()));
+        assertEq(hollarDebt.balanceOf(address(second)), 2750e18);
+        assertEq(loop.admissionCapacity(), 0);
+        assertGt(second.reinvestAssets(), 0);
+    }
+
+    function test_controlsCooldownAndSameBlockPreventBurstRefills() public {
+        _enable();
+        _deposit(2e18);
+        control.configurePacing(ENTRY, 60);
+        _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        assertEq(loop.admissionCapacity(), 0);
+        control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18, uint64(block.timestamp + 60 days));
+        assertEq(loop.admissionCapacity(), 0, "refresh does not reset the cooldown");
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 59);
+        assertEq(loop.admissionCapacity(), 0);
+        vm.warp(block.timestamp + 1);
+        assertGt(loop.admissionCapacity(), 0);
+        _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        assertEq(hollarDebt.balanceOf(address(vault)), 4500e18);
+    }
+
+    function test_controlsStrictOracleFloorRejectsFeesAndAcceptsFairPrice() public {
+        _enable();
+        _deposit(1e18);
+        control.configurePrice(control.lane(address(loop), address(hollar), address(aPrime)), 0, false);
+        MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(1);
+        vm.expectRevert(DcaDispatch.DispatchFailed.selector);
+        control.preview(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        assertEq(hollarDebt.balanceOf(address(vault)), 0);
+        MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(0);
+        _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        assertEq(hollarDebt.balanceOf(address(vault)), 2250e18);
+    }
+
+    function test_controlsExitBeforeDeploymentNeedsNoSwapsOrDebt() public {
+        _enable();
+        _deposit(1e18);
+        uint256 shares = vault.balanceOf(address(this));
+        uint256 claim = vault.convertToAssets(shares);
+        uint256 id = vault.requestRedeem(shares, address(this));
+        vm.warp(block.timestamp + vault.withdrawalDelay());
+        vault.startUnwinds(1);
+        assertEq(vault.loopShares(), 0);
+        assertEq(hollarDebt.balanceOf(address(vault)), 0);
+        vault.pokeSettle();
+        assertEq(vault.claim(id, address(this)), claim);
+        assertEq(hollarDebt.balanceOf(address(vault)), 0);
+        assertLe(vault.reinvestAssets(), vault.totalAssets());
+    }
+
+    function test_controlsPartialDeploymentExitRemovesOnlyItsPendingCredit() public {
+        _enable();
+        _deposit(4e18);
+        _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        uint256 credit = vault.reinvestAssets();
+        uint256 shares = vault.balanceOf(address(this)) / 2;
+        uint256 expected = credit - credit * shares / vault.totalSupply();
+        uint256 id = vault.requestRedeem(shares, address(this));
+        assertEq(vault.rebalance(), 0, "waiting exits stop new borrowing");
+        vm.warp(block.timestamp + vault.withdrawalDelay());
+        vault.startUnwinds(1);
+        assertEq(vault.reinvestAssets(), expected, "only exiting credit is removed");
+        for (uint256 i; i < 5 && loop.unwindTargetEquity() != 0; ++i)
+            _execute(address(loop), abi.encodeCall(SubLoop.pokeRepay, ()));
+        vault.pokeSettle();
+        (,,uint256 promised,,,,,,) = vault.redemptions(id);
+        assertEq(vault.claim(id, address(this)), promised);
+        assertEq(vault.reinvestAssets(), expected, "settlement does not recreate credit");
+        // The source reports equity at USD8 while Main debt retains wei. Keep
+        // that pre-existing rounding guard: deployment must wait for earned
+        // source income to cover the fractional deficit, never spend user crypto.
+        vm.expectRevert(CollateralVault.Underfunded.selector);
+        control.preview(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        aPrime.mint(address(loop), 1);
+        _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
+        assertLe(hollarDebt.balanceOf(address(vault)), vault.totalAssets() * 2250);
+        assertEq(hollar.balanceOf(address(vault)), 0, "only an executable slice is borrowed");
+    }
+
+    function test_controlsUnwindAlsoRequiresQuoteAndTightOracleFloor() public {
+        uint256 shares = _depositAndRamp();
+        _enable();
+        vault.requestRedeem(shares / 2, address(this));
+        vm.warp(block.timestamp + vault.withdrawalDelay());
+        vault.startUnwinds(1);
+        uint256 before_ = aPrime.balanceOf(address(loop));
+        assertEq(loop.pokeRepay(), 0, "direct call cannot sell without a quote");
+        assertEq(aPrime.balanceOf(address(loop)), before_);
+        MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(11);
+        vm.expectRevert(DcaDispatch.DispatchFailed.selector);
+        control.preview(address(loop), abi.encodeCall(SubLoop.pokeRepay, ()));
+        assertEq(aPrime.balanceOf(address(loop)), before_, "bad fill rolls back the whole slice");
+        MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(0);
+        _execute(address(loop), abi.encodeCall(SubLoop.pokeRepay, ()));
+        assertLt(aPrime.balanceOf(address(loop)), before_);
+    }
+
+    function test_controlsHarvestCannotUseTheOlderWiderConsumerFloor() public {
+        _depositAndRamp();
+        aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 10);
+        _enable();
+        uint256 shares = vault.loopShares();
+        uint256 assets = vault.totalAssets();
+        swapper.setHaircut(11);
+        vm.expectRevert("MockSwapper: minOut");
+        control.preview(address(harvester), abi.encodeCall(Harvester.harvest, (new uint256[](1))));
+        assertEq(vault.loopShares(), shares, "rejected swap cannot burn yield ownership");
+        assertEq(vault.totalAssets(), assets);
     }
 
     function test_controlsClearingRecoveredSafetyTargetIsUsefulWork() public {

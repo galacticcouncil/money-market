@@ -93,9 +93,8 @@ contract MainnetTuningTest is HarvestTest {
         eth.mint(address(this), principal);
         eth.approve(address(vault), principal);
         vault.deposit(principal, address(this));
-        assertApproxEqAbs(hollarDebt.balanceOf(address(vault)),
-            c.tvl * 1e18 * (c.asset == 0 ? 7500 : 8000) / 10_000, 1e11,
-            "initial debt matches one collateral position at the live LTV");
+        assertEq(hollarDebt.balanceOf(address(vault)), 0, "deposit creates no debt before execution");
+        assertEq(vault.reinvestAssets(), principal, "the modeled keeper must deploy pending collateral");
         PropellerMainDebt main = PropellerMainDebt(address(vault.mainDebt()));
         Metrics memory m;
         m.minimumHf = type(uint256).max;

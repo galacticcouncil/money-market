@@ -56,6 +56,7 @@ contract Handler is Test {
     // ── keeper: ramp the loop (each poke borrows + levers a tranche) ─────────
     function ramp(uint256 n) external {
         n = bound(n, 1, 8);
+        vault.rebalance();
         for (uint256 i = 0; i < n; i++) {
             loop.pokeBorrow();
         }

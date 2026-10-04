@@ -36,7 +36,8 @@ CollateralVault -> Aave Main position
 
 | Component                                                | Responsibility                                                                                            |
 | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| [CollateralVault](src/CollateralVault.sol)               | One vault per collateral asset; shares, Main position, delayed withdrawals and collateral claims.         |
+| [CollateralVault](src/CollateralVault.sol)               | One vault per collateral asset; funded shares, gradual Main deployment, delayed withdrawals and collateral claims. |
+| [ExecutionController](src/ExecutionController.sol)       | Shared swap sizes, pacing, volume budgets, fresh quotes and total MM-oracle cost limits. |
 | [SyntheticToken](src/SyntheticToken.sol)                 | Non-cash collateral used to maintain the Main health-factor floor. It cannot fund repayments.             |
 | [SubLoop](src/SubLoop.sol)                               | Shared PRIME exposure, HOLLAR borrowing, incremental deployment/unwinding and retained execution yield.   |
 | [Harvester](src/Harvester.sol)                           | Splits harvestable PRIME among participating vaults; each vault compounds its allocation.                 |
@@ -53,11 +54,13 @@ but does not replace missing HOLLAR.
 
 ## User Lifecycle
 
-1. **Deposit.** Supply collateral to Main, borrow HOLLAR within the live reserve
-   LTV, supply synthetic backing and acquire shares in the PRIME source.
+1. **Deposit.** Supply collateral to Main and receive funded vault shares.
+   Deposits do not borrow HOLLAR or swap. Keeper rebalances deploy pooled
+   collateral in quoted slices, borrowing only the immediately executable amount
+   within the live reserve LTV and supplying synthetic backing atomically.
    Governance funds the locked bootstrap shares and rounding reserve first.
-   Deposits reject insufficient backing; admission-size controls remain an
-   activation gate.
+   Deposits reject insufficient backing. Waiting collateral creates no new debt;
+   production trade sizes, pacing and price bounds remain activation settings.
 2. **Earn.** Source surplus first retains an earned PRIME allowance for execution
    costs. A harvest swaps the remaining allocation into each vault's collateral,
    charges its fee, services Main interest and compounds the remainder.
@@ -66,7 +69,7 @@ but does not replace missing HOLLAR.
    so the pull and distribution are atomic. [Separate yield ownership](docs/yield-ownership.md)
    keeps prior earnings with their owners. Funded rewards compound while unclaimed;
    `claimYield` adds their backed vault shares to the owner's wallet.
-3. **Rebalance.** Newly earned collateral permits additional Main borrowing
+3. **Rebalance.** Pending deposits and newly earned collateral permit Main borrowing
    without waiting for the price-movement band. Collateral appreciation can
    also permit more borrowing.
    Falling collateral value triggers a PRIME-loop unwind whose net HOLLAR
@@ -108,6 +111,9 @@ and the fee/interest/compounding order.
 
 ## Verification and Limits
 
+- The [4 October deferred-deployment report](docs/deferred-deployment-validation-2026-10-04.md)
+  records 367 passing contract tests, 48 keeper tests, current artifact sizes,
+  native deposit/withdrawal receipts and the remaining execution/activation gates.
 - The [#62 implementation record](docs/pr62-completion-2026-10-02.md) covers
   separate yield ownership, claimable earnings and prompt reinvestment. Use its
   final regression and artifact sizes for the current ownership revision.
