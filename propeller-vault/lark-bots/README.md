@@ -25,6 +25,11 @@ correction when inventory runs out. A profitable trade can be unavailable at
 the fair price because pools charge fees. The bot never forces such a trade to
 make a keeper appear productive.
 
+Monitor `inventory-refill-needed` as well as Docker health. Health confirms that
+the bot can quote all routes; a funded quote reserve does not mean there is
+enough spendable inventory to correct every profitable deviation. Refill only
+the isolated public test account, and keep those subsidies out of APY results.
+
 Required environment:
 
 | Variable | Meaning |

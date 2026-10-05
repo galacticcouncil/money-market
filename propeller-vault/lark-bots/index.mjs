@@ -102,7 +102,7 @@ async function markets(){
  const evm='0x'+Buffer.from(signer.publicKey.slice(0,20)).toString('hex');
  assert.ok((await api.query.evmAccounts.accountExtension(evm)).isSome,'arb substrate/EVM binding required');
  const balances={};for(const id of [34,43,222,1000765])balances[id]=await pub.readContract({address:addresses[id],abi,functionName:'balanceOf',args:[evm],blockNumber:block.number});
- const fills=[],unavailable=[];
+ const fills=[],unavailable=[],inventoryBlocked=[];
  for(const [left,right]of [[43,222],[34,222],[222,1000765],[34,43],[43,1000765]])for(const [input,output]of [[left,right],[right,left]]){
   const stored=(await at.query.router.routes({assetIn:Math.min(input,output),assetOut:Math.max(input,output)})).toJSON();
   const route=orientRoute(stored??[],input,output);
@@ -115,13 +115,17 @@ async function markets(){
     const out=await quote(at,input,output,amount,route);quotes++;
     const row=profitableQuote({amount,out,fair});
     log('quote',{block:block.number,input,output,usd,amount,out,fair,shortfallBps:(fair-out)*10000n/fair});
-    if(row&&retainsQuoteInventory(balances[input],amount,prices[input],decimals[input]))fills.push({...row,input,output,route,usd,profitUsd8:(out-fair)*prices[output]/10n**BigInt(decimals[output])});
+    if(row){
+     if(retainsQuoteInventory(balances[input],amount,prices[input],decimals[input]))fills.push({...row,input,output,route,usd,profitUsd8:(out-fair)*prices[output]/10n**BigInt(decimals[output])});
+     else inventoryBlocked.push({input,output,usd,balance:balances[input]});
+    }
    }catch(e){log('quote-rejected',{input,output,usd,error:e.message.slice(0,180)});}
   }
   if(!quotes){unavailable.push([input,output]);log('route-unavailable',{input,output,balance:balances[input]});}
  }
  fills.sort((a,b)=>a.profitUsd8>b.profitUsd8?-1:a.profitUsd8<b.profitUsd8?1:0);
- if(!fills.length){log('no-profitable-arbitrage',{unavailable});return unavailable.length===0;}
+ if(inventoryBlocked.length)log('inventory-refill-needed',{routes:inventoryBlocked});
+ if(!fills.length){log('no-executable-arbitrage',{unavailable,inventoryBlocked});return unavailable.length===0;}
  const best=fills[0];log('selected',{...best,route:undefined});if(!live)return unavailable.length===0;
  const latest=await identity();assert.ok(latest.number-block.number<=5n&&latest.timestamp-block.timestamp<=60n,'quote expired; re-evaluate next cycle');
  const current=await api.at(latest.hash);
