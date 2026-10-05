@@ -1,5 +1,6 @@
 import { BILWatchdog } from './watchdog.js';
 import { CONFIG } from './config.js';
+import { serve } from './server.js';
 
 async function main() {
   if (!CONFIG.VAULT_ADDRESS) throw new Error('VAULT_ADDRESS required');
@@ -11,6 +12,7 @@ async function main() {
   if (!CONFIG.ALERT_WEBHOOK) console.warn('ALERT_WEBHOOK not set — alerts go to stdout only');
 
   const watchdog = new BILWatchdog();
+  if (CONFIG.PORT) serve(watchdog, CONFIG.PORT, CONFIG.POLL_INTERVAL_MS);
 
   // serialize cycles so a slow RPC never overlaps two scans
   const loop = async () => {

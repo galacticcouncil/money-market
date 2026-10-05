@@ -29,11 +29,28 @@ const VAULT_ABI = parseAbi([
   'function paused() view returns (bool)',
   'function hasRole(bytes32, address) view returns (bool)',
   'function positionPool(uint256) view returns (address)',
+  'function asset() view returns (address)',
+  'function activeDepositPool() view returns (address)',
+  'function totalAssets() view returns (uint256)',
+  'function totalSupply() view returns (uint256)',
+  'function exchangeRate() view returns (uint256)',
+  'function idleHollar() view returns (uint256)',
+  'function totalQueuedBil() view returns (uint256)',
+  'function totalSettledBil() view returns (uint256)',
+  'function totalReservedHollar() view returns (uint256)',
 ]);
 
 const DECENTRAL_ABI = parseAbi([
   'function getYieldWithdrawalRequest(uint256) view returns (uint256 amount, uint256 requestTimestamp, bool exists, bool approved)',
   'function getPrincipalWithdrawalRequest(uint256) view returns (uint256 amount, uint256 requestTimestamp, uint256 availableTimestamp, bool exists, bool approved)',
+]);
+
+const MARKET_ABI = parseAbi([
+  'function getReserveData(address) view returns ((uint256,uint128,uint128,uint128,uint128,uint128,uint40,uint16,address,address,address,address,uint128,uint128,uint128))',
+  'function getFacilitatorBucket(address) view returns (uint256, uint256)',
+  'function balanceOf(address) view returns (uint256)',
+  'function totalSupply() view returns (uint256)',
+  'function getGhoTreasury() view returns (address)',
 ]);
 
 const CLAIM_OPERATOR_ROLE = keccak256(toHex('CLAIM_OPERATOR_ROLE'));
@@ -42,10 +59,15 @@ const YIELD_REQUESTED = 1;
 const PRINCIPAL_REQUESTED = 3;
 const REDEEMED = 4;
 const BATCH = 20;
+const RAY = 1e27;
+const UPCOMING = 10;
 
 type Level = 'warn' | 'error';
 type Issue = { level: Level; text: string };
-type Tracked = Issue & { lastAlert: number };
+type Tracked = Issue & { firstSeen: number; lastAlert: number };
+type Decentral = { waiting: string | null; requestedAt: number | null; amount: bigint };
+
+export type Status = ReturnType<BILWatchdog['buildStatus']>;
 
 export class BILWatchdog {
   private client: PublicClient;
@@ -57,6 +79,9 @@ export class BILWatchdog {
   private open = new Map<string, Tracked>();
   private rpcFailures = 0;
   private rpcAlerted = false;
+  private lastDigest = 0;
+  private snapshot: Awaited<ReturnType<BILWatchdog['scan']>>['snapshot'] | null = null;
+  private lastError: string | null = null;
 
   constructor() {
     this.client = createPublicClient({ chain: hydration, transport: http(CONFIG.RPC_URL, { timeout: 20_000 }) });
@@ -65,14 +90,16 @@ export class BILWatchdog {
   async runCycle(): Promise<void> {
     let issues: Map<string, Issue>;
     let now: number;
+    let snapshot: NonNullable<typeof this.snapshot>;
     try {
-      ({ issues, now } = await this.scan());
+      ({ issues, now, snapshot } = await this.scan());
     } catch (err) {
       this.rpcFailures++;
+      this.lastError = String(err).slice(0, 300);
       console.error(`Scan failed (${this.rpcFailures} in a row):`, err);
       if (this.rpcFailures >= CONFIG.RPC_FAILURES_BEFORE_ALERT && !this.rpcAlerted) {
         this.rpcAlerted = true;
-        await this.post('error', 'BIL Watchdog — blind', `Scan failed ${this.rpcFailures}× in a row, so the vault is unwatched.\n\`${String(err).slice(0, 300)}\``);
+        await this.post('error', 'BIL Watchdog — blind', `Scan failed ${this.rpcFailures}× in a row, so the vault is unwatched.\n\`${this.lastError}\``);
       }
       return;
     }
@@ -81,15 +108,17 @@ export class BILWatchdog {
     }
     this.rpcFailures = 0;
     this.rpcAlerted = false;
+    this.lastError = null;
+    this.snapshot = snapshot;
 
     const fire: Issue[] = [];
     for (const [key, issue] of issues) {
       const prev = this.open.get(key);
       if (!prev || now - prev.lastAlert >= CONFIG.REALERT_SECONDS) {
         fire.push(issue);
-        this.open.set(key, { ...issue, lastAlert: now });
+        this.open.set(key, { ...issue, firstSeen: prev?.firstSeen ?? now, lastAlert: now });
       } else {
-        this.open.set(key, { ...issue, lastAlert: prev.lastAlert });
+        this.open.set(key, { ...issue, firstSeen: prev.firstSeen, lastAlert: prev.lastAlert });
       }
     }
     const resolved: string[] = [];
@@ -108,9 +137,92 @@ export class BILWatchdog {
     if (resolved.length) {
       await this.post('ok', `BIL Watchdog — ${resolved.length} resolved`, resolved.map((t) => `• ~~${t}~~`).join('\n'));
     }
+
+    // decentral approvals: one summary per digest window, never per position
+    const d = snapshot.decentral;
+    if (d.waitingCount > 0 && now - this.lastDigest >= CONFIG.DIGEST_SECONDS) {
+      this.lastDigest = now;
+      const overdue = d.overdueCount ? `, ${d.overdueCount} past the ${dur(CONFIG.APPROVAL_SLA_SECONDS)} sla` : '';
+      await this.post(
+        d.overdueCount ? 'warn' : 'info',
+        'BIL — waiting on Decentral',
+        `${fmt(d.waitingPrincipal)} HOLLAR principal (+ ${fmt(d.waitingYield)} yield) across ${d.waitingCount} position(s) waiting for Decentral approval; oldest ${dur(d.oldestWait)}${overdue}.\n` +
+          `Decentral pool holds ${fmt(d.poolHollar)} HOLLAR. Nothing to do on our side.`,
+      );
+    }
   }
 
-  private async scan(): Promise<{ issues: Map<string, Issue>; now: number }> {
+  status() {
+    return this.buildStatus();
+  }
+
+  private buildStatus() {
+    const s = this.snapshot;
+    const n = (v: bigint) => Number(formatEther(v));
+    return {
+      ok: s !== null && this.lastError === null,
+      lastError: this.lastError,
+      updatedAt: s ? new Date(s.now * 1000).toISOString() : null,
+      block: s ? Number(s.block) : null,
+      vault: s && {
+        address: this.vault,
+        paused: s.vault.paused,
+        totalAssets: n(s.vault.totalAssets),
+        totalSupply: n(s.vault.totalSupply),
+        exchangeRate: n(s.vault.exchangeRate),
+        idleHollar: n(s.vault.idle),
+        reservedHollar: n(s.vault.reserved),
+        unsettledBil: n(s.vault.queued - s.vault.settled),
+        settledUnclaimedBil: n(s.vault.settled),
+        positionCount: Number(s.vault.posCount),
+        positionHead: Number(s.vault.posHead),
+        openPositions: Number(s.vault.posCount - s.vault.posHead),
+      },
+      keeper: s?.keeper && { address: s.keeper.address, weth: n(s.keeper.weth), claimRole: s.keeper.claimRole, lowGas: s.keeper.weth < CONFIG.MIN_KEEPER_WETH },
+      decentral: s && {
+        pool: s.decentral.pool,
+        poolHollar: n(s.decentral.poolHollar),
+        waitingCount: s.decentral.waitingCount,
+        waitingPrincipal: n(s.decentral.waitingPrincipal),
+        waitingYield: n(s.decentral.waitingYield),
+        oldestWaitSeconds: s.decentral.oldestWait,
+        overdueCount: s.decentral.overdueCount,
+        slaSeconds: CONFIG.APPROVAL_SLA_SECONDS,
+        lastDigestAt: this.lastDigest ? new Date(this.lastDigest * 1000).toISOString() : null,
+      },
+      market: s?.market && {
+        pool: CONFIG.BIL_POOL,
+        debt: n(s.market.debt),
+        minted: n(s.market.minted),
+        cap: n(s.market.cap),
+        accruedUnpaid: n(s.market.debt > s.market.minted ? s.market.debt - s.market.minted : 0n),
+        collectedUndistributed: n(s.market.collected),
+        treasury: s.market.treasury,
+        borrowApr: s.market.apr,
+        borrowApy: Math.exp(s.market.apr) - 1,
+        yearlyAtCurrent: n(s.market.debt) * (Math.exp(s.market.apr) - 1),
+        yearlyAtCap: n(s.market.cap) * (Math.exp(s.market.apr) - 1),
+      },
+      matured: (s?.matured ?? []).map((p) => ({
+        index: Number(p.index),
+        tokenId: Number(p.tokenId),
+        principal: n(p.principal),
+        maturity: new Date(p.maturity * 1000).toISOString(),
+        state: STATE_NAMES[p.state] ?? String(p.state),
+        waitingOn: p.waiting,
+        waitingSince: p.requestedAt ? new Date(p.requestedAt * 1000).toISOString() : null,
+      })),
+      upcoming: (s?.upcoming ?? []).map((p) => ({
+        index: Number(p.index),
+        tokenId: Number(p.tokenId),
+        principal: n(p.principal),
+        maturity: new Date(p.maturity * 1000).toISOString(),
+      })),
+      issues: [...this.open.entries()].map(([key, t]) => ({ key, level: t.level, text: t.text, since: new Date(t.firstSeen * 1000).toISOString() })),
+    };
+  }
+
+  private async scan() {
     const issues = new Map<string, Issue>();
     const block = await this.client.getBlock();
     const now = Number(block.timestamp);
@@ -118,22 +230,37 @@ export class BILWatchdog {
     const read = <T>(functionName: string, args: readonly unknown[] = []) =>
       this.client.readContract({ address: this.vault, abi: VAULT_ABI, functionName: functionName as any, args: args as any, blockNumber }) as Promise<T>;
 
-    const [head, tail, posHead, posCount, paused] = await Promise.all([
-      read<bigint>('getQueueHead'),
-      read<bigint>('getRedemptionQueueLength'),
-      read<bigint>('getPositionHead'),
-      read<bigint>('getPositionCount'),
-      read<boolean>('paused'),
-    ]);
+    const [head, tail, posHead, posCount, paused, totalAssets, totalSupply, exchangeRate, idle, queued, settledBil, reserved, hollar, activePool] =
+      await Promise.all([
+        read<bigint>('getQueueHead'),
+        read<bigint>('getRedemptionQueueLength'),
+        read<bigint>('getPositionHead'),
+        read<bigint>('getPositionCount'),
+        read<boolean>('paused'),
+        read<bigint>('totalAssets'),
+        read<bigint>('totalSupply'),
+        read<bigint>('exchangeRate'),
+        read<bigint>('idleHollar'),
+        read<bigint>('totalQueuedBil'),
+        read<bigint>('totalSettledBil'),
+        read<bigint>('totalReservedHollar'),
+        read<Address>('asset'),
+        read<Address>('activeDepositPool'),
+      ]);
+    const erc = <T>(address: Address, functionName: string, args: readonly unknown[] = []) =>
+      this.client.readContract({ address, abi: MARKET_ABI, functionName: functionName as any, args: args as any, blockNumber }) as Promise<T>;
+    const poolHollar = await erc<bigint>(hollar, 'balanceOf', [activePool]);
 
     let keeperNote = '';
     let claimRole = false;
+    let keeper: { address: Address; weth: bigint; claimRole: boolean } | null = null;
     if (CONFIG.KEEPER_ADDRESS) {
       const [hasRole, bal] = await Promise.all([
         read<boolean>('hasRole', [CLAIM_OPERATOR_ROLE, CONFIG.KEEPER_ADDRESS]),
         this.client.getBalance({ address: CONFIG.KEEPER_ADDRESS, blockNumber }),
       ]);
       claimRole = hasRole;
+      keeper = { address: CONFIG.KEEPER_ADDRESS, weth: bal, claimRole: hasRole };
       keeperNote = ` (keeper gas: ${Number(formatEther(bal)).toFixed(4)} WETH)`;
       if (bal < CONFIG.MIN_KEEPER_WETH) {
         issues.set('keeper:gas', { level: 'warn', text: `Keeper ${CONFIG.KEEPER_ADDRESS} low on gas: ${formatEther(bal)} WETH` });
@@ -180,25 +307,33 @@ export class BILWatchdog {
     // matured positions: who is holding them up, the keeper or Decentral?
     const positions = await this.batch(posHead, posCount, (i) => read<[bigint, bigint, bigint, bigint, bigint, number]>('getPosition', [i]));
     const ready = new Set<bigint>();
+    const matured: { index: bigint; tokenId: bigint; principal: bigint; maturity: number; state: number; waiting: string | null; requestedAt: number | null }[] = [];
+    const upcoming: { index: bigint; tokenId: bigint; principal: bigint; maturity: number }[] = [];
+    const dec = { waitingCount: 0, waitingPrincipal: 0n, waitingYield: 0n, oldestWait: 0, overdueCount: 0 };
     for (const [i, [tokenId, principal, , , maturity, state]] of positions) {
       if (state === REDEEMED) continue;
       const over = now - Number(maturity);
-      if (over < 0) continue;
+      if (over < 0) {
+        upcoming.push({ index: i, tokenId, principal, maturity: Number(maturity) });
+        continue;
+      }
       const desc = `position ${i} (token ${tokenId}, ${fmt(principal)} HOLLAR) in ${STATE_NAMES[state] ?? state}, ${dur(over)} past maturity`;
 
-      let waiting: string | null = null;
+      let d: Decentral = { waiting: null, requestedAt: null, amount: 0n };
       if (state === 0) {
         if (!paused && over >= CONFIG.MATURED_GRACE_SECONDS) {
           issues.set(`pos:${i}`, { level: 'warn', text: `Matured but not advanced: ${desc}${keeperNote}` });
         }
       } else {
-        const d = await this.decentralStatus(i, tokenId, state, now, blockNumber);
-        waiting = d.waiting;
-        if (d.waiting && d.requestedAt !== null && now - d.requestedAt >= CONFIG.APPROVAL_SLA_SECONDS) {
-          issues.set(`approval:${i}`, {
-            level: 'warn',
-            text: `Decentral slow: ${desc}, ${d.waiting} for ${dur(now - d.requestedAt)} (pool approver must act; not a keeper fault)`,
-          });
+        d = await this.decentralStatus(i, tokenId, state, now, blockNumber);
+        if (d.waiting && d.requestedAt !== null) {
+          // approval wait: decentral's job, rolled into the digest
+          const age = now - d.requestedAt;
+          dec.waitingCount++;
+          dec.waitingPrincipal += principal;
+          if (state === YIELD_REQUESTED) dec.waitingYield += d.amount;
+          dec.oldestWait = Math.max(dec.oldestWait, age);
+          if (age >= CONFIG.APPROVAL_SLA_SECONDS) dec.overdueCount++;
         }
         if (!d.waiting) {
           ready.add(i);
@@ -212,34 +347,58 @@ export class BILWatchdog {
           }
         }
       }
-      if (over >= CONFIG.STUCK_THRESHOLD_SECONDS) {
-        issues.set(`pos:${i}`, { level: 'error', text: `Stuck ${desc}${waiting ? ` (${waiting})` : ''}` });
+      matured.push({ index: i, tokenId, principal, maturity: Number(maturity), state, waiting: d.waiting, requestedAt: d.requestedAt });
+      if (over >= CONFIG.STUCK_THRESHOLD_SECONDS && d.requestedAt === null) {
+        issues.set(`pos:${i}`, { level: 'error', text: `Stuck ${desc}${d.waiting ? ` (${d.waiting})` : ''}` });
       }
     }
     for (const i of this.readySince.keys()) if (!ready.has(i)) this.readySince.delete(i);
+    upcoming.sort((a, b) => a.maturity - b.maturity);
 
-    return { issues, now };
+    // money market: hollar borrowed against BIL; a failure here must not blind the vault checks
+    let market: { debt: bigint; minted: bigint; cap: bigint; collected: bigint; treasury: Address; apr: number } | null = null;
+    try {
+      const rd = (await erc<readonly unknown[]>(CONFIG.BIL_POOL, 'getReserveData', [hollar])) as readonly [
+        bigint, bigint, bigint, bigint, bigint, bigint, number, number, Address, Address, Address, Address, bigint, bigint, bigint,
+      ];
+      const [aToken, debtToken, apr] = [rd[8], rd[10], Number(rd[4]) / RAY];
+      const [[cap, minted], debt, collected, treasury] = await Promise.all([
+        erc<readonly [bigint, bigint]>(hollar, 'getFacilitatorBucket', [aToken]),
+        erc<bigint>(debtToken, 'totalSupply'),
+        erc<bigint>(hollar, 'balanceOf', [aToken]),
+        erc<Address>(aToken, 'getGhoTreasury'),
+      ]);
+      market = { debt, minted, cap, collected, treasury, apr };
+    } catch (err) {
+      console.error('  market read failed:', String(err).slice(0, 200));
+    }
+
+    const snapshot = {
+      now,
+      block: blockNumber,
+      vault: { paused, totalAssets, totalSupply, exchangeRate, idle, queued, settled: settledBil, reserved, posHead, posCount },
+      keeper,
+      decentral: { pool: activePool, poolHollar, ...dec },
+      market,
+      matured,
+      upcoming: upcoming.slice(0, UPCOMING),
+    };
+    return { issues, now, snapshot };
   }
 
-  /// What the next Decentral step is waiting on (null = it can proceed), and since when.
-  private async decentralStatus(
-    index: bigint,
-    tokenId: bigint,
-    state: number,
-    now: number,
-    blockNumber: bigint,
-  ): Promise<{ waiting: string | null; requestedAt: number | null }> {
+  /// What the next Decentral step is waiting on (null = it can proceed), since when, and the request amount.
+  private async decentralStatus(index: bigint, tokenId: bigint, state: number, now: number, blockNumber: bigint): Promise<Decentral> {
     const pool = (await this.client.readContract({ address: this.vault, abi: VAULT_ABI, functionName: 'positionPool', args: [index], blockNumber })) as Address;
     if (state === YIELD_REQUESTED) {
-      const [, requestedAt, exists, approved] = await this.client.readContract({ address: pool, abi: DECENTRAL_ABI, functionName: 'getYieldWithdrawalRequest', args: [tokenId], blockNumber });
-      if (exists && !approved) return { waiting: 'yield withdrawal not approved', requestedAt: Number(requestedAt) };
+      const [amount, requestedAt, exists, approved] = await this.client.readContract({ address: pool, abi: DECENTRAL_ABI, functionName: 'getYieldWithdrawalRequest', args: [tokenId], blockNumber });
+      if (exists && !approved) return { waiting: 'yield withdrawal not approved', requestedAt: Number(requestedAt), amount };
     } else if (state === PRINCIPAL_REQUESTED) {
-      const [, requestedAt, availableAt, exists, approved] = await this.client.readContract({ address: pool, abi: DECENTRAL_ABI, functionName: 'getPrincipalWithdrawalRequest', args: [tokenId], blockNumber });
-      if (exists && !approved) return { waiting: 'principal withdrawal not approved', requestedAt: Number(requestedAt) };
-      if (exists && now < Number(availableAt)) return { waiting: `principal delay until ${new Date(Number(availableAt) * 1000).toISOString()}`, requestedAt: null };
+      const [amount, requestedAt, availableAt, exists, approved] = await this.client.readContract({ address: pool, abi: DECENTRAL_ABI, functionName: 'getPrincipalWithdrawalRequest', args: [tokenId], blockNumber });
+      if (exists && !approved) return { waiting: 'principal withdrawal not approved', requestedAt: Number(requestedAt), amount };
+      if (exists && now < Number(availableAt)) return { waiting: `principal delay until ${new Date(Number(availableAt) * 1000).toISOString()}`, requestedAt: null, amount };
     }
     // YIELD_CLAIMED: requestPrincipalWithdrawal needs nothing from Decentral
-    return { waiting: null, requestedAt: null };
+    return { waiting: null, requestedAt: null, amount: 0n };
   }
 
   private async batch<T>(from: bigint, to: bigint, fn: (i: bigint) => Promise<T>): Promise<[bigint, T][]> {
@@ -253,10 +412,10 @@ export class BILWatchdog {
     return out;
   }
 
-  private async post(level: Level | 'ok', title: string, description: string): Promise<void> {
+  private async post(level: Level | 'ok' | 'info', title: string, description: string): Promise<void> {
     console.log(`${title}\n${description}`);
     if (!CONFIG.ALERT_WEBHOOK) return;
-    const color = level === 'error' ? 0xe74c3c : level === 'warn' ? 0xf1c40f : 0x2ecc71;
+    const color = { error: 0xe74c3c, warn: 0xf1c40f, ok: 0x2ecc71, info: 0x3498db }[level];
     const body = description.length > 4000 ? description.slice(0, 3990) + '\n…' : description;
     try {
       const res = await fetch(CONFIG.ALERT_WEBHOOK, {
@@ -276,4 +435,4 @@ export class BILWatchdog {
 
 const fmt = (v: bigint) => Number(formatEther(v)).toLocaleString('en-US', { maximumFractionDigits: 2 });
 
-const dur = (sec: number) => (sec < 3600 ? `${Math.floor(sec / 60)}m` : `${Math.floor(sec / 3600)}h`);
+const dur = (sec: number) => (sec < 3600 ? `${Math.floor(sec / 60)}m` : sec < 172800 ? `${Math.floor(sec / 3600)}h` : `${Math.floor(sec / 86400)}d`);
