@@ -29,7 +29,9 @@ jobs:
         with:
           node-version: 22.x
           cache: npm
-          cache-dependency-path: propeller-vault/looper/package-lock.json
+          cache-dependency-path: |
+            propeller-vault/looper/package-lock.json
+            propeller-vault/lark-bots/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -39,3 +41,13 @@ jobs:
 
       - name: Run keeper tests
         run: npm test
+
+      - name: Install Lark bot dependencies
+        working-directory: propeller-vault/lark-bots
+        run: npm ci
+
+      - name: Validate Lark bot syntax and policies
+        working-directory: propeller-vault/lark-bots
+        run: |
+          node --check index.mjs
+          npm test
