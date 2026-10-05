@@ -6,7 +6,7 @@ import {ApiPromise,WsProvider,Keyring} from '@polkadot/api';
 import {cryptoWaitReady} from '@polkadot/util-crypto';
 import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData} from 'viem';
 import {mnemonicToAccount} from 'viem/accounts';
-import {fairOutput,profitableQuote,freshReference,orientRoute} from './policy.mjs';
+import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory} from './policy.mjs';
 const RPC='https://4.lark.hydration.cloud',WS='wss://4.lark.hydration.cloud';
 const SOURCE='https://hdx.tarn.hydration.cloud';
 const mode=process.env.BOT_MODE||'markets',live=process.env.BOT_LIVE==='true';
@@ -115,7 +115,7 @@ async function markets(){
     const out=await quote(at,input,output,amount,route);quotes++;
     const row=profitableQuote({amount,out,fair});
     log('quote',{block:block.number,input,output,usd,amount,out,fair,shortfallBps:(fair-out)*10000n/fair});
-    if(row)fills.push({...row,input,output,route,usd,profitUsd8:(out-fair)*prices[output]/10n**BigInt(decimals[output])});
+    if(row&&retainsQuoteInventory(balances[input],amount,prices[input],decimals[input]))fills.push({...row,input,output,route,usd,profitUsd8:(out-fair)*prices[output]/10n**BigInt(decimals[output])});
    }catch(e){log('quote-rejected',{input,output,usd,error:e.message.slice(0,180)});}
   }
   if(!quotes){unavailable.push([input,output]);log('route-unavailable',{input,output,balance:balances[input]});}

@@ -19,7 +19,8 @@ submitted. The actual minimum output is the larger of that oracle floor and
 the quote less 2 bps. A fresh simulation precedes signing. Quotes expire after
 five blocks or 60 seconds. The bot reports unquotable routes as unhealthy.
 
-The funded inventory is finite; price monitoring does not guarantee market
+The bot retains $100 of each input asset for live route quoting. The funded
+inventory is finite; price monitoring does not guarantee market
 correction when inventory runs out. A profitable trade can be unavailable at
 the fair price because pools charge fees. The bot never forces such a trade to
 make a keeper appear productive.

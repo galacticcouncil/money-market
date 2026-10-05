@@ -564,9 +564,15 @@ async function main() {
       );
 
       const csbRaw = await sread(() => c.compoundSlippageBps());
-      const csb = Number(csbRaw ?? 0);
-      add(g, "compoundSlippageBps != 0 (0 => every compound reverts)", csb > 0, `${csb} bps`);
-      add(g, "compoundSlippageBps <= 500 (sanity)", csb > 0 && csb <= 500, `${csb} bps`);
+      const csb = Number(csbRaw ?? -1);
+      // Zero is an oracle-or-better floor. The shared controller still bounds
+      // every fill; a stricter legacy floor can make an approved lane unusable.
+      const compoundLane = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+        ["address", "address", "address"], [v, await loopC.prime(), await c.asset()]));
+      const approvedCompound = EXECUTION_POLICY.limits.find((p: any) => eq(p.lane, compoundLane));
+      add(g, "compound oracle floor permits approved lane limit", !!approvedCompound
+        && Number.isInteger(csb) && csb >= approvedCompound.maxShortfallBps, `${csb} bps`);
+      add(g, "compoundSlippageBps between 0 and 500", csb >= 0 && csb <= 500, `${csb} bps`);
 
       const sw = await sread(() => c.swapper());
       add(

@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fairOutput,profitableQuote,freshReference,orientRoute} from '../policy.mjs';
+import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory} from '../policy.mjs';
+test('correction trades preserve inventory for both-direction live quotes',()=>{
+ assert.equal(retainsQuoteInventory(5100n*10n**18n,5000n*10n**18n,100000000n,18),true);
+ assert.equal(retainsQuoteInventory(5000n*10n**18n,5000n*10n**18n,100000000n,18),false);
+ assert.equal(retainsQuoteInventory(100n*10n**6n,1n,106290112n,6),true);
+ assert.equal(retainsQuoteInventory(90n*10n**6n,1n,106290112n,6),false);
+});
 test('PRIME NAV and token decimals govern the quote, not a 1:1 reserve ratio',()=>{
  assert.equal(fairOutput(1000000n,106290112n,100000000n,6,18),1062901120000000000n);
  assert.equal(fairOutput(1062901120000000000n,100000000n,106290112n,18,6),1000000n);

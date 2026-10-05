@@ -1,4 +1,8 @@
 export const ceilDiv=(x,y)=>(x+y-1n)/y;
+export function retainsQuoteInventory(balance,amount,price,decimals,reserveUsd8=100n*100000000n){
+ return amount>0n&&amount<=balance&&price>0n
+  &&(balance-amount)*price/10n**BigInt(decimals)>=reserveUsd8;
+}
 export function fairOutput(amount,priceIn,priceOut,decimalsIn,decimalsOut){
  if(amount<=0n||priceIn<=0n||priceOut<=0n)throw Error('nonpositive pricing input');
  return amount*priceIn*10n**BigInt(decimalsOut)/(priceOut*10n**BigInt(decimalsIn));
