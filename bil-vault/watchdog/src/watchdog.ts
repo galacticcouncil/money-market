@@ -218,6 +218,7 @@ export class BILWatchdog {
         principal: n(p.principal),
         maturity: new Date(p.maturity * 1000).toISOString(),
       })),
+      maturities: s ? maturityBuckets(s.now, s.matured, s.upcomingAll) : null,
       issues: [...this.open.entries()].map(([key, t]) => ({ key, level: t.level, text: t.text, since: new Date(t.firstSeen * 1000).toISOString() })),
     };
   }
@@ -382,6 +383,7 @@ export class BILWatchdog {
       market,
       matured,
       upcoming: upcoming.slice(0, UPCOMING),
+      upcomingAll: upcoming,
     };
     return { issues, now, snapshot };
   }
@@ -431,6 +433,35 @@ export class BILWatchdog {
       console.error('  Failed to send alert:', err);
     }
   }
+}
+
+const DAY = 86400;
+const isoDay = (ts: number) => new Date(ts * 1000).toISOString().slice(0, 10);
+
+/** Principal maturing per UTC day: matured-but-unredeemed ("pending") and still-open ("upcoming"). */
+function maturityBuckets(
+  now: number,
+  matured: { principal: bigint; maturity: number }[],
+  upcoming: { principal: bigint; maturity: number }[],
+) {
+  const all = [...matured.map((p) => ({ ...p, pending: true })), ...upcoming.map((p) => ({ ...p, pending: false }))];
+  const today = Math.floor(now / DAY) * DAY;
+  const first = Math.min(today, ...all.map((p) => Math.floor(p.maturity / DAY) * DAY));
+  const last = Math.max(today, ...all.map((p) => Math.floor(p.maturity / DAY) * DAY));
+  const days = new Map<number, { day: string; pendingHollar: number; pendingCount: number; upcomingHollar: number; upcomingCount: number }>();
+  for (let d = first; d <= last; d += DAY) days.set(d, { day: isoDay(d), pendingHollar: 0, pendingCount: 0, upcomingHollar: 0, upcomingCount: 0 });
+  for (const p of all) {
+    const b = days.get(Math.floor(p.maturity / DAY) * DAY)!;
+    const v = Number(formatEther(p.principal));
+    if (p.pending) {
+      b.pendingHollar += v;
+      b.pendingCount++;
+    } else {
+      b.upcomingHollar += v;
+      b.upcomingCount++;
+    }
+  }
+  return { now: new Date(now * 1000).toISOString(), today: isoDay(today), days: [...days.values()] };
 }
 
 const fmt = (v: bigint) => Number(formatEther(v)).toLocaleString('en-US', { maximumFractionDigits: 2 });
