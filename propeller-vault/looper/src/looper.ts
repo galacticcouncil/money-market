@@ -121,6 +121,7 @@ export class PropellerLooper {
   private receiptPending = false;
   private receiptSince = 0;
   private pendingHash?: Hex;
+  private nextNonce = 0;
 
   constructor() {
     if (!CONFIG.EXECUTION_CONTROLLER) throw new Error('EXECUTION_CONTROLLER is required for swap execution');
@@ -545,11 +546,18 @@ export class PropellerLooper {
       // Some RPCs return used gas even for a reverted estimate. A final
       // simulation at the actual allowance also rechecks the quote and work.
       if (!hasWork((await this.publicClient.simulateContract({...options, gas})).result)) return false;
+      // Some gateways cache the pending nonce even after a mined receipt.
+      // Keep this dedicated signer's nonce monotonic across maintenance calls.
+      const nonce = Math.max(this.nextNonce ?? 0, await this.publicClient.getTransactionCount({
+        address: this.account.address, blockTag: 'pending',
+      }));
       const hash = await this.walletClient.writeContract({
         ...request,
         gasPrice,
         gas,
+        nonce,
       } as any);
+      this.nextNonce = nonce + 1;
       console.log(`  ${label} → ${hash}`);
       this.receiptPending = true;
       this.receiptSince = Date.now();

@@ -63,6 +63,7 @@ async function poke(estimate: bigint, blockGas = 45_000_000n, status = 'success'
   keeper.publicClient = {
     getBlock: async () => ({ gasLimit: blockGas }),
     getGasPrice: async () => 4_613_433n,
+    getTransactionCount: async () => 0,
     simulateContract: async (request: any) => {
       simulations.push(request);
       if (finalFails && simulations.length === 2) throw new Error('out of gas at submitted allowance');
@@ -80,8 +81,17 @@ async function poke(estimate: bigint, blockGas = 45_000_000n, status = 'success'
   };
   keeper.walletClient = { writeContract: async (request: any) => { sends.push(request); return '0x123'; } };
   const success = await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle');
-  return { success, sends, simulations };
+  return { success, sends, simulations, keeper };
 }
+
+test('cached pending nonces cannot reuse a mined maintenance nonce', async () => {
+  const {keeper, sends} = await poke(100000n);
+  assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), true);
+  assert.deepEqual(sends.map((request: any) => request.nonce), [0, 1]);
+  keeper.publicClient.getTransactionCount = async () => 7;
+  assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), true);
+  assert.equal(sends[2].nonce, 7);
+});
 
 test('large settlement uses estimated gas and the live fee quote', async () => {
   const { success, sends } = await poke(7_372_545n);
@@ -146,6 +156,7 @@ test('guarded writes use a pinned preview, bounded input and positive quote floo
   keeper.publicClient = {
     getBlock: async (o: any) => ({number: o.blockNumber ?? 10n, timestamp: 100n, gasLimit: 45_000_000n, hash}),
     getGasPrice: async () => 100n,
+    getTransactionCount: async () => 0,
     readContract: async (r: any) => r.functionName === 'executionController' ? CONFIG.EXECUTION_CONTROLLER : r.functionName === 'available' ? 100n
       : r.functionName === 'limits' ? [lane, 100n, 100n] : r.functionName === 'lane' ? lane : VAULT,
     simulateContract: async (request: any) => {
@@ -172,6 +183,7 @@ test('a receipt RPC failure retains the signer lock instead of blindly sending a
   keeper.account = {address: VAULT};
   keeper.publicClient = {
     getBlock: async () => ({gasLimit: 45_000_000n}), getGasPrice: async () => 100n,
+    getTransactionCount: async () => 0,
     simulateContract: async (request: any) => ({request, result: 1n}),
     request: async () => toHex(100000n),
     waitForTransactionReceipt: async () => { throw new Error('RPC disconnected'); },
