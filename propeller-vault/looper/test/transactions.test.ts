@@ -93,6 +93,36 @@ test('cached pending nonces cannot reuse a mined maintenance nonce', async () =>
   assert.equal(sends[2].nonce, 7);
 });
 
+test('shutdown refuses new work and cancels writes still awaiting their nonce', async () => {
+  const {keeper, sends} = await poke(100000n);
+  keeper.publicClient.getTransactionCount = async () => { keeper.stop(); return 1; };
+  assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), false);
+  assert.equal(sends.length, 1, 'shutdown during an RPC must prevent signing');
+  keeper.publicClient.getBlock = async () => assert.fail('stopped keeper must not start work');
+  assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), false);
+  await keeper.runCycle();
+});
+
+test('shutdown drains a submitted transaction before releasing its signer lock', async () => {
+  const {keeper, sends} = await poke(100000n);
+  let finish!: (value: {status: string}) => void;
+  let submitted!: () => void;
+  const waiting = new Promise<void>(resolve => { submitted = resolve; });
+  keeper.publicClient.waitForTransactionReceipt = () => {
+    submitted();
+    return new Promise(resolve => { finish = resolve; });
+  };
+  const inFlight = keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle');
+  await waiting;
+  keeper.stop();
+  assert.equal(keeper.receiptPending, true);
+  assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), false);
+  assert.equal(sends.length, 2);
+  finish({status: 'success'});
+  assert.equal(await inFlight, true);
+  assert.equal(keeper.receiptPending, false);
+});
+
 test('large settlement uses estimated gas and the live fee quote', async () => {
   const { success, sends } = await poke(7_372_545n);
   assert.equal(success, true);

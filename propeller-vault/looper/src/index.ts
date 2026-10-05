@@ -1,5 +1,6 @@
 import { PropellerLooper } from './looper.js';
 import { CONFIG } from './config.js';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 async function main() {
   console.log('Starting Propeller Looper...');
@@ -7,6 +8,12 @@ async function main() {
   console.log(`Poll interval: ${CONFIG.POLL_INTERVAL_MS}ms`);
 
   const looper = new PropellerLooper();
+  const shutdown = new AbortController();
+  for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, () => {
+    console.log(`${signal}: stopping new work; waiting for any submitted transaction`);
+    looper.stop();
+    shutdown.abort();
+  });
 
   // Self-scheduling loop, NOT setInterval: a cycle can outlast POLL_INTERVAL_MS
   // (a slow cycle submits pokeBorrow + maintainPeg/rebalance per vault + harvest,
@@ -14,12 +21,14 @@ async function main() {
   // cycles overlap and the overlapping txs race on the signer's nonce — the very
   // thing `replicas: 1` exists to prevent, reintroduced inside one process.
   // Sleeping AFTER each cycle keeps exactly one in flight.
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const repeat = async (task: () => Promise<void>, interval: number, label: string) => {
-    for (;;) {
+    while (!shutdown.signal.aborted) {
       try { await task(); }
       catch (err) { console.error(`[ALERT] ${label} failed:`, err); }
-      await sleep(interval);
+      if (!shutdown.signal.aborted) {
+        try { await sleep(interval, undefined, {signal: shutdown.signal}); }
+        catch (err) { if (!shutdown.signal.aborted) throw err; }
+      }
     }
   };
   await Promise.all([
@@ -28,4 +37,4 @@ async function main() {
   ]);
 }
 
-main().catch(console.error);
+main().catch(error => { console.error(error); process.exitCode = 1; });

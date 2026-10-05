@@ -122,6 +122,10 @@ export class PropellerLooper {
   private receiptSince = 0;
   private pendingHash?: Hex;
   private nextNonce = 0;
+  private stopping = false;
+
+  /** Drain an already submitted transaction, but never start another write. */
+  stop(): void { this.stopping = true; }
 
   constructor() {
     if (!CONFIG.EXECUTION_CONTROLLER) throw new Error('EXECUTION_CONTROLLER is required for swap execution');
@@ -140,6 +144,7 @@ export class PropellerLooper {
   }
 
   async runCycle(): Promise<void> {
+    if (this.stopping) return;
     this.cycle++;
     console.log(`\n[${new Date().toISOString()}] maintainer cycle #${this.cycle}`);
 
@@ -479,7 +484,7 @@ export class PropellerLooper {
     label: string,
     args: readonly unknown[] = [],
   ): Promise<boolean> {
-    if (this.receiptPending) return false;
+    if (this.stopping || this.receiptPending) return false;
     try {
       const [block, quotedPrice] = await Promise.all([
         this.publicClient.getBlock({ blockTag: 'latest' }),
@@ -551,6 +556,9 @@ export class PropellerLooper {
       const nonce = Math.max(this.nextNonce ?? 0, await this.publicClient.getTransactionCount({
         address: this.account.address, blockTag: 'pending',
       }));
+      // SIGTERM may arrive during an RPC await above. Recheck immediately
+      // before signing so a rolling replacement cannot start another stream.
+      if (this.stopping) return false;
       const hash = await this.walletClient.writeContract({
         ...request,
         gasPrice,
