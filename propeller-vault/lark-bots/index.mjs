@@ -32,7 +32,11 @@ async function identity(){
  assert.equal((await api.rpc.system.chain()).toString(),'Lark 4 Hydration');
  assert.equal((await api.rpc.chain.getBlockHash(0)).toHex(),manifest.genesis,'testnet reset');
  assert.equal(await pub.getChainId(),222222);
- const block=await pub.getBlock();assert.ok(Math.abs(Date.now()/1000-Number(block.timestamp))<120,'stale testnet head');return block;
+ // The EVM gateway can cache `latest` after a trade. Pin to the native head,
+ // then read both storage and EVM prices at that explicit block number.
+ const header=await api.rpc.chain.getHeader(),at=await api.at(header.hash);
+ const block={number:BigInt(header.number.toString()),hash:header.hash.toHex(),timestamp:BigInt((await at.query.timestamp.now()).toString())/1000n};
+ assert.ok(Math.abs(Date.now()/1000-Number(block.timestamp))<120,'stale testnet head');return block;
 }
 async function mirror(){
  const target=await identity(),block=await source.getBlock();
@@ -78,7 +82,7 @@ async function submit(tx){
    if(status.isInvalid||status.isDropped||status.isUsurped){settled=true;clearTimeout(timer);unsub?.();reject(Error(`uncertain transaction ${txHash.toHex()}: ${status.type}`));return;}
    if(!status.isInBlock&&!status.isFinalized)return;
    settled=true;clearTimeout(timer);unsub?.();pendingSubstrate=false;nextSubstrateNonce=nonce+1;
-   if(dispatchError){reject(Error(dispatchError.toString()));return;}
+   if(dispatchError){const meta=dispatchError.isModule?api.registry.findMetaError(dispatchError.asModule):null;reject(Error(`${txHash.toHex()}: ${meta?`${meta.section}.${meta.name}`:dispatchError.toString()}`));return;}
    const fills=events.filter(({event})=>event.section==='router'&&event.method==='Executed').map(({event})=>event.data.toJSON());
    if(!fills.length){reject(Error(`mined transaction has no router fill: ${txHash.toHex()}`));return;}
    log('arb-mined',{hash:txHash.toHex(),fills});resolve();
@@ -86,14 +90,14 @@ async function submit(tx){
  });
 }
 async function markets(){
- const block=await identity(),hash=(await api.rpc.chain.getBlockHash(block.number)).toHex(),at=await api.at(hash);
+ const block=await identity(),at=await api.at(block.hash);
  const prices={222:100000000n};
  for(const id of [34,43,1000765]){
   const price=await pub.readContract({address:oracle,abi,functionName:'getAssetPrice',args:[addresses[id]],blockNumber:block.number});
   const feed=await pub.readContract({address:oracle,abi,functionName:'getSourceOfAsset',args:[addresses[id]],blockNumber:block.number});
   assert.equal(feed.toLowerCase(),manifest.oracles.find(o=>o.assetId===id).address.toLowerCase(),'unexpected testnet oracle');
   const round=await pub.readContract({address:feed,abi,functionName:'latestRoundData',blockNumber:block.number});
-  assert.ok(freshReference({price,updatedAt:round[3],chainTime:block.timestamp,headAge:0,maxAge:900n}),'stale mirror');prices[id]=price;
+  assert.ok(freshReference({price,updatedAt:round[3],chainTime:block.timestamp,headAge:0,maxAge:900n}),`stale mirror ${id}: ${round[3]} at ${block.timestamp}`);prices[id]=price;
  }
  const evm='0x'+Buffer.from(signer.publicKey.slice(0,20)).toString('hex');
  assert.ok((await api.query.evmAccounts.accountExtension(evm)).isSome,'arb substrate/EVM binding required');
@@ -120,7 +124,7 @@ async function markets(){
  if(!fills.length){log('no-profitable-arbitrage',{unavailable});return unavailable.length===0;}
  const best=fills[0];log('selected',{...best,route:undefined});if(!live)return unavailable.length===0;
  const latest=await identity();assert.ok(latest.number-block.number<=5n&&latest.timestamp-block.timestamp<=60n,'quote expired; re-evaluate next cycle');
- const current=await api.at(await api.rpc.chain.getBlockHash(latest.number));
+ const current=await api.at(latest.hash);
  await quote(current,best.input,best.output,best.amount,best.route,best.minOut);
  await submit(api.tx.router.sell(best.input,best.output,best.amount.toString(),best.minOut.toString(),best.route));
  return unavailable.length===0;
