@@ -1,0 +1,34 @@
+{
+  "block": "415952",
+  "feeStorage": [
+    "palletVersion",
+    "assetFee",
+    "assetFeeConfiguration"
+  ],
+  "assets": {
+    "222": {
+      "assetFee": {
+        "assetFee": 2500,
+        "protocolFee": 2500,
+        "timestamp": 415857
+      },
+      "assetFeeConfiguration": null
+    },
+    "420": {
+      "assetFee": {
+        "assetFee": 32388,
+        "protocolFee": 500,
+        "timestamp": 415857
+      },
+      "assetFeeConfiguration": null
+    },
+    "1000765": {
+      "assetFee": {
+        "assetFee": 30300,
+        "protocolFee": 500,
+        "timestamp": 415849
+      },
+      "assetFeeConfiguration": null
+    }
+  }
+}

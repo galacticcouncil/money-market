@@ -1,13 +1,16 @@
 # Propeller Team Documentation
 
-**4 October 2026 | PR #62 for review | Production activation blocked**
+**5 October 2026 | PR #62 on Lark | Production activation blocked**
 
 Propeller's current design uses harvest-time Main interest servicing,
 source-funded resizing and an earned PRIME execution allowance. It does not
 require sponsored HOLLAR operating capital. The candidate is on
 `prop_carry`. The [latest validation](deferred-deployment-validation-2026-10-04.md)
 covers deferred deposits, shared swap controls, oracle price bounds and keeper
-size selection. Earlier reports retain their original artifact scope.
+size selection. The [Lark deployment record](lark-deployment-2026-10-05.md)
+covers the fresh contracts, UI and hosted keeper/oracle/arb services, including
+the harvest and leveraged-exit gates still open. Earlier reports retain their
+original artifact scope.
 
 ## Start Here
 

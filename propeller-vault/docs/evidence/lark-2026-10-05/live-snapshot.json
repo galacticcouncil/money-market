@@ -1,0 +1,544 @@
+{
+  "time": "2026-10-05T11:46:49.785Z",
+  "genesis": "0xba82f5b6d812fd3e2a6c610969e395d3be1e558145a9f07148b8d1f269ab4fb2",
+  "block": "416025",
+  "blockHash": "0xde8fc004680b92965f671323fe1c2d6ebc6cd56e579f39d35284fd845784b822",
+  "source": {
+    "healthFactor": "1120917781786512163",
+    "targetHf": "1050000000000000000",
+    "totalEquity": "5207846352",
+    "principalEquity": "49064387630794406237",
+    "totalShares": "49050134023894724122",
+    "harvestThreshold": "1000000000000000",
+    "harvestCapacity": "126971432482175216",
+    "executionCostReserve": "145383230848555008",
+    "unwindTargetEquity": "2740977384702200234",
+    "deleverDebtTarget": "0",
+    "negativeCarryBps": "0"
+  },
+  "vaults": [
+    {
+      "name": "ETH",
+      "address": "0x40cca3da6cead6dada9e9ffc4c06e9039791876a",
+      "totalAssets": "19000001569182436",
+      "reinvestAssets": "9305094",
+      "loopShares": "36652249491135464211",
+      "queueHead": "1",
+      "queueTail": "2",
+      "queueUnwind": "2",
+      "mainReady": true,
+      "mainInterest": "73053665346981",
+      "pendingUnwind": "2048169491708270923",
+      "redemptions": [
+        {
+          "id": "1",
+          "state": [
+            "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
+            "1000000000000000",
+            "1000000080390414",
+            "2036239024871405379",
+            "2088180907560059662",
+            "0",
+            "0",
+            "0",
+            true
+          ]
+        }
+      ],
+      "eligibleHarvest": "213470566813194613"
+    },
+    {
+      "name": "TBTC",
+      "address": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+      "totalAssets": "190000000582246",
+      "reinvestAssets": "0",
+      "loopShares": "12397884532759259911",
+      "queueHead": "1",
+      "queueTail": "2",
+      "queueUnwind": "2",
+      "mainReady": true,
+      "mainInterest": "22556448208790",
+      "pendingUnwind": "692807892993929311",
+      "redemptions": [
+        {
+          "id": "1",
+          "state": [
+            "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
+            "10000000000000",
+            "10000000030290",
+            "689564102338687264",
+            "707154129074248227",
+            "0",
+            "0",
+            "0",
+            true
+          ]
+        }
+      ],
+      "eligibleHarvest": "58037348130255292"
+    }
+  ],
+  "receipts": [
+    {
+      "hash": "0x3a8153af35c0876d917b088aaaa45c75bb14e03b1df4e1c011250da8f458cbc6",
+      "status": "success",
+      "block": "415835",
+      "from": "0xdd2fd4581271e230360230f9337d5c0430bf44c0",
+      "to": "0x7e7a0e795e14a11e62b20efaec48407003bfdc8f",
+      "gasUsed": "2312512",
+      "events": [
+        {
+          "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "value": "38688485600000000000"
+          }
+        },
+        {
+          "address": "0x531a654d1696ed52e7275a8cede955e82620f99a",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "value": "38688485600000000000"
+          }
+        },
+        {
+          "address": "0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "value": "39675436763265306122"
+          }
+        },
+        {
+          "address": "0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5",
+          "name": "Approval",
+          "args": {
+            "owner": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "spender": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+            "value": "39675436763265306122"
+          }
+        },
+        {
+          "address": "0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5",
+          "name": "Approval",
+          "args": {
+            "owner": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "spender": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+            "value": "0"
+          }
+        },
+        {
+          "address": "0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5",
+          "name": "Transfer",
+          "args": {
+            "from": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "to": "0xFB28f7502f24D18E1B1D4a65D3CE5252F35753D2",
+            "value": "39675436763265306122"
+          }
+        },
+        {
+          "address": "0xfb28f7502f24d18e1b1d4a65d3ce5252f35753d2",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "value": "39675436763265306122"
+          }
+        },
+        {
+          "address": "0x531a654d1696ed52e7275a8cede955e82620f99a",
+          "name": "Approval",
+          "args": {
+            "owner": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "spender": "0x7016805f0f1aB369A1e308038Db22EEfe3d4b49f",
+            "value": "38688485600000000000"
+          }
+        },
+        {
+          "address": "0x531a654d1696ed52e7275a8cede955e82620f99a",
+          "name": "Transfer",
+          "args": {
+            "from": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "to": "0x7016805f0f1aB369A1e308038Db22EEfe3d4b49f",
+            "value": "38688485600000000000"
+          }
+        },
+        {
+          "address": "0x7016805f0f1ab369a1e308038db22eefe3d4b49f",
+          "name": "LoopDeposited",
+          "args": {
+            "vault": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "hollarIn": "38688485600000000000",
+            "shares": "38688485600000000000"
+          }
+        },
+        {
+          "address": "0x40cca3da6cead6dada9e9ffc4c06e9039791876a",
+          "name": "Rebalanced",
+          "args": {
+            "ltvBefore": "0",
+            "ltvAfter": "7499"
+          }
+        },
+        {
+          "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "value": "0"
+          }
+        },
+        {
+          "address": "0x7e7a0e795e14a11e62b20efaec48407003bfdc8f",
+          "name": "Executed",
+          "args": {
+            "caller": "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
+            "target": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "selector": "0x7d7c2a1c"
+          }
+        }
+      ]
+    },
+    {
+      "hash": "0x360fd23d62c45ec69796c1370f0044818c0322e5f4f82dc917818b7be138b50e",
+      "status": "success",
+      "block": "415852",
+      "from": "0xdd2fd4581271e230360230f9337d5c0430bf44c0",
+      "to": "0x7e7a0e795e14a11e62b20efaec48407003bfdc8f",
+      "gasUsed": "2318184",
+      "events": [
+        {
+          "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "value": "13101701370000000000"
+          }
+        },
+        {
+          "address": "0x531a654d1696ed52e7275a8cede955e82620f99a",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "value": "13101701370000000000"
+          }
+        },
+        {
+          "address": "0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "value": "13435928445765306122"
+          }
+        },
+        {
+          "address": "0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5",
+          "name": "Approval",
+          "args": {
+            "owner": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "spender": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+            "value": "13435928445765306122"
+          }
+        },
+        {
+          "address": "0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5",
+          "name": "Approval",
+          "args": {
+            "owner": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "spender": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+            "value": "0"
+          }
+        },
+        {
+          "address": "0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5",
+          "name": "Transfer",
+          "args": {
+            "from": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "to": "0xFB28f7502f24D18E1B1D4a65D3CE5252F35753D2",
+            "value": "13435928445765306122"
+          }
+        },
+        {
+          "address": "0xfb28f7502f24d18e1b1d4a65d3ce5252f35753d2",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "value": "13435928445765306122"
+          }
+        },
+        {
+          "address": "0x531a654d1696ed52e7275a8cede955e82620f99a",
+          "name": "Approval",
+          "args": {
+            "owner": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "spender": "0x7016805f0f1aB369A1e308038Db22EEfe3d4b49f",
+            "value": "13101701370000000000"
+          }
+        },
+        {
+          "address": "0x531a654d1696ed52e7275a8cede955e82620f99a",
+          "name": "Transfer",
+          "args": {
+            "from": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "to": "0x7016805f0f1aB369A1e308038Db22EEfe3d4b49f",
+            "value": "13101701370000000000"
+          }
+        },
+        {
+          "address": "0x7016805f0f1ab369a1e308038db22eefe3d4b49f",
+          "name": "LoopDeposited",
+          "args": {
+            "vault": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "hollarIn": "13101701370000000000",
+            "shares": "13086655896049922127"
+          }
+        },
+        {
+          "address": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+          "name": "Rebalanced",
+          "args": {
+            "ltvBefore": "0",
+            "ltvAfter": "7999"
+          }
+        },
+        {
+          "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "value": "0"
+          }
+        },
+        {
+          "address": "0x7e7a0e795e14a11e62b20efaec48407003bfdc8f",
+          "name": "Executed",
+          "args": {
+            "caller": "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
+            "target": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "selector": "0x7d7c2a1c"
+          }
+        }
+      ]
+    },
+    {
+      "hash": "0xd319ca8ea1a6aa78190d0790fd110ce98d552de218ede110ff4bcd02b951f485",
+      "status": "success",
+      "block": "415864",
+      "from": "0xdd2fd4581271e230360230f9337d5c0430bf44c0",
+      "to": "0x7e7a0e795e14a11e62b20efaec48407003bfdc8f",
+      "gasUsed": "1766848",
+      "events": [
+        {
+          "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x7016805f0f1aB369A1e308038Db22EEfe3d4b49f",
+            "value": "43405109070000000000"
+          }
+        },
+        {
+          "address": "0x531a654d1696ed52e7275a8cede955e82620f99a",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x7016805f0f1aB369A1e308038Db22EEfe3d4b49f",
+            "value": "43405109070000000000"
+          }
+        },
+        {
+          "address": "0x7016805f0f1ab369a1e308038db22eefe3d4b49f",
+          "name": "Borrowed",
+          "args": {
+            "amount": "43405109070000000000",
+            "hfAfter": "1932297401320641354"
+          }
+        },
+        {
+          "address": "0x7e7a0e795e14a11e62b20efaec48407003bfdc8f",
+          "name": "Executed",
+          "args": {
+            "caller": "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
+            "target": "0x7016805f0f1aB369A1e308038Db22EEfe3d4b49f",
+            "selector": "0xd178ea66"
+          }
+        }
+      ]
+    },
+    {
+      "hash": "0x2e65bb52eacdec78773e8c46bb862e3d2c3046de01523599d8035a2572ba4b63",
+      "status": "success",
+      "block": "415894",
+      "from": "0x09db0a93b389bef724429898f539aeb7ac2dd55f",
+      "to": "0x7e7a0e795e14a11e62b20efaec48407003bfdc8f",
+      "gasUsed": "1769780",
+      "events": [
+        {
+          "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x7016805f0f1aB369A1e308038Db22EEfe3d4b49f",
+            "value": "30487918227412584121"
+          }
+        },
+        {
+          "address": "0x531a654d1696ed52e7275a8cede955e82620f99a",
+          "name": "Transfer",
+          "args": {
+            "from": "0x0000000000000000000000000000000000000000",
+            "to": "0x7016805f0f1aB369A1e308038Db22EEfe3d4b49f",
+            "value": "30487902860000000000"
+          }
+        },
+        {
+          "address": "0x7016805f0f1ab369a1e308038db22eefe3d4b49f",
+          "name": "Borrowed",
+          "args": {
+            "amount": "30487902860000000000",
+            "hfAfter": "1294846343527958918"
+          }
+        },
+        {
+          "address": "0x7e7a0e795e14a11e62b20efaec48407003bfdc8f",
+          "name": "Executed",
+          "args": {
+            "caller": "0x09DB0a93B389bEF724429898f539AEB7ac2Dd55f",
+            "target": "0x7016805f0f1aB369A1e308038Db22EEfe3d4b49f",
+            "selector": "0xd178ea66"
+          }
+        }
+      ]
+    },
+    {
+      "hash": "0x26d7d2e43016562acb88bc865226d9909c61f4f28353b78aa92d5400d7e22ed2",
+      "status": "success",
+      "block": "415972",
+      "from": "0x09db0a93b389bef724429898f539aeb7ac2dd55f",
+      "to": "0x40cca3da6cead6dada9e9ffc4c06e9039791876a",
+      "gasUsed": "1155506",
+      "events": [
+        {
+          "address": "0x7016805f0f1ab369a1e308038db22eefe3d4b49f",
+          "name": "UnwindRequested",
+          "args": {
+            "vault": "0x40cca3dA6ceAd6DaDa9e9fFc4c06e9039791876A",
+            "shares": "2036236108864535789",
+            "equity": "2048169491708270923",
+            "unwindId": "1"
+          }
+        },
+        {
+          "address": "0x40cca3da6cead6dada9e9ffc4c06e9039791876a",
+          "name": "RoundingReserveUsed",
+          "args": {
+            "assets": "1"
+          }
+        },
+        {
+          "address": "0x40cca3da6cead6dada9e9ffc4c06e9039791876a",
+          "name": "UnwindStarted",
+          "args": {
+            "requestId": "1",
+            "collateralOwed": "1000000080390414",
+            "debtShare": "2036239024871405379"
+          }
+        }
+      ]
+    },
+    {
+      "hash": "0xefc96f989f9ffe6ebda99dbc6d76c03d853cfaa1d8202fce93b22cf6c106fa56",
+      "status": "success",
+      "block": "415973",
+      "from": "0x09db0a93b389bef724429898f539aeb7ac2dd55f",
+      "to": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+      "gasUsed": "1101406",
+      "events": [
+        {
+          "address": "0x7016805f0f1ab369a1e308038db22eefe3d4b49f",
+          "name": "UnwindRequested",
+          "args": {
+            "vault": "0x5b153c8e24ca62436eF836a1F179DD8ADe2D5aCD",
+            "shares": "688771363290662216",
+            "equity": "692807892993929311",
+            "unwindId": "2"
+          }
+        },
+        {
+          "address": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+          "name": "RoundingReserveUsed",
+          "args": {
+            "assets": "1"
+          }
+        },
+        {
+          "address": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+          "name": "UnwindStarted",
+          "args": {
+            "requestId": "1",
+            "collateralOwed": "10000000030290",
+            "debtShare": "689564102338687264"
+          }
+        }
+      ]
+    }
+  ],
+  "harvestable": true,
+  "harvestPreview": {
+    "error": "The contract function \"preview\" reverted with the following reason:\nAddress: low-level delegate call failed",
+    "details": "VM Exception while processing transaction: revert Address: low-level delegate call failed",
+    "causes": [
+      {
+        "name": "ContractFunctionExecutionError"
+      },
+      {
+        "name": "ContractFunctionRevertedError",
+        "data": {
+          "abiItem": {
+            "inputs": [
+              {
+                "name": "message",
+                "type": "string"
+              }
+            ],
+            "name": "Error",
+            "type": "error"
+          },
+          "args": [
+            "Address: low-level delegate call failed"
+          ],
+          "errorName": "Error"
+        },
+        "reason": "Address: low-level delegate call failed"
+      },
+      {
+        "name": "CallExecutionError"
+      },
+      {
+        "name": "InternalRpcError"
+      },
+      {
+        "name": "RpcRequestError",
+        "data": "0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000027416464726573733a206c6f772d6c6576656c2064656c65676174652063616c6c206661696c656400000000000000000000000000000000000000000000000000"
+      },
+      {
+        "data": "0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000027416464726573733a206c6f772d6c6576656c2064656c65676174652063616c6c206661696c656400000000000000000000000000000000000000000000000000"
+      }
+    ]
+  },
+  "repayPreview": {
+    "error": "The contract function \"preview\" reverted.",
+    "details": "VM Exception while processing transaction: revert"
+  }
+}

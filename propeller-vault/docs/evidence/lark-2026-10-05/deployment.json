@@ -1,0 +1,382 @@
+{
+  "rpc": "https://4.lark.hydration.cloud",
+  "genesis": "0xba82f5b6d812fd3e2a6c610969e395d3be1e558145a9f07148b8d1f269ab4fb2",
+  "runtime": 443,
+  "commit": "9828ffd6257293fe40ef99da41e4a1b8d058e3c7",
+  "startedAt": "2026-10-05T10:22:11.688Z",
+  "testnetOnly": true,
+  "addresses": {
+    "vaultImpl": "0x538d2755b5fb9a4f7c5769bdcf5103e569d6e241",
+    "compoundLogic": "0xbaec9f3E7e68b4C4D7D0834291F3D7104CD3c5D0",
+    "synth": "0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5",
+    "subImpl": "0x198c46853a9050a236bd0990bceb99fd72d69f39",
+    "source": "0x7016805f0f1ab369a1e308038db22eefe3d4b49f",
+    "harvester": "0xb7b759dbfe611c61d456f3d4c670a74b79853213",
+    "fees": "0x71ef432a9bdb258732972e86427b42853e238f6a",
+    "controller": "0x7e7a0e795e14a11e62b20efaec48407003bfdc8f",
+    "aSynthetic": "0xFB28f7502f24D18E1B1D4a65D3CE5252F35753D2",
+    "discount": "0x79b41c78a2b5ac1ddc3c80877449b1cc8f850c46"
+  },
+  "vaults": [
+    {
+      "name": "ETH",
+      "assetId": 34,
+      "asset": "0x0000000000000000000000000000000100000022",
+      "aToken": "0x11a8f7fFbB7e0fbEd88BC20179Dd45B4Bd6874ff",
+      "cap": "10000000000000000000",
+      "address": "0x40cca3da6cead6dada9e9ffc4c06e9039791876a",
+      "mainDebt": "0x59ba6340a85e311f8f43071372de1d0f5fb90dc4",
+      "yieldAccounting": "0xb81692C656BE4dEFC91CC18d6B3E99834FED13ae",
+      "rounding": {
+        "vault": "0x40cca3da6cead6dada9e9ffc4c06e9039791876a",
+        "assetId": 34,
+        "minimum": "10746910264300",
+        "target": "53735551316500"
+      }
+    },
+    {
+      "name": "TBTC",
+      "assetId": 1000765,
+      "asset": "0x00000000000000000000000000000001000f453d",
+      "aToken": "0x69003a65189f6Ed993D3bD3E2B74f1Db39F405ce",
+      "cap": "500000000000000000",
+      "address": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+      "mainDebt": "0xe0983cedd797b38090e6dcde54af88aa6eb22edc",
+      "yieldAccounting": "0x1D451d873bf53DAebF78b91b25E5FCCcEaC7965b",
+      "rounding": {
+        "vault": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+        "assetId": 1000765,
+        "minimum": "213606750974",
+        "target": "1069033749870"
+      }
+    }
+  ],
+  "market": {
+    "pool": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+    "hollar": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+    "prime": "0x000000000000000000000000000000010000002b",
+    "aPrime": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+    "hollarDebt": "0x342923782cCaEBf9c38DD9cb40436e82C42c73B5",
+    "swapper": "0x195c5efaa658ac3c40df6138f1c3b948ed2c83d7",
+    "swapperCodeHash": "0x3cc5ec2b38f655b98350c9f5df25354d57a23927cc5816ed5a1eadb08b962d5e",
+    "existingTestnetAdapter": true
+  },
+  "oracles": [
+    {
+      "assetId": 34,
+      "asset": "0x0000000000000000000000000000000100000022",
+      "name": "ETH",
+      "address": "0x5f8d1d70c658fd0ffd79d3eaa692fc78306f39db",
+      "sourceFeed": "0x1AF549Fe19A9B73D094173C41e18BF7F357F594b",
+      "sourcePrice": "271498136112",
+      "sourceUpdatedAt": "1791190104",
+      "sourceBlock": "15422770",
+      "sourceBlockHash": "0x0b3c93550656b57eb10bdaf91a6427d938c93873195cf1d8078535dc42f0fd33"
+    },
+    {
+      "assetId": 1000765,
+      "asset": "0x00000000000000000000000000000001000f453d",
+      "name": "tBTC",
+      "address": "0xa64e418978482d5de91717cf6c77e1f40105f2ab",
+      "sourceFeed": "0xe5AcDfB0d5EC5cE34F7448B41ef4a97c4e83D9c1",
+      "sourcePrice": "8619540370381",
+      "sourceUpdatedAt": "1791183505",
+      "sourceBlock": "15422877",
+      "sourceBlockHash": "0xd56122a2d3401a7d9ab8f9967954b72672491776f7fac424fc76fb55c5419190"
+    },
+    {
+      "assetId": 43,
+      "asset": "0x000000000000000000000000000000010000002b",
+      "name": "PRIME",
+      "address": "0x3a1c0fa2f877c84d2930e59637c111a31878dcdf",
+      "sourceFeed": "0x09221057Cf7E75953D199FB319E606972A6A82Cd",
+      "sourcePrice": "106290112",
+      "sourceUpdatedAt": "1791186498",
+      "sourceBlock": "15422877",
+      "sourceBlockHash": "0xd56122a2d3401a7d9ab8f9967954b72672491776f7fac424fc76fb55c5419190"
+    }
+  ],
+  "feeRecipient": "0xE52567fF06aCd6CBe7BA94dc777a3126e180B6d9",
+  "committee": "0x146a5e57fa0b8b1e13c53bcf1d05183b1c02b51b",
+  "synthAssetId": 5551,
+  "discountBps": 0,
+  "testSigners": {
+    "deployer": "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
+    "keeper": "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
+    "oracle": "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+    "keeperSecondary": "0x09DB0a93B389bEF724429898f539AEB7ac2Dd55f",
+    "ui": "0x3088c164994890ea0e444bf53623ccac3b307217",
+    "arb": "0x62479ab06a50167aff57755656923dce2a0b9d16"
+  },
+  "executionPolicy": {
+    "maxQuoteAge": 60,
+    "maxQuoteBlocks": 5,
+    "expiresAt": 1793788914,
+    "budgets": [
+      {
+        "name": "entry",
+        "group": "0x33df2d96973bfe9b09959368e3c33d22c41ada8679a87df5c8349880b27b44ce",
+        "token": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "capacity": "1000000000000000000000",
+        "refillPerSecond": "1000000000000000000",
+        "expiresAt": 1793788914,
+        "minIntervalSeconds": 60
+      },
+      {
+        "name": "unwind",
+        "group": "0x24a4e20c1dec14cab24161c57917ba40c41682b95fde667378eb5fc28efeeff7",
+        "token": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+        "capacity": "1000000000",
+        "refillPerSecond": "1000000",
+        "expiresAt": 1793788914,
+        "minIntervalSeconds": 60
+      },
+      {
+        "name": "harvest",
+        "group": "0x9b605cba51978d163ec70365f6dd261a4858e9abe0635d9db9b9045d5991e356",
+        "token": "0x000000000000000000000000000000010000002b",
+        "capacity": "1000000000",
+        "refillPerSecond": "1000000",
+        "expiresAt": 1793788914,
+        "minIntervalSeconds": 60
+      },
+      {
+        "name": "service-ETH",
+        "group": "0x27eacb01119bf615028672a408e44e904f309dce8cdc375edc70e20e1bde65f5",
+        "token": "0x0000000000000000000000000000000100000022",
+        "capacity": "1000000000000000000",
+        "refillPerSecond": "1000000000000000",
+        "expiresAt": 1793788914,
+        "minIntervalSeconds": 60
+      },
+      {
+        "name": "service-TBTC",
+        "group": "0x9a81d63186f91276e38e2d14af81d7393dbb799e4c115f70c8886665983b1321",
+        "token": "0x00000000000000000000000000000001000f453d",
+        "capacity": "100000000000000000",
+        "refillPerSecond": "100000000000000",
+        "expiresAt": 1793788914,
+        "minIntervalSeconds": 60
+      }
+    ],
+    "limits": [
+      {
+        "consumer": "0x7016805f0f1ab369a1e308038db22eefe3d4b49f",
+        "input": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "output": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+        "lane": "0xa47564651b7764271ede81ced599aac091a04ee55f50b20be9fda57ce905d843",
+        "group": "0x33df2d96973bfe9b09959368e3c33d22c41ada8679a87df5c8349880b27b44ce",
+        "minimum": "1000000000000000000",
+        "maximum": "50000000000000000000",
+        "maxShortfallBps": 6,
+        "safety": false
+      },
+      {
+        "consumer": "0x7016805f0f1ab369a1e308038db22eefe3d4b49f",
+        "input": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+        "output": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "lane": "0x50e54d5376cf64274a26c7a0165a6b8f82d0acdc98cb93612f5b321e5252875e",
+        "group": "0x24a4e20c1dec14cab24161c57917ba40c41682b95fde667378eb5fc28efeeff7",
+        "minimum": "10000",
+        "maximum": "50000000",
+        "maxShortfallBps": 6,
+        "safety": true
+      },
+      {
+        "consumer": "0x40cca3da6cead6dada9e9ffc4c06e9039791876a",
+        "input": "0x000000000000000000000000000000010000002b",
+        "output": "0x0000000000000000000000000000000100000022",
+        "lane": "0x8fa896c4455f3dcff3c7e6c8ee1703db1192e299a51d59c6e98d55b73335e133",
+        "group": "0x9b605cba51978d163ec70365f6dd261a4858e9abe0635d9db9b9045d5991e356",
+        "minimum": "10000",
+        "maximum": "50000000",
+        "maxShortfallBps": 0,
+        "safety": false
+      },
+      {
+        "consumer": "0x40cca3da6cead6dada9e9ffc4c06e9039791876a",
+        "input": "0x0000000000000000000000000000000100000022",
+        "output": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "lane": "0x4fd4160bf57ade99694d43c2395f89a79da10d34c8c0f892b0e2961eadb9e0fb",
+        "group": "0x27eacb01119bf615028672a408e44e904f309dce8cdc375edc70e20e1bde65f5",
+        "minimum": "1000000000000",
+        "maximum": "20000000000000000",
+        "maxShortfallBps": 0,
+        "safety": false
+      },
+      {
+        "consumer": "0x59ba6340a85e311f8f43071372de1d0f5fb90dc4",
+        "input": "0x0000000000000000000000000000000100000022",
+        "output": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "lane": "0x791f40efc082776f2e9941ee9a1255e8c6f69a6e15401676ba31d8d90b576549",
+        "group": "0x27eacb01119bf615028672a408e44e904f309dce8cdc375edc70e20e1bde65f5",
+        "minimum": "1000000000000",
+        "maximum": "20000000000000000",
+        "maxShortfallBps": 0,
+        "safety": false
+      },
+      {
+        "consumer": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+        "input": "0x000000000000000000000000000000010000002b",
+        "output": "0x00000000000000000000000000000001000f453d",
+        "lane": "0xf3243209af0db096ae755016ddbd5700613158cfc47a8c6aab7ff5f03df1537b",
+        "group": "0x9b605cba51978d163ec70365f6dd261a4858e9abe0635d9db9b9045d5991e356",
+        "minimum": "10000",
+        "maximum": "50000000",
+        "maxShortfallBps": 0,
+        "safety": false
+      },
+      {
+        "consumer": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+        "input": "0x00000000000000000000000000000001000f453d",
+        "output": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "lane": "0x3a66fcb5eec8d90d6ba36289f7f1718b2ee326145fa68c86cf0ea82f75e76eb1",
+        "group": "0x9a81d63186f91276e38e2d14af81d7393dbb799e4c115f70c8886665983b1321",
+        "minimum": "10000000000",
+        "maximum": "1000000000000000",
+        "maxShortfallBps": 0,
+        "safety": false
+      },
+      {
+        "consumer": "0xe0983cedd797b38090e6dcde54af88aa6eb22edc",
+        "input": "0x00000000000000000000000000000001000f453d",
+        "output": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "lane": "0x03d1700fb9edefc559eaedf7fa7acd7d4627f994c6869a1d33a2ce164353c9bd",
+        "group": "0x9a81d63186f91276e38e2d14af81d7393dbb799e4c115f70c8886665983b1321",
+        "minimum": "10000000000",
+        "maximum": "1000000000000000",
+        "maxShortfallBps": 0,
+        "safety": false
+      }
+    ]
+  },
+  "testnetApprovals": [
+    {
+      "id": "prime-six-bps",
+      "scope": "Lark only; PRIME/HOLLAR entry and unwind",
+      "maxShortfallBps": 6,
+      "userAnswer": "Use 6 bps on Lark only (Recommended)"
+    }
+  ],
+  "sourceSlippagePpm": 600,
+  "checks": {
+    "testAccountsFunded": true,
+    "bootstrapNoBorrow": true,
+    "uiFixtureFundingFree": true,
+    "primePegCaughtUp": {
+      "current": "106290111",
+      "target": "106290112",
+      "restoredMaxPegUpdate": 40
+    },
+    "hostedExits": [
+      {
+        "vault": "0x40cca3da6cead6dada9e9ffc4c06e9039791876a",
+        "name": "ETH",
+        "id": "1",
+        "shares": "1000000000000000",
+        "owner": "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E"
+      },
+      {
+        "vault": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+        "name": "TBTC",
+        "id": "1",
+        "shares": "10000000000000",
+        "owner": "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E"
+      }
+    ]
+  },
+  "previousOracles": [
+    {
+      "asset": "0x0000000000000000000000000000000100000022",
+      "source": "0x1AF549Fe19A9B73D094173C41e18BF7F357F594b"
+    },
+    {
+      "asset": "0x00000000000000000000000000000001000f453d",
+      "source": "0xe5AcDfB0d5EC5cE34F7448B41ef4a97c4e83D9c1"
+    },
+    {
+      "asset": "0x000000000000000000000000000000010000002b",
+      "source": "0xDEe587cC569bf1FcBdcD6d1472031d225f34C307"
+    }
+  ],
+  "previousPrimePeg": {
+    "source": [
+      {
+        "mmOracle": "0xdee587cc569bf1fcbdcd6d1472031d225f34c307"
+      },
+      {
+        "value": [
+          1,
+          1
+        ]
+      }
+    ],
+    "updatedAt": 404458,
+    "maxPegUpdate": 40,
+    "current": [
+      [
+        "0x948a08ee4434c68bbd2aaeaaae2ccb2f",
+        "0x8d6608bebeeab6e8b12612591fa61235"
+      ],
+      [
+        1,
+        1
+      ]
+    ]
+  },
+  "previousDiscount": {
+    "token": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+    "strategy": "0x33A7C640140FEBafEcC9801AF723A0C14420eEd7"
+  },
+  "status": "testnet-active; staged-entry-proven; harvest-and-leveraged-exit-gates-open",
+  "artifacts": {
+    "CollateralVault": {
+      "sha256": "79014fb9cc3efb6b77896a9e8cc35401bd3877998041b01f96b1d3f520523e89"
+    },
+    "CompoundLogic": {
+      "sha256": "3064c7c57752ea81825b1b0b9c6351b9c3ab21654ae7bc5ee8e774ca4e3a14f4"
+    },
+    "SyntheticToken": {
+      "sha256": "c4ffcae4696f16291009e132da1356bfd8b143b7137156dea5b1d3821c8acfab"
+    },
+    "SubLoop": {
+      "sha256": "7f3cd7f9bdec240ce2b83db038706b878e454f971c33d70bbbe2350ddd164fb1"
+    },
+    "ERC1967Proxy": {
+      "sha256": "caa07b5458a845220b4525f3bbe7130fe47a719e85fee19a060d0e7fd4bef5a4"
+    },
+    "Harvester": {
+      "sha256": "3cdb8b880f31dbe95008dd5ecbd6ddf2914e61e1977cb918cc03cdcaad6d1ecd"
+    },
+    "PropellerFeeController": {
+      "sha256": "459ff48ca9da5ecca9f9c4d28227d1ec99a5cfe832a07a562a16fd65a10472df"
+    },
+    "ExecutionController": {
+      "sha256": "7683dd99228a8c6085bbc9ea5f9d1aa3158a4220d5700816c3fe6bf697bce72a"
+    },
+    "PropellerMainDebt": {
+      "sha256": "efcc4de03fb5cf8c4a650eae7db94c6e8e88b23702fdf76fb1d688d2e2e50613"
+    },
+    "PropellerDiscount": {
+      "sha256": "76ac2af7ef82c2c48fc6c912e14a753bb45b0e4182109e5ca7e0b82f2a1e2af4"
+    },
+    "ManagedOracle": {
+      "sha256": "b4f27feff9584075ba0ad0c807dc6660da4fbc14fa68180193b8375cc0d86e1c"
+    }
+  },
+  "hosting": {
+    "stack": "propeller-oct2026",
+    "url": "https://swarmpit.lark.hydration.cloud",
+    "keeperCommit": "e3ec9cd",
+    "keeperImage": "lumir/propeller-lark-keeper@sha256:972ee604daba2ac70079c0fc989b7d1314798bbb37fecaa375e749e41e6908c8",
+    "botCommit": "f361bf8",
+    "botImage": "lumir/propeller-lark-bots@sha256:70c13bb2991431be8bcdd4615398d6fbbb48cccd7db8297ec39cf70f8ddb280a",
+    "singlePhysicalHost": true,
+    "operatorCount": 2
+  },
+  "ui": {
+    "pr": 3978,
+    "commit": "95a20173daec6a6e7f4d3a4345f86bc67e27d445",
+    "url": "https://deploy-preview-3978--edge-hydra-app.netlify.app/strategies/propeller"
+  }
+}
