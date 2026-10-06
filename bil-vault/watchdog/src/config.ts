@@ -16,6 +16,8 @@ export const CONFIG = {
   STUCK_THRESHOLD_SECONDS: num(process.env.STUCK_THRESHOLD_HOURS, 96) * 3600,
   // decentral approvals are out of our hands: one digest per DIGEST_HOURS, waits past the sla marked overdue
   DIGEST_SECONDS: num(process.env.DIGEST_HOURS, 24) * 3600,
+  // only waits at least this old make it into the digest; none → no message
+  DIGEST_MIN_WAIT_SECONDS: num(process.env.DIGEST_MIN_WAIT_HOURS, 24) * 3600,
   APPROVAL_SLA_SECONDS: num(process.env.APPROVAL_SLA_HOURS, 48) * 3600,
   REALERT_SECONDS: num(process.env.REALERT_HOURS, 6) * 3600,
   RPC_FAILURES_BEFORE_ALERT: num(process.env.RPC_FAILURES_BEFORE_ALERT, 5),

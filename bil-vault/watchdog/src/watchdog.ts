@@ -138,15 +138,16 @@ export class BILWatchdog {
       await this.post('ok', `BIL Watchdog — ${resolved.length} resolved`, resolved.map((t) => `• ~~${t}~~`).join('\n'));
     }
 
-    // decentral approvals: one summary per digest window, never per position
+    // decentral approvals: one summary per digest window, never per position, and only
+    // when a wait is actually slow; fresh waits are normal processing and stay quiet
     const d = snapshot.decentral;
-    if (d.waitingCount > 0 && now - this.lastDigest >= CONFIG.DIGEST_SECONDS) {
+    if (d.slowCount > 0 && now - this.lastDigest >= CONFIG.DIGEST_SECONDS) {
       this.lastDigest = now;
       const overdue = d.overdueCount ? `, ${d.overdueCount} past the ${dur(CONFIG.APPROVAL_SLA_SECONDS)} sla` : '';
       await this.post(
         d.overdueCount ? 'warn' : 'info',
-        'BIL — waiting on Decentral',
-        `${fmt(d.waitingPrincipal)} HOLLAR principal (+ ${fmt(d.waitingYield)} yield) across ${d.waitingCount} position(s) waiting for Decentral approval; oldest ${dur(d.oldestWait)}${overdue}.\n` +
+        'BIL — slow Decentral approvals',
+        `${fmt(d.slowPrincipal)} HOLLAR principal (+ ${fmt(d.slowYield)} yield) across ${d.slowCount} position(s) waiting over ${dur(CONFIG.DIGEST_MIN_WAIT_SECONDS)} for Decentral approval; oldest ${dur(d.oldestWait)}${overdue}.\n` +
           `Decentral pool holds ${fmt(d.poolHollar)} HOLLAR. Nothing to do on our side.`,
       );
     }
@@ -188,6 +189,8 @@ export class BILWatchdog {
         oldestWaitSeconds: s.decentral.oldestWait,
         overdueCount: s.decentral.overdueCount,
         slaSeconds: CONFIG.APPROVAL_SLA_SECONDS,
+        slowCount: s.decentral.slowCount,
+        digestMinWaitSeconds: CONFIG.DIGEST_MIN_WAIT_SECONDS,
         lastDigestAt: this.lastDigest ? new Date(this.lastDigest * 1000).toISOString() : null,
       },
       market: s?.market && {
@@ -310,7 +313,7 @@ export class BILWatchdog {
     const ready = new Set<bigint>();
     const matured: { index: bigint; tokenId: bigint; principal: bigint; maturity: number; state: number; waiting: string | null; requestedAt: number | null }[] = [];
     const upcoming: { index: bigint; tokenId: bigint; principal: bigint; maturity: number }[] = [];
-    const dec = { waitingCount: 0, waitingPrincipal: 0n, waitingYield: 0n, oldestWait: 0, overdueCount: 0 };
+    const dec = { waitingCount: 0, waitingPrincipal: 0n, waitingYield: 0n, oldestWait: 0, overdueCount: 0, slowCount: 0, slowPrincipal: 0n, slowYield: 0n };
     for (const [i, [tokenId, principal, , , maturity, state]] of positions) {
       if (state === REDEEMED) continue;
       const over = now - Number(maturity);
@@ -335,6 +338,11 @@ export class BILWatchdog {
           if (state === YIELD_REQUESTED) dec.waitingYield += d.amount;
           dec.oldestWait = Math.max(dec.oldestWait, age);
           if (age >= CONFIG.APPROVAL_SLA_SECONDS) dec.overdueCount++;
+          if (age >= CONFIG.DIGEST_MIN_WAIT_SECONDS) {
+            dec.slowCount++;
+            dec.slowPrincipal += principal;
+            if (state === YIELD_REQUESTED) dec.slowYield += d.amount;
+          }
         }
         if (!d.waiting) {
           ready.add(i);
