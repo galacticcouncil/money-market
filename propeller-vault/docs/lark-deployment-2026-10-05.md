@@ -130,7 +130,8 @@ after replacement services were running, so it does not fight the MM reference.
 Other Lark stacks remain untouched. Restarting it is not a safe replacement for
 the oracle-aware bot without reviewing its old assumptions.
 
-Images are pinned by digest. `scripts/propeller/lark-stack.mjs --keepers`
+Images are pinned by digest and published under the `galacticcouncil` Docker
+Hub organization with those same digests. `scripts/propeller/lark-stack.mjs --keepers`
 generates the compose file using `KEEPER_IMAGE` and `BOT_IMAGE`; without
 `--keepers` it drains keeper replicas while leaving pricing services enabled.
 Use stop-first updates. Confirm old tasks have exited before starting another

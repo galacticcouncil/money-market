@@ -368,9 +368,9 @@
     "stack": "propeller-oct2026",
     "url": "https://swarmpit.lark.hydration.cloud",
     "keeperCommit": "e3ec9cd",
-    "keeperImage": "lumir/propeller-lark-keeper@sha256:972ee604daba2ac70079c0fc989b7d1314798bbb37fecaa375e749e41e6908c8",
+    "keeperImage": "galacticcouncil/propeller-lark-keeper@sha256:972ee604daba2ac70079c0fc989b7d1314798bbb37fecaa375e749e41e6908c8",
     "botCommit": "f361bf8",
-    "botImage": "lumir/propeller-lark-bots@sha256:70c13bb2991431be8bcdd4615398d6fbbb48cccd7db8297ec39cf70f8ddb280a",
+    "botImage": "galacticcouncil/propeller-lark-bots@sha256:70c13bb2991431be8bcdd4615398d6fbbb48cccd7db8297ec39cf70f8ddb280a",
     "singlePhysicalHost": true,
     "operatorCount": 2
   },

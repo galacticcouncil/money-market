@@ -7,8 +7,8 @@ const r=JSON.parse(readFileSync('/tmp/propeller-lark-20261005.json','utf8'));
 assert.equal(r.rpc,'https://4.lark.hydration.cloud');
 assert.equal(r.genesis,'0xba82f5b6d812fd3e2a6c610969e395d3be1e558145a9f07148b8d1f269ab4fb2');
 const keeperImage=process.env.KEEPER_IMAGE,botImage=process.env.BOT_IMAGE;
-assert.match(keeperImage??'',/^lumir\/propeller-lark-keeper@sha256:[0-9a-f]{64}$/);
-assert.match(botImage??'',/^lumir\/propeller-lark-bots@sha256:[0-9a-f]{64}$/);
+assert.match(keeperImage??'',/^galacticcouncil\/propeller-lark-keeper@sha256:[0-9a-f]{64}$/);
+assert.match(botImage??'',/^galacticcouncil\/propeller-lark-bots@sha256:[0-9a-f]{64}$/);
 const keepers=process.argv.includes('--keepers');
 const common={restart:'unless-stopped',stop_grace_period:'4m',logging:{driver:'json-file',options:{'max-size':'10m','max-file':'3'}},deploy:{replicas:1,update_config:{order:'stop-first',failure_action:'rollback'},restart_policy:{condition:'any',delay:'15s'},resources:{limits:{cpus:'0.50',memory:'512M'},reservations:{memory:'128M'}}}};
 delete common.restart; // Swarm uses deploy.restart_policy.
