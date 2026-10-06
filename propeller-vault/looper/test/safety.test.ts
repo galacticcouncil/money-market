@@ -115,8 +115,14 @@ test('pending collateral deploys first and extra leverage waits for refreshed ba
   assert.deepEqual(await cycle({reinvestAssets: 1n, healthFactor: 2n * TARGET}), [
     `${VAULT}:rebalance`,
   ]);
-  assert.deepEqual(await cycle({reinvestAssets: 1n, queueTail: 1n, unwindEligibleAt: 101n}), []);
   assert.deepEqual(await cycle({reinvestAssets: 1n, emergencyPaused: true}), []);
+});
+test('waiting exits do not hold back pending collateral; source safety debt does', async () => {
+  assert.deepEqual(await cycle({reinvestAssets: 1n, queueTail: 1n, unwindEligibleAt: 101n}), [`${VAULT}:rebalance`]);
+  assert.deepEqual(await cycle({reinvestAssets: 1n, queueTail: 1n, queueUnwind: 1n, unwindTargetEquity: 1n}), [
+    `${VAULT}:rebalance`, `${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`,
+  ]);
+  assert.deepEqual(await cycle({reinvestAssets: 1n, deleverDebtTarget: 1n}), [`${LOOP}:pokeRepay`]);
 });
 test('harvest availability never bypasses emergency or local pause', async () => {
   assert.deepEqual(await cycle({ harvestable: true, emergencyPaused: true }, false, true), []);

@@ -1,7 +1,7 @@
 import {
   createPublicClient,
   createWalletClient,
-  http, fallback, encodeFunctionData, decodeAbiParameters, parseAbi, toHex,
+  http, fallback, encodeFunctionData, decodeAbiParameters, parseAbi, toHex, keccak256,
   type Hex,
   type PublicClient,
   type WalletClient,
@@ -121,8 +121,12 @@ export class PropellerLooper {
   private receiptPending = false;
   private receiptSince = 0;
   private pendingHash?: Hex;
+  private pendingRaw?: Hex;
+  private pendingNonce = 0;
+  private broadcastAt = 0;
   private nextNonce = 0;
   private stopping = false;
+  private quoteBlocks?: bigint;
 
   /** Drain an already submitted transaction, but never start another write. */
   stop(): void { this.stopping = true; }
@@ -267,8 +271,11 @@ export class PropellerLooper {
     let rebalanced = false;
     for (let i = 0; i < this.vaults.length; ++i) {
       const vault = this.vaults[(i + this.cycle - 1) % this.vaults.length];
-      if ((deployment.has(vault) || harvested || this.cycle % CONFIG.SLOW_EVERY === 0)
-          && turn && !paused && !emergency && !frozen.has(vault) && !servicing) {
+      // exits in flight pause price resizing on-chain, not deposited or earned
+      // credit; only a source safety repayment holds deployment back
+      const credit = (deployment.has(vault) || harvested) && safetyDebt === 0n;
+      if ((credit || (this.cycle % CONFIG.SLOW_EVERY === 0 && !servicing))
+          && turn && !paused && !emergency && !frozen.has(vault)) {
         const changed = await this.poke(VAULT_ABI, vault, 'rebalance', `deploy/rebalance ${short(vault)}`);
         rebalanced ||= changed;
       }
@@ -301,14 +308,7 @@ export class PropellerLooper {
   async monitorSafety(): Promise<void> {
     // Separate read loop: slow simulation/receipts never stop risk monitoring.
     const block = await this.publicClient.getBlock({blockTag: 'latest'});
-    if (this.pendingHash) {
-      try {
-        const receipt = await this.publicClient.getTransactionReceipt({hash: this.pendingHash});
-        if (receipt.status === 'reverted') console.error(`[ALERT] pending transaction reverted: ${this.pendingHash}`);
-        this.receiptPending = false;
-        this.pendingHash = undefined;
-      } catch { /* Not found/RPC failure leaves the signer locked until confirmed. */ }
-    }
+    if (this.pendingHash) await this.recoverPending();
     if (this.receiptPending && Date.now() - this.receiptSince > 120000) {
       console.error('[ALERT] transaction receipt pending for over two minutes; redundant operator must continue maintenance');
     }
@@ -503,13 +503,17 @@ export class PropellerLooper {
         gasPrice,
       };
       const guarded = ['harvest', 'pokeBorrow', 'rebalance', 'pokeRepay'].includes(functionName);
+      let quotedNumber = 0n;
+      let fills: readonly Fill[] = [];
+      const serviceLanes = new Set<string>();
+      const data = encodeFunctionData({abi: abi as any, functionName, args});
       if (guarded) {
         if (!CONFIG.EXECUTION_CONTROLLER) throw new Error('missing execution controller; swap action disabled');
         const quoted = await this.publicClient.getBlock({blockNumber: block.number - 1n});
-        const data = encodeFunctionData({abi: abi as any, functionName, args});
-        const [result, fills] = await this.quoteAction(address, data, functionName, quoted.number, budget) as readonly [Hex, readonly Fill[]];
+        let result: Hex;
+        [result, fills] = await this.quoteAction(address, data, functionName, quoted.number, budget) as readonly [Hex, readonly Fill[]];
         if (!hasWork(result)) return false;
-        const serviceLanes = new Set<string>();
+        quotedNumber = quoted.number;
         if (functionName === 'harvest') {
           const get = async (target: Address, name: string) => await this.publicClient.readContract({
             address: target, abi: [view(name, 'address')], functionName: name, blockNumber: quoted.number,
@@ -531,7 +535,6 @@ export class PropellerLooper {
         console.log(`  ${label}: no useful work`);
         return false;
       }
-      const { request } = simulated;
       // Send the gas ceiling explicitly: viem's estimateContractGas omits it
       // from the RPC payload. Reserve room for our 20% submission margin.
       const estimate = BigInt(await this.publicClient.request({method: 'eth_estimateGas', params: [{
@@ -548,6 +551,24 @@ export class PropellerLooper {
         const amount = guarded ? decodeAbiParameters([{type: 'uint256'}], simulated.result as Hex)[0] : simulated.result as bigint;
         if (!await this.harvestWorthwhile(amount, gas * gasPrice, block.timestamp)) return false;
       }
+      if (guarded) {
+        // previews and estimates can outlast the controller's block window;
+        // re-pin the chosen sizes so the quote still has room to land
+        const head = await this.publicClient.getBlockNumber();
+        if (head + BigInt(CONFIG.QUOTE_INCLUSION_BLOCKS) - quotedNumber > await this.maxQuoteBlocks()) {
+          const fresh = await this.publicClient.getBlock({blockNumber: head - 1n});
+          const caps = fills.filter(f => !serviceLanes.has(f.lane.toLowerCase()))
+            .map(f => ({lane: f.lane, amountIn: f.amountIn, minOut: 0n}));
+          const [result, refilled] = (await this.publicClient.simulateContract({account: this.account,
+            address: CONFIG.EXECUTION_CONTROLLER, abi: EXECUTION_ABI, blockNumber: fresh.number, gas: budget,
+            ...(caps.length ? {functionName: 'previewBounded', args: [address, data, caps]}
+              : {functionName: 'preview', args: [address, data]}),
+          } as any)).result as readonly [Hex, readonly Fill[]];
+          if (!hasWork(result)) return false;
+          options = {...options, args: [address, data, fresh.number, fresh.hash,
+            fresh.timestamp + BigInt(CONFIG.QUOTE_TTL_SECONDS), executionQuotes(refilled, CONFIG.QUOTE_DRIFT_BPS, serviceLanes)]};
+        }
+      }
       // Some RPCs return used gas even for a reverted estimate. A final
       // simulation at the actual allowance also rechecks the quote and work.
       if (!hasWork((await this.publicClient.simulateContract({...options, gas})).result)) return false;
@@ -559,30 +580,81 @@ export class PropellerLooper {
       // SIGTERM may arrive during an RPC await above. Recheck immediately
       // before signing so a rolling replacement cannot start another stream.
       if (this.stopping) return false;
-      const hash = await this.walletClient.writeContract({
-        ...request,
-        gasPrice,
-        gas,
-        nonce,
-      } as any);
+      const serialized = await this.account.signTransaction({
+        chainId: hydration.id, type: 'legacy', nonce, gas, gasPrice, value: 0n, to: options.address,
+        data: encodeFunctionData({abi: options.abi, functionName: options.functionName, args: options.args}),
+      });
+      const hash = keccak256(serialized);
+      // lock the nonce before broadcasting: a send that errors after reaching
+      // a node must not let the next poke reuse it for another payload
       this.nextNonce = nonce + 1;
-      console.log(`  ${label} → ${hash}`);
       this.receiptPending = true;
-      this.receiptSince = Date.now();
+      this.receiptSince = this.broadcastAt = Date.now();
       this.pendingHash = hash;
-      // A timeout must not start a second nonce stream. Monitoring continues;
-      // another operator has its own signer and can take the next duty slot.
-      const wait = this.publicClient.waitForTransactionReceipt({hash, timeout: 0});
-      const receipt = await wait;
-      this.receiptPending = false;
-      this.pendingHash = undefined;
-      if (receipt.status !== 'success') console.error(`[ALERT] ${label}: transaction reverted (${hash})`);
-      return receipt.status === 'success';
+      this.pendingRaw = serialized;
+      this.pendingNonce = nonce;
+      console.log(`  ${label} → ${hash}`);
+      await this.broadcast(serialized, label);
+      try {
+        // bounded wait: maintenance moves on with the signer still locked, and
+        // the safety loop re-sends the same bytes or releases the spent nonce
+        const receipt = await this.publicClient.waitForTransactionReceipt({hash, timeout: CONFIG.RECEIPT_TIMEOUT_MS});
+        this.release(hash);
+        if (receipt.status !== 'success') console.error(`[ALERT] ${label}: transaction reverted (${hash})`);
+        return receipt.status === 'success';
+      } catch (error) {
+        console.error(`[ALERT] ${label}: no receipt for ${hash} yet; signer stays locked (${shortErr(error)})`);
+        return false;
+      }
     } catch (err) {
       // simulate reverts on no-op/guarded paths — expected, just skip.
       console.log(`  ${label}: skipped (${shortErr(err)})`);
       return false;
     }
+  }
+
+  private async maxQuoteBlocks(): Promise<bigint> {
+    this.quoteBlocks ??= BigInt(await this.publicClient.readContract({address: CONFIG.EXECUTION_CONTROLLER,
+      abi: EXECUTION_ABI, functionName: 'maxQuoteBlocks'}));
+    return this.quoteBlocks;
+  }
+
+  private async broadcast(serialized: Hex, label: string): Promise<void> {
+    try {
+      await this.publicClient.sendRawTransaction({serializedTransaction: serialized});
+    } catch (error) {
+      // the node may already hold it; the receipt wait decides
+      console.log(`  ${label}: broadcast returned ${shortErr(error)}`);
+    }
+  }
+
+  /// a dropped transaction is re-sent as the same signed bytes, never as a new
+  /// payload, so no second nonce stream can start; the lock clears once mined
+  private async recoverPending(): Promise<void> {
+    const hash = this.pendingHash!;
+    const receipt = await this.publicClient.getTransactionReceipt({hash}).catch(() => undefined);
+    if (receipt) {
+      if (receipt.status === 'reverted') console.error(`[ALERT] pending transaction reverted: ${hash}`);
+      return this.release(hash);
+    }
+    // not found or rpc failure leaves the signer locked until the nonce is spent
+    const mined = await this.publicClient.getTransactionCount({address: this.account.address, blockTag: 'latest'})
+      .catch(() => undefined);
+    if (mined !== undefined && mined > this.pendingNonce) {
+      console.error(`[ALERT] nonce ${this.pendingNonce} mined without a visible receipt for ${hash}`);
+      return this.release(hash);
+    }
+    if (this.pendingRaw && Date.now() - this.broadcastAt >= CONFIG.RECEIPT_TIMEOUT_MS) {
+      this.broadcastAt = Date.now();
+      await this.broadcast(this.pendingRaw, `re-send ${hash}`);
+    }
+  }
+
+  private release(hash: Hex): void {
+    if (this.pendingHash !== undefined && this.pendingHash !== hash) return;
+    this.receiptPending = false;
+    this.pendingHash = undefined;
+    this.pendingRaw = undefined;
   }
 }
 

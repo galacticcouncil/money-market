@@ -2,10 +2,16 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { PropellerLooper } from '../src/looper.js';
 import { CONFIG } from '../src/config.js';
-import {encodeAbiParameters, parseAbi, toHex} from 'viem';
+import {decodeFunctionData, encodeAbiParameters, keccak256, parseAbi, toHex} from 'viem';
+import {EXECUTION_ABI} from '../src/execution-policy.js';
 
 const VAULT = '0x0000000000000000000000000000000000000002';
 const SETTLE_ABI = parseAbi(['function pokeSettle() returns (uint256)']);
+
+/** local signer stand-in: records each signed transaction request */
+function signer(sends: any[]) {
+  return {address: VAULT, signTransaction: async (tx: any) => { sends.push(tx); return toHex(`signed ${sends.length}`); }};
+}
 
 test('a mismatched controller rejects the entire harvest before previewing any swaps', async () => {
   const previous = CONFIG.EXECUTION_CONTROLLER;
@@ -59,7 +65,7 @@ test('operator-funded gas cannot suppress a price-safe harvest and needs no gas 
 async function poke(estimate: bigint, blockGas = 45_000_000n, status = 'success', estimateFails = false, result?: bigint, finalFails = false) {
   const sends: any[] = [], simulations: any[] = [];
   const keeper = Object.create(PropellerLooper.prototype) as any;
-  keeper.account = { address: VAULT };
+  keeper.account = signer(sends);
   keeper.publicClient = {
     getBlock: async () => ({ gasLimit: blockGas }),
     getGasPrice: async () => 4_613_433n,
@@ -77,9 +83,9 @@ async function poke(estimate: bigint, blockGas = 45_000_000n, status = 'success'
       if (estimateFails) throw new Error('estimation unavailable');
       return toHex(estimate);
     },
+    sendRawTransaction: async () => undefined,
     waitForTransactionReceipt: async () => ({ status }),
   };
-  keeper.walletClient = { writeContract: async (request: any) => { sends.push(request); return '0x123'; } };
   const success = await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle');
   return { success, sends, simulations, keeper };
 }
@@ -181,48 +187,130 @@ test('guarded writes use a pinned preview, bounded input and positive quote floo
   const hash = `0x${'ab'.repeat(32)}`;
   const lane = `0x${'cd'.repeat(32)}`;
   const result = encodeAbiParameters([{type: 'uint256'}], [100n]);
-  keeper.account = {address: VAULT};
+  keeper.account = signer(sends);
   keeper.subLoop = VAULT;
-  keeper.publicClient = {
-    getBlock: async (o: any) => ({number: o.blockNumber ?? 10n, timestamp: 100n, gasLimit: 45_000_000n, hash}),
-    getGasPrice: async () => 100n,
-    getTransactionCount: async () => 0,
-    readContract: async (r: any) => r.functionName === 'executionController' ? CONFIG.EXECUTION_CONTROLLER : r.functionName === 'available' ? 100n
-      : r.functionName === 'limits' ? [lane, 100n, 100n] : r.functionName === 'lane' ? lane : VAULT,
-    simulateContract: async (request: any) => {
-      simulations.push(request);
-      return {request, result: request.functionName === 'preview'
-        ? [result, [{lane, amountIn: 100n, amountOut: 1000n}]] : result};
-    },
-    request: async () => toHex(100000n),
-    waitForTransactionReceipt: async () => ({status: 'success'}),
-  };
-  keeper.walletClient = {writeContract: async (request: any) => { sends.push(request); return hash; }};
+  keeper.publicClient = guardedClient(simulations, hash, lane, result, 10n);
   try {
     assert.equal(await keeper.poke(parseAbi(['function pokeBorrow() returns (uint256)']), VAULT, 'pokeBorrow', 'ramp'), true);
     assert.equal(simulations[0].blockNumber, 9n);
-    assert.equal(sends[0].address, CONFIG.EXECUTION_CONTROLLER);
-    assert.equal(sends[0].functionName, 'execute');
-    assert.deepEqual(sends[0].args.slice(2), [9n, hash, 160n, [{lane, amountIn: 100n, minOut: 999n}]]);
+    assert.equal(sends[0].to, CONFIG.EXECUTION_CONTROLLER);
+    const call = decodeFunctionData({abi: EXECUTION_ABI, data: sends[0].data});
+    assert.equal(call.functionName, 'execute');
+    assert.deepEqual(call.args.slice(2), [9n, hash, 160n, [{lane, amountIn: 100n, minOut: 999n}]]);
+    assert.ok(!simulations.some(s => s.blockNumber === 9n && s.functionName === 'previewBounded'), 'a fresh quote is not re-pinned');
+  } finally { CONFIG.EXECUTION_CONTROLLER = previous; }
+});
+
+/** guarded-write client: one 100-unit lane; previews at block 19 pay 10% more */
+function guardedClient(simulations: any[], hash: string, lane: string, result: string, head: bigint) {
+  return {
+    getBlock: async (o: any) => ({number: o.blockNumber ?? head, timestamp: 100n, gasLimit: 45_000_000n, hash}),
+    getBlockNumber: async () => head,
+    getGasPrice: async () => 100n,
+    getTransactionCount: async () => 0,
+    readContract: async (r: any) => r.functionName === 'executionController' ? CONFIG.EXECUTION_CONTROLLER : r.functionName === 'available' ? 100n
+      : r.functionName === 'limits' ? [lane, 100n, 100n] : r.functionName === 'lane' ? lane
+      : r.functionName === 'maxQuoteBlocks' ? 5n : VAULT,
+    simulateContract: async (request: any) => {
+      simulations.push(request);
+      const amountOut = request.blockNumber === 19n ? 1100n : 1000n;
+      return {request, result: ['preview', 'previewBounded'].includes(request.functionName)
+        ? [result, [{lane, amountIn: 100n, amountOut}]] : result};
+    },
+    request: async () => toHex(100000n),
+    sendRawTransaction: async () => undefined,
+    waitForTransactionReceipt: async () => ({status: 'success'}),
+  };
+}
+
+test('a quote that would age out before inclusion is re-pinned at the chosen size', async () => {
+  const previous = CONFIG.EXECUTION_CONTROLLER;
+  CONFIG.EXECUTION_CONTROLLER = '0x0000000000000000000000000000000000000003';
+  const sends: any[] = [], simulations: any[] = [];
+  const keeper = Object.create(PropellerLooper.prototype) as any;
+  const hash = `0x${'ab'.repeat(32)}`;
+  const lane = `0x${'cd'.repeat(32)}`;
+  keeper.account = signer(sends);
+  keeper.subLoop = VAULT;
+  // the chain moved ten blocks while the keeper was quoting and estimating
+  keeper.publicClient = guardedClient(simulations, hash, lane, encodeAbiParameters([{type: 'uint256'}], [100n]), 20n);
+  keeper.publicClient.getBlock = async (o: any) => ({number: o.blockNumber ?? 10n, timestamp: 100n, gasLimit: 45_000_000n, hash});
+  try {
+    assert.equal(await keeper.poke(parseAbi(['function pokeBorrow() returns (uint256)']), VAULT, 'pokeBorrow', 'ramp'), true);
+    const repin = simulations.find(s => s.blockNumber === 19n);
+    assert.equal(repin.functionName, 'previewBounded');
+    assert.deepEqual(repin.args[2], [{lane, amountIn: 100n, minOut: 0n}]);
+    const call = decodeFunctionData({abi: EXECUTION_ABI, data: sends[0].data});
+    assert.deepEqual(call.args.slice(2), [19n, hash, 160n, [{lane, amountIn: 100n, minOut: 1099n}]]);
   } finally { CONFIG.EXECUTION_CONTROLLER = previous; }
 });
 
 test('a receipt RPC failure retains the signer lock instead of blindly sending another transaction', async () => {
   const keeper = Object.create(PropellerLooper.prototype) as any;
-  let sends = 0;
-  keeper.account = {address: VAULT};
+  const sends: any[] = [];
+  keeper.account = signer(sends);
   keeper.publicClient = {
     getBlock: async () => ({gasLimit: 45_000_000n}), getGasPrice: async () => 100n,
     getTransactionCount: async () => 0,
     simulateContract: async (request: any) => ({request, result: 1n}),
     request: async () => toHex(100000n),
+    sendRawTransaction: async () => undefined,
     waitForTransactionReceipt: async () => { throw new Error('RPC disconnected'); },
   };
-  keeper.walletClient = {writeContract: async () => { ++sends; return `0x${'ab'.repeat(32)}`; }};
   assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), false);
   assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), false);
-  assert.equal(sends, 1);
+  assert.equal(sends.length, 1);
   assert.equal(keeper.receiptPending, true);
+});
+
+test('a broadcast error still spends its nonce; a stale gateway cannot hand it out again', async () => {
+  const keeper = Object.create(PropellerLooper.prototype) as any;
+  const sends: any[] = [];
+  keeper.account = signer(sends);
+  keeper.publicClient = {
+    getBlock: async () => ({gasLimit: 45_000_000n}), getGasPrice: async () => 100n,
+    getTransactionCount: async () => 0,
+    simulateContract: async (request: any) => ({request, result: 1n}),
+    request: async () => toHex(100000n),
+    sendRawTransaction: async () => { throw new Error('request timed out'); },
+    waitForTransactionReceipt: async () => ({status: 'success'}),
+  };
+  assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), true, 'the node accepted it before timing out');
+  assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), true);
+  assert.deepEqual(sends.map(s => s.nonce), [0, 1]);
+});
+
+test('a dropped transaction never hangs maintenance and is re-sent unchanged until its nonce is mined', async () => {
+  const previous = CONFIG.RECEIPT_TIMEOUT_MS;
+  CONFIG.RECEIPT_TIMEOUT_MS = 1000;
+  const keeper = Object.create(PropellerLooper.prototype) as any;
+  const sends: any[] = [], broadcasts: string[] = [];
+  let mined = 0;
+  keeper.account = signer(sends);
+  keeper.publicClient = {
+    getBlock: async () => ({gasLimit: 45_000_000n}), getGasPrice: async () => 100n,
+    getTransactionCount: async (r: any) => r.blockTag === 'latest' ? mined : 0,
+    simulateContract: async (request: any) => ({request, result: 1n}),
+    request: async () => toHex(100000n),
+    sendRawTransaction: async ({serializedTransaction}: any) => { broadcasts.push(serializedTransaction); },
+    waitForTransactionReceipt: async () => { throw new Error('Timed out while waiting for transaction'); },
+    getTransactionReceipt: async () => { throw new Error('receipt not found'); },
+  };
+  try {
+    assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), false);
+    assert.equal(keeper.receiptPending, true);
+    assert.equal(keeper.pendingHash, keccak256(broadcasts[0] as `0x${string}`));
+    await keeper.recoverPending();
+    assert.equal(broadcasts.length, 1, 're-send waits for the receipt timeout');
+    keeper.broadcastAt -= 1000;
+    await keeper.recoverPending();
+    assert.deepEqual(broadcasts, [broadcasts[0], broadcasts[0]], 'the same signed bytes, same nonce and hash');
+    assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), false, 'still locked');
+    assert.equal(sends.length, 1);
+    mined = 1;
+    await keeper.recoverPending();
+    assert.equal(keeper.receiptPending, false, 'a spent nonce releases the signer');
+  } finally { CONFIG.RECEIPT_TIMEOUT_MS = previous; }
 });
 
 test('a rejected large quote is retried at a smaller input while RPC errors are not resized', async () => {

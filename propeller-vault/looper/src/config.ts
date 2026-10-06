@@ -42,6 +42,11 @@ export const CONFIG = {
   QUOTE_TTL_SECONDS: integer('QUOTE_TTL_SECONDS', 60),
   QUOTE_DRIFT_BPS: BigInt(integer('QUOTE_DRIFT_BPS', 2, 0, 100)),
   QUOTE_SIZE_STEPS: integer('QUOTE_SIZE_STEPS', 6, 1, 12),
+  // blocks a quote must still have before the controller's window closes;
+  // an older one is re-pinned at the chosen sizes just before signing
+  QUOTE_INCLUSION_BLOCKS: integer('QUOTE_INCLUSION_BLOCKS', 2, 1, 255),
+  // without a receipt by then, re-send the identical signed transaction
+  RECEIPT_TIMEOUT_MS: integer('RECEIPT_TIMEOUT_MS', 60000, 1000),
   SLICE_PRICE_TOLERANCE_BPS: BigInt(integer('SLICE_PRICE_TOLERANCE_BPS', 1, 0, 100)),
   SPONSORED_GAS: sponsoredGas === 'true',
   HARVEST_MIN_USD8: BigInt(integer('HARVEST_MIN_USD8', 100000000)),

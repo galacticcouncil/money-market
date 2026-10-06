@@ -56,7 +56,7 @@ read each vault's pause, queue cursors and Main repayment target
   source safety target or active unwind       -> pokeRepay()
   active vault settlement or Main repayment   -> pokeSettle()
   healthy, worthwhile harvest, duty slot      -> quoted bounded harvest()
-  pending collateral, eligible vault, duty slot -> quoted bounded rebalance()
+  pending collateral, eligible vault, duty slot -> quoted bounded rebalance(), also while exits wait
   healthy, no pending work, duty slot         -> quoted bounded pokeBorrow()
   synthetic buffer below 25bp                 -> top up to 50bp
   no pending deployment, periodic duty slot    -> quoted rebalance when allowed
@@ -173,14 +173,19 @@ Default scheduling values (operator examples, not approved production policies):
 | `QUOTE_TTL_SECONDS` | `60` | Quote deadline, must fit the controller deployment |
 | `QUOTE_DRIFT_BPS` | `2` | Additional tolerance from observed output; cannot widen oracle floors |
 | `QUOTE_SIZE_STEPS` | `6` | Bounded size samples, including when a large slice already succeeds |
+| `QUOTE_INCLUSION_BLOCKS` | `2` | Blocks of controller quote age kept for inclusion; older quotes are re-pinned before signing |
+| `RECEIPT_TIMEOUT_MS` | `60000` | Re-send interval for the same signed transaction while no receipt appears |
 | `SLICE_PRICE_TOLERANCE_BPS` | `1` | Choose the largest slice close to the best sampled unit prices; cannot widen oracle floors |
 | `SAFETY_INTERVAL_MS` | `30000` | Independent read-loop interval |
 | `RPC_STALE_SECONDS` | `120` | Alert threshold for an old chain head |
 | `OPERATOR_SLOT_SECONDS` | `60` | Optional-work duty-slot duration |
 
 A submitted transaction keeps its signer locked until its receipt is known.
-Read monitoring continues while a receipt is pending and alerts after two minutes.
-An RPC failure does not trigger a blind duplicate send; a confirmed receipt from
-the monitor releases the lock. Connect `[ALERT]` logs to the operators' monitoring
+The nonce is locked before broadcast, so a send error that still reached a node
+cannot reuse it. Without a receipt, the keeper re-sends the identical signed
+bytes every `RECEIPT_TIMEOUT_MS`; it never signs another payload for that nonce.
+The lock clears once the nonce is mined. Read monitoring continues while a
+receipt is pending and alerts after two minutes; a confirmed receipt from the
+monitor also releases the lock. Connect `[ALERT]` logs to the operators' monitoring
 pipeline and rehearse handover before launch. No alerts are sent externally by
 default. See the [configuration and activation checklist](../docs/execution-controls-implementation.md#activation-configuration).

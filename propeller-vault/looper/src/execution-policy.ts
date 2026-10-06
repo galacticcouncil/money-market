@@ -7,6 +7,7 @@ export const EXECUTION_ABI = parseAbi([
   'function availableSafety(address consumer, address tokenIn, address tokenOut) view returns (uint256)',
   'function limits(bytes32 lane) view returns (bytes32 group, uint128 minimum, uint128 maximum)',
   'function lane(address consumer, address tokenIn, address tokenOut) pure returns (bytes32)',
+  'function maxQuoteBlocks() view returns (uint64)',
   'function execute(address target, bytes data, uint256 quotedBlock, bytes32 quotedHash, uint256 deadline, (bytes32 lane, uint256 amountIn, uint256 minOut)[] quotes) returns (bytes result)',
 ]);
 
