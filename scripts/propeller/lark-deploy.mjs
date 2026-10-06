@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {context,artifact,v,GOV,POOL,HOLLAR,token,deployer,live} from './lark-context.mjs';
+const DISPATCH='0x0000000000000000000000000000000000000401';
 const require=createRequire(import.meta.url);
 const poolAbi=require('../../deployments/hydration/Pool-Implementation.json').abi;
 const c=await context();
 try{
   assert.ok(live,'--live required; lark-prepare.mjs prepares accounts separately');
-  const {r,pub,deploy,read,readSig,save}=c;
+  const {r,pub,deploy,read,readSig,write,save}=c;
   assert.ok(r.checks.testAccountsFunded);
   const reserves={};
   for(const [name,address]of [['ETH',token(34)],['TBTC',token(1000765)],['PRIME',token(43)],['HOLLAR',HOLLAR]]){
@@ -14,9 +15,14 @@ try{
     assert.notEqual(reserves[name].aTokenAddress,v.zeroAddress);
     console.log('RESERVE',name,'LTV',(reserves[name].configuration.data&65535n).toString());
   }
-  const swapper='0x195c5efaa658ac3c40df6138f1c3b948ed2c83d7';
-  const swapperCode=await pub.getBytecode({address:swapper});assert.ok(swapperCode&&swapperCode!=='0x','existing Lark HydraAugustus missing');
-  r.market={pool:POOL,hollar:HOLLAR,prime:token(43),aPrime:reserves.PRIME.aTokenAddress,hollarDebt:reserves.HOLLAR.variableDebtTokenAddress,swapper,swapperCodeHash:v.keccak256(swapperCode),existingTestnetAdapter:true};save();
+  // a fresh mainnet fork has no HydraAugustus; deploy the pinned adapter and hand it to governance
+  const swapper=await deploy('HydraAugustus',[DISPATCH]);
+  for(const [address,id]of [[token(43),43],[HOLLAR,222],[token(34),34],[token(1000765),1000765]]){
+    if(Number(await read('HydraAugustus',swapper,'assetId',[address]))!==id)await write(`swapper.asset${id}`,'HydraAugustus',swapper,'setAssetId',[address,id]);
+  }
+  if((await read('HydraAugustus',swapper,'owner')).toLowerCase()!==GOV.toLowerCase())await write('swapper.owner','HydraAugustus',swapper,'transferOwnership',[GOV]);
+  const swapperCode=await pub.getBytecode({address:swapper});
+  r.market={pool:POOL,hollar:HOLLAR,prime:token(43),aPrime:reserves.PRIME.aTokenAddress,hollarDebt:reserves.HOLLAR.variableDebtTokenAddress,swapper,swapperCodeHash:v.keccak256(swapperCode),deployedAdapter:true};save();
   const a=r.addresses;
   a.vaultImpl=await deploy('CollateralVault');save();
   a.compoundLogic=await read('CollateralVault',a.vaultImpl,'compoundLogic');save();

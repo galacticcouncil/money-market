@@ -1,5 +1,8 @@
 # Lark deployment and hosted operators — 5 October 2026
 
+> Superseded by the [7 October fresh-fork deployment](lark-deployment-2026-10-07.md);
+> Lark 4 was re-forked and this chain no longer exists.
+
 The fresh PR #62 contracts are deployed on **Lark 4**, with two keeper signers,
 a mainnet-MM oracle mirror and a testnet arbitrage service in the
 `propeller-oct2026` [Swarm stack](https://swarmpit.lark.hydration.cloud).

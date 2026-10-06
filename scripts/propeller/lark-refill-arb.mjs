@@ -4,5 +4,5 @@ import {context,live} from './lark-context.mjs';
 const c=await context();
 try{
  assert.ok(live,'--live required');
- await c.sign(c.api.tx.currencies.transfer(c.arb.address,222,(50000n*10n**18n).toString()),'arb.refill-hollar-for-post-catchup-unwind');
+ await c.mintTestHollar(`arb.refill-hollar-${Date.now()}`,'0x'+Buffer.from(c.arb.publicKey.slice(0,20)).toString('hex'),50000n*10n**18n);
 }finally{await c.api.disconnect();}

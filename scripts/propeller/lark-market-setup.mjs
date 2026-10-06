@@ -3,7 +3,8 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {context,artifact,v,GOV,token,testAccount,role,live} from './lark-context.mjs';
-const prices=JSON.parse(readFileSync('/tmp/propeller-lark-prices-20261005.json','utf8'));
+import {PRICES_FILE} from './lark-pins.mjs';
+const prices=JSON.parse(readFileSync(PRICES_FILE,'utf8'));
 const c=await context();
 try {
  const {r,api,readSig,govEvm,enact,save,nativeAccount}=c;
@@ -46,7 +47,7 @@ try {
  await enact('fund-bots-and-ui',accounts.flatMap(a=>[api.tx.duster.whitelistAccount(a.who),...a.balances.map(([id,amount])=>api.tx.currencies.updateBalance(a.who,id,amount.toString()))]));
  const arbEvm='0x'+Buffer.from(c.arb.publicKey.slice(0,20)).toString('hex');
  if((await api.query.evmAccounts.accountExtension(arbEvm)).isNone)await c.sign(api.tx.evmAccounts.bindEvmAddress(),'arb.bind-evm',c.arb);
- await c.sign(api.tx.currencies.transfer(c.arb.address,222,(50000n*10n**18n).toString()),'arb.fund-hollar');
+ await c.mintTestHollar('arb.mint-test-hollar',arbEvm,50000n*10n**18n);
  r.testSigners.arb=arbEvm;save();
  const guardians=[contract('SubLoop',r.addresses.source,'grantRole',[role('GUARDIAN_ROLE'),committee])];
  for(const vault of r.vaults)guardians.push(contract('CollateralVault',vault.address,'grantRole',[role('GUARDIAN_ROLE'),committee]),contract('CollateralVault',vault.address,'unpauseDeposits',[]));

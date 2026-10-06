@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {existsSync, readFileSync, writeFileSync} from 'node:fs';
 import {artifact, artifactManifest, maxTransactionGas} from './native-artifacts.mjs';
+import {GENESIS, COMMIT, FILE} from './lark-pins.mjs';
 const require = createRequire(import.meta.url);
 const {ApiPromise, WsProvider, Keyring} = require('@polkadot/api');
 const {cryptoWaitReady} = require('@polkadot/util-crypto');
@@ -18,7 +19,7 @@ export const token = id => `0x${(0x100000000n + BigInt(id)).toString(16).padStar
 // These accounts must never hold real assets or be used outside Lark testnet.
 export const testAccount = index => mnemonicToAccount('test test test test test test test test test test test junk', {addressIndex:index});
 export const deployer = testAccount(17), keeper = testAccount(18);
-export const FILE = process.env.PROPELLER_LARK_RESULT || '/tmp/propeller-lark-20261005.json';
+export {FILE};
 export const live = process.argv.includes('--live');
 export const json = value => JSON.stringify(value, (_,x)=>typeof x==='bigint'?x.toString():x,2);
 export const role = name => name ? v.keccak256(v.toHex(name)) : v.zeroHash;
@@ -29,7 +30,7 @@ export async function context() {
   const chainName = (await api.rpc.system.chain()).toString();
   assert.equal(chainName,'Lark 4 Hydration');
   const genesis = (await api.rpc.chain.getBlockHash(0)).toHex();
-  assert.equal(genesis,'0xba82f5b6d812fd3e2a6c610969e395d3be1e558145a9f07148b8d1f269ab4fb2','This rehearsal is pinned to the October Lark genesis');
+  assert.equal(genesis,GENESIS,'This deployment is pinned to one Lark genesis; see lark-pins.mjs');
   const chain = {id:222222,name:'Lark 4 Hydration',nativeCurrency:{name:'WETH',symbol:'WETH',decimals:18},rpcUrls:{default:{http:[RPC]}}};
   const directRpc='https://node4.lark.hydration.cloud';
   const pub = v.createPublicClient({chain,transport:v.http(directRpc,{timeout:60000,retryCount:3}),pollingInterval:2000,cacheTime:0});
@@ -38,7 +39,7 @@ export async function context() {
   assert.ok(Math.abs(Date.now()/1000-Number(b.timestamp))<120,'Lark head is stale');
   assert.deepEqual(Array.from(api.tx.router.sell.callIndex),[67,0]);
   const wallet = v.createWalletClient({account:deployer,chain,transport:v.http(directRpc,{timeout:60000})});
-  const r = existsSync(FILE)?JSON.parse(readFileSync(FILE,'utf8')):{rpc:RPC,genesis,commit:'9828ffd6257293fe40ef99da41e4a1b8d058e3c7',startedAt:new Date().toISOString(),testnetOnly:true,deployments:[],calls:[],governance:[],addresses:{},checks:{},testSigners:{deployer:deployer.address,keeper:keeper.address}};
+  const r = existsSync(FILE)?JSON.parse(readFileSync(FILE,'utf8')):{rpc:RPC,genesis,commit:COMMIT,startedAt:new Date().toISOString(),testnetOnly:true,deployments:[],calls:[],governance:[],addresses:{},checks:{},testSigners:{deployer:deployer.address,keeper:keeper.address}};
   assert.equal(r.rpc,RPC);assert.equal(r.genesis,genesis,'Lark was reset; do not reuse this deployment record');
   r.runtime=(await api.rpc.state.getRuntimeVersion()).specVersion.toNumber();
   const save=()=>{r.artifacts={...r.artifacts,...artifactManifest};writeFileSync(FILE,json(r)+'\n');};
@@ -190,5 +191,13 @@ export async function context() {
   const write=(label,name,address,functionName,args=[])=>evmSend(label,address,v.encodeFunctionData({abi:artifact(name).abi,functionName,args}));
   const govEvm=(address,abi,fn,args,gas=3000000)=>api.tx.dispatcher.dispatchAsAaveManager(api.tx.evm.call(GOV,address,v.encodeFunctionData({abi,functionName:fn,args}),'0',gas,'100000000',null,null,[],[]));
   const nativeAccount=async address=>(await api.call.evmAccountsApi.accountId(address)).toString();
-  return {api,pub,wallet,chain,r,save,read,readSig,sign,enact,evmSend,deploy,write,govEvm,nativeAccount,arb,alice};
+  // a fresh mainnet fork gives //Alice no HOLLAR: mint public test inventory from
+  // a governance-owned facilitator bucket instead of transferring
+  const hollarAbi=v.parseAbi(['function addFacilitator(address,string,uint128)','function mint(address,uint256)','function getFacilitator(address) view returns((uint128,uint128,string))']);
+  async function mintTestHollar(label,to,amount){
+    const [capacity]=await pub.readContract({address:HOLLAR,abi:hollarAbi,functionName:'getFacilitator',args:[GOV]});
+    const calls=capacity===0n?[govEvm(HOLLAR,hollarAbi,'addFacilitator',[GOV,'Lark test inventory',1000000n*10n**18n],500000)]:[];
+    await enact(label,[...calls,govEvm(HOLLAR,hollarAbi,'mint',[to,amount],500000)]);
+  }
+  return {api,pub,wallet,chain,r,save,read,readSig,sign,enact,evmSend,deploy,write,govEvm,nativeAccount,mintTestHollar,arb,alice};
 }

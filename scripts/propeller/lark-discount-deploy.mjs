@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {context,GOV,live} from './lark-context.mjs';
+import {CORE_FILE} from './lark-pins.mjs';
 const c=await context();
 try{
- assert.ok(live);const core=JSON.parse(readFileSync('/tmp/propeller-lark-20261005.json','utf8'));
+ assert.ok(live);const core=JSON.parse(readFileSync(CORE_FILE,'utf8'));
  assert.equal(core.genesis,c.r.genesis);assert.ok(core.addresses.aSynthetic);
  const debt=core.market.hollarDebt;
  c.r.previousDiscount={token:await c.readSig(debt,'function getDiscountToken() view returns(address)'),strategy:await c.readSig(debt,'function getDiscountRateStrategy() view returns(address)')};

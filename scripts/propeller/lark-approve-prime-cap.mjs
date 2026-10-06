@@ -16,5 +16,5 @@ try{
  assert.ok(diff*10000n<=price,'pool peg has not converged within 1bp');
  await enact('restore-original-prime-peg-pacing',[api.tx.stableswap.updatePoolMaxPegUpdate(143,r.previousPrimePeg.maxPegUpdate)]);
  r.checks.primePegCaughtUp={current:current.toString(),target:price.toString(),restoredMaxPegUpdate:r.previousPrimePeg.maxPegUpdate};save();
- await c.sign(api.tx.currencies.transfer(c.arb.address,222,(10000n*10n**18n).toString()),'arb.refill-hollar-with-quote-reserve');
+ await c.mintTestHollar('arb.refill-hollar-with-quote-reserve','0x'+Buffer.from(c.arb.publicKey.slice(0,20)).toString('hex'),10000n*10n**18n);
 }finally{await c.api.disconnect();}

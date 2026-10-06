@@ -1,6 +1,7 @@
 import {readFileSync} from 'node:fs';
 import {spawn} from 'node:child_process';
-const r=JSON.parse(readFileSync('/tmp/propeller-lark-20261005.json','utf8'));
+import {CORE_FILE as FILE} from './lark-pins.mjs';
+const r=JSON.parse(readFileSync(FILE,'utf8'));
 Object.assign(process.env,{WS_URL:'wss://4.lark.hydration.cloud',RPC_URL:r.rpc,
  PROPELLER_SYNTH:r.addresses.synth,PROPELLER_SUBLOOP:r.addresses.source,PROPELLER_HARVESTER:r.addresses.harvester,
  PROPELLER_EXECUTION_CONTROLLER:r.addresses.controller,PROPELLER_EXECUTION_POLICY:JSON.stringify(r.executionPolicy),
