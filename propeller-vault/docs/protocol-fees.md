@@ -36,6 +36,12 @@ The fee is a fraction of harvested collateral yield, not of principal or TVL.
   on actual HOLLAR receipts, after execution costs and before debt servicing.
 - The current rate applies when previously unprocessed yield is checkpointed.
   Changing rates does not change already accrued fees.
+- Main interest is serviced from yield realized at the rate in force at harvest,
+  so the backing reserved for already-accrued interest follows the current
+  rate. An increase raises that reserve immediately and can write down
+  unconverted rewards by at most the unpaid interest times the change in
+  `fee / (1 - fee)` (about 0.89x unpaid interest for 10% to 50%); a decrease
+  releases it as newly allocated yield. Frequent servicing keeps this small.
 
 The borrowing discount is a separate policy: its existing governance/technical
 committee authority does not grant fee-setting authority. Governance is the

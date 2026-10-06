@@ -18,13 +18,30 @@ this is a bounded rounding residual, not a percentage yield holdback.
 Checkpointed earnings split into user-owned source units and protocol fee units
 at the current fee rate. Fee ownership vests at this checkpoint; subsequent rate
 changes apply to subsequent allocations, including when the rate changes from
-100% to zero. Nothing is payable to the treasury until actually realized.
+100% to zero. Nothing is payable to the treasury until actually realized. The
+one exception is Main interest servicing: the reserve for already-accrued
+interest is grossed up at the current rate, because the servicing slice pays the
+fee in force when it is harvested. A rate increase can therefore write down
+unconverted rewards by up to the unpaid interest times the change in
+`fee / (1 - fee)`; see [protocol fees](protocol-fees.md).
 
 Unconverted user and protocol units are junior to the active Main obligation.
 They absorb source losses and accrued servicing needs before Main backing is
 impaired. Checkpoints write down that ownership when needed; a recapitalization
 to borrowed principal does not restore written-off earnings ahead of exits.
 Already-funded collateral rewards remain backed collateral claims.
+
+Execution costs are source losses too. Deployment slices and source ramps buy
+PRIME for shares minted at the pre-swap source NAV, so each slice's swap cost,
+bounded by its lane's approved shortfall, lowers every attached vault's source
+equity. The next checkpoint absorbs it from unconverted rewards first, including
+rewards of holders who did not trigger the deployment. Once those rewards are
+exhausted, entry and deployment wait for carry to restore backing.
+
+While source cash or execution costs await allocation (until `pokeSettle`), a
+checkpoint settles accounts at the current index without allocating or writing
+down. Share transfers and redemption requests continue; the harvester skips that
+vault and reward claims revert until settlement.
 
 A completely worthless reward fund starts a new accounting epoch. Repeated
 losses that leave only dust use lazy unit rescaling, avoiding unbounded growth

@@ -39,20 +39,34 @@ has arrived.
   vaults or keepers. Each borrow is capped before creation by both source tranche
   and admission capacity, and is swapped in the same atomic transaction.
 - Upward Main rebalances take the available bounded amount. Unused reinvestment
-  credit remains for a subsequent pass. Existing backing/readiness checks still
-  apply; tranche limits do not permit borrowing through an existing shortfall.
+  credit remains for a subsequent pass, including a slice below the entry lane
+  minimum. Existing backing/readiness checks still apply; tranche limits do not
+  permit borrowing through an existing shortfall, and new debt requires an
+  intact synthetic floor. Waiting or unsettled exits pause price-driven resizing
+  only: deposited and earned credit keeps deploying, as immediate deposits did
+  before deferral. Settled but unclaimed requests block nothing.
 - PRIME→collateral lanes share one PRIME group and have their own trade caps.
   The Harvester bounds withdrawals before burning source shares, then compounds
   only that owner's slice. Remaining earned yield stays invested and owned.
   Small tails wait for additional yield. Parked donations use the same limits
   and wait behind owned carry rather than triggering a second dust trade.
 - Each Main-interest collateral→HOLLAR swap has its own lane, minimum, maximum
-  and budget. The complete harvest preview includes this second trade. An
-  unavailable service route rolls back the whole batch.
+  and budget. The complete harvest preview includes this second trade. A need
+  below the lane minimum sells the minimum when the fresh collateral covers it;
+  the surplus HOLLAR stays as active Main cash for later interest. A vault whose
+  due interest sale cannot trade now (expired, paced or exhausted lane, or no
+  quote) sits the harvest out, parked donations included, while other vaults
+  proceed. A sale above the lane's available size still rolls back the batch,
+  and the keeper retries smaller batches.
 - Source aPRIME→HOLLAR unwinds have a separate quoted lane. An explicitly enabled
   safety lane may bypass expiry, volume credit and pacing while a safety repayment
   is outstanding; it still requires a fresh quote, bounded size and the same
-  oracle price floor. Direct `pokeRepay` can repay existing cash but cannot swap
+  oracle price floor. A safety repayment on an unflagged lane uses its normal
+  budget. Expiry stops new entry and harvest trades, not exits: the flagged
+  unwind lane keeps its credit, pacing and price bounds after its policy lapses.
+  A routine exit whose remaining need is below the lane minimum sells the minimum,
+  capped by the source's aPRIME, so it can complete; the excess stays as source
+  cash. Direct `pokeRepay` can repay existing cash but cannot swap
   without a controller execution context. Cash settlement needs no swap quote.
 
 `configurePrice(lane, maxShortfallBps, safety)` bounds the **total** output
@@ -166,8 +180,11 @@ source ramp waits until the next cycle after a successful Main rebalance so it
 uses refreshed backing, repayment and health-factor state. An independent
 30-second read loop monitors source HF, Main backing, interest, synthetic coverage,
 stale RPC heads and stuck receipts even while a transaction is awaiting inclusion.
-RPC failure after submission keeps the signer locked until a receipt is observed;
-there is no blind retry with another nonce.
+The nonce is locked before broadcast. Without a receipt, the keeper re-sends the
+identical signed bytes and releases the lock once that nonce is mined; it never
+signs another payload for the nonce. A quote that would age out of the
+controller's block window before inclusion is re-pinned at the chosen sizes
+just before signing.
 
 Run independent operators with separate signers, balances and RPC infrastructure.
 `OPERATOR_COUNT`, unique `OPERATOR_INDEX` values and 60-second duty slots rotate
@@ -207,7 +224,8 @@ Before unpausing public deposits:
    actual wiring against the approved governance payload.
 5. Complete a direct UI deposit followed by several quoted deployment slices,
    a withdrawal before deployment, partial harvest with Main servicing,
-   expired-policy rejection, keeper handover and safety/exit rehearsal on the
+   expired-policy rejection of entry/harvest while exits continue, keeper
+   handover and safety/exit rehearsal on the
    exact deployment. Public activation still needs approved liquidity/refill
    limits, recovery funding and independent review.
 
