@@ -1357,6 +1357,59 @@
         "block": "320",
         "gasUsed": "46836"
       }
+    },
+    {
+      "label": "approved-lark-only-collateral-hundred-bps.preimage",
+      "hash": "0x88e9a5294faf3605b34c2b405bd81c4b6609ab739af8d173150befe5e83173de",
+      "nonce": 114,
+      "signer": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "blockHash": "0x8392493e41efdb7c2057f41975820b70900e4c8dc3e5ce1b6483a90a8e6f071a",
+      "success": true
+    },
+    {
+      "label": "approved-lark-only-collateral-hundred-bps.submit",
+      "hash": "0x128ac55e5ae63899befae6a55e231dd339dc819e9c27f030c0a8f62d0154879b",
+      "nonce": 115,
+      "signer": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "blockHash": "0x6aae876dd8964abbfd5ecd02dcd7f91e4927f7c050ed9d0f2d0821067f632485",
+      "success": true
+    },
+    {
+      "label": "approved-lark-only-collateral-hundred-bps.clear-completed-deployment-votes",
+      "hash": "0xaf462d43043dad4da6b0aeed078d86ba46124eb2a5078deb7c098d6e349639a0",
+      "nonce": 116,
+      "signer": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "blockHash": "0x87fd9bef153c94e8b1778bc7f2b87565479f01b445d2516a3142fa520a10965c",
+      "success": true
+    },
+    {
+      "label": "approved-lark-only-collateral-hundred-bps.decision-deposit",
+      "hash": "0x0bc09c4e39521776d94011144ed17e7116c5f462718690e5a66c8d8ecabc3f4b",
+      "nonce": 117,
+      "signer": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "blockHash": "0x38a4dc10446832f36b7fb3bb05236578e99eb0e6a272b71031ee5d1d26fdfea2",
+      "success": true
+    },
+    {
+      "label": "approved-lark-only-collateral-hundred-bps.vote",
+      "hash": "0x337619e708e73d481033e318ab1151423aac8e9ccabf7d0eb9dd025357fd7667",
+      "nonce": 118,
+      "signer": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "blockHash": "0x377e3cac60868627aef0a762f976aec91207331f58392489aceb3a317ea80074",
+      "success": true
+    },
+    {
+      "label": "harvest-proof.ETH.claimYield",
+      "hash": "0xc1434c8c971372382c76a366d6458c6b1f01879a6105284cb505fd8b49a3eaf3",
+      "nonce": 32,
+      "evm": true,
+      "to": "0x3a1c0fa2f877c84d2930e59637c111a31878dcdf",
+      "receipt": {
+        "status": "success",
+        "contractAddress": null,
+        "block": "572",
+        "gasUsed": "949204"
+      }
     }
   ],
   "governance": [
@@ -1633,6 +1686,18 @@
       "verified": true,
       "enactment": {
         "block": 319,
+        "recoveredAfterReorg": null
+      }
+    },
+    {
+      "label": "approved-lark-only-collateral-hundred-bps",
+      "hash": "0x5d564787d41e58bd3ca1cf0c3f815bc90853a3190820b9b7993c3fd9841d5114",
+      "len": 1649,
+      "ref": 445,
+      "dryRunPassed": true,
+      "verified": true,
+      "enactment": {
+        "block": 563,
         "recoveredAfterReorg": null
       }
     }

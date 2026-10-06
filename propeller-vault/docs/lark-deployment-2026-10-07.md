@@ -34,7 +34,8 @@ build) and `PROPELLER_ADAPTER_ARTIFACT` (HydraAugustus) set, run in order with
 `--live`: `lark-prepare`, `lark-deploy`, `lark-wire`, then `lark-prices-deploy`
 and `lark-discount-deploy` with `PROPELLER_LARK_RESULT` set to the prices
 journal, then `lark-market-setup`, `lark-bootstrap`, `lark-approve-prime-cap`,
-`lark-protect-adapter`, `lark-routes-setup` and `lark-fund-main`. Finally
+`lark-protect-adapter`, `lark-routes-setup`, `lark-fund-main` and
+`lark-approve-harvest-cap`. Finally
 `lark-manifest` writes the bot config and `lark-stack --keepers` the compose.
 
 A fresh mainnet fork differs from the July-based chain in four ways:
@@ -64,12 +65,23 @@ the journal; later referenda ran unattended.
   routes quote. PRIME↔HOLLAR costs 3–4 bps, inside the approved 6 bps.
 - Keepers deployed both vaults' pending collateral, serviced Main interest and
   ramped the source towards its 1.05 health-factor target.
+- A hosted keeper mined a harvest at block 568
+  (`0x609fe292e0564862ab3933522fa3f03f7605399040b24566da2752abdecac208`):
+  1.447 PRIME realized and compounded into both vaults' reward funds. The test
+  depositor then claimed the full ETH reward (`claimYield`, 305,037,059,110,929
+  shares).
 
-## Open gates
+## Execution policy
 
-ETH/tBTC harvest and service lanes keep their 0 bps price floors, while the
-forked routes cost roughly 23–50 bps at small sizes. Harvest previews therefore
-fail in the compound step and no harvest is mined; a calibrated policy for those
-lanes is still required. Re-forking also reset every other Lark 4 user,
-including `gamma-keeper:lark4` and the retired September `propeller-looper`
-stack, which now point at contracts that no longer exist.
+A 0 bps floor never clears real ETH/tBTC routes: test-size costs measured
+14–66 bps against the MM oracle. Referendum 445 sets **100 bps on Lark only**
+for both harvest lanes, all four Main interest-sale lanes and both vaults'
+compound floor. PRIME↔HOLLAR entry and unwind stay at the approved 6 bps.
+Mainnet still needs its own measured policy for every lane.
+
+## Remaining caveats
+
+Re-forking also reset every other Lark 4 user, including `gamma-keeper:lark4`
+and the retired September `propeller-looper` stack, which now point at
+contracts that no longer exist. Test HOLLAR subsidies above are recorded and
+are not yield.

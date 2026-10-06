@@ -5,7 +5,7 @@
   "commit": "db0799c2c13cfea880b089d737c02cfb2e116be6",
   "startedAt": "2026-10-06T22:41:11.205Z",
   "testnetOnly": true,
-  "status": "testnet-active; deferred entry deployed and ramping; harvest gates open",
+  "status": "testnet-active; deferred entry deployed and ramping; harvest mined and claimed",
   "addresses": {
     "vaultImpl": "0x7e7a0e795e14a11e62b20efaec48407003bfdc8f",
     "compoundLogic": "0x9d5C73cd0B9F9515A44D788D0D92e4Fe9A06e4AE",
@@ -258,7 +258,7 @@
         "group": "0x9b605cba51978d163ec70365f6dd261a4858e9abe0635d9db9b9045d5991e356",
         "minimum": "10000",
         "maximum": "50000000",
-        "maxShortfallBps": 0,
+        "maxShortfallBps": 100,
         "safety": false
       },
       {
@@ -269,7 +269,7 @@
         "group": "0x27eacb01119bf615028672a408e44e904f309dce8cdc375edc70e20e1bde65f5",
         "minimum": "1000000000000",
         "maximum": "20000000000000000",
-        "maxShortfallBps": 0,
+        "maxShortfallBps": 100,
         "safety": false
       },
       {
@@ -280,7 +280,7 @@
         "group": "0x27eacb01119bf615028672a408e44e904f309dce8cdc375edc70e20e1bde65f5",
         "minimum": "1000000000000",
         "maximum": "20000000000000000",
-        "maxShortfallBps": 0,
+        "maxShortfallBps": 100,
         "safety": false
       },
       {
@@ -291,7 +291,7 @@
         "group": "0x9b605cba51978d163ec70365f6dd261a4858e9abe0635d9db9b9045d5991e356",
         "minimum": "10000",
         "maximum": "50000000",
-        "maxShortfallBps": 0,
+        "maxShortfallBps": 100,
         "safety": false
       },
       {
@@ -302,7 +302,7 @@
         "group": "0x9a81d63186f91276e38e2d14af81d7393dbb799e4c115f70c8886665983b1321",
         "minimum": "10000000000",
         "maximum": "1000000000000000",
-        "maxShortfallBps": 0,
+        "maxShortfallBps": 100,
         "safety": false
       },
       {
@@ -313,7 +313,7 @@
         "group": "0x9a81d63186f91276e38e2d14af81d7393dbb799e4c115f70c8886665983b1321",
         "minimum": "10000000000",
         "maximum": "1000000000000000",
-        "maxShortfallBps": 0,
+        "maxShortfallBps": 100,
         "safety": false
       }
     ]
@@ -324,9 +324,16 @@
       "scope": "Lark only; PRIME/HOLLAR entry and unwind",
       "maxShortfallBps": 6,
       "userAnswer": "Use 6 bps on Lark only (Recommended)"
+    },
+    {
+      "id": "collateral-hundred-bps",
+      "scope": "Lark only; ETH/tBTC harvest and Main interest-sale lanes, vault compound floor",
+      "maxShortfallBps": 100,
+      "userAnswer": "0 price floor is unrealistic; make harvest work"
     }
   ],
   "sourceSlippagePpm": 600,
+  "compoundSlippageBps": 100,
   "checks": {
     "testAccountsFunded": true,
     "bootstrapNoBorrow": true,
@@ -336,7 +343,13 @@
       "restoredMaxPegUpdate": 40
     },
     "adapterWhitelisted": true,
-    "primeCollateralRoutes": true
+    "primeCollateralRoutes": true,
+    "harvestClaim": {
+      "vault": "0x3a1c0fa2f877c84d2930e59637c111a31878dcdf",
+      "claimable": "305037059110929",
+      "received": "305037059110929",
+      "assets": "305037062369664"
+    }
   },
   "testSubsidies": [
     {
@@ -399,6 +412,12 @@
   "previousDiscount": {
     "token": "0x531a654d1696ED52e7275A8cede955E82620f99a",
     "strategy": "0x33A7C640140FEBafEcC9801AF723A0C14420eEd7"
+  },
+  "harvest": {
+    "block": 568,
+    "tx": "0x609fe292e0564862ab3933522fa3f03f7605399040b24566da2752abdecac208",
+    "primeRealized": "1447131",
+    "signer": "hosted keeper"
   },
   "hosting": {
     "stack": "propeller-oct2026",
