@@ -9,9 +9,11 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IPropellerFeeController} from "./interfaces/IPropellerFeeController.sol";
 import {ExecutionController} from "./ExecutionController.sol";
+import {IMainDebt} from "./interfaces/IMainDebt.sol";
 
 interface ICompoundable {
     function collateral() external view returns (address);
+    function mainDebt() external view returns (IMainDebt);
     function prepareHarvest() external returns (uint256);
     function compound(address tokenIn, uint256 amountIn, uint256 minOut, bytes calldata route) external;
 }
@@ -165,8 +167,9 @@ contract Harvester is AccessControl, ReentrancyGuard {
             uint256 gift = total == 0 ? 0 : Math.mulDiv(donated, beforeShares[i], total);
             if (address(executionController) != address(0)) {
                 // Owned carry has priority. Do not make a second dust trade on
-                // the same route; parked donations cannot bypass the limits.
-                gift = amount == 0 ? _fit(v, gift) : 0;
+                // the same route; parked donations cannot bypass the limits,
+                // including a skipped vault's blocked interest sale.
+                gift = amount == 0 && !ICompoundable(v).mainDebt().serviceBlocked() ? _fit(v, gift) : 0;
             }
             uint256 minimum = i < minOuts.length ? minOuts[i] : 0;
             uint256 yieldMinimum = amount == 0 ? 0 : Math.mulDiv(minimum, amount, amount + gift, Math.Rounding.Up);

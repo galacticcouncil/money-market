@@ -9,6 +9,7 @@ interface IMainDebt {
     function activeFunds() external view returns (uint256);
     function sourceFeeReserve() external view returns (uint256);
     function pendingSourceAccounting() external view returns (bool);
+    function serviceBlocked() external view returns (bool);
     function vault() external view returns (address);
     function ownedCash() external view returns (uint256);
     function activeSourceRemaining() external view returns (uint256);

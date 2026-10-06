@@ -20,7 +20,7 @@ import {IPropellerFeeController} from "./interfaces/IPropellerFeeController.sol"
 import {IMainDebt} from "./interfaces/IMainDebt.sol";
 import {PropellerYieldAccounting} from "./PropellerYieldAccounting.sol";
 import {ExecutionController} from "./ExecutionController.sol";
-import {CompoundLogic} from "./lib/CompoundLogic.sol";
+import {CompoundLogic, SyntheticFloor} from "./lib/CompoundLogic.sol";
 
 /// @title CollateralVault
 /// @notice One per supported volatile collateral (ETH, tBTC, DOT…). Shares
@@ -29,12 +29,13 @@ import {CompoundLogic} from "./lib/CompoundLogic.sol";
 ///         collateral and mints backed reward shares, claimable via claimYield.
 ///         Previously earned yield does not enrich newly deposited shares.
 ///
-/// @dev    Architecture A. On deposit the vault:
-///           1. supplies collateral to the Aave money market (Main position),
-///           2. borrows HOLLAR at the target LTV,
-///           3. mints + supplies SyntheticToken (= HOLLAR debt) → Main HF floored
+/// @dev    Architecture A. A deposit supplies collateral to the Aave money
+///         market (Main position) and mints funded shares. A quoted rebalance
+///         then deploys that credit:
+///           1. borrows HOLLAR at the target LTV,
+///           2. mints + supplies SyntheticToken (= HOLLAR debt) → Main HF floored
 ///              → principal un-liquidatable at any collateral price,
-///           4. routes the borrowed HOLLAR into the shared SubLoop.
+///           3. routes the borrowed HOLLAR into the shared SubLoop.
 ///         Withdrawal asynchronously unwinds the source slice, repays HOLLAR,
 ///         burns synthetic and releases collateral. A target-LTV band keeps
 ///         the loop sized to the collateral value as price moves.
@@ -51,7 +52,6 @@ contract CollateralVault is
 
     uint256 internal constant WAD = 1e18;
     uint256 internal constant BPS = 1e4;
-    uint256 internal constant VARIABLE_RATE = 2;
     uint256 private constant DEAD_SHARES = 1000;
     address private constant DEAD_ADDRESS = address(0xdead);
     /// @dev Bounds one settle pass so a long funded queue can't exceed block gas.
@@ -78,11 +78,7 @@ contract CollateralVault is
     // read live off the pool (bits 0-15 of the configuration bitmap). There is
     // no reason to run below it — the synthetic floor, not the LTV, is the
     // liquidation guard — and a stored copy drifts from governance changes.
-    /// @dev rebalance hysteresis around the reserve max LTV: re-lever up when
-    ///      utilization drifts this far below it, de-lever when this far above
-    ///      (only a collateral price drop can push LTV past the max).
-    uint16 internal constant LTV_BAND_LOW_GAP_BPS = 500;
-    uint16 internal constant LTV_BAND_HIGH_GAP_BPS = 300;
+    // the rebalance hysteresis band lives in CompoundLogic
     // The synthetic reserve's liquidation threshold is NOT stored either, for the
     // same reason as the collateral's max LTV: it is a governance-controlled Aave
     // parameter, and a copy taken at `initialize` silently drifts when governance
@@ -591,12 +587,14 @@ contract CollateralVault is
     function rebalance() external nonReentrant whenNotPaused returns (uint256 work) {
         yieldAccounting.checkpoint(address(0), address(0));
         // Main resizing is not a safety de-lever: the synthetic floors its HF.
-        // Finish existing commitments first; SubLoop safety repayment stays live.
-        if (pendingWithdrawalShares != 0 || totalQueuedShares != 0 || deleverTarget != 0
-            || yieldSource.pendingUnwindOf(address(this)) != 0) return 0;
+        // a committed de-lever settles first. waiting or unsettled exits pause
+        // price resizing only; unclaimed settled requests block nothing
+        if (deleverTarget != 0) return 0;
+        bool exiting = pendingWithdrawalShares != 0 || queueHead != queueUnwind
+            || yieldSource.pendingUnwindOf(address(this)) != 0;
         uint256 before_ = loopShares;
         (loopShares, syntheticSupplied, deleverTarget, reinvestAssets) = abi.decode(
-            Address.functionDelegateCall(compoundLogic, abi.encodeCall(CompoundLogic.rebalance, ())),
+            Address.functionDelegateCall(compoundLogic, abi.encodeCall(CompoundLogic.rebalance, (exiting))),
             (uint256, uint256, uint256, uint256));
         _refreshDiscount();
         work = before_ > loopShares ? before_ - loopShares : loopShares - before_;
@@ -607,7 +605,7 @@ contract CollateralVault is
     function maintainPeg() external nonReentrant returns (uint256 add) {
         uint256 debt = hollarDebtToken.balanceOf(address(this));
         uint256 lt = synthLtBps();
-        uint256 required = _bufferedSynthetic(debt, lt);
+        uint256 required = SyntheticFloor.buffered(debt, lt);
         // Refill to 50bp only after half the buffer is used. Polling frequently
         // must not top up a few wei of accrued interest every cycle.
         if (syntheticSupplied >= Math.mulDiv(debt, BPS * 10025, lt * 10000, Math.Rounding.Up)) {
@@ -619,11 +617,6 @@ contract CollateralVault is
         emit SyntheticPegMaintained(int256(add));
     }
 
-    function _bufferedSynthetic(uint256 debt, uint256 lt) internal pure returns (uint256 amount) {
-        amount = Math.ceilDiv(debt * BPS, lt);
-        amount += amount / 200;
-    }
-
     /// @dev Mint + supply `amt` synthetic and make sure it COUNTS: Aave only
     ///      auto-enables an asset as collateral on the very first supply (and
     ///      only when its reserve LTV > 0), so without the explicit enable the
@@ -632,10 +625,7 @@ contract CollateralVault is
     ///      alone are not proof that Aave counts the synthetic collateral.
     function _supplySynth(uint256 amt) internal {
         syntheticSupplied += amt;
-        synthetic.mint(address(this), amt);
-        IERC20(address(synthetic)).forceApprove(address(pool), amt);
-        pool.supply(address(synthetic), amt, address(this), 0);
-        pool.setUserUseReserveAsCollateral(address(synthetic), true);
+        SyntheticFloor.supply(pool, synthetic, amt);
         // The first borrow precedes synth supply, so GHO initially caches zero.
         _refreshDiscount();
     }
@@ -646,17 +636,10 @@ contract CollateralVault is
         }
     }
 
-    /// @dev The collateral reserve's max LTV (bps) — bits 0-15 of the Aave
-    ///      reserve configuration bitmap. Read live so the vault auto-follows
-    ///      any governance change; never stored.
-    function _maxLtvBps() internal view returns (uint256) {
-        return pool.getConfiguration(address(collateral)) & 0xFFFF;
-    }
-
     /// @notice The synthetic reserve's liquidation threshold (bps) — bits 16-31 of
     ///         the Aave reserve configuration bitmap, read live.
-    /// @dev    Every synthetic sizing (`deposit`, `rebalance`, `maintainPeg`) and
-    ///         the INV-1 floor guard divide by this, so a zero would panic. It IS
+    /// @dev    Every synthetic sizing (`rebalance`, `maintainPeg`) and the
+    ///         INV-1 floor guards divide by this, so a zero would panic. It IS
     ///         zero before the governance proposal lists the synthetic reserve —
     ///         reverting there is correct (the floor cannot be established yet), but
     ///         it should say so rather than panic.

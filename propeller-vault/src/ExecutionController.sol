@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @notice Shared trade budgets and short-lived, caller-supplied execution quotes.
@@ -130,12 +131,13 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
     function _available(bytes32 key, bool safety) private view returns (uint256 amount) {
         Limit storage l = limits[key];
         Budget storage b = budgets[l.group];
-        if (safety) {
-            if (!safetyLanes[key]) return 0;
+        // an unflagged lane serves safety from its normal budget
+        if (safety && safetyLanes[key]) {
             amount = l.maximum;
         } else {
             Pacing storage p = pacing[l.group];
-            if (b.expiresAt <= block.timestamp || (!activeGroups[l.group]
+            // expiry halts new risk, not exits: the flagged unwind lane keeps its credit and pacing
+            if ((b.expiresAt <= block.timestamp && !safetyLanes[key]) || (!activeGroups[l.group]
                 && (block.timestamp < p.nextAt || (p.lastBlock != 0 && p.lastBlock == block.number)))) return 0;
             amount = Math.min(l.maximum, _credit(b));
         }
@@ -161,9 +163,12 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
     function prepare(address tokenIn, address tokenOut, uint256 wanted, uint256 fairOut, bool safety)
         external returns (uint256 amount, uint256 minimum)
     {
-        if (caller == address(0)) return (0, 0);
+        if (caller == address(0) || wanted == 0) return (0, 0);
         bytes32 key = lane(msg.sender, tokenIn, tokenOut);
-        amount = Math.min(wanted, _available(key, safety));
+        amount = wanted;
+        // a routine tail below the lane minimum sells the minimum, or that exit never completes
+        if (!safety) amount = Math.min(Math.max(amount, limits[key].minimum), IERC20(tokenIn).balanceOf(msg.sender));
+        amount = Math.min(amount, _available(key, safety));
         if (amount == 0 || amount < limits[key].minimum) return (0, 0);
         minimum = _consume(tokenIn, tokenOut, amount, Math.mulDiv(fairOut, amount, wanted), safety);
     }

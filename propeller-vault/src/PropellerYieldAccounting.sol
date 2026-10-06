@@ -151,64 +151,73 @@ contract PropellerYieldAccounting {
 
     /// @dev Ownership and its fee vest together, before collateral balances
     /// change. The protocol receives its reserved source units only on actual
-    /// realization. A later rate change cannot reassign earlier earnings.
+    /// realization. A later rate change cannot reassign earlier earnings, but
+    /// the servicing reserve for accrued interest follows the current rate.
     function checkpoint(address from, address to) external onlyVault {
         IYieldVault v = IYieldVault(vault);
         IYieldSource s = v.yieldSource();
-        if (harvestUnits != 0 || s.accountingLocked() || v.mainDebt().pendingSourceAccounting()) revert InvalidHarvest();
+        if (harvestUnits != 0 || s.accountingLocked()) revert InvalidHarvest();
+        // unallocated source cash or costs leave active cash stale. accounts settle
+        // at the current index; allocation waits for pokeSettle.
+        if (!v.mainDebt().pendingSourceAccounting()) _allocate(v, s);
+        _settle(from);
+        if (to != from) _settle(to);
+    }
+
+    /// @dev reads equity, backing and fund value once; nothing below changes them
+    function _allocate(IYieldVault v, IYieldSource s) private {
+        uint256 held = s.sharesOf(vault);
+        uint256 equity = s.equityOf(vault) * 1e10;
+        uint256 required = _required();
+        uint256 available = equity > required ? Math.mulDiv(equity - required, held, equity) : 0;
         uint256 reserved = reservedShares();
-        uint256 retained = _retained();
-        if (retained < reserved) {
-            sourceShares = Math.mulDiv(sourceShares, retained, reserved);
-            protocolShares = retained - sourceShares;
+        if (available < reserved) {
+            sourceShares = Math.mulDiv(sourceShares, available, reserved);
+            protocolShares = available - sourceShares;
+            reserved = available;
         }
-        if (totalUnits != 0 && _assets() == 0) {
+        uint256 added = available - reserved;
+        uint256 supply = _supply();
+        bool allocating = held != 0 && supply != 0 && added != 0;
+        if (totalUnits == 0 && !allocating) return;
+        uint256 funded = _funded();
+        uint256 before_ = (held == 0 ? 0 : Math.mulDiv(equity, sourceShares, held))
+            + v.mainDebt().quoteHollar(v.convertToAssets(funded));
+        if (totalUnits != 0 && before_ == 0) {
             totalUnits = 0;
             rewardIndex = 0;
             unitScale = 0;
             emit YieldWrittenOff(++epoch);
         }
-        uint256 held = s.sharesOf(vault);
-        uint256 supply = _supply();
-        if (held != 0 && supply != 0) {
-            uint256 equity = s.equityOf(vault) * 1e10;
-            uint256 required = _required();
-            uint256 available = equity > required ? Math.mulDiv(equity - required, held, equity) : 0;
-            uint256 added = available > retained ? available - retained : 0;
-            if (added != 0) {
-                uint256 before_ = _assets();
-                // Main recovery cash or an outside repayment can release source
-                // capital. That capital is a gift, not fee-bearing earned yield.
-                uint256 basis = s.principalOf(vault);
-                uint256 released = Math.min(Math.mulDiv(added, equity, held), basis > required ? basis - required : 0);
-                if (released != 0) s.releasePrincipal(vault, released);
-                uint256 untaxed = Math.mulDiv(released, held, equity);
-                uint256 feeShares = Math.mulDiv(added - untaxed, _fee(), BPS);
-                uint256 rewardShares = added - feeShares;
-                uint256 value = _value(rewardShares);
-                uint256 selfValue = Math.mulDiv(value, _funded(), supply);
-                uint256 outsideSupply = supply - _funded();
-                uint256 outsideValue = value - selfValue;
-                uint256 denominator = before_ + selfValue + 1;
-                // Loss followed by refilling must not exponentially inflate
-                // units. Rescale lazily, preserving far more precision than a
-                // collateral/source base unit and without visiting holders.
-                uint256 limit = Math.mulDiv(uint256(1) << 160, denominator, Math.max(denominator, outsideValue));
-                while (totalUnits > limit) {
-                    totalUnits >>= 64;
-                    rewardIndex >>= 64;
-                    unitScale += 64;
-                }
-                uint256 minted = Math.mulDiv(outsideValue, totalUnits + 1, denominator);
-                sourceShares += rewardShares;
-                protocolShares += feeShares;
-                totalUnits += minted;
-                if (outsideSupply != 0) rewardIndex += Math.mulDiv(minted, RAY, outsideSupply);
-                emit YieldCheckpoint(rewardShares, minted);
-            }
+        if (!allocating) return;
+        // Main recovery cash or an outside repayment can release source
+        // capital. That capital is a gift, not fee-bearing earned yield.
+        uint256 basis = s.principalOf(vault);
+        uint256 released = Math.min(Math.mulDiv(added, equity, held), basis > required ? basis - required : 0);
+        if (released != 0) s.releasePrincipal(vault, released);
+        uint256 untaxed = Math.mulDiv(released, held, equity);
+        uint256 feeShares = Math.mulDiv(added - untaxed, _fee(), BPS);
+        uint256 rewardShares = added - feeShares;
+        uint256 value = Math.mulDiv(equity, rewardShares, held);
+        uint256 selfValue = Math.mulDiv(value, funded, supply);
+        uint256 outsideSupply = supply - funded;
+        uint256 outsideValue = value - selfValue;
+        uint256 denominator = before_ + selfValue + 1;
+        // Loss followed by refilling must not exponentially inflate
+        // units. Rescale lazily, preserving far more precision than a
+        // collateral/source base unit and without visiting holders.
+        uint256 limit = Math.mulDiv(uint256(1) << 160, denominator, Math.max(denominator, outsideValue));
+        while (totalUnits > limit) {
+            totalUnits >>= 64;
+            rewardIndex >>= 64;
+            unitScale += 64;
         }
-        _settle(from);
-        if (to != from) _settle(to);
+        uint256 minted = Math.mulDiv(outsideValue, totalUnits + 1, denominator);
+        sourceShares += rewardShares;
+        protocolShares += feeShares;
+        totalUnits += minted;
+        if (outsideSupply != 0) rewardIndex += Math.mulDiv(minted, RAY, outsideSupply);
+        emit YieldCheckpoint(rewardShares, minted);
     }
 
     function escrow(uint256 id) external onlyVault {
@@ -248,6 +257,10 @@ contract PropellerYieldAccounting {
 
     function harvestableShares() public view returns (uint256) {
         IYieldVault v = IYieldVault(vault);
+        // unallocated accounting or an untradeable interest sale: this vault sits
+        // the round out instead of harvesting stale units or reverting the batch
+        IMainDebt ledger = v.mainDebt();
+        if (ledger.pendingSourceAccounting() || ledger.serviceBlocked()) return 0;
         IYieldSource s = v.yieldSource();
         uint256 held = s.sharesOf(vault);
         uint256 equity = s.equityOf(vault) * 1e10;
@@ -310,6 +323,8 @@ contract PropellerYieldAccounting {
     /// @notice Materialize funded collateral shares only. Unconverted reward
     /// units remain owned; a partial claim cannot erase them.
     function claim(address owner, address receiver) external onlyVault returns (uint256 shares) {
+        // fund NAV needs allocated source accounting; pokeSettle first
+        if (IYieldVault(vault).mainDebt().pendingSourceAccounting()) revert InvalidHarvest();
         _settle(owner);
         _settle(receiver);
         shares = vestedShares[owner];

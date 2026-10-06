@@ -320,7 +320,6 @@ contract ExecutionControlsTest is HarvestTest {
         uint256 shares = vault.balanceOf(address(this)) / 2;
         uint256 expected = credit - credit * shares / vault.totalSupply();
         uint256 id = vault.requestRedeem(shares, address(this));
-        assertEq(vault.rebalance(), 0, "waiting exits stop new borrowing");
         vm.warp(block.timestamp + vault.withdrawalDelay());
         vault.startUnwinds(1);
         assertEq(vault.reinvestAssets(), expected, "only exiting credit is removed");

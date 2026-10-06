@@ -415,35 +415,57 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
         collateral.safeTransferFrom(vault, address(this), amount);
         if (collateral.balanceOf(address(this)) != before_ + amount) revert TransferMismatch();
         uint256 wanted = interestOf(0);
-        uint256 cash = positions[0].cash;
-        cash -= Math.min(cash, sourceFees[0].feeRemaining);
+        uint256 cash = _spendableActiveCash();
         uint256 sellAmount;
         if (wanted > cash && amount != 0) {
-            uint256 needed = wanted - cash;
             uint256 slippage = IMainDebtVault(vault).compoundSlippageBps();
             sellAmount = Math.min(amount, _quote(address(hollar), address(collateral),
-                Math.mulDiv(needed, BPS, BPS - slippage, Math.Rounding.Up), Math.Rounding.Up));
-            uint256 fairOut = _quote(address(collateral), address(hollar), sellAmount, Math.Rounding.Down);
-            uint256 minimum = Math.mulDiv(fairOut, BPS - slippage, BPS);
-            ISwapper swapper = IMainDebtVault(vault).swapper();
-            uint256 cashBefore = hollar.balanceOf(address(this));
-            collateral.forceApprove(address(swapper), sellAmount);
+                Math.mulDiv(wanted - cash, BPS, BPS - slippage, Math.Rounding.Up), Math.Rounding.Up));
             ExecutionController control = IMainDebtVault(vault).executionController();
-            if (address(control) != address(0)) minimum = Math.max(minimum,
-                control.consume(address(collateral), address(hollar), sellAmount, fairOut));
-            swapper.sell(address(collateral), address(hollar), sellAmount, minimum, "");
-            collateral.forceApprove(address(swapper), 0);
-            uint256 received = hollar.balanceOf(address(this)) - cashBefore;
-            if (address(control) != address(0)) control.record(address(collateral), address(hollar), received);
-            if (received == 0 || received < minimum
-                || collateral.balanceOf(address(this)) != before_ + amount - sellAmount) revert TransferMismatch();
-            positions[0].cash += received;
-            ownedCash += received;
+            if (address(control) != address(0)) {
+                // a need below the lane minimum sells the minimum; the surplus stays as active cash
+                (, uint128 floor,) = control.limits(control.lane(address(this), address(collateral), address(hollar)));
+                if (sellAmount < floor) sellAmount = amount < floor ? 0 : floor;
+            }
+            if (sellAmount != 0) _sellForInterest(collateral, control, sellAmount, slippage);
+            if (collateral.balanceOf(address(this)) != before_ + amount - sellAmount) revert TransferMismatch();
         }
         _repay(0, 0);
         remaining = amount - sellAmount;
         collateral.safeTransfer(vault, remaining);
         if (collateral.balanceOf(address(this)) != before_) revert TransferMismatch();
+    }
+
+    function _sellForInterest(IERC20 collateral, ExecutionController control, uint256 sellAmount, uint256 slippage)
+        private
+    {
+        uint256 fairOut = _quote(address(collateral), address(hollar), sellAmount, Math.Rounding.Down);
+        uint256 minimum = Math.mulDiv(fairOut, BPS - slippage, BPS);
+        ISwapper swapper = IMainDebtVault(vault).swapper();
+        uint256 cashBefore = hollar.balanceOf(address(this));
+        collateral.forceApprove(address(swapper), sellAmount);
+        if (address(control) != address(0)) minimum = Math.max(minimum,
+            control.consume(address(collateral), address(hollar), sellAmount, fairOut));
+        swapper.sell(address(collateral), address(hollar), sellAmount, minimum, "");
+        collateral.forceApprove(address(swapper), 0);
+        uint256 received = hollar.balanceOf(address(this)) - cashBefore;
+        if (address(control) != address(0)) control.record(address(collateral), address(hollar), received);
+        if (received == 0 || received < minimum) revert TransferMismatch();
+        positions[0].cash += received;
+        ownedCash += received;
+    }
+
+    function _spendableActiveCash() private view returns (uint256 cash) {
+        cash = positions[0].cash;
+        cash -= Math.min(cash, sourceFees[0].feeRemaining);
+    }
+
+    /// @notice due interest whose sale lane can't trade now; the harvester skips
+    /// this vault instead of rolling back every vault's batch
+    function serviceBlocked() external view override returns (bool) {
+        ExecutionController control = IMainDebtVault(vault).executionController();
+        return address(control) != address(0) && interestOf(0) > _spendableActiveCash()
+            && control.available(address(this), address(IMainDebtVault(vault).collateral()), address(hollar)) == 0;
     }
 
     function _quote(address input, address output, uint256 amount, Math.Rounding rounding)
