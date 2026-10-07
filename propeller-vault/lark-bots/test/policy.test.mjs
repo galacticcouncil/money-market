@@ -1,21 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute,depositOwed,userDeposit} from '../policy.mjs';
-test('correction trades preserve inventory for both-direction live quotes',()=>{
- assert.equal(retainsQuoteInventory(5100n*10n**18n,5000n*10n**18n,100000000n,18),true);
- assert.equal(retainsQuoteInventory(5000n*10n**18n,5000n*10n**18n,100000000n,18),false);
- assert.equal(retainsQuoteInventory(100n*10n**6n,1n,106290112n,6),true);
- assert.equal(retainsQuoteInventory(90n*10n**6n,1n,106290112n,6),false);
-});
+import {fairOutput,pegPremium,sizePeg,pegMinOut,freshReference,orientRoute,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute,depositOwed,userDeposit} from '../policy.mjs';
 test('PRIME NAV and token decimals govern the quote, not a 1:1 reserve ratio',()=>{
  assert.equal(fairOutput(1000000n,106290112n,100000000n,6,18),1062901120000000000n);
  assert.equal(fairOutput(1062901120000000000n,100000000n,106290112n,18,6),1000000n);
 });
-test('arbitrage minimum includes fees and never permits an oracle loss',()=>{
- assert.equal(profitableQuote({amount:100n,out:999n,fair:1000n}),null);
- assert.equal(profitableQuote({amount:100n,out:1000n,fair:1000n}),null);
- assert.equal(profitableQuote({amount:100n,out:1001n,fair:1000n}).minOut,1001n);
- assert.equal(profitableQuote({amount:100n,out:1100n,fair:1000n}).minOut,1099n);
+test('the peg premium cancels the pool fee from both probe directions',()=>{
+ // lark pool 143: buying costs 9.68 bps, selling earns 1.67 bps -> 5.67 bps rich
+ assert.equal(pegPremium({buyOut:999032n,buyFair:1000000n,sellOut:1000167n,sellFair:1000000n}),567n);
+ assert.equal(pegPremium({buyOut:999600n,buyFair:1000000n,sellOut:999600n,sellFair:1000000n}),0n);
+ assert.equal(pegPremium({buyOut:999900n,buyFair:1000000n,sellOut:999300n,sellFair:1000000n}),-300n);
+});
+test('peg sizing stops at the oracle, never past it',async()=>{
+ const linear=(before,perUnit)=>async a=>before-a*perUnit;
+ const down=await sizePeg(linear(567n,1n),567n,10000n);
+ assert.ok(down<=567n&&down>=567n-10000n/1024n,'a premium is sold down to the oracle within one step');
+ assert.equal(await sizePeg(linear(567n,1n),567n,100n),100n,'a short cap corrects partially');
+ const up=await sizePeg(async a=>-300n+a*3n,-300n,1024n);
+ assert.ok(up<=100n&&up>=99n,'a discount is bought back from below');
+ assert.equal(await sizePeg(linear(0n,1n),0n,1000n),0n);
+});
+test('a peg trade pays at most the loss cap under the oracle',()=>{
+ assert.equal(pegMinOut({out:9994n,fair:10000n}),null);
+ assert.equal(pegMinOut({out:9996n,fair:10000n}),9995n);
+ assert.equal(pegMinOut({out:10100n,fair:10000n}),10097n);
 });
 test('stale, future or nonpositive canonical references cannot be refreshed',()=>{
  const good={price:1n,updatedAt:900n,chainTime:1000n,headAge:10,maxAge:200n};

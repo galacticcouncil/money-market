@@ -6,11 +6,14 @@ import {ApiPromise,WsProvider,Keyring} from '@polkadot/api';
 import {cryptoWaitReady} from '@polkadot/util-crypto';
 import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData} from 'viem';
 import {mnemonicToAccount} from 'viem/accounts';
-import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit} from './policy.mjs';
+import {fairOutput,pegPremium,sizePeg,pegMinOut,freshReference,orientRoute,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit} from './policy.mjs';
 const RPC='https://4.lark.hydration.cloud',WS='wss://4.lark.hydration.cloud';
 const SOURCE='https://hdx.tarn.hydration.cloud';
 const mode=process.env.BOT_MODE||'markets',live=process.env.BOT_LIVE==='true';
 const interval=Number(process.env.BOT_INTERVAL_MS||30000);
+// PRIME pool peg: tolerated premium (bps), probe and per-trade size (USD), and the most a trade may lose to the oracle
+const PEG_BAND=BigInt(Math.round(Number(process.env.PEG_BAND_BPS||1)*100)),PEG_PROBE_USD=BigInt(process.env.PEG_PROBE_USD||50);
+const PEG_MAX_USD=BigInt(process.env.PEG_MAX_USD||25000),PEG_MAX_LOSS_BPS=BigInt(process.env.PEG_MAX_LOSS_BPS||5);
 assert.ok(Number.isSafeInteger(interval)&&interval>=5000&&interval<=300000);
 const manifest=JSON.parse(readFileSync(process.env.BOT_MANIFEST||'/app/manifest.json','utf8'));
 const log=(name,row)=>console.log(JSON.stringify({time:new Date().toISOString(),mode,name,...row},(_,x)=>typeof x==='bigint'?x.toString():x));
@@ -102,7 +105,10 @@ async function mirrorFeeds(block){
  }
 }
 async function quote(at,input,output,amount,route,minimum=0n){
- const tx=api.tx.router.sell(input,output,amount.toString(),minimum.toString(),route);
+ return (await routerOuts(at,api.tx.router.sell(input,output,amount.toString(),minimum.toString(),route)))[0];
+}
+// every router fill of a dry-run call, in order
+async function routerOuts(at,tx){
  const dry=await at.call.dryRunApi.dryRunCall({system:{Signed:actor.address}},tx,4);
  if(!dry.isOk)throw Error('dry run unavailable');
  if(!dry.asOk.executionResult.isOk){
@@ -110,8 +116,8 @@ async function quote(at,input,output,amount,route,minimum=0n){
   if(error.isModule){const meta=api.registry.findMetaError(error.asModule);throw Error(`${meta.section}.${meta.name}`);}
   throw Error(error.toString());
  }
- const event=dry.asOk.emittedEvents.find(e=>e.section==='router'&&e.method==='Executed');
- assert.ok(event,'missing router fill');return BigInt(event.data[3].toString());
+ const outs=dry.asOk.emittedEvents.filter(e=>e.section==='router'&&e.method==='Executed').map(e=>BigInt(e.data[3].toString()));
+ assert.ok(outs.length,'missing router fill');return outs;
 }
 async function submit(tx,label='arb-mined',requireFill=true){
  if(pendingSubstrate)throw Error('prior substrate receipt uncertain; operator must reconcile');
@@ -144,10 +150,9 @@ async function markets(){
  const evm='0x'+Buffer.from(signer.publicKey.slice(0,20)).toString('hex');
  assert.ok((await api.query.evmAccounts.accountExtension(evm)).isSome,'arb substrate/EVM binding required');
  const balances={};for(const id of [34,43,222,1000765])balances[id]=await pub.readContract({address:addresses[id],abi,functionName:'balanceOf',args:[evm],blockNumber:block.number});
- const fills=[],unavailable=[],inventoryBlocked=[];
+ const unavailable=[];
  for(const [left,right]of [[43,222],[34,222],[222,1000765],[34,43],[43,1000765]])for(const [input,output]of [[left,right],[right,left]]){
-  const stored=(await at.query.router.routes({assetIn:Math.min(input,output),assetOut:Math.max(input,output)})).toJSON();
-  const route=orientRoute(stored??[],input,output);
+  const route=await storedRoute(at,input,output);
   let quotes=0;
   for(const usd of [1n,100n,1000n,5000n]){
    const amount=usd*100000000n*10n**BigInt(decimals[input])/prices[input];
@@ -155,26 +160,51 @@ async function markets(){
    try{
     const fair=fairOutput(amount,prices[input],prices[output],decimals[input],decimals[output]);
     const out=await quote(at,input,output,amount,route);quotes++;
-    const row=profitableQuote({amount,out,fair});
     log('quote',{block:block.number,input,output,usd,amount,out,fair,shortfallBps:(fair-out)*10000n/fair});
-    // eth and tbtc follow mainnet's omnipool through pool sync; arbing them to the oracle fights it
-    if(row&&(input===43&&output===222||input===222&&output===43)){
-     if(retainsQuoteInventory(balances[input],amount,prices[input],decimals[input]))fills.push({...row,input,output,route,usd,profitUsd8:(out-fair)*prices[output]/10n**BigInt(decimals[output])});
-     else inventoryBlocked.push({input,output,usd,balance:balances[input]});
-    }
    }catch(e){log('quote-rejected',{input,output,usd,error:e.message.slice(0,180)});}
   }
   if(!quotes){unavailable.push([input,output]);log('route-unavailable',{input,output,balance:balances[input]});}
  }
- fills.sort((a,b)=>a.profitUsd8>b.profitUsd8?-1:a.profitUsd8<b.profitUsd8?1:0);
- if(inventoryBlocked.length)log('inventory-refill-needed',{routes:inventoryBlocked});
- if(!fills.length){log('no-executable-arbitrage',{unavailable,inventoryBlocked});return unavailable.length===0;}
- const best=fills[0];log('selected',{...best,route:undefined});if(!live)return unavailable.length===0;
+ // eth and tbtc follow mainnet's omnipool through pool sync; only the PRIME pool is held at the oracle
+ const best=await peg(at,prices,balances);
+ if(!best||!live)return unavailable.length===0;
  const latest=await identity();assert.ok(latest.number-block.number<=5n&&latest.timestamp-block.timestamp<=60n,'quote expired; re-evaluate next cycle');
- const current=await api.at(latest.hash);
- await quote(current,best.input,best.output,best.amount,best.route,best.minOut);
- await submit(api.tx.router.sell(best.input,best.output,best.amount.toString(),best.minOut.toString(),best.route));
+ await quote(await api.at(latest.hash),best.input,best.output,best.amount,best.route,best.minOut);
+ await submit(api.tx.router.sell(best.input,best.output,best.amount.toString(),best.minOut.toString(),best.route),'peg-mined');
  return unavailable.length===0;
+}
+async function storedRoute(at,input,output){
+ return orientRoute((await at.query.router.routes({assetIn:Math.min(input,output),assetOut:Math.max(input,output)})).toJSON()??[],input,output);
+}
+// the loop trades PRIME at most 6 bps off the oracle and pool 143 charges 4 bps,
+// so the pool must sit within a bp or two of the oracle; this pays the fee to keep it there
+async function peg(at,prices,balances){
+ const prime=43,stable=222,routes={[prime]:await storedRoute(at,prime,stable),[stable]:await storedRoute(at,stable,prime)};
+ const other=id=>id===prime?stable:prime,units=(id,usd)=>usd*100000000n*10n**BigInt(decimals[id])/prices[id];
+ const fair=(input,amount)=>fairOutput(amount,prices[input],prices[other(input)],decimals[input],decimals[other(input)]);
+ const sell=(input,amount)=>api.tx.router.sell(input,other(input),amount.toString(),'0',routes[input]);
+ const probe={[stable]:units(stable,PEG_PROBE_USD),[prime]:units(prime,PEG_PROBE_USD)};
+ // premium after a leading trade, read from both probe directions batched behind it
+ const premiumAfter=async(input,amount)=>{
+  const calls=[...(amount>0n?[sell(input,amount)]:[]),sell(stable,probe[stable]),sell(prime,probe[prime])];
+  const [buyOut,sellOut]=(await routerOuts(at,api.tx.utility.batchAll(calls))).slice(-2);
+  return pegPremium({buyOut,buyFair:fair(stable,probe[stable]),sellOut,sellFair:fair(prime,probe[prime])});
+ };
+ const before=await premiumAfter(prime,0n);
+ if((before<0n?-before:before)<=PEG_BAND){log('peg',{premiumCbps:before,band:PEG_BAND});return null;}
+ // a rich pool is sold PRIME, a cheap one bought back; $100 of each side stays for the probes
+ const input=before>0n?prime:stable,output=other(input),reserve=units(input,100n);
+ const cap=units(input,PEG_MAX_USD),spare=balances[input]>reserve?balances[input]-reserve:0n;
+ const amount=await sizePeg(a=>premiumAfter(input,a),before,cap<spare?cap:spare);
+ if(amount===0n){log('inventory-refill-needed',{asset:input,balance:balances[input],premiumCbps:before});return null;}
+ const out=await quote(at,input,output,amount,routes[input]),value=fair(input,amount);
+ const minOut=pegMinOut({out,fair:value,maxLossBps:PEG_MAX_LOSS_BPS});
+ const after=await premiumAfter(input,amount);
+ const row={input,output,amount,out,fair:value,premiumCbps:before,afterCbps:after,
+  costUsd8:(value-out)*prices[output]/10n**BigInt(decimals[output])};
+ if(minOut===null){log('peg-too-costly',row);return null;}
+ log('peg',{...row,minOut});
+ return {...row,minOut,route:routes[input]};
 }
 async function omnipoolSide(at,id){
  const asset=(await at.query.omnipool.assets(id)).unwrap(),free=(await at.call.currenciesApi.account(id,OMNIPOOL)).free;
@@ -292,7 +322,9 @@ async function deposits(){
  if(slot===lastSlot)return true;
  lastSlot=slot;
  const read=(address,abi,functionName,args=[])=>pub.readContract({address,abi,functionName,args,blockNumber:block.number});
- for(const p of manifest.depositor.plan){
+ // one vault's failure must not skip the other's slot
+ let ok=true;
+ for(const p of manifest.depositor.plan)try{
   const balances=await Promise.all(depositors.map(u=>read(p.asset,erc20Abi,'balanceOf',[u.address])));
   const total=BigInt(p.total),remaining=balances.reduce((a,b)=>a+b,0n);
   const owed=depositOwed({total,remaining,start,duration,now:block.timestamp});
@@ -308,8 +340,8 @@ async function deposits(){
   // hydration asset precompiles revert approvals above u128
   if(await read(p.asset,erc20Abi,'allowance',[user.address,p.vault])<size)await evmWrite(p.asset,erc20Abi,'approve',[p.vault,2n**128n-1n],`${p.name} approve`,'deposit-approved',user);
   await evmWrite(p.vault,vaultAbi,'deposit',[size,user.address],p.name,'deposit-mined',user);
- }
- return true;
+ }catch(e){ok=false;log('deposit-failed',{vault:p.name,slot,error:(e.shortMessage??e.message).slice(0,240)});}
+ return ok;
 }
 try{
  await identity();assert.ok(['markets','mirror','pools','replay','deposits'].includes(mode));

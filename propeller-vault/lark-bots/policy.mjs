@@ -1,18 +1,29 @@
 const ceilDiv=(x,y)=>(x+y-1n)/y;
-export function retainsQuoteInventory(balance,amount,price,decimals,reserveUsd8=100n*100000000n){
- return amount>0n&&amount<=balance&&price>0n
-  &&(balance-amount)*price/10n**BigInt(decimals)>=reserveUsd8;
-}
 export function fairOutput(amount,priceIn,priceOut,decimalsIn,decimalsOut){
  if(amount<=0n||priceIn<=0n||priceOut<=0n)throw Error('nonpositive pricing input');
  return amount*priceIn*10n**BigInt(decimalsOut)/(priceOut*10n**BigInt(decimalsIn));
 }
-export function profitableQuote({amount,out,fair,edgeBps=2n,driftBps=2n}){
- if(amount<=0n||out<=0n||fair<=0n||edgeBps<0n||driftBps<0n||driftBps>=10000n)return null;
- const oracleMinimum=ceilDiv(fair*(10000n+edgeBps),10000n);
- if(out<oracleMinimum)return null;
+// pool premium over the oracle in 1/100 bps: half the buy/sell cost gap cancels the pool fee
+export function pegPremium({buyOut,buyFair,sellOut,sellFair}){
+ if(buyFair<=0n||sellFair<=0n)throw Error('nonpositive pricing input');
+ return ((buyFair-buyOut)*1000000n/buyFair-(sellFair-sellOut)*1000000n/sellFair)/2n;
+}
+// largest input, to ~1/1024 of `max`, that moves the premium toward `target` without crossing it
+export async function sizePeg(premiumAfter,before,max,target=0n){
+ if(max<=0n||before===target)return 0n;
+ const crossed=p=>before>target?p<target:p>target;
+ if(!crossed(await premiumAfter(max)))return max;
+ let lo=0n,hi=max;const step=max/1024n;
+ while(hi-lo>step&&hi-lo>1n){const mid=(lo+hi)/2n;if(crossed(await premiumAfter(mid)))hi=mid;else lo=mid;}
+ return lo;
+}
+// a peg trade may pay the pool fee, never more than `maxLossBps` under the oracle
+export function pegMinOut({out,fair,maxLossBps=5n,driftBps=2n}){
+ if(out<=0n||fair<=0n||maxLossBps<0n||driftBps<0n||driftBps>=10000n)return null;
+ const floor=ceilDiv(fair*(10000n-maxLossBps),10000n);
+ if(out<floor)return null;
  const quoteMinimum=out*(10000n-driftBps)/10000n;
- return {amount,out,fair,minOut:oracleMinimum>quoteMinimum?oracleMinimum:quoteMinimum,edgeBps:(out-fair)*10000n/fair};
+ return quoteMinimum>floor?quoteMinimum:floor;
 }
 export function freshReference({price,updatedAt,chainTime,headAge,maxAge=86400n}){
  return price>0n&&updatedAt>0n&&updatedAt<=chainTime&&chainTime-updatedAt<=maxAge&&headAge>=-30&&headAge<=120;

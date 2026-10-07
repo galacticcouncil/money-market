@@ -14,16 +14,21 @@ mirror signer by governance. ManagedOracle itself has no read-time expiry;
 operators must monitor this service. The market bot refuses a mirror older
 than 15 minutes.
 
-`markets` reads the stored native routes in both directions for PRIME/HOLLAR,
-ETH/HOLLAR, tBTC/HOLLAR, PRIME/ETH and PRIME/tBTC. Each cycle simulates $1, $100,
-$1,000 and $5,000 inputs against one pinned block, including every hop's fees
-and price impact. Only PRIME/HOLLAR is traded: `pools` keeps ETH, tBTC and
-the other Omnipool assets at mainnet's pool prices, which sit off the MM oracle
-there too, and an oracle arb on those legs would fight it. Only quotes at least
-2 bps better than the MM oracle can be submitted. The actual minimum output is
-the larger of that oracle floor and the quote less 2 bps. A fresh simulation
-precedes signing. Quotes expire after five blocks or 60 seconds. The bot
-reports unquotable routes as unhealthy.
+`markets` holds stableswap pool 143 at the MM oracle so the loop can trade PRIME.
+The loop's PRIME buys and unwinds accept at most 6 bps off the oracle, and the
+pool fee is 4 bps, so the pool itself must sit within about a bp of the oracle.
+A profit-seeking arb would stop at the fee and leave entries stalled. Each cycle
+probes $50 HOLLAR→PRIME and PRIME→HOLLAR: half the gap between the two costs is
+the pool premium, and the fee cancels out. Beyond `PEG_BAND_BPS` the bot sells
+PRIME into a rich pool, or buys it back from a cheap one. It sizes the trade
+with batched dry runs so the premium lands on zero without crossing it. It pays
+the fee to do so but never more than `PEG_MAX_LOSS_BPS` under the oracle, and
+each trade is recorded as a subsidy (`costUsd8`). It also quotes $1-$5,000 on
+PRIME/HOLLAR, ETH/HOLLAR, tBTC/HOLLAR, PRIME/ETH and PRIME/tBTC for monitoring.
+It only trades PRIME/HOLLAR: `pools` keeps ETH, tBTC and the other Omnipool
+assets at mainnet's pool prices. A fresh simulation precedes signing. Quotes
+expire after five blocks or 60 seconds. The bot reports unquotable routes as
+unhealthy.
 
 `pools` keeps every Omnipool asset's price, measured against HOLLAR, within
 `POOL_BAND_BPS` of mainnet's live Omnipool price. It trades only a deviation
@@ -76,6 +81,10 @@ Required environment:
 | `BOT_ONCE` | `true` for one cycle, with a failing exit code for unhealthy routes |
 | `BOT_INTERVAL_MS` | Default 30,000; minimum 5,000 for testnet catch-up |
 | `POOL_BAND_BPS` | `pools`: tolerated deviation from mainnet, default 40 |
+| `PEG_BAND_BPS` | `markets`: tolerated PRIME pool premium, default 1 |
+| `PEG_MAX_USD` | `markets`: largest peg trade, default 25,000 |
+| `PEG_MAX_LOSS_BPS` | `markets`: most a peg trade may lose to the oracle, default 5 |
+| `PEG_PROBE_USD` | `markets`: probe size, default 50 (the PRIME lane maximum) |
 | `POOL_MIN_GAIN_BPS` | `pools`: smallest correction worth a trade, default 5 |
 | `REPLAY_SCALE` | `replay`: input size multiplier, default 1 |
 | `REPLAY_BATCH` | `replay`: maximum trades per batch, default 25 |

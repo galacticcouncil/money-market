@@ -100,7 +100,11 @@ realistic prices and flow (see the [bot README](../lark-bots/README.md)):
   full size, rebuilding each route from its per-hop events. In-batch failures
   fell from 24% to under 10% once routes were rebuilt and block-hook trades
   were left to the fork.
-- **PRIME:** `markets` arbitrages only PRIME/HOLLAR against the MM oracle.
+- **PRIME:** `markets` pegs only pool 143 (PRIME/HOLLAR) to the MM oracle,
+  paying the 4 bps fee to hold the premium within 1 bp. A profit arb stopped
+  at fee + edge and left loop entries above their 6 bps floor: replayed
+  mainnet PRIME buys held the pool 5.7 bps rich and stalled every ramp. On
+  mainnet nobody runs this peg, and pool 143 was 46% PRIME (~19 bps per buy).
   Mainnet's own pools sit off its oracles; on 7 October tBTC was 36–60 bps
   below and GETH about 2.7% below. Arbitraging ETH and tBTC to the oracle
   therefore fought pool sync and steadily drained the arb's HOLLAR.
