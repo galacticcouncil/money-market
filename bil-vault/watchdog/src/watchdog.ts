@@ -329,7 +329,7 @@ export class BILWatchdog {
           issues.set(`pos:${i}`, { level: 'warn', text: `Matured but not advanced: ${desc}${keeperNote}` });
         }
       } else {
-        d = await this.decentralStatus(i, tokenId, state, now, blockNumber);
+        d = await this.decentralStatus(i, tokenId, state, now, blockNumber, hollar);
         if (d.waiting && d.requestedAt !== null) {
           // approval wait: decentral's job, rolled into the digest
           const age = now - d.requestedAt;
@@ -397,18 +397,33 @@ export class BILWatchdog {
   }
 
   /// What the next Decentral step is waiting on (null = it can proceed), since when, and the request amount.
-  private async decentralStatus(index: bigint, tokenId: bigint, state: number, now: number, blockNumber: bigint): Promise<Decentral> {
+  private async decentralStatus(index: bigint, tokenId: bigint, state: number, now: number, blockNumber: bigint, hollar: Address): Promise<Decentral> {
     const pool = (await this.client.readContract({ address: this.vault, abi: VAULT_ABI, functionName: 'positionPool', args: [index], blockNumber })) as Address;
     if (state === YIELD_REQUESTED) {
       const [amount, requestedAt, exists, approved] = await this.client.readContract({ address: pool, abi: DECENTRAL_ABI, functionName: 'getYieldWithdrawalRequest', args: [tokenId], blockNumber });
       if (exists && !approved) return { waiting: 'yield withdrawal not approved', requestedAt: Number(requestedAt), amount };
+      if (exists) {
+        const short = await this.poolShort(pool, hollar, amount, blockNumber);
+        if (short) return { waiting: short, requestedAt: Number(requestedAt), amount };
+      }
     } else if (state === PRINCIPAL_REQUESTED) {
       const [amount, requestedAt, availableAt, exists, approved] = await this.client.readContract({ address: pool, abi: DECENTRAL_ABI, functionName: 'getPrincipalWithdrawalRequest', args: [tokenId], blockNumber });
       if (exists && !approved) return { waiting: 'principal withdrawal not approved', requestedAt: Number(requestedAt), amount };
       if (exists && now < Number(availableAt)) return { waiting: `principal delay until ${new Date(Number(availableAt) * 1000).toISOString()}`, requestedAt: null, amount };
+      if (exists) {
+        const short = await this.poolShort(pool, hollar, amount, blockNumber);
+        if (short) return { waiting: short, requestedAt: Number(requestedAt), amount };
+      }
     }
     // YIELD_CLAIMED: requestPrincipalWithdrawal needs nothing from Decentral
     return { waiting: null, requestedAt: null, amount: 0n };
+  }
+
+  /// Decentral pays from its own HOLLAR; an approved payout it can't fund is Decentral's
+  /// wait, not the keeper's, and rolls into the digest like an unapproved one.
+  private async poolShort(pool: Address, hollar: Address, amount: bigint, blockNumber: bigint): Promise<string | null> {
+    const balance = (await this.client.readContract({ address: hollar, abi: MARKET_ABI, functionName: 'balanceOf', args: [pool], blockNumber })) as bigint;
+    return balance < amount ? `pool liquidity ${fmt(balance)} < ${fmt(amount)} HOLLAR` : null;
   }
 
   private async batch<T>(from: bigint, to: bigint, fn: (i: bigint) => Promise<T>): Promise<[bigint, T][]> {
