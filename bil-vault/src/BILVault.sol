@@ -67,8 +67,14 @@ contract BILVault is
 
     /// @dev Largest single Decentral position. Bigger deposits and reinvests are
     ///      split into equal pieces, so Decentral never stages more than this for
-    ///      one payout and each returned piece is reinvested before the next.
+    ///      one payout. A keeper that pokes the queue after each payout recycles
+    ///      the returned HOLLAR into the pool before the next piece is paid.
     uint256 internal constant MAX_POSITION = 100_000e18;
+
+    /// @dev Most HOLLAR one permissionless reinvest moves (5 pieces). Bounds the
+    ///      gas of `pokeQueue` so a large idle balance can't make every poke run
+    ///      out of gas; the rest stays idle for the next poke.
+    uint256 internal constant MAX_REINVEST = 5 * MAX_POSITION;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -1052,6 +1058,7 @@ contract BILVault is
         if (totalInvestedPrincipal + amount > tvlCap) {
             amount = tvlCap - totalInvestedPrincipal;
         }
+        if (amount > MAX_REINVEST) amount = MAX_REINVEST;
         if (amount < minReinvestAmount) return;
 
         // `pokeQueue` is permissionless and is the only way a wedged queue ever

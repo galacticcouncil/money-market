@@ -197,9 +197,6 @@ async function main() {
   check(prep.ok, "approve + syncMaturities");
 
   const depositData = vaultI.encodeFunctionData("deposit", [DEPOSIT, ALICE_EVM]);
-  const est = await rpc(VAULT, depositData, ALICE_EVM, true);
-  const used = est?.ok?.usedGas?.standard ?? est?.ok?.used_gas?.standard ?? JSON.stringify(est?.ok?.exitReason ?? est);
-  console.log(`  deposit(250k) gas (runtime estimate): ${used}`);
 
   const countBefore = (await v("getPositionCount")).toNumber();
   const investedBefore = await v("totalInvestedPrincipal");
