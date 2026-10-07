@@ -53,9 +53,25 @@ const VAULT_ABI = [
     inputs: [{ name: 'maxRequests', type: 'uint256' }], outputs: [],
   },
   nonpayable('pokeSettle'), // settle the redeem queue
+  {
+    name: 'redemptions', type: 'function', stateMutability: 'view',
+    inputs: [{ name: 'requestId', type: 'uint256' }],
+    outputs: ['address', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'bool']
+      .map((type, i) => ({ name: `f${i}`, type })),
+  },
+  {
+    name: 'claim', type: 'function', stateMutability: 'nonpayable',
+    inputs: [{ name: 'requestId', type: 'uint256' }, { name: 'receiver', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
   nonpayable('rebalance'), // keep the LTV band
   nonpayable('maintainPeg'), // top up the synthetic floor
 ] as const;
+
+const LEDGER_ABI = parseAbi([
+  'function surplusOf(uint256 id) view returns (uint256)',
+  'function claimSurplus(uint256 id) returns (uint256)',
+]);
 
 const HARVESTER_ABI = [
   view('harvestable', 'bool'),
@@ -278,6 +294,36 @@ export class PropellerLooper {
           await this.poke(VAULT_ABI, vault, 'pokeSettle', `service Main interest ${short(vault)}`);
         }
       }
+    }
+    // users only send withdraw: settled collateral and exit surplus are pushed to their owners
+    for (const vault of this.vaults) await this.deliver(vault);
+  }
+
+  private claimCursor?: Map<Address, bigint>;
+
+  private async deliver(vault: Address): Promise<void> {
+    try {
+      const [head, ledger] = await Promise.all([
+        this.read(VAULT_ABI, vault, 'queueHead'), this.read(VAULT_ABI, vault, 'mainDebt'),
+      ]) as [bigint, Address];
+      const cursors = (this.claimCursor ??= new Map());
+      let id = cursors.get(vault) ?? (head > CONFIG.CLAIM_LOOKBACK ? head - CONFIG.CLAIM_LOOKBACK : 0n);
+      let next: bigint | undefined;
+      // ids below the head are fully settled, so one claim pays out the whole request
+      for (let n = 0; id < head && n < 16; ++n, ++id) {
+        const r = await this.read(VAULT_ABI, vault, 'redemptions', [id]) as readonly unknown[];
+        const owner = r[0] as Address, settled = r[6] as bigint, active = r[8] as boolean;
+        if (active && settled > 0n) await this.poke(VAULT_ABI, vault, 'claim', `claim ${short(vault)} #${id}`, [id, owner]);
+        const surplus = await this.read(LEDGER_ABI, ledger, 'surplusOf', [id]) as bigint;
+        const owed = surplus >= CONFIG.CLAIM_MIN_SURPLUS
+          && !(await this.poke(LEDGER_ABI, ledger, 'claimSurplus', `claimSurplus ${short(vault)} #${id}`, [id]));
+        // stop at the first request still owed something, so a failed delivery is retried
+        const still = (await this.read(VAULT_ABI, vault, 'redemptions', [id]) as readonly unknown[])[8] as boolean;
+        if (next === undefined && (still || owed)) next = id;
+      }
+      cursors.set(vault, next ?? id);
+    } catch (error) {
+      console.error(`[ALERT] ${vault}: delivery scan failed: ${shortErr(error)}`);
     }
   }
 

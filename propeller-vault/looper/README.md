@@ -62,6 +62,8 @@ read each vault's pause, queue cursors and Main repayment target
   no pending deployment, periodic duty slot    -> quoted rebalance when allowed
 after a successful harvest, or periodically otherwise:
   pokeSettle()
+  settled request below the queue head      -> claim(id, owner)
+  exit surplus >= CLAIM_MIN_SURPLUS         -> claimSurplus(id)
 independent read loop, including during slow writes/receipt waits:
   source HF, synthetic coverage, Main backing/interest, stale RPC, stuck receipts
 ```
@@ -73,6 +75,10 @@ late source claims after collateral settlement. Every cycle can realize eligible
 reinvest the resulting collateral. The periodic fallback also services Main
 interest from available proceeds; the keeper never obtains treasury money or widens
 slippage. See [yield funding and recovery](../docs/main-debt-servicing.md).
+
+Delivery means a user signs only `requestRedeem`: settled collateral and exit
+surplus are pushed to the request owner. The scan resumes at the first request
+still owed something, looking back `CLAIM_LOOKBACK` requests after a restart.
 
 The default cooldown is 12 hours BEFORE unwinding starts. It is configured per
 vault by governance through `setWithdrawalDelay(uint32 seconds)`. Existing

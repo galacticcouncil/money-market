@@ -59,6 +59,10 @@ export const CONFIG = {
   RAMP_HF_BUFFER: Number(process.env.RAMP_HF_BUFFER || 0.005),
   // settlement/rebalance cadence in cycles; harvest is checked every cycle
   SLOW_EVERY: Number(process.env.SLOW_EVERY || 10),
+  // settled requests delivered to their owners: how far back to look after a restart,
+  // and the smallest exit surplus worth a transaction (HOLLAR wei)
+  CLAIM_LOOKBACK: BigInt(integer('CLAIM_LOOKBACK', 256, 1)),
+  CLAIM_MIN_SURPLUS: BigInt(process.env.CLAIM_MIN_SURPLUS || '10000000000000000'),
   ALERT_WEBHOOK: process.env.ALERT_WEBHOOK,
 };
 
