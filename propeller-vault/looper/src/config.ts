@@ -20,12 +20,7 @@ export const CONFIG = {
   // signer only pays gas — pokeBorrow is permissionless, no role required.
   PRIVATE_KEY: process.env.LOOPER_PRIVATE_KEY as `0x${string}`,
   SUBLOOP_ADDRESS: process.env.SUBLOOP_ADDRESS as `0x${string}`,
-  // CollateralVault proxies — drive pokeSettle/rebalance/maintainPeg + queue gating.
-  // One SubLoop can back several vaults (pETH, ptBTC…), and each needs its own
-  // queue serviced, so this is a comma-separated LIST. `VAULT_ADDRESS` is kept as
-  // a singular alias: the deployed lark-2 stack set `VAULT_ADDRESSES` while the
-  // code read `VAULT_ADDRESS`, which silently left the vault undefined and
-  // skipped pokeSettle/rebalance/maintainPeg/harvest entirely.
+  // comma-separated; one SubLoop can back several vaults. VAULT_ADDRESS is a legacy alias
   VAULT_ADDRESSES: (process.env.VAULT_ADDRESSES || process.env.VAULT_ADDRESS || '')
     .split(',')
     .map((s) => s.trim())
@@ -56,14 +51,11 @@ export const CONFIG = {
   OPERATOR_COUNT: operatorCount,
   OPERATOR_INDEX: integer('OPERATOR_INDEX', 0, 0, operatorCount - 1),
   OPERATOR_SLOT_SECONDS: integer('OPERATOR_SLOT_SECONDS', 60),
-  // Operator budget, additionally bounded by the live block gas limit.
-  // An estimate above this limit is reported without submitting a doomed tx.
+  // operator budget, also capped by the live block gas limit
   MAX_TX_GAS: BigInt(maxTxGas),
-  // idle once HF is within this fraction above target — avoids burning gas on
-  // borrow-to-floor no-ops. e.g. 0.005 = stop ramping at HF ≤ target·1.005.
+  // stop ramping once HF ≤ target·(1+buffer), avoiding borrow-to-floor no-ops
   RAMP_HF_BUFFER: Number(process.env.RAMP_HF_BUFFER || 0.005),
-  // Settlement/rebalance run every N cycles and after a successful harvest.
-  // Harvest availability is checked every cycle.
+  // settlement/rebalance cadence in cycles; harvest is checked every cycle
   SLOW_EVERY: Number(process.env.SLOW_EVERY || 10),
   ALERT_WEBHOOK: process.env.ALERT_WEBHOOK,
 };

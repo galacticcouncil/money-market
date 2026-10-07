@@ -13,11 +13,7 @@ export const EXECUTION_ABI = parseAbi([
 
 export type Fill = { lane: Hex; amountIn: bigint; amountOut: bigint };
 
-/** Compare prices at one pinned block. Keep the largest useful slice within
- * tolerance of the best sampled unit price on every route, including servicing.
- * This tolerance selects sizes only; it never changes an oracle or quote floor.
- * Primary routes in one action all consume the same token (HOLLAR or PRIME).
- */
+// largest slice within tolerance of each lane's best sampled price; picks size only, never a floor
 export function efficientCandidate<T extends {fills: readonly Fill[]}>(
   candidates: readonly T[], primary: ReadonlySet<string>, toleranceBps: bigint,
 ): T {
@@ -44,6 +40,7 @@ export function efficientCandidate<T extends {fills: readonly Fill[]}>(
       const loss = denominator - fill.amountOut * optimal.amountIn;
       const bps = (loss * 10000n + denominator - 1n) / denominator;
       if (bps > gap) gap = bps;
+      // primary lanes in one action share an input token (HOLLAR or PRIME)
       if (primary.has(key)) volume += fill.amountIn;
     }
     return {candidate, gap, volume, complete: [...required].every(key => present.has(key))};
@@ -67,17 +64,14 @@ export function executionQuotes(fills: readonly Fill[], driftBps: bigint, servic
     }
     const minOut = f.amountOut * (10_000n - driftBps) / 10_000n;
     if (minOut === 0n) throw new Error('quote rounds to zero');
-    // Interest can grow between the pinned preview and inclusion. Permit extra
-    // servicing input at the same unit price floor. Primary buy/harvest amounts
-    // retain their exact preview caps, including adaptive reductions.
+    // interest can grow before inclusion: servicing gets 2x input at the same unit floor, primary caps stay exact
     const factor = servicingLanes.has(f.lane.toLowerCase()) ? 2n : 1n;
     unique.set(f.lane, {lane: f.lane, amountIn: f.amountIn * factor, minOut: minOut * factor});
   }
   return [...unique.values()];
 }
 
-// All monetary values use USD8. This is the fraction of realized gross yield
-// spent on gas, not a prediction that the trade's full notional is profit.
+// values in USD8; maxGasBps bounds gas against realized yield, not trade notional
 export function worthwhileHarvest(value: bigint, gasCost: bigint, minimum: bigint, maxGasBps: bigint,
   urgent: boolean, age: bigint, maxDelay: bigint): boolean {
   if (value <= 0n) return false;

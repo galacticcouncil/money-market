@@ -15,12 +15,7 @@ async function main() {
     shutdown.abort();
   });
 
-  // Self-scheduling loop, NOT setInterval: a cycle can outlast POLL_INTERVAL_MS
-  // (a slow cycle submits pokeBorrow + maintainPeg/rebalance per vault + harvest,
-  // each awaiting a receipt at ~12s/block). setInterval fires regardless, so
-  // cycles overlap and the overlapping txs race on the signer's nonce — the very
-  // thing `replicas: 1` exists to prevent, reintroduced inside one process.
-  // Sleeping AFTER each cycle keeps exactly one in flight.
+  // sleep after each run, not setInterval: overlapping cycles would race on the signer nonce
   const repeat = async (task: () => Promise<void>, interval: number, label: string) => {
     while (!shutdown.signal.aborted) {
       try { await task(); }

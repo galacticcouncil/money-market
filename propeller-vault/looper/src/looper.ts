@@ -1,10 +1,8 @@
 import {
   createPublicClient,
-  createWalletClient,
   http, fallback, encodeFunctionData, decodeAbiParameters, parseAbi, toHex, keccak256,
   type Hex,
   type PublicClient,
-  type WalletClient,
   type Address,
   type Chain,
 } from 'viem';
@@ -12,8 +10,6 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { CONFIG, ROUNDING_POLICIES } from './config.js';
 import { EXECUTION_ABI, executionQuotes, worthwhileHarvest, operatorTurn, efficientCandidate, type Fill } from './execution-policy.js';
 import { roundingAlert } from './rounding-policy.js';
-
-// ─── Hydration chain definition ──────────────────────────────────────────────
 
 const hydration: Chain = {
   id: 222222,
@@ -23,8 +19,6 @@ const hydration: Chain = {
     default: { http: [CONFIG.RPC_URL] },
   },
 };
-
-// ─── ABIs (only what the maintainer touches) ─────────────────────────────────
 
 const SUBLOOP_ABI = [
   view('healthFactor', 'uint256'),
@@ -102,16 +96,9 @@ function nonpayable(name: string) {
 const WAD = 10n ** 18n;
 const MAX_NATIVE_TX_GAS = 1n << 24n; // EIP-7825; block gas can be higher.
 
-// ─── Maintainer ───────────────────────────────────────────────────────────────
-//
-// Permissionless keeper: safety repayment and peg maintenance precede optional
-// quoted harvest/ramp work. Independent operators rotate optional transactions;
-// every operator monitors risk. Zero-work previews skip paid submissions.
-// The signer pays gas and needs no maintenance role.
-
+// safety, peg and settlement work run on every operator; optional quoted work rotates by operator slot
 export class PropellerLooper {
   private publicClient: PublicClient;
-  private walletClient: WalletClient;
   private account: ReturnType<typeof privateKeyToAccount>;
   private subLoop: Address;
   private vaults: Address[];
@@ -128,7 +115,7 @@ export class PropellerLooper {
   private stopping = false;
   private quoteBlocks?: bigint;
 
-  /** Drain an already submitted transaction, but never start another write. */
+  // drains a submitted transaction but never starts another write
   stop(): void { this.stopping = true; }
 
   constructor() {
@@ -140,11 +127,6 @@ export class PropellerLooper {
     this.pool = CONFIG.POOL_ADDRESS;
 
     this.publicClient = createPublicClient({ chain: hydration, transport: fallback(CONFIG.RPC_URLS.map(url => http(url, {timeout: 15000}))) });
-    this.walletClient = createWalletClient({
-      account: this.account,
-      chain: hydration,
-      transport: fallback(CONFIG.RPC_URLS.map(url => http(url, {timeout: 15000}))),
-    });
   }
 
   async runCycle(): Promise<void> {
@@ -227,8 +209,7 @@ export class PropellerLooper {
           now ??= await this.blockTimestamp();
           const eligibleAt = await this.read(VAULT_ABI, vault, 'unwindEligibleAt', [next]) as bigint;
           if (now >= eligibleAt) {
-            // Native validation: 16 starts need over 13M gas before margins.
-            // Eight preserve more headroom for starting new exit cohorts.
+            // 16 starts measured at >13M gas natively; 8 keeps headroom
             starting = await this.poke(VAULT_ABI, vault, 'startUnwinds', `startUnwinds ${short(vault)}`, [8n]);
             started ||= starting;
           }
@@ -253,8 +234,7 @@ export class PropellerLooper {
       }
     }
     if (harvested) {
-      // Harvest servicing can change Main readiness. Do not ramp from the
-      // pre-harvest snapshot, even within this same scheduler cycle.
+      // harvest servicing can change Main readiness; don't ramp from the pre-harvest snapshot
       for (const vault of this.vaults) {
         try {
           const ledger = await this.read(VAULT_ABI, vault, 'mainDebt') as Address;
@@ -265,14 +245,11 @@ export class PropellerLooper {
         }
       }
     }
-    // Pending deposits and freshly earned collateral get first use of entry
-    // liquidity, before more source leverage. Rotate vault order for progress
-    // when several vaults share a limited entry budget.
+    // deposits and earned collateral deploy before more source leverage; rotate so vaults share the entry budget
     let rebalanced = false;
     for (let i = 0; i < this.vaults.length; ++i) {
       const vault = this.vaults[(i + this.cycle - 1) % this.vaults.length];
-      // exits in flight pause price resizing on-chain, not deposited or earned
-      // credit; only a source safety repayment holds deployment back
+      // only source safety debt holds back deploying credit, not exits in flight
       const credit = (deployment.has(vault) || harvested) && safetyDebt === 0n;
       if ((credit || (this.cycle % CONFIG.SLOW_EVERY === 0 && !servicing))
           && turn && !paused && !emergency && !frozen.has(vault)) {
@@ -281,8 +258,7 @@ export class PropellerLooper {
       }
     }
     if (!paused) {
-      // A deployment can incur execution costs; a down-rebalance can open an
-      // unwind. Re-read all safety/backing state next cycle before adding leverage.
+      // after a rebalance, re-read safety/backing state next cycle before adding leverage
       if (!rebalanced && turn && hf >= target && funded && !emergency && frozen.size === 0 && !servicing && hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n) {
         await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeBorrow', 'pokeBorrow (ramp)');
       }
@@ -295,7 +271,7 @@ export class PropellerLooper {
       await this.poke(VAULT_ABI, vault, 'pokeSettle', `pokeSettle ${short(vault)}`);
     }
 
-    // Optional writes are rotated between independently funded operators.
+    // periodically settle the remaining vaults too, to service Main interest
     if (harvested || this.cycle % CONFIG.SLOW_EVERY === 0) {
       for (const vault of this.vaults) {
         if (!pending.includes(vault)) {
@@ -376,7 +352,7 @@ export class PropellerLooper {
     for (const address of boundTargets) {
       const bound = await this.publicClient.readContract({address,
         abi: [view('executionController', 'address')], functionName: 'executionController', blockNumber}) as Address;
-      if (!CONFIG.EXECUTION_CONTROLLER || bound.toLowerCase() !== CONFIG.EXECUTION_CONTROLLER.toLowerCase()) {
+      if (bound.toLowerCase() !== CONFIG.EXECUTION_CONTROLLER.toLowerCase()) {
         throw new Error(`execution controller mismatch at ${address}`);
       }
     }
@@ -400,8 +376,7 @@ export class PropellerLooper {
       address: this.subLoop, abi: [view('deleverDebtTarget', 'uint256')],
       functionName: 'deleverDebtTarget', blockNumber,
     }) as bigint) > 0n;
-    // Urgent repayment takes the first acceptable quote; it still obeys the
-    // same size and price bounds, but does not spend extra time optimizing.
+    // urgent repayment takes the first acceptable quote instead of optimizing size
     if (urgent && candidates.length) return [candidates[0].result, candidates[0].fills] as const;
     const routes: Address[][] = [];
     if (operation === 'harvest') {
@@ -425,8 +400,7 @@ export class PropellerLooper {
     caps = caps.filter(c => c.amountIn > 0n);
     const primary = new Set(caps.map(c => c.lane.toLowerCase()));
     for (let attempt = 0; attempt < CONFIG.QUOTE_SIZE_STEPS && caps.length; ++attempt) {
-      // Always sample the lane minimum within the bounded RPC budget. A large
-      // TVL must not hide a good small quote beyond six successive halvings.
+      // the last step always samples the lane minimum so halvings can't skip a good small quote
       const smaller = caps.map(c => ({...c, amountIn: attempt + 1 === CONFIG.QUOTE_SIZE_STEPS
         ? c.minimum : c.amountIn / 2n > c.minimum ? c.amountIn / 2n : c.minimum}));
       if (smaller.every((c, i) => c.amountIn === caps[i].amountIn)) break;
@@ -459,8 +433,6 @@ export class PropellerLooper {
     }
   }
 
-  // ─── helpers ─────────────────────────────────────────────────────────
-
   private async read(
     abi: readonly unknown[],
     address: Address,
@@ -475,8 +447,7 @@ export class PropellerLooper {
     });
   }
 
-  /// simulate → send a permissionless poke; a benign revert (nothing to do /
-  /// HealthyEnough / paused) is logged and skipped, never fatal.
+  // benign reverts (nothing to do, healthy enough, paused) are logged and skipped, never fatal
   private async poke(
     abi: readonly unknown[],
     address: Address,
@@ -508,7 +479,6 @@ export class PropellerLooper {
       const serviceLanes = new Set<string>();
       const data = encodeFunctionData({abi: abi as any, functionName, args});
       if (guarded) {
-        if (!CONFIG.EXECUTION_CONTROLLER) throw new Error('missing execution controller; swap action disabled');
         const quoted = await this.publicClient.getBlock({blockNumber: block.number - 1n});
         let result: Hex;
         [result, fills] = await this.quoteAction(address, data, functionName, quoted.number, budget) as readonly [Hex, readonly Fill[]];
@@ -535,8 +505,7 @@ export class PropellerLooper {
         console.log(`  ${label}: no useful work`);
         return false;
       }
-      // Send the gas ceiling explicitly: viem's estimateContractGas omits it
-      // from the RPC payload. Reserve room for our 20% submission margin.
+      // raw eth_estimateGas since viem drops the gas cap; the cap leaves room for the 20% margin
       const estimate = BigInt(await this.publicClient.request({method: 'eth_estimateGas', params: [{
         from: this.account.address, to: options.address,
         data: encodeFunctionData({abi: options.abi, functionName: options.functionName, args: options.args}),
@@ -548,7 +517,7 @@ export class PropellerLooper {
         return false;
       }
       if (functionName === 'harvest') {
-        const amount = guarded ? decodeAbiParameters([{type: 'uint256'}], simulated.result as Hex)[0] : simulated.result as bigint;
+        const amount = decodeAbiParameters([{type: 'uint256'}], simulated.result as Hex)[0];
         if (!await this.harvestWorthwhile(amount, gas * gasPrice, block.timestamp)) return false;
       }
       if (guarded) {
@@ -569,16 +538,13 @@ export class PropellerLooper {
             fresh.timestamp + BigInt(CONFIG.QUOTE_TTL_SECONDS), executionQuotes(refilled, CONFIG.QUOTE_DRIFT_BPS, serviceLanes)]};
         }
       }
-      // Some RPCs return used gas even for a reverted estimate. A final
-      // simulation at the actual allowance also rechecks the quote and work.
+      // some RPCs estimate reverting calls; re-simulate at the final allowance
       if (!hasWork((await this.publicClient.simulateContract({...options, gas})).result)) return false;
-      // Some gateways cache the pending nonce even after a mined receipt.
-      // Keep this dedicated signer's nonce monotonic across maintenance calls.
+      // some gateways serve a stale pending nonce; keep ours monotonic
       const nonce = Math.max(this.nextNonce ?? 0, await this.publicClient.getTransactionCount({
         address: this.account.address, blockTag: 'pending',
       }));
-      // SIGTERM may arrive during an RPC await above. Recheck immediately
-      // before signing so a rolling replacement cannot start another stream.
+      // a stop may land during the awaits above; recheck right before signing
       if (this.stopping) return false;
       const serialized = await this.account.signTransaction({
         chainId: hydration.id, type: 'legacy', nonce, gas, gasPrice, value: 0n, to: options.address,
@@ -628,8 +594,7 @@ export class PropellerLooper {
     }
   }
 
-  /// a dropped transaction is re-sent as the same signed bytes, never as a new
-  /// payload, so no second nonce stream can start; the lock clears once mined
+  // a dropped transaction is re-sent as the same signed bytes; the lock clears once its nonce is spent
   private async recoverPending(): Promise<void> {
     const hash = this.pendingHash!;
     const receipt = await this.publicClient.getTransactionReceipt({hash}).catch(() => undefined);
@@ -658,8 +623,6 @@ export class PropellerLooper {
   }
 }
 
-// ─── formatting ─────────────────────────────────────────────────────────────
-
 function fmtHf(hf: bigint): string {
   if (hf > 1000n * WAD) return '∞';
   return (Number(hf) / 1e18).toFixed(3);
@@ -678,7 +641,7 @@ function shortErr(err: unknown): string {
 function hasWork(result: unknown): boolean {
   if (typeof result === 'bigint') return result > 0n;
   if (typeof result === 'string' && result !== '0x') return decodeAbiParameters([{type: 'uint256'}], result as Hex)[0] > 0n;
-  return true; // legacy void safety/start operations retain their on-chain guards
+  return true; // void calls (deLever, startUnwinds) rely on their on-chain guards
 }
 
 function executionReverted(error: unknown): boolean {

@@ -8,7 +8,7 @@ import {EXECUTION_ABI} from '../src/execution-policy.js';
 const VAULT = '0x0000000000000000000000000000000000000002';
 const SETTLE_ABI = parseAbi(['function pokeSettle() returns (uint256)']);
 
-/** local signer stand-in: records each signed transaction request */
+// local signer stand-in that records each signed transaction request
 function signer(sends: any[]) {
   return {address: VAULT, signTransaction: async (tx: any) => { sends.push(tx); return toHex(`signed ${sends.length}`); }};
 }
@@ -201,7 +201,7 @@ test('guarded writes use a pinned preview, bounded input and positive quote floo
   } finally { CONFIG.EXECUTION_CONTROLLER = previous; }
 });
 
-/** guarded-write client: one 100-unit lane; previews at block 19 pay 10% more */
+// one 100-unit lane; previews at block 19 pay 10% more
 function guardedClient(simulations: any[], hash: string, lane: string, result: string, head: bigint) {
   return {
     getBlock: async (o: any) => ({number: o.blockNumber ?? head, timestamp: 100n, gasLimit: 45_000_000n, hash}),
