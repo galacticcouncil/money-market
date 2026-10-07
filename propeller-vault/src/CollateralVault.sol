@@ -289,6 +289,12 @@ contract CollateralVault is
         whenNotPaused
         returns (uint256 requestId)
     {
+        // max is a full exit in one transaction: earned reward shares join the redemption
+        if (shares == type(uint256).max) {
+            if (msg.sender != owner) revert NotRequestOwner();
+            _claimYield(owner, owner);
+            shares = balanceOf(owner);
+        }
         if (shares == 0 || convertToAssets(shares) == 0) revert ZeroAmount();
         if (msg.sender != owner) _spendAllowance(owner, msg.sender, shares);
 
@@ -430,10 +436,11 @@ contract CollateralVault is
     /// @notice claim the collateral settled so far, burning only the escrowed shares matching the
     /// payout; the request closes once settlement completes.
     function claim(uint256 requestId, address receiver) external nonReentrant whenNotPaused returns (uint256 amountOut) {
-        if (receiver == address(0)) revert ZeroAddress();
         Redemption storage r = redemptions[requestId];
         if (!r.active) revert RequestNotActive();
-        if (msg.sender != r.owner) revert NotRequestOwner();
+        // anyone (the keeper) may deliver a claim; only the owner picks another receiver
+        if (msg.sender != r.owner) receiver = r.owner;
+        if (receiver == address(0)) revert ZeroAddress();
         amountOut = r.collateralSettled;
         if (amountOut == 0) revert NothingToClaim();
 
@@ -490,8 +497,12 @@ contract CollateralVault is
 
     function claimYield(address receiver) external nonReentrant whenNotPaused returns (uint256 shares) {
         if (receiver == address(0)) revert ZeroAddress();
-        yieldAccounting.checkpoint(msg.sender, receiver);
-        shares = yieldAccounting.claim(msg.sender, receiver);
+        shares = _claimYield(msg.sender, receiver);
+    }
+
+    function _claimYield(address owner, address receiver) private returns (uint256 shares) {
+        yieldAccounting.checkpoint(owner, receiver);
+        shares = yieldAccounting.claim(owner, receiver);
         if (shares != 0) _transfer(address(yieldAccounting), receiver, shares);
     }
 

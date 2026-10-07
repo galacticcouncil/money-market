@@ -52,6 +52,41 @@ contract YieldEntryFairnessTest is HarvestTest {
         assertEq(PropellerMainDebt(address(vault.mainDebt())).debtOf(id + 1), 0);
     }
 
+    function test_anyoneDeliversASettledClaimToItsOwner() public {
+        uint256 shares = _enterAfterYield();
+        vm.prank(NEWCOMER);
+        uint256 id = vault.requestRedeem(shares, NEWCOMER);
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(1);
+        for (uint256 i; i < 400 && loop.unwindTargetEquity() != 0; ++i) loop.pokeRepay();
+        vault.pokeSettle();
+        uint256 before = eth.balanceOf(NEWCOMER);
+        vm.prank(address(0xD00D));
+        uint256 out = vault.claim(id, address(0xD00D));
+        assertGt(out, 0);
+        assertEq(eth.balanceOf(NEWCOMER), before + out, "the keeper delivers to the owner");
+        assertEq(eth.balanceOf(address(0xD00D)), 0, "a caller cannot redirect someone else's claim");
+    }
+
+    function test_fullExitRedeemsEarnedRewardSharesInOneTransaction() public {
+        uint256 shares = _depositAndRamp();
+        aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
+        harvester.harvest(new uint256[](1));
+        assertGt(vault.yieldAccounting().claimableShares(address(this)), 0);
+        uint256 id = vault.requestRedeem(type(uint256).max, address(this));
+        (, uint256 escrowed,,,,,,,) = vault.redemptions(id);
+        assertGt(escrowed, shares, "earned reward shares join the redemption");
+        assertEq(vault.balanceOf(address(this)), 0);
+        assertEq(vault.yieldAccounting().claimableShares(address(this)), 0);
+    }
+
+    function test_onlyTheOwnerRequestsAFullExit() public {
+        _depositAndRamp();
+        vm.prank(NEWCOMER);
+        vm.expectRevert(CollateralVault.NotRequestOwner.selector);
+        vault.requestRedeem(type(uint256).max, address(this));
+    }
+
     function _rewardValue(address owner) internal view returns (uint256) {
         return vault.yieldAccounting().earnedAssets(owner);
     }

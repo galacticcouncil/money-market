@@ -78,14 +78,17 @@ but does not replace missing HOLLAR.
    delay, initially 12 hours. Those shares remain invested during the wait.
    Governance can set `setWithdrawalDelay(uint32)` to zero for future requests;
    queued requests keep their original eligibility time.
+   `requestRedeem(type(uint256).max, owner)` is a full exit: earned reward
+   shares are claimed into the same request.
 5. **Unwind and settle.** After eligibility, permissionless `startUnwinds`
    processes strict FIFO and stops at the first ineligible request. It snapshots the
    collateral entitlement and debt allocation. `pokeRepay` frees source HOLLAR;
    `pokeSettle` services debt and releases collateral. Exits bear their own
    post-start interest. A shortfall preserves the unpaid claim.
-6. **Claim.** The owner claims settled collateral, including partial payments.
-   A completed exit's later source surplus remains payable in HOLLAR to its
-   original owner through the Main debt ledger. Twelve hours is the earliest
+6. **Claim.** Settled collateral, including partial payments, is paid to the
+   owner. Anyone may deliver it (the keeper does); only the owner may choose
+   another receiver. A completed exit's later source surplus remains payable in
+   HOLLAR to its original owner through the Main debt ledger, again by anyone. Twelve hours is the earliest
    unwind start, not a payout deadline.
 
 Ordinary settlement is FIFO. During an incident, freeze affected withdrawals
