@@ -200,6 +200,7 @@ async function topUp(at){
  return false;
 }
 // keep each omnipool asset's price in the anchor at mainnet's, beyond the fee band
+const pendingSide=new Map();
 async function pools(){
  const block=await identity(),at=await api.at(block.hash);
  if(await topUp(at))return true;
@@ -213,7 +214,9 @@ async function pools(){
   const lark=await omnipoolSide(at,id),target=omnipoolRatio(await omnipoolSide(mainAt,id),mainAnchor);
   const dev=deviationBps(omnipoolRatio(lark,larkAnchor),target);
   log('pool-reference',{asset:id,devBps:dev});
-  if(dev<=band&&dev>=-band)continue;
+  if(dev<=band&&dev>=-band){pendingSide.delete(id);continue;}
+  // a finalized mainnet trade the replay has not applied yet reads as a deviation for one tick
+  if(pendingSide.get(id)!==dev>0n){pendingSide.set(id,dev>0n);log('pool-deviation-pending',{asset:id,devBps:dev});continue;}
   const input=dev>0n?id:anchor,output=dev>0n?anchor:id;
   const balance=BigInt((await at.call.currenciesApi.account(input,actor.address)).free.toString());
   const cap=(dev>0n?lark.res:larkAnchor.res)*3n/100n,max=balance*9n/10n<cap?balance*9n/10n:cap;
