@@ -77,6 +77,21 @@ contract MaxPositionRealPoolTest is RealDecentralPoolTest {
         assertEq(vault.totalInvestedPrincipal(), 2_000_000e18, "tvl cap reached after four pokes");
     }
 
+    function test_minimumAboveBatchCapStillReinvests() public {
+        _idlePrincipal(2_000_000e18); // tvl cap 2M
+        vm.prank(ADMIN);
+        vault.setMinReinvestAmount(600_000e18);
+
+        // the trigger sees the full 2M room; each poke moves one 500k batch
+        for (uint256 i = 1; i <= 3; ++i) {
+            assertTrue(_poke(OLD_KEEPER_GAS));
+            assertEq(vault.totalInvestedPrincipal(), i * MAX_REINVEST);
+        }
+        // 500k of room left is under the 600k trigger: nothing more, by configuration
+        assertTrue(_poke(OLD_KEEPER_GAS));
+        assertEq(vault.totalInvestedPrincipal(), 3 * MAX_REINVEST);
+    }
+
     function test_reinvestIntoFreshPoolMakesProgress() public {
         _idlePrincipal(5_000_000e18);
         vm.startPrank(ADMIN);

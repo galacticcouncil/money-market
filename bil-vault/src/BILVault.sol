@@ -1058,8 +1058,10 @@ contract BILVault is
         if (totalInvestedPrincipal + amount > tvlCap) {
             amount = tvlCap - totalInvestedPrincipal;
         }
-        if (amount > MAX_REINVEST) amount = MAX_REINVEST;
+        // the trigger looks at everything available; the batch cap only bounds
+        // gas, so a minimum above it still reinvests (in batches)
         if (amount < minReinvestAmount) return;
+        if (amount > MAX_REINVEST) amount = MAX_REINVEST;
 
         // `pokeQueue` is permissionless and is the only way a wedged queue ever
         // drains, so it must survive a pool that refuses us. On failure the
