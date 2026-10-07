@@ -58,6 +58,19 @@ export function correctionGainBps(asset,anchor,target,sellAsset,amount){
  const abs=x=>x<0n?-x:x;
  return abs(deviationBps(omnipoolRatio(asset,anchor),target))-abs(deviationBps(omnipoolAfter(asset,anchor,sellAsset,amount),target));
 }
+// what the straight-line schedule owes now, net of what was already deposited
+export function depositOwed({total,remaining,start,duration,now}){
+ const elapsed=now<=start?0n:now-start<duration?now-start:duration;
+ return total*elapsed/duration-(total-remaining);
+}
+// a user-like size: log-uniform 0.2-5x the average slot, kept within one slot of the schedule
+export function userDeposit({owed,slot,rand}){
+ const cap=owed+slot;
+ if(cap<=0n)return 0n;
+ const draw=BigInt(Math.floor(Number(slot)*0.2*25**rand()));
+ const size=draw<cap?draw:cap;
+ return size*10n<slot?0n:size;
+}
 const FILLERS={Omnipool:'Omnipool',XYK:'XYK',LBP:'LBP',AAVE:'Aave',HSM:'HSM'};
 // rebuild a router route from its per-hop broadcast.Swapped3 legs; omnipool hops pass through the hub
 export function swapRoute(legs,input,output){

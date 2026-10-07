@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute} from '../policy.mjs';
+import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute,depositOwed,userDeposit} from '../policy.mjs';
 test('correction trades preserve inventory for both-direction live quotes',()=>{
  assert.equal(retainsQuoteInventory(5100n*10n**18n,5000n*10n**18n,100000000n,18),true);
  assert.equal(retainsQuoteInventory(5000n*10n**18n,5000n*10n**18n,100000000n,18),false);
@@ -65,4 +65,16 @@ test('replay keeps top-level routed trades and drops their inner pool legs', () 
  ]);
  assert.deepEqual(trades.map(t=>[t.input,t.output,t.amount]),[[5,222,10n],[10,22,7n]]);
  assert.deepEqual(trades[1].route,[{pool:{Stableswap:100},assetIn:10,assetOut:22}]);
+});
+test('user-like deposits draw random sizes but track the schedule', () => {
+ const total=144n*10n**18n,start=1000n,duration=144n*1800n,slot=10n**18n;
+ const owed=(now,remaining=total)=>depositOwed({total,remaining,start,duration,now});
+ assert.equal(owed(start),0n);
+ assert.equal(owed(start+1800n),slot,'one slot per period');
+ assert.equal(owed(start+2n*duration,0n),0n,'fully deposited');
+ assert.equal(userDeposit({owed:slot,slot,rand:()=>0}),slot/5n,'smallest draw is a fifth of a slot');
+ assert.equal(userDeposit({owed:slot,slot,rand:()=>1}),2n*slot,'big draws stop one slot ahead of schedule');
+ assert.equal(userDeposit({owed:100n*slot,slot,rand:()=>1}),5n*slot,'catch-up is still one user-sized deposit');
+ assert.equal(userDeposit({owed:-slot,slot,rand:()=>1}),0n,'a slot ahead waits');
+ assert.equal(userDeposit({owed:-slot+slot/20n,slot,rand:()=>1}),0n,'dust is skipped');
 });

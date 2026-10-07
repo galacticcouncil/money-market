@@ -4,9 +4,9 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {ApiPromise,WsProvider,Keyring} from '@polkadot/api';
 import {cryptoWaitReady} from '@polkadot/util-crypto';
-import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData} from 'viem';
+import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData,maxUint256} from 'viem';
 import {mnemonicToAccount} from 'viem/accounts';
-import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades} from './policy.mjs';
+import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit} from './policy.mjs';
 const RPC='https://4.lark.hydration.cloud',WS='wss://4.lark.hydration.cloud';
 const SOURCE='https://hdx.tarn.hydration.cloud';
 const mode=process.env.BOT_MODE||'markets',live=process.env.BOT_LIVE==='true';
@@ -19,6 +19,8 @@ const hollar='0x531a654d1696ED52e7275A8cede955E82620f99a',oracle='0xAD33C0F0C42C
 const addresses={34:token(34),43:token(43),1000765:token(1000765),222:hollar},decimals={34:18,43:6,1000765:18,222:18};
 const abi=parseAbi(['function getAssetPrice(address) view returns(uint256)','function getSourceOfAsset(address) view returns(address)','function latestRoundData() view returns(uint80,int256,uint256,uint256,uint80)','function setPrice(int256)','function balanceOf(address) view returns(uint256)']);
 const account=mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:19});
+// simulated depositors: public test accounts 21.. with uneven test inventory
+const depositors=mode==='deposits'?Array.from({length:Number(process.env.DEPOSIT_USERS||8)},(_,i)=>mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:21+i})):[];
 const chain={id:222222,name:'Lark 4 Hydration',nativeCurrency:{name:'WETH',symbol:'WETH',decimals:18},rpcUrls:{default:{http:[RPC]}}};
 const pub=createPublicClient({chain,transport:http(RPC,{timeout:30000,retryCount:2}),cacheTime:0});
 const source=createPublicClient({transport:http(SOURCE,{timeout:30000,retryCount:2}),cacheTime:0});
@@ -67,15 +69,16 @@ async function mirror(){
  }
  await mirrorFeeds(block);
 }
-async function evmWrite(address,feedAbi,functionName,args,label){
+async function evmWrite(address,feedAbi,functionName,args,label,event='mirror-mined',signer=account){
  const gasPrice=await pub.getGasPrice()*2n,data=encodeFunctionData({abi:feedAbi,functionName,args});
- const estimate=BigInt(await pub.request({method:'eth_estimateGas',params:[{from:account.address,to:address,data,gas:toHex(3000000n),gasPrice:toHex(gasPrice)},'latest']}));
+ const estimate=BigInt(await pub.request({method:'eth_estimateGas',params:[{from:signer.address,to:address,data,gas:toHex(3000000n),gasPrice:toHex(gasPrice)},'latest']}));
  const gas=(estimate*120n+99n)/100n;assert.ok(gas<=3000000n);
- await pub.simulateContract({address,abi:feedAbi,functionName,args,account,gas,gasPrice});
- const nonce=Math.max(nextEvmNonce,await pub.getTransactionCount({address:account.address,blockTag:'pending'}));
- pendingEvm=await wallet.writeContract({address,abi:feedAbi,functionName,args,gas,gasPrice,nonce,type:'legacy'});
+ await pub.simulateContract({address,abi:feedAbi,functionName,args,account:signer,gas,gasPrice});
+ const pending=await pub.getTransactionCount({address:signer.address,blockTag:'pending'}),nonce=signer===account?Math.max(nextEvmNonce,pending):pending;
+ const writer=signer===account?wallet:createWalletClient({chain,account:signer,transport:http(RPC,{timeout:30000})});
+ pendingEvm=await writer.writeContract({address,abi:feedAbi,functionName,args,gas,gasPrice,nonce,type:'legacy'});
  const receipt=await pub.waitForTransactionReceipt({hash:pendingEvm,timeout:180000});assert.equal(receipt.status,'success');
- log('mirror-mined',{feed:label,hash:pendingEvm,gasUsed:receipt.gasUsed});pendingEvm=undefined;nextEvmNonce=nonce+1;
+ log(event,{feed:label,hash:pendingEvm,gasUsed:receipt.gasUsed});pendingEvm=undefined;if(signer===account)nextEvmNonce=nonce+1;
 }
 // original forked feeds, so every reserve, adapter and stableswap peg follows mainnet unchanged
 async function mirrorFeeds(block){
@@ -276,10 +279,41 @@ async function replay(){
  if(live&&calls.length)await submit(api.tx.utility.forceBatch(calls),'replay-mined',false);
  return true;
 }
+const vaultAbi=parseAbi(['function paused() view returns(bool)','function depositsPaused() view returns(bool)','function isUnderfunded() view returns(bool)','function tvlCap() view returns(uint256)','function totalAssets() view returns(uint256)','function deposit(uint256,address) returns(uint256)']);
+const erc20Abi=parseAbi(['function balanceOf(address) view returns(uint256)','function allowance(address,address) view returns(uint256)','function approve(address,uint256) returns(bool)']);
+// user-like deposits at fixed times: one arrival per vault per slot, random size, random depositor
+let lastSlot;
+async function deposits(){
+ const block=await identity();
+ assert.ok(process.env.DEPOSIT_START&&manifest.depositor,'deposits needs DEPOSIT_START and a manifest depositor plan');
+ const start=BigInt(process.env.DEPOSIT_START),duration=BigInt(process.env.DEPOSIT_DURATION_S||259200),every=BigInt(process.env.DEPOSIT_EVERY_S||1800);
+ if(block.timestamp<start)return true;
+ const slot=(block.timestamp-start)/every;
+ if(slot===lastSlot)return true;
+ lastSlot=slot;
+ const read=(address,abi,functionName,args=[])=>pub.readContract({address,abi,functionName,args,blockNumber:block.number});
+ for(const p of manifest.depositor.plan){
+  const balances=await Promise.all(depositors.map(u=>read(p.asset,erc20Abi,'balanceOf',[u.address])));
+  const total=BigInt(p.total),remaining=balances.reduce((a,b)=>a+b,0n);
+  const owed=depositOwed({total,remaining,start,duration,now:block.timestamp});
+  const funded=depositors.map((u,i)=>[u,balances[i]]).filter(([,b])=>b>0n);
+  let size=funded.length?userDeposit({owed,slot:total*every/duration,rand:Math.random}):0n;
+  if(size===0n){log('deposit-schedule',{vault:p.name,slot,owed,size});continue;}
+  const [user,balance]=funded[Math.floor(Math.random()*funded.length)];
+  if(size>balance)size=balance;
+  const [paused,depositsPaused,underfunded,cap,assets]=await Promise.all(['paused','depositsPaused','isUnderfunded','tvlCap','totalAssets'].map(f=>read(p.vault,vaultAbi,f)));
+  const blocked=paused?'paused':depositsPaused?'deposits-paused':underfunded?'underfunded':assets+size>cap?'tvl-cap':null;
+  log('deposit-schedule',{vault:p.name,slot,user:user.address,owed,size,blocked});
+  if(blocked||!live)continue;
+  if(await read(p.asset,erc20Abi,'allowance',[user.address,p.vault])<size)await evmWrite(p.asset,erc20Abi,'approve',[p.vault,maxUint256],`${p.name} approve`,'deposit-approved',user);
+  await evmWrite(p.vault,vaultAbi,'deposit',[size,user.address],p.name,'deposit-mined',user);
+ }
+ return true;
+}
 try{
- await identity();assert.ok(['markets','mirror','pools','replay'].includes(mode));
+ await identity();assert.ok(['markets','mirror','pools','replay','deposits'].includes(mode));
  do{
-  try{const ok=(await ({mirror,markets,pools,replay})[mode]())!==false;writeFileSync('/tmp/propeller-bot-health.json',JSON.stringify({at:Date.now(),ok,mode}));if(!ok&&process.env.BOT_ONCE==='true')process.exitCode=1;}
+  try{const ok=(await ({mirror,markets,pools,replay,deposits})[mode]())!==false;writeFileSync('/tmp/propeller-bot-health.json',JSON.stringify({at:Date.now(),ok,mode}));if(!ok&&process.env.BOT_ONCE==='true')process.exitCode=1;}
   catch(e){log('error',{error:e.shortMessage??e.message});writeFileSync('/tmp/propeller-bot-health.json',JSON.stringify({at:Date.now(),ok:false,mode}));if(process.env.BOT_ONCE==='true')process.exitCode=1;}
   if(stopping||process.env.BOT_ONCE==='true')break;
   await new Promise(resolve=>setTimeout(resolve,interval));

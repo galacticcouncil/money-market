@@ -44,6 +44,17 @@ as fee conversion and DCA, are skipped because the fork runs those natively.
 Trades are batched with `utility.forceBatch`, so one failing item does not
 block the rest. H2O is never minted for replay.
 
+`deposits` simulates users depositing test inventory over `DEPOSIT_DURATION_S`,
+starting at `DEPOSIT_START`.
+- Deposits happen at fixed times: one per vault every `DEPOSIT_EVERY_S`.
+- Each deposit comes from a random one of `DEPOSIT_USERS` public test accounts
+  (index 21 upward), whose funding `lark-depositor-setup.mjs` splits unevenly.
+- Sizes are heavy-tailed, from 0.2× to 5× the average slot, clipped so the
+  cumulative total stays within one slot of the straight-line schedule.
+- A vault that is paused, underfunded or at its TVL cap logs
+  `deposit-schedule` with `blocked` and is never forced.
+- `lark-stack --depositor` adds the service only when `DEPOSIT_START` is set.
+
 The market bot retains $100 of each input asset for live route quoting. The funded
 inventory is finite; price monitoring does not guarantee market
 correction when inventory runs out. A profitable trade can be unavailable at
@@ -60,7 +71,7 @@ Required environment:
 | Variable | Meaning |
 | --- | --- |
 | `BOT_MANIFEST` | JSON containing pinned `genesis` and `oracles` (asset ID, asset address, mirror address, name) |
-| `BOT_MODE` | `mirror`, `markets`, `pools` or `replay` |
+| `BOT_MODE` | `mirror`, `markets`, `pools`, `replay` or `deposits` |
 | `BOT_LIVE` | Explicit `true` to sign; otherwise read-only |
 | `BOT_ONCE` | `true` for one cycle, with a failing exit code for unhealthy routes |
 | `BOT_INTERVAL_MS` | Default 30,000; minimum 5,000 for testnet catch-up |
@@ -70,6 +81,10 @@ Required environment:
 | `REPLAY_BATCH` | `replay`: maximum trades per batch, default 25 |
 | `REPLAY_MAX_BLOCKS` | `replay`: mainnet blocks per cycle, default 20 |
 | `REPLAY_FROM` | `replay`: first mainnet block; default is the finalized head at start |
+| `DEPOSIT_START` | `deposits`: schedule start, unix seconds (required) |
+| `DEPOSIT_DURATION_S` | `deposits`: window, default 259,200 (3 days) |
+| `DEPOSIT_EVERY_S` | `deposits`: seconds between deposits per vault, default 1,800 |
+| `DEPOSIT_USERS` | `deposits`: simulated depositor accounts, default 8 |
 
 Use one replica per mode and a stop-first rollout. Allow four minutes for a
 graceful stop so an in-flight receipt can resolve. Docker health checks require

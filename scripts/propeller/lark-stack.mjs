@@ -20,6 +20,11 @@ for(const [index,accountIndex]of [[0,18],[1,20]]){
 }
 const intervals={mirror:'30000',markets:'5000',pools:'30000',replay:'6000'};
 for(const mode of Object.keys(intervals))services[mode]={...common,image:botImage,environment:{BOT_MODE:mode,BOT_LIVE:'true',BOT_MANIFEST:'/app/manifest.json',BOT_INTERVAL_MS:intervals[mode]},configs:[{source:'propeller_manifest',target:'/app/manifest.json'}]};
+// the depositor only exists with an explicit --depositor and a fixed schedule start
+if(process.argv.includes('--depositor')){
+ assert.ok(/^\d+$/.test(process.env.DEPOSIT_START??''),'set DEPOSIT_START (unix seconds)');
+ services.depositor={...common,image:botImage,environment:{BOT_MODE:'deposits',BOT_LIVE:'true',BOT_MANIFEST:'/app/manifest.json',BOT_INTERVAL_MS:'60000',DEPOSIT_START:process.env.DEPOSIT_START,DEPOSIT_DURATION_S:process.env.DEPOSIT_DURATION_S??'259200',DEPOSIT_EVERY_S:process.env.DEPOSIT_EVERY_S??'1800',DEPOSIT_USERS:'8'},configs:[{source:'propeller_manifest',target:'/app/manifest.json'}]};
+}
 const compose={version:'3.8',services,configs:{propeller_manifest:{external:true,name:MANIFEST_CONFIG}}};
 const file='/tmp/propeller-lark-stack.json';writeFileSync(file,JSON.stringify(compose,null,2)+'\n',{mode:0o600});
 console.log(JSON.stringify({file,keepers,genesis:r.genesis,keeperImage,botImage,services:Object.keys(services)}));
