@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {ApiPromise,WsProvider,Keyring} from '@polkadot/api';
 import {cryptoWaitReady} from '@polkadot/util-crypto';
-import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData,maxUint256} from 'viem';
+import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData} from 'viem';
 import {mnemonicToAccount} from 'viem/accounts';
 import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit} from './policy.mjs';
 const RPC='https://4.lark.hydration.cloud',WS='wss://4.lark.hydration.cloud';
@@ -305,7 +305,8 @@ async function deposits(){
   const blocked=paused?'paused':depositsPaused?'deposits-paused':underfunded?'underfunded':assets+size>cap?'tvl-cap':null;
   log('deposit-schedule',{vault:p.name,slot,user:user.address,owed,size,blocked});
   if(blocked||!live)continue;
-  if(await read(p.asset,erc20Abi,'allowance',[user.address,p.vault])<size)await evmWrite(p.asset,erc20Abi,'approve',[p.vault,maxUint256],`${p.name} approve`,'deposit-approved',user);
+  // hydration asset precompiles revert approvals above u128
+  if(await read(p.asset,erc20Abi,'allowance',[user.address,p.vault])<size)await evmWrite(p.asset,erc20Abi,'approve',[p.vault,2n**128n-1n],`${p.name} approve`,'deposit-approved',user);
   await evmWrite(p.vault,vaultAbi,'deposit',[size,user.address],p.name,'deposit-mined',user);
  }
  return true;
