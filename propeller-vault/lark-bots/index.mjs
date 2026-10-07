@@ -256,7 +256,8 @@ async function replay(){
  for(let n=replayNext;n<=last;n++){
   const phases=new Map();
   for(const {phase,event} of await (await mainnet.at(await mainnet.rpc.chain.getBlockHash(n))).query.system.events()){
-   const name=`${event.section}.${event.method}`;if(!REPLAYED.has(name))continue;
+   // hooks (fee conversion, dca) already run natively on the fork; replaying them doubles the flow
+   const name=`${event.section}.${event.method}`;if(!REPLAYED.has(name)||!phase.isApplyExtrinsic)continue;
    const key=phase.toString();(phases.get(key)??phases.set(key,[]).get(key)).push(tradeRow(name,event.data));
   }
   groups.push(...phases.values());

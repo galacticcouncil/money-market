@@ -72,7 +72,7 @@ export function swapRoute(legs,input,output){
  const linked=route.every((h,i)=>i===0||route[i-1].assetOut===h.assetIn);
  return route.length&&linked&&route[0].assetIn===input&&route.at(-1).assetOut===output?route:null;
 }
-// top-level mainnet trades per extrinsic or hook phase; routed trades keep the hops they took
+// top-level mainnet trades per extrinsic; routed trades keep the hops they took
 export function replayTrades(groups){
  const out=[];
  for(const events of groups){
