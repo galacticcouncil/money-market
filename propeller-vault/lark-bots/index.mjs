@@ -177,9 +177,31 @@ async function omnipoolSide(at,id){
  const asset=(await at.query.omnipool.assets(id)).unwrap(),free=(await at.call.currenciesApi.account(id,OMNIPOOL)).free;
  return {hub:BigInt(asset.hubReserve.toString()),res:BigInt(free.toString())};
 }
+// aTokens pool sync sells but cannot mint, wrapped from a held underlying off the omnipool
+const WRAPS=[
+ {asset:1001,from:5,route:[{pool:'Aave',assetIn:5,assetOut:1001}]},
+ {asset:9001,from:40,route:[{pool:{Stableswap:90001},assetIn:40,assetOut:90001},{pool:'Aave',assetIn:90001,assetOut:9001}]},
+ {asset:420,from:1000809,route:[{pool:{Stableswap:4200},assetIn:1000809,assetOut:4200},{pool:'Aave',assetIn:4200,assetOut:420}]},
+];
+async function topUp(at){
+ const held=async id=>BigInt((await at.call.currenciesApi.account(id,actor.address)).free.toString());
+ for(const w of WRAPS){
+  // keep 1% of the omnipool reserve on hand; wrap a fifth of the stash at a time
+  if((await held(w.asset))*100n>=(await omnipoolSide(at,w.asset)).res)continue;
+  const amount=(await held(w.from))/5n;
+  if(amount===0n){log('inventory-refill-needed',{asset:w.from,wraps:w.asset,balance:0n});continue;}
+  const out=await quote(at,w.from,w.asset,amount,w.route).catch(e=>{log('pool-wrap-unavailable',{asset:w.asset,error:e.message});return 0n;});
+  if(out===0n)continue;
+  log('pool-wrap',{asset:w.asset,from:w.from,amount,out});
+  if(live)await submit(api.tx.router.sell(w.from,w.asset,amount.toString(),(out*99n/100n).toString(),w.route),'pool-wrapped');
+  return true;
+ }
+ return false;
+}
 // keep each omnipool asset's price in the anchor at mainnet's, beyond the fee band
 async function pools(){
  const block=await identity(),at=await api.at(block.hash);
+ if(await topUp(at))return true;
  const mainAt=await mainnet.at(await mainnet.rpc.chain.getFinalizedHead());
  const anchor=manifest.omnipool.anchor,band=BigInt(process.env.POOL_BAND_BPS||40);
  const larkAnchor=await omnipoolSide(at,anchor),mainAnchor=await omnipoolSide(mainAt,anchor);
