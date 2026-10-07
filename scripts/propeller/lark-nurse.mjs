@@ -1,5 +1,7 @@
 // Lark only: keeps deposits open and exits settling from a pre-minted deployer
 // HOLLAR stash. every top-up is a recorded test subsidy, never yield.
+// Main cash above the active cohort's requirement is released to holders as a
+// gift at the next checkpoint, so fills cover the exact gap and nothing more.
 //   --mint=<hollar>   one governance mint into the stash, then exit
 //   --watch=<s>       repeat passes; each pass reloads the journal
 import assert from 'node:assert/strict';
@@ -7,12 +9,13 @@ import {existsSync,readFileSync,writeFileSync} from 'node:fs';
 import {context,v,HOLLAR,deployer,live} from './lark-context.mjs';
 const arg=(name,fallback)=>process.argv.find(a=>a.startsWith(`--${name}=`))?.split('=')[1]??fallback;
 const hollar=x=>BigInt(Math.round(Number(x)*1e6))*10n**12n,fmt=x=>Number((Number(x)/1e18).toFixed(4));
-const CUSHION=hollar(arg('cushion','5')),CUSHION_LOW=hollar(arg('cushion-low','1')),CUSHION_MAX=hollar(arg('cushion-max','10'));
+const GAP_MAX=hollar(arg('gap-max','2'));
 const FILL_MAX=hollar(arg('fill-max','5')),TAIL_MAX=hollar(arg('tail-max','0.05')),TAIL_WAIT_S=Number(arg('tail-wait','600'));
 const MINT=arg('mint'),WATCH_S=Number(arg('watch','0'));
 const STATE='/tmp/lark-nurse-state.json';
 const erc20=v.parseAbi(['function approve(address,uint256) returns(bool)','function transfer(address,uint256) returns(bool)']);
 const ledger=v.parseAbi(['function fundPosition(uint256,uint256)']),vaultAbi=v.parseAbi(['function pokeSettle() returns(uint256)']);
+const E10=10n**10n;
 const max=(a,b)=>a>b?a:b,min=(a,b)=>a<b?a:b;
 
 async function pass(){
@@ -48,11 +51,11 @@ async function pass(){
    if(p.kind==='exit-tail')await evmSend(`${p.label}.settle`,p.vault,v.encodeFunctionData({abi:vaultAbi,functionName:'pokeSettle'}));
    return `${p.label}.fund`;
   };
-  const sender={'source-fill':fundSource,cushion:fundLedger,'exit-tail':fundLedger};
+  const sender={'source-fill':fundSource,cushion:fundLedger,'gap-fill':fundLedger,'exit-tail':fundLedger};
   if(r.nurse.pending&&live)await act(r.nurse.pending.kind,0n,{},sender[r.nurse.pending.kind]);
 
-  // source: harvest pays everything above principal + reserve once that passes
-  // threshold × principal, so a fill stays well below the trigger
+  // source: only lift it back to principal (negativeCarryBps gates every vault);
+  // harvest pays everything above principal + reserve past threshold × principal
   const S=r.addresses.source;
   const readSource=async()=>{
    const [equity8,principal,unwind,reserve,threshold,negCarry,capacity]=await Promise.all(['totalEquity','principalEquity','unwindTargetEquity','executionCostReserve','harvestThreshold','negativeCarryBps','harvestCapacity'].map(f=>u(S,f)));
@@ -60,8 +63,8 @@ async function pass(){
    return {principal,surplus,reserve,trigger,room:trigger-surplus,negCarry,capacity};
   };
   let src=await readSource();
-  const target=max(src.principal*2n/10000n,hollar(0.3)),ceiling=src.trigger*7n/10n;
-  if(src.surplus<target/2n&&src.capacity===0n){
+  const target=max(src.principal/20000n,hollar(0.05)),ceiling=src.trigger*7n/10n;
+  if((src.surplus<0n||src.negCarry>0n)&&src.capacity===0n){
    const amount=min(min(target,ceiling)-src.surplus,FILL_MAX);
    if(amount>=hollar(0.01)&&live)await act('source-fill',amount,{source:S,reason:'ramp entry costs left the source near/below principal; filled below the harvest trigger',before:{surplus:src.surplus.toString(),trigger:src.trigger.toString(),principal:src.principal.toString()}},fundSource);
    else if(amount>=hollar(0.01))actions.push(`would source-fill ${fmt(amount)}`);
@@ -73,16 +76,18 @@ async function pass(){
    const md=x.mainDebt,ya=x.yieldAccounting;
    const read=async()=>{
     const [debt,funds,required,sv,eq,head,unwind,tail,pending,freed]=await Promise.all([u(md,'debtOf',[0n]),u(md,'activeFunds'),u(ya,'requiredSourceBacking'),u(ya,'sourceValue'),readSig(S,'function equityOf(address) view returns(uint256)',[x.address]),u(x.address,'queueHead'),u(x.address,'queueUnwind'),u(x.address,'queueTail'),readSig(S,'function pendingUnwindOf(address) view returns(uint256)',[x.address]),readSig(S,'function freedOf(address) view returns(uint256)',[x.address])]);
-    const [underfunded,activeUnderfunded,ready]=await Promise.all([readSig(x.address,'function isUnderfunded() view returns(bool)'),readSig(md,'function activeUnderfunded() view returns(bool)'),readSig(md,'function ready() view returns(bool)')]);
-    return {debt,funds,headroom:eq*10n**10n-sv-required,head,unwind,tail,pending,freed,underfunded,activeUnderfunded,ready};
+    const [underfunded,activeUnderfunded,ready,vaultDebt,owned,feeReserve,idle]=await Promise.all([readSig(x.address,'function isUnderfunded() view returns(bool)'),readSig(md,'function activeUnderfunded() view returns(bool)'),readSig(md,'function ready() view returns(bool)'),readSig(r.market.hollarDebt,'function balanceOf(address) view returns(uint256)',[x.address]),u(md,'ownedCash'),u(md,'sourceFeeReserve'),balance(x.address)]);
+    // the active-cohort check and the vault-wide one in CompoundLogic.isUnderfunded
+    const cohortGap=required-(eq*E10-sv),vaultGap=vaultDebt/E10*E10-(eq+(pending+idle)/E10+owned/E10-sv/E10-feeReserve/E10)*E10;
+    return {debt,funds,headroom:-max(cohortGap,vaultGap),head,unwind,tail,pending,freed,underfunded,activeUnderfunded,ready};
    };
    let s=await read();
-   // cushion: Main active cash backs the cohort until the source catches up
-   if(s.debt>0n&&s.headroom<CUSHION_LOW){
-    const amount=CUSHION-s.headroom;
-    if(amount>CUSHION_MAX)actions.push(`${x.name} cushion needs ${fmt(amount)} > max; not papering over it`);
-    else if(live){await act('cushion',amount,{vault:x.address,mainDebt:md,key:'0',reason:'Main active-cohort cushion against ramp entry costs',before:{headroom:s.headroom.toString(),funds:s.funds.toString()}},fundLedger);s=await read();}
-    else actions.push(`would cushion ${x.name} ${fmt(amount)}`);
+   // gap fill: exactly the backing shortfall plus a hair, so nothing is released as a gift
+   if(s.debt>0n&&s.underfunded&&s.headroom<0n&&src.negCarry===0n){
+    const gap=-s.headroom,amount=((gap+max(gap/20n,10n**15n))/10n**12n+1n)*10n**12n;
+    if(amount>GAP_MAX)actions.push(`${x.name} gap ${fmt(gap)} > gap max; not papering over it`);
+    else if(live){await act('gap-fill',amount,{vault:x.address,mainDebt:md,key:'0',reason:'ramp/interest left the active cohort below its Main debt; exact gap only',before:{gap:gap.toString(),funds:s.funds.toString()}},fundLedger);s=await read();}
+    else actions.push(`would gap-fill ${x.name} ${fmt(amount)}`);
    }
    // exit tail: head started, source done, a sub-cent remainder unchanged for a while
    if(s.head<s.unwind){
