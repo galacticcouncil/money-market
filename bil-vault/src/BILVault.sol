@@ -65,6 +65,11 @@ contract BILVault is
     ///      drained every overdue root.
     uint256 internal constant MAX_MATURITY_SYNC = 50;
 
+    /// @dev Largest single Decentral position. Bigger deposits and reinvests are
+    ///      split into equal pieces, so Decentral never stages more than this for
+    ///      one payout and each returned piece is reinvested before the next.
+    uint256 internal constant MAX_POSITION = 100_000e18;
+
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     /// @notice Fast-path role for the Hydration technical committee.
@@ -527,8 +532,8 @@ contract BILVault is
         // mint shares against HOLLAR parked at 0% — governance has
         // `pauseDeposits()` for a planned outage. The revert unwinds the mint
         // and the transfer above, so the depositor keeps their HOLLAR.
-        (bool ok, uint256 tokenId) = _depositIntoDecentral(assets);
-        if (!ok) revert DecentralDepositFailed();
+        (uint256 invested, uint256 tokenId) = _depositIntoDecentral(assets);
+        if (invested != assets) revert DecentralDepositFailed();
         emit Deposited(receiver, assets, shares, tokenId);
         emit Deposit(sender, receiver, assets, shares);
     }
@@ -548,10 +553,9 @@ contract BILVault is
     ///      revert string.
     function _depositIntoDecentral(uint256 amount)
         internal
-        returns (bool ok, uint256 tokenId)
+        returns (uint256 invested, uint256 tokenId)
     {
         IDecentralPool pool = activeDepositPool;
-        uint256 apyWad = pool.fixedAPYWad();
         hollar.safeApprove(address(pool), 0);
         hollar.safeApprove(address(pool), amount);
 
@@ -561,30 +565,19 @@ contract BILVault is
         // costs more bytecode than the contract has left (EIP-170), and the
         // residual exposure is bounded by `amount` against a counterparty that
         // already custodies the vault's entire principal.
-        try pool.deposit(amount) returns (uint256 id) {
-            tokenId = id;
-        } catch {
-            return (false, 0);
-        }
-        ok = true;
-
-        uint256 idx = positions.length;
-        positions.push(
-            QueueLib.NFTPosition({
-                tokenId: tokenId,
-                principal: amount,
-                apyWad: apyWad,
-                depositTime: block.timestamp,
-                maturityTime: block.timestamp + _investmentPeriod(pool),
-                yieldStartTime: block.timestamp,
-                state: QueueLib.NFTState.Active,
-                yieldCapped: false,
-                pendingYield: 0
-            })
+        uint256 rateAdded;
+        uint256 offsetAdded;
+        (invested, tokenId, rateAdded, offsetAdded) = QueueLib.investSplit(
+            positions,
+            positionPool,
+            _maturityHeap,
+            pool,
+            amount,
+            MAX_POSITION
         );
-        positionPool[idx] = pool;
-
-        _addToBucket(idx, apyWad, amount, block.timestamp);
+        totalInvestedPrincipal += invested;
+        yieldRateSum += rateAdded;
+        yieldOffsetSum += offsetAdded;
     }
 
     /// @notice ERC-7540 async-redemption request. Escrows `shares` hDCL
@@ -1066,14 +1059,15 @@ contract BILVault is
         // HOLLAR simply stays in `idleHollar` — still fully counted by
         // `totalAssets()`, still spendable by the queue processor — and the
         // next poke retries.
-        (bool ok, uint256 tokenId) = _depositIntoDecentral(amount);
-        if (!ok) {
+        // a refusal mid-split keeps the remainder idle for the next poke
+        (uint256 invested, uint256 tokenId) = _depositIntoDecentral(amount);
+        if (invested == 0) {
             emit ReinvestFailed(amount);
             return;
         }
-        idleHollar -= amount;
+        idleHollar -= invested;
 
-        emit Reinvested(amount, tokenId);
+        emit Reinvested(invested, tokenId);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1607,25 +1601,6 @@ contract BILVault is
             MAX_POSITION_HEAD_SWEEP
         );
     }
-
-    /// @dev Record a fresh position: bump principal counter and add to the
-    ///      yield aggregates. Used by deposit and reinvest paths.
-    function _addToBucket(
-        uint256 positionIndex,
-        uint256 apyWad,
-        uint256 principal,
-        uint256 yieldStartTime
-    ) internal {
-        totalInvestedPrincipal += principal;
-        yieldRateSum += apyWad * principal;
-        yieldOffsetSum += apyWad * principal * yieldStartTime;
-        QueueLib.pushMaturity(
-            _maturityHeap,
-            positions[positionIndex].maturityTime,
-            positionIndex
-        );
-    }
-
     function _syncMaturities(
         uint256 maxPositions
     ) internal returns (uint256 processed) {

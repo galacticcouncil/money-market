@@ -93,6 +93,59 @@ library QueueLib {
         heap[cursor] = entry;
     }
 
+    /// @notice Deposit `amount` into `pool` as ceil(amount / maxPosition) equal
+    ///         positions and record each one, so no single Decentral payout is
+    ///         larger than `maxPosition`.
+    /// @dev    Runs under DELEGATECALL: the pool sees the vault as depositor and
+    ///         spends the vault's approval. The < n wei remainder is spread one wei
+    ///         per piece, so pieces never exceed the cap and are all over half of
+    ///         it, so none falls under Decentral's minimum. Stops at the first refusal and returns what
+    ///         landed, so the caller decides (deposits revert, reinvests keep the
+    ///         rest idle). Kept here for the vault's EIP-170 budget.
+    function investSplit(
+        NFTPosition[] storage positions,
+        mapping(uint256 => IDecentralPool) storage positionPool,
+        uint256[] storage heap,
+        IDecentralPool pool,
+        uint256 amount,
+        uint256 maxPosition
+    )
+        public
+        returns (uint256 invested, uint256 tokenId, uint256 rateAdded, uint256 offsetAdded)
+    {
+        uint256 apyWad = pool.fixedAPYWad();
+        uint256 maturity = block.timestamp + pool.minimumInvestmentPeriodSeconds();
+        uint256 n = (amount + maxPosition - 1) / maxPosition;
+        for (uint256 i; i < n; ++i) {
+            uint256 piece = amount / n + (i < amount % n ? 1 : 0);
+            try pool.deposit(piece) returns (uint256 id) {
+                tokenId = id;
+            } catch {
+                break;
+            }
+            invested += piece;
+
+            uint256 idx = positions.length;
+            positions.push(
+                NFTPosition({
+                    tokenId: tokenId,
+                    principal: piece,
+                    apyWad: apyWad,
+                    depositTime: block.timestamp,
+                    maturityTime: maturity,
+                    yieldStartTime: block.timestamp,
+                    state: NFTState.Active,
+                    yieldCapped: false,
+                    pendingYield: 0
+                })
+            );
+            positionPool[idx] = pool;
+            pushMaturity(heap, maturity, idx);
+            rateAdded += apyWad * piece;
+            offsetAdded += apyWad * piece * block.timestamp;
+        }
+    }
+
     /// @notice Cap up to `maxPositions` due heap roots and return aggregate
     ///         accounting deltas to the vault.
     function processMaturities(
