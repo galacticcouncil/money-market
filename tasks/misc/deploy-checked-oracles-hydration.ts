@@ -1,9 +1,9 @@
 import { task } from "hardhat/config";
-import { BigNumber } from "ethers";
+import { BigNumber, constants } from "ethers";
 import { POOL_ADMIN } from "../../helpers/constants";
 
 /**
- * Deploys the four production CheckedOracles for Hydration in one go, with
+ * Deploys the production CheckedOracles for Hydration in one go, with
  * every constructor argument pinned in this file so the deployment is
  * reviewable as a diff rather than as a shell history.
  *
@@ -21,17 +21,15 @@ import { POOL_ADMIN } from "../../helpers/constants";
  */
 const WH_RECEIVER_ETHEREUM = "0x6913770466fed4dbc24337cd7f1ae92af4321083";
 const WH_RECEIVER_SOLANA = "0x582e2fac5af62dc024396b5e7f549c72273a69c3";
+const WH_RECEIVER_ROBINHOOD = "0x3b6e3469d8e64e306f235838e0fdf7b4d60a39ce";
 
 type CheckedOracleSpec = {
   name: string;
   description: string;
   price: string; // 8 decimals
-  check: string; // day-EMA precompile
+  check?: string; // day-EMA precompile; omitted = unchecked
   maxDiffBps: number;
   pusher: string;
-  // the live wormhole feed this oracle will be pushed from; used only for the
-  // post-deploy previewSetPrice sanity read
-  whFeed: string;
 };
 
 export const CHECKED_ORACLES: CheckedOracleSpec[] = [
@@ -42,7 +40,6 @@ export const CHECKED_ORACLES: CheckedOracleSpec[] = [
     check: "0x000001040000000000000000000000de0000002e", // HOLLAR(222) -> apyUSD(46)
     maxDiffBps: 100,
     pusher: WH_RECEIVER_ETHEREUM,
-    whFeed: "0x6a738A5B191FC7D68477C6e6480726bAAfB944Bd",
   },
   {
     name: "PRIME",
@@ -51,7 +48,6 @@ export const CHECKED_ORACLES: CheckedOracleSpec[] = [
     check: "0x000001040000000000000000000000de0000002b", // HOLLAR(222) -> PRIME(43)
     maxDiffBps: 100,
     pusher: WH_RECEIVER_SOLANA,
-    whFeed: "0x6e3E9403Cf486af5f2cE0A6b3d7a23ee0e6BC84e",
   },
   {
     name: "WSTETH",
@@ -60,7 +56,6 @@ export const CHECKED_ORACLES: CheckedOracleSpec[] = [
     check: "0x00000104000000000000000000000014000f4569", // WETH(20) -> wstETH(1000809)
     maxDiffBps: 50,
     pusher: WH_RECEIVER_ETHEREUM,
-    whFeed: "0x35bEe05585c74462c9C40473B2E744537424C9FD",
   },
   {
     name: "JITOSOL",
@@ -69,7 +64,15 @@ export const CHECKED_ORACLES: CheckedOracleSpec[] = [
     check: "0x000001040000000000000000000f453000000028", // SOL(1000752) -> jitoSOL(40)
     maxDiffBps: 75,
     pusher: WH_RECEIVER_SOLANA,
-    whFeed: "0xFcEd56d89A63120e7bE512224CE3d08373cF6CeE",
+  },
+  {
+    name: "SPY",
+    description: "SPY/USD",
+    price: "78008287704",
+    // No check: SPY is in no Hydration pool, so no day-EMA exists for it yet.
+    // Once HOLLAR/SPY trades: 0x000001040000000000000000000000de000f488c
+    maxDiffBps: 100,
+    pusher: WH_RECEIVER_ROBINHOOD,
   },
 ];
 
@@ -81,19 +84,17 @@ const CHECKED_ORACLE_ABI = [
   "function checkDecimals() view returns (uint8)",
   "function maxDiffBps() view returns (uint256)",
   "function checkPrice() view returns (bool ok, int256 price)",
-  "function previewSetPrice(int256 price) view returns (bool ok, uint256 deviationBps)",
 ];
-const FEED_ABI = ["function latestAnswer() view returns (int256)"];
 
 const fmt8 = (v: BigNumber) => (Number(v.toString()) / 1e8).toFixed(8);
 
 task(
   `deploy-checked-oracles-hydration`,
-  `Deploys the four production CheckedOracles (apyUSD, PRIME, wstETH, jitoSOL) with pinned params and runs post-deploy sanity reads`
+  `Deploys the production CheckedOracles (apyUSD, PRIME, wstETH, jitoSOL, SPY) with pinned params and runs post-deploy sanity reads`
 )
   .addOptionalParam(
     "only",
-    "Comma-separated subset of names to deploy (APYUSD,PRIME,WSTETH,JITOSOL)"
+    "Comma-separated subset of names to deploy (APYUSD,PRIME,WSTETH,JITOSOL,SPY)"
   )
   .setAction(async ({ only }: { only?: string }, hre) => {
     const network = hre.network.name;
@@ -114,7 +115,7 @@ task(
         description: s.description,
         owner,
         price: s.price,
-        check: s.check,
+        ...(s.check ? { check: s.check } : {}), // omitted = unchecked
         maxDiffBps: String(s.maxDiffBps),
         pusher: s.pusher,
       });
@@ -124,7 +125,6 @@ task(
     for (const s of specs) {
       const dep = await hre.deployments.get(`${s.name}-CheckedOracle`);
       const oracle = await hre.ethers.getContractAt(CHECKED_ORACLE_ABI, dep.address);
-      const feed = await hre.ethers.getContractAt(FEED_ABI, s.whFeed);
 
       const [answer, ownerOnChain, pusher, checkOracle, checkDecimals, band] =
         await Promise.all([
@@ -137,33 +137,22 @@ task(
         ]);
       const [checkOk, checkPrice] = await oracle.checkPrice();
 
-      let feedNow: BigNumber | undefined;
-      let preview: [boolean, BigNumber] | undefined;
-      try {
-        feedNow = await feed.latestAnswer();
-        preview = await oracle.previewSetPrice(feedNow);
-      } catch {
-        // feed unreadable on this network (e.g. a fork predating it)
-      }
-
       const bad: string[] = [];
       if (!answer.eq(BigNumber.from(s.price))) bad.push("initial price mismatch");
       if (ownerOnChain.toLowerCase() !== owner.toLowerCase()) bad.push("owner mismatch");
       if (pusher.toLowerCase() !== s.pusher.toLowerCase()) bad.push("pusher mismatch");
-      if (checkOracle.toLowerCase() !== s.check.toLowerCase()) bad.push("check feed mismatch");
+      if (checkOracle.toLowerCase() !== (s.check ?? constants.AddressZero).toLowerCase())
+        bad.push("check feed mismatch");
       if (checkDecimals !== 8) bad.push(`check decimals ${checkDecimals} != 8`);
       if (!band.eq(s.maxDiffBps)) bad.push("band mismatch");
 
       console.log(`\n${s.name}-CheckedOracle ${dep.address}`);
       console.log(`  reports ${fmt8(answer)} | band ${band.toString()} bps | pusher ${pusher}`);
       console.log(
-        `  check feed ${checkOracle} -> ${checkOk ? fmt8(checkPrice) : "UNAVAILABLE (fail-closed: pushes rejected until it answers)"}`
+        s.check
+          ? `  check feed ${checkOracle} -> ${checkOk ? fmt8(checkPrice) : "UNAVAILABLE (fail-closed: pushes rejected until it answers)"}`
+          : `  check feed none -- UNCHECKED: every push stored until setCheckOracle`
       );
-      if (feedNow && preview) {
-        console.log(
-          `  wormhole feed now ${fmt8(feedNow)} -> previewSetPrice: ${preview[0] ? "ACCEPT" : "REJECT"} (deviation ${preview[1].toString()} bps)`
-        );
-      }
       console.log(bad.length ? `  !! ${bad.join("; ")}` : `  config OK`);
     }
   });
