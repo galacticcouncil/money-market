@@ -232,11 +232,15 @@ async function pools(){
  if(live)await submit(api.tx.router.sell(best.input,best.output,best.amount.toString(),(out*9950n/10000n).toString(),route),'pool-mined');
  return true;
 }
-const REPLAYED=new Set(['router.Executed','omnipool.SellExecuted','omnipool.BuyExecuted','stableswap.SellExecuted','stableswap.BuyExecuted','xyk.SellExecuted','xyk.BuyExecuted']);
+const REPLAYED=new Set(['router.Executed','broadcast.Swapped3','omnipool.SellExecuted','omnipool.BuyExecuted','stableswap.SellExecuted','stableswap.BuyExecuted','xyk.SellExecuted','xyk.BuyExecuted']);
 const scale=BigInt(Math.round(Number(process.env.REPLAY_SCALE||'1')*1e6));
 let replayNext;
 function tradeRow(name,d){
  const n=i=>Number(d[i].toString()),b=i=>BigInt(d[i].toString());
+ if(name==='broadcast.Swapped3'){
+  const ft=d[2],filler=ft.type==='Stableswap'?{Stableswap:Number(ft.value.toString())}:ft.type;
+  return {name,filler,input:Number(d[4][0]?.asset.toString()),output:Number(d[5][0]?.asset.toString())};
+ }
  if(name==='router.Executed')return {name,input:n(0),output:n(1),amount:b(2)};
  if(name.startsWith('omnipool.'))return {name,input:n(1),output:n(2),amount:b(3)};
  if(name.startsWith('stableswap.'))return {name,pool:n(1),input:n(2),output:n(3),amount:b(4)};

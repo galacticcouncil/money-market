@@ -29,7 +29,7 @@ test('stored routes reverse every hop without mutating the source',()=>{
  assert.throws(()=>orientRoute(route,34,43));
 });
 
-import {omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades} from '../policy.mjs';
+import {omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute} from '../policy.mjs';
 test('omnipool sizing moves the asset/anchor ratio onto the target from either side', () => {
  const asset={hub:1_000_000n*10n**12n,res:500_000n*10n**18n},anchor={hub:2_000_000n*10n**12n,res:2_000_000n*10n**18n};
  const ratio=omnipoolRatio(asset,anchor);
@@ -47,6 +47,17 @@ test('a starved correction gains less than a funded one', () => {
  assert.ok(correctionGainBps(asset,anchor,target,true,full.amount)>=99n);
  assert.ok(correctionGainBps(asset,anchor,target,true,10n**18n)<=1n);
  assert.equal(correctionGainBps(asset,anchor,target,true,0n),0n);
+});
+test('replay rebuilds routed trades from their swap legs', () => {
+ const leg=(filler,input,output)=>({name:'broadcast.Swapped3',filler,input,output});
+ const [t]=replayTrades([[
+  {name:'omnipool.SellExecuted',input:1000796,output:222,amount:5n},
+  leg('Omnipool',1000796,1),leg('Omnipool',1,222),leg({Stableswap:111},222,1002),leg('AAVE',1002,10),
+  {name:'router.Executed',input:1000796,output:10,amount:5n},
+ ]]);
+ assert.deepEqual(t.route,[{pool:'Omnipool',assetIn:1000796,assetOut:222},{pool:{Stableswap:111},assetIn:222,assetOut:1002},{pool:'Aave',assetIn:1002,assetOut:10}]);
+ assert.equal(swapRoute([leg('AAVE',5,1001),leg('UniswapV3',1001,222)],5,222),null,'uniswap v3 hops carry no pool id');
+ assert.equal(swapRoute([leg('AAVE',5,1001)],5,222),null,'route must reach the output');
 });
 test('replay keeps top-level routed trades and drops their inner pool legs', () => {
  const trades=replayTrades([

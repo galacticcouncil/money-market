@@ -58,12 +58,32 @@ export function correctionGainBps(asset,anchor,target,sellAsset,amount){
  const abs=x=>x<0n?-x:x;
  return abs(deviationBps(omnipoolRatio(asset,anchor),target))-abs(deviationBps(omnipoolAfter(asset,anchor,sellAsset,amount),target));
 }
-// top-level mainnet trades per extrinsic or hook phase; inner legs of a routed trade are skipped
+const FILLERS={Omnipool:'Omnipool',XYK:'XYK',LBP:'LBP',AAVE:'Aave',HSM:'HSM'};
+// rebuild a router route from its per-hop broadcast.Swapped3 legs; omnipool hops pass through the hub
+export function swapRoute(legs,input,output){
+ const route=[];
+ for(const l of legs){
+  const pool=l.filler?.Stableswap!==undefined?{Stableswap:l.filler.Stableswap}:FILLERS[l.filler];
+  if(!pool)return null;
+  const last=route.at(-1);
+  if(pool==='Omnipool'&&last?.pool==='Omnipool'&&last.assetOut===1&&l.input===1){last.assetOut=l.output;continue;}
+  route.push({pool,assetIn:l.input,assetOut:l.output});
+ }
+ const linked=route.every((h,i)=>i===0||route[i-1].assetOut===h.assetIn);
+ return route.length&&linked&&route[0].assetIn===input&&route.at(-1).assetOut===output?route:null;
+}
+// top-level mainnet trades per extrinsic or hook phase; routed trades keep the hops they took
 export function replayTrades(groups){
  const out=[];
  for(const events of groups){
-  const routed=events.filter(e=>e.name==='router.Executed');
-  if(routed.length){for(const e of routed)out.push({input:e.input,output:e.output,amount:e.amount,route:null});continue;}
+  if(events.some(e=>e.name==='router.Executed')){
+   let legs=[];
+   for(const e of events){
+    if(e.name==='broadcast.Swapped3')legs.push(e);
+    else if(e.name==='router.Executed'){out.push({input:e.input,output:e.output,amount:e.amount,route:swapRoute(legs,e.input,e.output)});legs=[];}
+   }
+   continue;
+  }
   for(const e of events){
    if(e.name==='omnipool.SellExecuted'||e.name==='omnipool.BuyExecuted')out.push({input:e.input,output:e.output,amount:e.amount,route:[{pool:'Omnipool',assetIn:e.input,assetOut:e.output}]});
    else if(e.name==='stableswap.SellExecuted'||e.name==='stableswap.BuyExecuted')out.push({input:e.input,output:e.output,amount:e.amount,route:[{pool:{Stableswap:e.pool},assetIn:e.input,assetOut:e.output}]});
