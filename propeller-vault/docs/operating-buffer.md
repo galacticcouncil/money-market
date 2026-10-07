@@ -22,10 +22,12 @@ Seven days / 10bp in tests are scenario inputs, not production defaults.
 `pokeSettle` can also service Main interest from already-owned HOLLAR between
 harvests, including during an emergency freeze. Exhaustion leaves debt and claims
 outstanding, never erases them or automatically sells collateral. A negative
-source carry or active backing deficit blocks new deposits/upward borrowing.
+source carry or active backing deficit blocks new deposits/upward borrowing
+unless the protocol reserve covers it.
 
 The buffer is not a treasury fee or insurance against permanent strategy losses.
-Governance still funds residual HOLLAR shortfalls. Maintaining a principal claim
+Governance still funds residual HOLLAR shortfalls, ideally ahead of time
+through the protocol reserve. Maintaining a principal claim
 does not make it immediately liquid, or guarantee the Main health floor through
 an arbitrarily long keeper outage or adverse reserve/oracle changes.
 

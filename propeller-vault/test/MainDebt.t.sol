@@ -99,6 +99,60 @@ contract MainDebtTest is PluggableYieldSourceTest {
         assertEq(vault.totalAssets(), 1e18 - promised);
     }
 
+    function _fundReserve(uint256 amount) internal {
+        hollar.mint(address(this), amount);
+        hollar.approve(address(_ledger()), amount);
+        _ledger().fundReserve(amount);
+    }
+
+    function test_reserveSettlesARealizedExitShortfallWithoutLeakingSurplus() public {
+        _fundReserve(10e18);
+        uint256 id = _start(_deposit(1e18) / 2);
+        hollarDebt.mint(address(vault), 2e18);
+        vault.maintainPeg();
+        vault.pokeSettle();
+        (,,uint256 promised,,,,,,) = vault.redemptions(id);
+        assertEq(_ledger().debtOf(id + 1), 0, "the reserve closes the exit's realized shortfall");
+        assertEq(vault.claim(id, address(this)), promised, "full collateral in one claim");
+        assertEq(_ledger().surplusOf(id), 0, "unused reserve never becomes exit surplus");
+        assertLt(_ledger().protocolReserve(), 10e18);
+        assertGt(_ledger().interestOf(0), 0, "the reserve does not service active holders");
+    }
+
+    function test_reserveBacksTheGuardsWithoutPayingActiveInterest() public {
+        _deposit(1e18);
+        hollarDebt.mint(address(vault), 2e18);
+        vault.maintainPeg();
+        vault.pokeSettle();
+        assertFalse(_ledger().ready());
+        _fundReserve(2e18);
+        assertTrue(_ledger().ready(), "protocol HOLLAR covers the shortfall");
+        assertFalse(vault.isUnderfunded());
+        eth.mint(address(this), 1e18);
+        eth.approve(address(vault), 1e18);
+        assertGt(vault.deposit(1e18, address(this)), 0, "collateral principal is not at risk, so deposits stay open");
+        assertEq(_ledger().interestOf(0), 2e18, "interest is still owed; the reserve only backs it");
+        assertEq(_ledger().protocolReserve(), 2e18);
+    }
+
+    function test_onlyTheVaultAdminWithdrawsTheReserve() public {
+        _fundReserve(5e18);
+        PropellerMainDebt ledger = _ledger();
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(PropellerMainDebt.Unauthorized.selector);
+        ledger.withdrawReserve(address(0xBEEF), 1);
+        ledger.withdrawReserve(address(0xCAFE), 2e18);
+        assertEq(hollar.balanceOf(address(0xCAFE)), 2e18);
+        assertEq(ledger.protocolReserve(), 3e18);
+    }
+
+    function test_exitsDoNotInheritTheReserve() public {
+        _fundReserve(5e18);
+        uint256 id = _start(_deposit(1e18) / 2);
+        assertEq(_cash(id + 1), 0, "the reserve belongs to no cohort");
+        assertEq(_ledger().protocolReserve(), 5e18);
+    }
+
     function test_unfundedInterestPreservesPrincipalAndBlocksDeposits() public {
         _deposit(1e18);
         hollarDebt.mint(address(vault), 100e18);

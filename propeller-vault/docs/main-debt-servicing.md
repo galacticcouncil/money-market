@@ -105,6 +105,14 @@ for an exit; it does not mint vault shares. Raw vault donations retain their
 legacy FIFO recovery behavior, so governance must use explicit cohort allocation
 when funding affected holders fairly.
 
+`fundReserve(amount)` adds protocol-owned HOLLAR that belongs to no cohort. It
+counts as source backing in the deposit and borrow guards, since a source
+shortfall only ever costs protocol HOLLAR, never collateral principal. It is
+drawn only when an exit's source claim is fully credited and its debt is still
+short, which would otherwise hold the FIFO head; unused draws return to the
+reserve, so it never becomes exit surplus or active-holder yield. Only the vault
+admin can `withdrawReserve`.
+
 ## Manual Incentives
 
 Governance may approve HOLLAR and call Aave `repay` on behalf of either position:

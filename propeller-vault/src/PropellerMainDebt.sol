@@ -6,6 +6,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "./interfaces/IAavePool.sol";
 import {ExecutionController} from "./ExecutionController.sol";
 import {IYieldSource} from "./interfaces/IYieldSource.sol";
@@ -74,6 +75,8 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
     uint256 private allocationWeight;
     uint256 private allocationCursor;
     uint256 private allocationTail;
+    // protocol-owned HOLLAR, owned by no cohort: covers realized exit shortfalls and backs the guards
+    uint256 public override protocolReserve;
 
     error Unauthorized();
     error InvalidConfiguration();
@@ -88,6 +91,9 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
     event SurplusClaimed(uint256 indexed id, address indexed owner, uint256 amount);
     event SourceCredited(uint256 indexed key, uint256 amount, uint256 remaining);
     event SourceYieldSpent(uint256 indexed key, uint256 cost);
+    event ReserveFunded(address indexed donor, uint256 amount);
+    event ReserveDrawn(uint256 indexed key, uint256 amount);
+    event ReserveWithdrawn(address indexed to, uint256 amount);
 
     constructor(address vault_) {
         if (vault_ == address(0)) revert InvalidConfiguration();
@@ -118,6 +124,19 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
         positions[key].cash += amount;
         ownedCash += amount;
         emit PositionFunded(key, msg.sender, amount);
+    }
+
+    function fundReserve(uint256 amount) external nonReentrant {
+        _receive(amount);
+        protocolReserve += amount;
+        emit ReserveFunded(msg.sender, amount);
+    }
+
+    function withdrawReserve(address to, uint256 amount) external nonReentrant {
+        if (!IAccessControl(vault).hasRole(keccak256("ADMIN_ROLE"), msg.sender)) revert Unauthorized();
+        protocolReserve -= amount;
+        hollar.safeTransfer(to, amount);
+        emit ReserveWithdrawn(to, amount);
     }
 
     function debtOf(uint256 key) public view returns (uint256) {
@@ -158,7 +177,9 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
         if (address(controller) != address(0) && controller.protocolFeeBps(vault) == BPS
             && interestOf(0) > activeFunds()) return true;
         PropellerYieldAccounting rewards = PropellerYieldAccounting(yieldAccounting);
-        uint256 sourceBacking = IMainDebtVault(vault).yieldSource().equityOf(vault) * 1e10 - rewards.sourceValue();
+        // collateral principal is never at risk here; a source shortfall is protocol HOLLAR the reserve covers
+        uint256 sourceBacking = IMainDebtVault(vault).yieldSource().equityOf(vault) * 1e10 - rewards.sourceValue()
+            + protocolReserve;
         return sourceBacking + activeFunds() < debt || sourceBacking < rewards.requiredSourceBacking();
     }
 
@@ -342,7 +363,33 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
             positions[key].cash += recovery;
             ownedCash += recovery;
         }
-        return _repay(key, principalLimit);
+        uint256 drawn = _drawReserve(key, principalLimit);
+        (paid, principalPaid, reduced) = _repay(key, principalLimit);
+        if (drawn != 0) {
+            // hand back what the repayment didn't need, so the reserve never becomes exit surplus
+            Position storage p = positions[key];
+            uint256 unused = Math.min(drawn, p.cash - Math.min(p.cash, sourceFees[key].feeRemaining));
+            p.cash -= unused;
+            ownedCash -= unused;
+            protocolReserve += unused;
+            if (drawn > unused) emit ReserveDrawn(key, drawn - unused);
+        }
+    }
+
+    /// @dev only an exit whose source claim is fully credited has a realized shortfall; it would
+    /// otherwise hold the FIFO head until someone funds it.
+    function _drawReserve(uint256 key, uint256 principalLimit) private returns (uint256 drawn) {
+        Position storage p = positions[key];
+        if (key == 0 || protocolReserve == 0 || p.sourceRemaining != 0) return 0;
+        uint256 debt = debtOf(key);
+        uint256 principal = Math.min(p.principal, debt);
+        uint256 limit = debt - principal + Math.min(principal, principalLimit);
+        uint256 spendable = p.cash - Math.min(p.cash, sourceFees[key].feeRemaining);
+        if (limit <= spendable) return 0;
+        drawn = Math.min(protocolReserve, limit - spendable + _roundingQuantum());
+        protocolReserve -= drawn;
+        p.cash += drawn;
+        ownedCash += drawn;
     }
 
     function _roundingQuantum() private view returns (uint256) {

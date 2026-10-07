@@ -96,15 +96,19 @@ contract CompoundLogic {
         if (debt == 0) return false;
         uint256 backing8 = v.yieldSource().equityOf(vault)
             + (v.yieldSource().pendingUnwindOf(vault) + v.hollar().balanceOf(vault)) / 1e10;
+        uint256 reserve8;
         if (address(v.mainDebt()) != address(0)) {
             if (v.mainDebt().activeUnderfunded()) return true;
-            backing8 += v.mainDebt().ownedCash() / 1e10;
+            // protocol HOLLAR covers a source shortfall; collateral principal is untouched either way
+            reserve8 = v.mainDebt().protocolReserve() / 1e10;
+            backing8 += v.mainDebt().ownedCash() / 1e10 + reserve8;
             backing8 -= v.yieldAccounting().sourceValue() / 1e10;
             uint256 reserved = v.mainDebt().sourceFeeReserve() / 1e10;
             if (reserved > backing8) return true;
             backing8 -= reserved;
         }
-        return v.yieldSource().negativeCarryBps() != 0 || backing8 < debt / 1e10;
+        // with a funded reserve the per-vault backing test above decides; unfunded keeps the strict check
+        return (reserve8 == 0 && v.yieldSource().negativeCarryBps() != 0) || backing8 < debt / 1e10;
     }
 
     /// @notice Supply collateral without borrowing or trading. Deployment is a
