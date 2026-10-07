@@ -293,7 +293,7 @@ export class BILKeeper {
     const minReinvest = minReinvestAmount as bigint;
 
     // 4. pokeQueue handles both queue processing and reinvestment
-    if ((idle > 0n && queued > 0n) || (idle >= minReinvest && queued === 0n)) {
+    if ((idle >= CONFIG.MIN_QUEUE_HOLLAR && queued > 0n) || (idle >= minReinvest && queued === 0n)) {
       try {
         console.log(`  Calling pokeQueue() (idle=${formatEther(idle)}, queued=${formatEther(queued)})...`);
         await this.writeContract('pokeQueue');
@@ -539,7 +539,7 @@ export class BILKeeper {
     const hash = await this.walletClient.writeContract({
       ...request,
       gasPrice,
-      gas: 5_000_000n,
+      gas: 15_000_000n,
     } as any);
     console.log(`    tx: ${hash}`);
     await this.publicClient.waitForTransactionReceipt({ hash });
