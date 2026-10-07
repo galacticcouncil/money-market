@@ -301,13 +301,13 @@ and pool-math input/output accounting use integer token units.
 From the repository root:
 
 ```sh
-HYDRATION_MATH_ROOT=/home/mrq/git/sdk/packages \
+HYDRATION_MATH_ROOT=<sdk checkout>/packages \
   node scripts/propeller/pressure-model.mjs \
   /tmp/propeller-market-snapshot-20260918.json \
   /tmp/propeller-pressure-results-20260918.json
 
 PROPELLER_MARKET_SNAPSHOT=/tmp/propeller-market-snapshot-20260918.json \
-HYDRATION_MATH_ROOT=/home/mrq/git/sdk/packages \
+HYDRATION_MATH_ROOT=<sdk checkout>/packages \
   node scripts/propeller/pressure-model.test.mjs
 ```
 

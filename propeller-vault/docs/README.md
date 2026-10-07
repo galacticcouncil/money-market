@@ -1,16 +1,16 @@
 # Propeller Team Documentation
 
-**5 October 2026 | PR #62 on Lark | Production activation blocked**
+**7 October 2026 | PR #62 on Lark | Production activation blocked**
 
 Propeller's current design uses harvest-time Main interest servicing,
 source-funded resizing and an earned PRIME execution allowance. It does not
 require sponsored HOLLAR operating capital. The candidate is on
 `prop_carry`. The [latest validation](deferred-deployment-validation-2026-10-04.md)
 covers deferred deposits, shared swap controls, oracle price bounds and keeper
-size selection. The [Lark deployment record](lark-deployment-2026-10-05.md)
-covers the fresh contracts, UI and hosted keeper/oracle/arb services, including
-the harvest and leveraged-exit gates still open. Earlier reports retain their
-original artifact scope.
+size selection. The [Lark deployment record](lark-deployment-2026-10-07.md)
+covers the fresh-fork contracts, UI, hosted keepers, a mined and claimed
+harvest, and the bots that keep Lark's oracles, pool prices and trade flow in
+step with mainnet. Earlier reports retain their original artifact scope.
 
 ## Start Here
 
@@ -73,6 +73,7 @@ includes a reproducible, fixture-selected verification command and hashed logs.
 | Evidence                                                                                                                                   | Scope                                                                                                        |
 | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | [RC verification](release-candidate.md#verification)                                                                                       | Current candidate summary; use this before historical test counts.                                           |
+| [Lark deployment, 7 October](lark-deployment-2026-10-07.md) | Fresh-fork contracts, hosted keepers, a mined and claimed harvest, and mainnet-synced oracles, pool prices and trade flow. Test policies and subsidies only. |
 | [Production adapter and execution calibration](route-execution-calibration.md)                                                             | Conditional native lifecycle, real-route quotes, Main resizing and 2,220 retention/cost scenario executions. |
 | [PRIME validation](prime-pricing-replenishment.md)                                                                                         | Dated production reads, replacement feed checks, mint/bridge state and observed replenishment.               |
 | [Swap costs with operator-funded gas](sponsored-gas-swap-costs-2026-10-03.md) | Re-ranked existing APY cases; fees and price impact separated from external operator expenses. |

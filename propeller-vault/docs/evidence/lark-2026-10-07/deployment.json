@@ -423,8 +423,17 @@
     "stack": "propeller-oct2026",
     "keeperImage": "galacticcouncil/propeller-lark-keeper@sha256:a3255dd2ace1439c6cdfbe1cd548c57da14f896bc303c5d1251aa6ff159070bc",
     "keeperCommit": "db0799c",
-    "botImage": "galacticcouncil/propeller-lark-bots@sha256:70c13bb2991431be8bcdd4615398d6fbbb48cccd7db8297ec39cf70f8ddb280a",
-    "manifestConfig": "propeller-lark4-20261007-manifest"
+    "botImage": "galacticcouncil/propeller-lark-bots@sha256:032cb274ddb0e866a4410bcfa898dd771adf2e925867bb687a3dccd8781bcfb6",
+    "manifestConfig": "propeller-lark4-20261007-manifest-v2",
+    "botCommit": "9d81c0f",
+    "services": [
+      "keeper0",
+      "keeper1",
+      "mirror",
+      "markets",
+      "pools",
+      "replay"
+    ]
   },
   "fork": {
     "stateBlock": "0x60a4017c85b923661d3b7123d69159d678cf4b5d2ce773e7e757df6d77746d99",

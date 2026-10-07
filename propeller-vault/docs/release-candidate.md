@@ -12,8 +12,11 @@ Its [completion record](pr62-completion-2026-10-02.md) contains the new implemen
 The later [three-pass validation](pr62-three-pass-validation-2026-10-02.md)
 includes a fresh native lifecycle of the corrected ownership contracts on
 runtime 447 with unchanged oracle values and swap floors. The later [execution controls implementation](execution-controls-implementation.md)
-adds admission/harvest bounds and economical keeper scheduling. Production policy,
-quote-aware UI integration and deployment activation remain open.
+adds admission/harvest bounds and economical keeper scheduling. The
+[7 October Lark deployment](lark-deployment-2026-10-07.md) runs the candidate on
+a fresh mainnet fork with mainnet-synced markets and records a mined and claimed
+harvest, under test-only policies. Production policy, quote-aware UI integration
+and deployment activation remain open.
 
 The candidate is on `feat/propeller-interest-buffer`; the name is historical.
 Sponsored operating buffers have been replaced. The commit containing this

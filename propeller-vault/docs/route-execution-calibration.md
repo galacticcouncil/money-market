@@ -271,7 +271,7 @@ fixture for this evidence.
 Offline evidence/calibration replay (SDK math location is installation-specific):
 
 ```bash
-export HYDRATION_MATH_ROOT=/home/mrq/git/sdk/packages
+export HYDRATION_MATH_ROOT=<sdk checkout>/packages
 export PROPELLER_MARKET_SNAPSHOT=propeller-vault/docs/evidence/route-execution-2026-09-23/market.json
 export PROPELLER_ROUTE_EVIDENCE=propeller-vault/docs/evidence/route-execution-2026-09-23/native-baseline.json
 node --test-reporter=tap scripts/propeller/route-calibration.test.mjs

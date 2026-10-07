@@ -134,7 +134,7 @@ not a normal-operation minimum.
 Run from the repository root with Node.js 22+ and the Hydration SDK math packages
 available. The recorded runs used `math-stableswap` 2.5.0 and `math-hsm` 1.2.0;
 the output includes their WASM hashes. Set `HYDRATION_MATH_ROOT` to your SDK
-`packages` directory. On the analysis machine it is `/home/mrq/git/sdk/packages`.
+`packages` directory.
 
 ```sh
 HYDRATION_MATH_ROOT=/path/to/sdk/packages \

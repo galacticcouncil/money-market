@@ -98,7 +98,7 @@ automatic approved deployment. Its four ordered groups are:
 
 | Group                | Purpose                                                                                                                             |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 0: compound routes   | PRIME-to-collateral and collateral-to-HOLLAR routes. Empty route bytes resolve through runtime route storage.                       |
+| 0: compound routes   | PRIME-to-collateral and collateral-to-HOLLAR routes. Empty route bytes resolve through runtime route storage. Mainnet stores no PRIME↔ETH or PRIME↔tBTC route and PRIME is not in the Omnipool: store routes composed from the HOLLAR legs and the PRIME pool, or harvests cannot route. |
 | 1: list reserve      | Register the synthetic native asset before initializing its Aave reserve.                                                           |
 | 2: configure reserve | Apply approved synthetic collateral settings, disable borrowing and install the $1 source.                                          |
 | 3: wire              | Source/vault/harvester roles, tranches, route IDs, swapper, compound floor, withdrawal delay, guardians and funded rounding policy. |

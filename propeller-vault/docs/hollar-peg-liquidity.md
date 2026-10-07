@@ -340,12 +340,12 @@ Files:
   assumptions, dependency versions and WASM hashes.
 
 ```sh
-HYDRATION_MATH_ROOT=/home/mrq/git/sdk/packages \
+HYDRATION_MATH_ROOT=<sdk checkout>/packages \
   node scripts/propeller/peg-model.mjs \
   /tmp/propeller-peg-snapshot-20260922.json \
   /tmp/propeller-peg-results-20260922.json
 
-HYDRATION_MATH_ROOT=/home/mrq/git/sdk/packages \
+HYDRATION_MATH_ROOT=<sdk checkout>/packages \
 PROPELLER_MARKET_SNAPSHOT=/tmp/propeller-peg-snapshot-20260922.json \
   node scripts/propeller/peg-model.test.mjs
 ```
