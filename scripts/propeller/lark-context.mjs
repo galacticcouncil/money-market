@@ -34,7 +34,10 @@ export async function context() {
   const directRpc='https://node4.lark.hydration.cloud';
   const pub = v.createPublicClient({chain,transport:v.http(directRpc,{timeout:60000,retryCount:3}),pollingInterval:2000,cacheTime:0});
   assert.equal(await pub.getChainId(),222222);
-  const b = await pub.getBlock({blockNumber:BigInt((await api.rpc.chain.getHeader()).number.toString())});
+  // the eth rpc imports the substrate best block a moment later
+  const head = BigInt((await api.rpc.chain.getHeader()).number.toString());
+  let b;
+  for(let i=0;!b;i++){try{b=await pub.getBlock({blockNumber:head});}catch(e){if(i>=10||!/could not be found/.test(e.message))throw e;await new Promise(resolve=>setTimeout(resolve,1500));}}
   assert.ok(Math.abs(Date.now()/1000-Number(b.timestamp))<120,'Lark head is stale');
   assert.deepEqual(Array.from(api.tx.router.sell.callIndex),[67,0]);
   const wallet = v.createWalletClient({account:deployer,chain,transport:v.http(directRpc,{timeout:60000})});
