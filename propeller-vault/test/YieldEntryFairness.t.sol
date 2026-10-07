@@ -11,8 +11,8 @@ import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 
-/// @notice Regression for #62: new capital must not receive carry earned before
-/// entry, including when it exits before the permissionless harvest runs.
+/// @notice new capital must not receive carry earned before entry, even if it exits
+/// before the harvest runs
 contract YieldEntryFairnessTest is HarvestTest {
     address internal constant NEWCOMER = address(0xB0B);
 
@@ -86,8 +86,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         uint256 firstHalf = _rewardValue(address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(1);
-        // The waiting half receives its checkpointed units before its owned
-        // source yield follows the exit into the existing recovery ledger.
+        // the waiting half keeps its checkpointed units; its source yield follows the exit
         (,,,uint256 sourceClaim,) = PropellerMainDebt(address(vault.mainDebt())).positions(id + 1);
         uint256 debt = PropellerMainDebt(address(vault.mainDebt())).debtOf(id + 1);
         assertGt(sourceClaim, debt);
@@ -239,8 +238,7 @@ contract YieldEntryFairnessTest is HarvestTest {
             assertApproxEqAbs(_rewardValue(address(this)), _rewardValue(NEWCOMER), 1e9);
             assertLe(y.balanceOf(address(this)) + y.balanceOf(NEWCOMER), y.totalUnits());
             assertLe(y.totalUnits(), uint256(1) << 162);
-            // Leave one native PRIME base unit after each loss. This exercises
-            // normalization instead of the separate complete-writeoff reset.
+            // leave one prime base unit per loss to hit normalization, not the full write-off reset
             aPrime.burn(address(loop), 1_000e6 - 1);
             vault.prepareHarvest();
             assertGt(y.totalUnits(), 0);

@@ -15,11 +15,8 @@ import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {MockSwapper} from "./mocks/MockSwapper.sol";
 
-/// @notice Verifies the KEEPER_ROLE removal: every former keeper op is callable
-///         by an arbitrary address (no AccessControl gate), harvest pays the
-///         configured harvester (not the caller), compound enforces an
-///         oracle-fair floor, the Harvester distributes its full balance
-///         pro-rata and rejects a stale vault set, and the pause matrix holds.
+/// @notice keeper ops are callable by anyone; compound enforces an oracle floor, the
+///         harvester distributes parked balance and the pause matrix holds.
 contract PermissionlessKeeperTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
@@ -113,8 +110,6 @@ contract PermissionlessKeeperTest is Test {
         fees.registerVault(address(vault), address(harvester));
     }
 
-    // ── every opened op is callable by a non-role address ────────────────────
-
     function test_keeperOpsCallableByAnyone() public {
         // no-op paths succeed (no AccessControl revert) from an arbitrary caller
         vm.startPrank(RANDO);
@@ -142,13 +137,9 @@ contract PermissionlessKeeperTest is Test {
         vault.compound(address(prime), 0, 0, "");
     }
 
-    // ── harvest pays the configured harvester, never the caller ──────────────
-
     function test_harvestConfiguredAsHarvester() public {
         assertEq(loop.harvester(), address(harvester), "harvester pinned");
     }
-
-    // ── compound oracle floor: honest fill passes, lossy fill reverts ────────
 
     function test_compoundEnforcesOracleFloor() public {
         uint256 amt = 100e6; // 100 PRIME
@@ -170,8 +161,6 @@ contract PermissionlessKeeperTest is Test {
         vault.compound(address(prime), amt, 0, "");
         vm.stopPrank();
     }
-
-    // ── Harvester: full-balance distribution, pro-rata, incomplete-set guard ──
 
     function test_harvesterDistributesParkedBalance() public {
         // give the loop a vault position (credits loop shares for the vault)

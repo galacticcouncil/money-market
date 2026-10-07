@@ -504,8 +504,7 @@ contract ProtocolFeesTest is HarvestTest {
     }
 
     function _feeWithDiscount(uint16 bps) internal {
-        // Preserve the fixture's reserve addresses while installing the cache-aware
-        // debt/aToken mocks. Interest arithmetic is covered by the pinned fork suite.
+        // keep the fixture's reserve addresses while installing cache-aware debt/atoken mocks
         vm.etch(address(hollarDebt), address(new MockDiscountDebtToken(address(pool))).code);
         vm.etch(address(aSynth), address(new MockDiscountAToken(address(pool), address(synth))).code);
         MockDiscountDebtToken debt = MockDiscountDebtToken(address(hollarDebt));

@@ -13,18 +13,8 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 
-/// @notice Interference between the permissionless `rebalance()` de-lever and the
-///         FIFO redemption queue.
-///
-///         `adminUnwind` sizes its de-lever as `debt - totalQueuedDebt` precisely so
-///         it never repays debt that a queued redeemer's snapshot still expects to
-///         repay itself. `rebalance()`'s de-lever branch has no such subtraction — it
-///         sizes off the full live debt, which INCLUDES every queued redeemer's
-///         `debtShare`. When it does, `pokeSettle` spends the shared freed-HOLLAR
-///         bucket repaying that debt (and burning the matching synthetic) ahead of
-///         the queue, so the queued request's `repaid` can never reach its
-///         `debtShare`: `queueHead` never advances and the collateral is never fully
-///         released.
+/// @notice interference between the permissionless `rebalance()` de-lever and the
+///         fifo redemption queue.
 contract DeleverQueueInterferenceTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
@@ -62,8 +52,7 @@ contract DeleverQueueInterferenceTest is Test {
         pool.initReserve(address(hollar), address(aHollar), address(hollarDebt), 0, 0, 18, 1e18);
         pool.initReserve(address(prime), address(aPrime), address(primeDebt), 8800, 8500, 6, 1e18);
         pool.initReserve(address(synth), address(aSynth), address(synthDebt), 9800, 100, 18, 1e18);
-        // PRIME is listed in isolation mode on the live market, so a plain supply
-        // never auto-enables it as collateral — only pokeBorrow's explicit call does.
+        // isolation-mode prime is never auto-enabled as collateral; pokeBorrow enables it
         pool.setIsolationMode(address(prime), true);
 
         loop = SubLoop(
@@ -125,10 +114,7 @@ contract DeleverQueueInterferenceTest is Test {
         }
     }
 
-    /// @dev Returns the number of spiral rounds actually consumed. The unwind
-    ///      spiral converges GEOMETRICALLY — each `pokeRepay` may only sell the
-    ///      sliver that keeps HF above STEP_HF_FLOOR — so the tail of a redemption
-    ///      takes many more keeper calls than the bulk of it.
+    /// @dev returns the spiral rounds consumed; the tail converges geometrically.
     function _grind(uint256 budget) internal returns (uint256 rounds) {
         for (rounds = 0; rounds < budget; rounds++) {
             if (loop.unwindTargetEquity() == 0 && loop.deleverDebtTarget() == 0) break;
@@ -156,14 +142,8 @@ contract DeleverQueueInterferenceTest is Test {
         (, shares, collateralOwed, debtShare,, repaid,,, active) = vault.redemptions(id);
     }
 
-    /// REGRESSION. A queued redemption plus a permissionless de-lever: `rebalance`
-    /// used to size its de-lever off the FULL live debt, queued `debtShare`
-    /// included, so `pokeSettle` repaid the redeemer's own slice out from under
-    /// them (and burned the matching synthetic off the whole book, which can
-    /// underflow `syntheticSupplied` once `target/debt + queuedFraction > 1`).
-    ///
-    /// Pre-fix on this scenario: deleverTarget 1125e18 against 225e18 of non-queued
-    /// debt — a 5x over-size that repaid 900 HOLLAR of the redeemer's own debt.
+    /// rebalance waits for a queued exit instead of repaying the redeemer's own
+    /// debt slice out from under them.
     function test_rebalanceWaitsForQueuedExit() public {
         _depositAndRamp();
 
@@ -171,7 +151,7 @@ contract DeleverQueueInterferenceTest is Test {
         uint256 synthBefore = vault.syntheticSupplied();
         assertGt(debtBefore, 0, "position open");
 
-        // Redeem 90% of the supply. The snapshot claims 90% of Main debt.
+        // redeem 90% of the supply; the snapshot claims 90% of main debt
         uint256 shares = (vault.balanceOf(address(this)) * 90) / 100;
         uint256 id = vault.requestRedeem(shares, address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
@@ -180,8 +160,7 @@ contract DeleverQueueInterferenceTest is Test {
         uint256 queuedDebt = vault.totalQueuedDebt();
         assertEq(debtShare, queuedDebt, "queue holds the whole snapshot");
 
-        // Collateral halves -> the position is over-levered on the REAL collateral,
-        // so the permissionless de-lever branch fires.
+        // collateral halves → over-levered, so the de-lever branch fires
         pool.setPrice(address(eth), 1_500e18);
         vault.rebalance();
 
@@ -195,9 +174,7 @@ contract DeleverQueueInterferenceTest is Test {
         assertLe(target, nonQueuedDebt, "de-lever must never exceed the NON-queued Main debt");
         assertEq(target, 0, "Main resizing waits; source safety de-lever remains independent");
 
-        // The de-lever's synthetic burn is proportional to the debt it repays, so
-        // capping the debt caps the burn: the queued request's pre-burn synthShare
-        // snapshot stays covered by the remaining syntheticSupplied.
+        // capping the repaid debt caps the synthetic burn, so synthShare stays covered
         _grind(600);
         assertLe(
             target,
@@ -208,18 +185,8 @@ contract DeleverQueueInterferenceTest is Test {
         assertGe(repaid * 10_000 / ds, 9_999, "redeemer settles to >=99.99% of its snapshot");
     }
 
-    /// REGRESSION. The unwind spiral hits a HARD STALL, not slow convergence:
-    /// `pokeRepay` may only sell the sliver that keeps HF above STEP_HF_FLOOR
-    /// (1.02), and once that sliver floors to zero in 6dp aPRIME the budget can
-    /// only shrink — the position never moves again. Measured with a FRICTIONLESS
-    /// mock, so this is pure 8dp/6dp truncation; real slippage and negative carry
-    /// only widen it. Pre-fix, state was byte-identical at 2,000 and 6,000 rounds
-    /// with `unwindTargetEquity` pinned at 6.71e12 wei.
-    ///
-    /// Left open, `r.repaid` never reaches `r.debtShare`: `queueHead` never advances
-    /// past the head request, every request behind it is blocked forever, the
-    /// redeemer's last sliver of collateral is never released, and
-    /// `setYieldSource`'s drain guard can never be satisfied.
+    /// the spiral tail can stall on 8dp/6dp truncation; it must stay claimable and
+    /// a recovery donation must let the queue head advance.
     function test_unwindSpiralTailRemainsClaimableUntilRecovery() public {
         _depositAndRamp();
         uint256 shares = vault.balanceOf(address(this));
@@ -246,13 +213,12 @@ contract DeleverQueueInterferenceTest is Test {
         assertEq(originalDebt, ds);
         assertTrue(partiallyActive, "unfunded collateral remains owed");
 
-        // A recovery donation funds the missing tail, never a new user's deposit.
+        // a recovery donation funds the missing tail, never a new user's deposit
         hollar.mint(address(loop), 1e18);
         _grind(100);
         vault.pokeSettle();
         assertEq(loop.pendingUnwindOf(address(vault)), 0, "source recovery pays its full quote");
-        // The 8dp source quote can be smaller than the 18dp Main debt. Funding
-        // the loop cannot credit more than that quote to the exiting cohort.
+        // funding the loop can't credit the cohort more than the 8dp source quote
         PropellerMainDebt ledger = PropellerMainDebt(address(vault.mainDebt()));
         uint256 missing = ledger.debtOf(id + 1);
         assertGt(missing, 0, "Main rounding deficit remains a real obligation");
@@ -267,18 +233,11 @@ contract DeleverQueueInterferenceTest is Test {
         assertFalse(stillActive, "request closed on final claim");
     }
 
-    /// `SubLoop.requestUnwind` derives its target from live loop equity with no
-    /// zero-check, while the vault has already escrowed shares and enqueued a
-    /// non-zero `debtShare`. Redeeming before the loop is ramped (aPRIME held but
-    /// never flagged as collateral, so `totalEquity() == 0`) therefore registers a
-    /// ZERO unwind target: nothing will ever be freed for that request.
-    ///
-    /// Observed live on lark-4 (2026-07-31): a pre-ramp redeem left an orphaned
-    /// request #0 that only later settled out of the commingled freed bucket.
+    /// a redeem before the loop ramps must still register a non-zero unwind target.
     function test_requestRedeemBeforeRampHasRecognizedBacking() public {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
-        vault.deposit(1e18, address(this)); // NO pokeBorrow ramp
+        vault.deposit(1e18, address(this)); // no pokeBorrow ramp
         vault.rebalance(); // Explicit keeper deployment before exercising a live position.
 
         assertGt(vault.loopShares(), 0, "vault holds loop shares");

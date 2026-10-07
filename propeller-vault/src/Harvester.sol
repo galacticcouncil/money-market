@@ -19,15 +19,10 @@ interface ICompoundable {
 }
 
 /// @title Harvester
-/// @notice Keeper entrypoint orchestrating harvest / de-lever across the shared
-///         SubLoop and the registered CollateralVaults. `harvest` skims the loop
-///         carry (surplus PRIME), splits it by each vault's eligible owned units,
-///         and compounds each cut into that vault's collateral (in-kind yield).
+/// @notice permissionless harvest / de-lever for the shared SubLoop. splits loop carry by each
+/// registered vault's owned units and compounds each cut into that vault's collateral.
 contract Harvester is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
-
-    // KEEPER_ROLE removed: harvest/deLever are permissionless. DEFAULT_ADMIN_ROLE
-    // is retained for addVault (registry management).
 
     ISubLoop public immutable subLoop;
     IERC20 public immutable prime; // the token SubLoop.harvest returns
@@ -58,13 +53,8 @@ contract Harvester is AccessControl, ReentrancyGuard {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
-    /// @notice Register a vault to receive its pro-rata cut of the loop carry.
-    /// @dev    Duplicate registration is REJECTED, not tolerated: `harvest` sums
-    ///         `sharesOf(v)` per entry and hard-requires the total to equal
-    ///         `subLoop.totalShares()`, so a vault listed twice double-counts, fails
-    ///         that check, and reverts every harvest. This contract is not
-    ///         upgradeable, so recovery would mean redeploying it and re-running a
-    ///         governance `SubLoop.setHarvester`.
+    /// @notice register a vault for its pro-rata cut of the loop carry.
+    /// @dev duplicates are rejected: a double-counted vault would fail harvest's share-sum check forever.
     function addVault(address vault) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (vault == address(0)) revert ZeroAddress();
         if (isRegistered[vault]) revert AlreadyRegistered();
@@ -73,15 +63,8 @@ contract Harvester is AccessControl, ReentrancyGuard {
         emit VaultAdded(vault);
     }
 
-    /// @notice Deregister a vault. Needed because the registry-completeness check
-    ///         is strict: a vault that still holds loop shares but must be excluded
-    ///         (retired, or paused for long enough to block the shared harvest)
-    ///         would otherwise wedge harvesting for every healthy vault with no way
-    ///         out short of redeploying this contract.
-    /// @dev    Removing a vault that still holds loop shares will make
-    ///         `registeredShares < totalShares` and revert `harvest` until its
-    ///         shares are unwound — deliberate, so carry is never silently
-    ///         redistributed away from a vault that is still entitled to it.
+    /// @notice deregister a vault that would otherwise wedge the shared harvest.
+    /// @dev harvest reverts until its loop shares are unwound, so its carry is never redistributed.
     function removeVault(address vault) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (!isRegistered[vault]) revert NotRegistered();
         isRegistered[vault] = false;
@@ -122,9 +105,8 @@ contract Harvester is AccessControl, ReentrancyGuard {
         return executionController.fit(vault, address(prime), ICompoundable(vault).collateral(), amount);
     }
 
-    /// @notice Realize each vault's owned loop carry → distribute PRIME →
-    ///         compound each vault's cut into its collateral.
-    /// @param minOuts per-vault min collateral out (slippage bound); pass 0s in tests.
+    /// @notice realize each vault's owned loop carry and compound its cut into its collateral.
+    /// @param minOuts per-vault min collateral out (slippage bound)
     function harvest(uint256[] calldata minOuts) external nonReentrant returns (uint256 surplus) {
         IPropellerFeeController controller = feeController;
         if (address(controller) == address(0)) revert FeeControllerUnset();
@@ -156,8 +138,7 @@ contract Harvester is AccessControl, ReentrancyGuard {
                     uint256 expected = subLoop.previewHarvest(shares);
                     uint256 bounded = _fit(v, expected);
                     shares = expected == 0 ? 0 : Math.mulDiv(shares, bounded, expected);
-                    // Converting the bounded input back to shares rounds down.
-                    // Leave sub-minimum tails earning in the source.
+                    // shares round down from the bounded input; sub-minimum tails stay in the source
                     if (_fit(v, subLoop.previewHarvest(shares)) == 0) shares = 0;
                 }
                 (amount, burned[i]) = subLoop.harvestFor(v, shares);
@@ -166,9 +147,8 @@ contract Harvester is AccessControl, ReentrancyGuard {
             }
             uint256 gift = total == 0 ? 0 : Math.mulDiv(donated, beforeShares[i], total);
             if (address(executionController) != address(0)) {
-                // Owned carry has priority. Do not make a second dust trade on
-                // the same route; parked donations cannot bypass the limits,
-                // including a skipped vault's blocked interest sale.
+                // owned carry first: no second dust trade on the route, and parked donations
+                // never bypass the limits or a skipped vault's blocked interest sale
                 gift = amount == 0 && !ICompoundable(v).mainDebt().serviceBlocked() ? _fit(v, gift) : 0;
             }
             uint256 minimum = i < minOuts.length ? minOuts[i] : 0;

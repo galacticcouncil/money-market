@@ -4,16 +4,8 @@ pragma solidity ^0.8.22;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IYieldSource} from "../../src/interfaces/IYieldSource.sol";
 
-/// @notice A minimal, NON-leveraged `IYieldSource` — the point of the seam. It
-///         has no health factor, no Aave, no PRIME, no keeper cranks: it just
-///         custodies the HOLLAR handed to it 1:1 and frees it synchronously on
-///         request. If `CollateralVault` can deposit into and redeem through this
-///         with zero code changes, then PRIME is genuinely pluggable (the vault
-///         binds only to `IYieldSource`, not to the leveraged loop).
-///
-/// @dev    Shares are 1:1 with HOLLAR (no yield modelled — this is a seam test,
-///         not a yield test). `requestUnwind` frees the whole slice immediately;
-///         `pullFreed` pays it out.
+/// @notice minimal non-leveraged `IYieldSource`: custodies hollar 1:1 and frees it
+/// synchronously on request, no yield modelled
 contract MockYieldSource is IYieldSource {
     IERC20 public immutable hollar;
     bool public emergencyPaused;

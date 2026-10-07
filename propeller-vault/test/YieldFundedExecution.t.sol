@@ -14,14 +14,13 @@ contract YieldFundedExecutionTest is RecoveryE2ETest {
         for (uint256 i; i < 40; ++i) loop.pokeBorrow();
     }
 
-    // Separate test calls avoid Solc 0.8.22 inlining three mint/prank/deposit
-    // sequences into a Yul block that exceeds the stack allocator's limit.
+    // an external call keeps three deposit sequences from overflowing the via-ir stack allocator
     function depositPosition(bool btc, address user, uint256 amount) external {
         _deposit(btc ? tbtcVault : ethVault, btc ? tbtc : eth, user, amount);
     }
 
     function _earnedPrime(uint256 amount) internal {
-        // Mock boundary: accumulated PRIME income, not a treasury HOLLAR top-up.
+        // accumulated prime income, not a treasury hollar top-up
         aPrime.mint(address(loop), amount);
         prime.mint(address(pool), amount);
     }

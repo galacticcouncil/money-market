@@ -5,8 +5,7 @@ import {HarvestTest} from "./Harvest.t.sol";
 import {PropellerYieldAccounting} from "../src/PropellerYieldAccounting.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 
-/// @notice Third-pass validation: action ordering and economic realization delay.
-/// APRs below are explicit modeled inputs, not observed PRIME performance.
+/// @notice action ordering and realization delay; aprs are modeled inputs, not observed
 contract YieldValidationTest is HarvestTest {
     function testFuzz_rewardFundConservesOwnershipAcrossMixedActions(uint256 seed) public {
         _depositAndRamp();
@@ -21,8 +20,7 @@ contract YieldValidationTest is HarvestTest {
                 eth.mint(owner, amount);
                 vm.startPrank(owner);
                 eth.approve(address(vault), amount);
-                // Six-decimal source fills can leave a tiny principal deficit
-                // before income arrives. Entry must reject it atomically.
+                // 6dp source fills can leave a tiny principal deficit; entry must reject it
                 if (vault.isUnderfunded()) vm.expectRevert(CollateralVault.Underfunded.selector);
                 vault.deposit(amount, owner);
                 vm.stopPrank();
@@ -58,7 +56,7 @@ contract YieldValidationTest is HarvestTest {
     }
 
     function _accrueDay(uint256 primeAprBps, uint256 borrowAprBps) private {
-        // Mock boundary: daily aPRIME income and actual Main/SubLoop debt growth.
+        // daily aprime income and main/subloop debt growth
         uint256 income = aPrime.balanceOf(address(loop)) * primeAprBps / 10_000 / 365;
         aPrime.mint(address(loop), income);
         prime.mint(address(pool), income);
@@ -85,8 +83,7 @@ contract YieldValidationTest is HarvestTest {
             else if (firstGap == 0) firstGap = day - firstHarvest;
             if (firstDay == 0 && vault.totalAssets() > assetsBefore) firstDay = day;
             ++harvests;
-            // Reuse earned collateral immediately; actual additional debt must
-            // be covered and unconverted source earnings cannot fund leverage.
+            // reuse earned collateral; unconverted source earnings cannot fund leverage
             vault.pokeSettle();
             vault.rebalance();
             loop.pokeBorrow();
@@ -110,8 +107,7 @@ contract YieldValidationTest is HarvestTest {
     }
 
     function test_realizationWithTenBpsExecutionReserveIsStillNotImmediate() public {
-        // Conditional sensitivity only: no assertion that native routes can
-        // support this ceiling, and no production parameter is changed.
+        // sensitivity only; doesn't claim native routes support this ceiling
         loop.configureDca(222, 43, 1043, 143, 1_000);
         uint256 firstDay = _measureRealization(500, 200);
         assertGt(firstDay, 1);

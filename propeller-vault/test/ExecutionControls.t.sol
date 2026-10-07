@@ -228,8 +228,7 @@ contract ExecutionControlsTest is HarvestTest {
 
     function test_controlsUpwardRebalanceMakesBoundedProgress() public {
         _depositAndRamp();
-        // Ramping rounds PRIME to six decimals. Existing readiness correctly
-        // blocks new debt until carry covers that tiny initial shortfall.
+        // 6dp prime rounding leaves a tiny shortfall; readiness blocks new debt until carry covers it
         aPrime.mint(address(loop), 1e6);
         _enable();
         pool.setPrice(address(eth), 9000e18);
@@ -329,9 +328,7 @@ contract ExecutionControlsTest is HarvestTest {
         (,,uint256 promised,,,,,,) = vault.redemptions(id);
         assertEq(vault.claim(id, address(this)), promised);
         assertEq(vault.reinvestAssets(), expected, "settlement does not recreate credit");
-        // The source reports equity at USD8 while Main debt retains wei. Keep
-        // that pre-existing rounding guard: deployment must wait for earned
-        // source income to cover the fractional deficit, never spend user crypto.
+        // usd8 equity vs wei debt: deployment waits for source income to cover the fractional deficit
         vm.expectRevert(CollateralVault.Underfunded.selector);
         control.preview(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
         aPrime.mint(address(loop), 1);

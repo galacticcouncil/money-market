@@ -102,8 +102,7 @@ contract Market90DaysTest is RecoveryE2ETest {
         uint256 obligation = loop.principalEquity() + loop.unwindTargetEquity();
         uint256 equity = loop.totalEquity() * 1e10;
         if (obligation > equity) _fund(address(loop), obligation - equity + 1e12);
-        // Fund only the Main shortfall, not the full Main debt. Accrued Main
-        // interest can exceed the source's original share entitlement.
+        // fund only the main shortfall; accrued interest can exceed the original source entitlement
         for (uint256 i; i < 2; ++i) {
             CollateralVault v = i == 0 ? ethVault : tbtcVault;
             uint256 backing = loop.equityOf(address(v)) * 1e10 + loop.pendingUnwindOf(address(v))
@@ -128,8 +127,7 @@ contract Market90DaysTest is RecoveryE2ETest {
             if (ethVault.queueHead() == ethVault.queueTail() && tbtcVault.queueHead() == tbtcVault.queueTail()) break;
             if (i > 100 && ethVault.totalQueuedDebt() + tbtcVault.totalQueuedDebt() == debtBefore) break;
         }
-        // USD8 source quotes and proportional source repayments can leave a
-        // token-unit tail at scale. Reconcile it explicitly before any claims.
+        // usd8 quotes and proportional repayments leave a token-unit tail; reconcile before claims
         for (uint256 i; i < 2; ++i) {
             CollateralVault v = i == 0 ? ethVault : tbtcVault;
             uint256 debtTail = v.totalQueuedDebt() + v.deleverTarget();

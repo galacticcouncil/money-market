@@ -10,9 +10,8 @@ import {MockDiscountDebtToken, MockDiscountAToken} from "./mocks/MockDiscount.so
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 
-/// @notice Parameter campaign on real Propeller contracts, with explicit mocked
-/// market accrual and execution costs. No income donations or recovery funding.
-/// Static crypto prices isolate token accumulation from price speculation.
+/// @notice parameter campaign on real contracts with mocked accrual and execution costs;
+/// static crypto prices, no income donations or recovery funding
 contract MainnetTuningTest is HarvestTest {
     struct Config {
         uint256 tvl;
@@ -76,7 +75,7 @@ contract MainnetTuningTest is HarvestTest {
         });
         require(c.entryBps <= c.sourceBps && c.exitBps <= c.sourceBps, "infeasible source quote");
         require(c.swapBps <= 100 && c.every > 0 && c.borrowEvery > 0);
-        // Preserve liquidation thresholds, target HF and crypto swap floor.
+        // preserve liquidation thresholds, target hf and crypto swap floor
         uint256 price = c.asset == 0 ? 2691332262800000000000 : 84499828779940000000000;
         pool.setPrice(address(eth), price);
         pool.setLtv(address(eth), c.asset == 0 ? 7500 : 8000);
@@ -102,20 +101,18 @@ contract MainnetTuningTest is HarvestTest {
         uint256 initial = previous;
         for (uint256 day = 1; day <= c.days_; ++day) {
             _accrue(c, m, day);
-            // A peg gap reduces source NAV, never user collateral tokens.
+            // a peg gap reduces source nav, never user collateral tokens
             if (c.stress == 3 && day == 180) pool.setPrice(address(prime), 0.97e18);
             uint256 hf = loop.healthFactor();
             if (hf < m.minimumHf) m.minimumHf = hf;
-            // Simulate an operator outage without pretending missed actions ran.
+            // operator outage: missed actions don't run
             bool offline = c.stress == 2 && day >= 180 && day <= 193;
             if (!offline) {
                 uint256 oldSynth = vault.syntheticSupplied();
                 vault.maintainPeg();
                 if (vault.syntheticSupplied() != oldSynth) ++m.pegUpdates;
                 if (hf < loop.targetHf()) {
-                    // An existing safety repayment target can already exceed
-                    // today's recomputed target. The live keeper skips this
-                    // benign scheduling revert and still executes repayment.
+                    // an existing target can exceed today's; the keeper skips that revert and still repays
                     try loop.deLever() {} catch (bytes memory reason) {
                         assertEq(bytes4(reason), SubLoop.HealthyEnough.selector,
                             "unexpected safety scheduling failure");
@@ -154,7 +151,7 @@ contract MainnetTuningTest is HarvestTest {
                 }
                 if (!main.ready()) ++m.blockedDays;
                 if (day % c.borrowEvery == 0) {
-                    // Re-read guards after EVERY transaction, as the keeper does.
+                    // re-read guards after every transaction, as the keeper does
                     for (uint256 i; i < 8 && main.ready() && loop.negativeCarryBps() == 0
                         && loop.healthFactor() > loop.targetHf() * 1_005_000 / 1_000_000
                         && loop.unwindTargetEquity() == 0 && loop.deleverDebtTarget() == 0; ++i) {
@@ -178,9 +175,7 @@ contract MainnetTuningTest is HarvestTest {
         uint256 backing = equity + main.activeFunds();
         uint256 funded = (vault.totalAssets() - initial) * price / 1e18;
         uint256 protocolFees = eth.balanceOf(address(fees)) * price / 1e18;
-        // Count both liabilities, retained equity, cash and protocol receipts.
-        // All economic wealth must come from modeled income after debt costs;
-        // swaps can only decrease it. The tiny fixture rounding reserve is not income.
+        // all wealth must come from modeled income net of debt costs; swaps only decrease it
         assertLe(int256(funded + backing + protocolFees) - int256(debt),
             int256(m.sourceIncome) - int256(m.mainInterest + m.loopInterest) + 1e12,
             "economic wealth exceeds earned net income");

@@ -9,9 +9,8 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 
-/// @notice pokeRepay sale sizing: a leveraged unwind sells only what the open
-///         requests still need, and a de-lever target lapses once HF is back
-///         at targetHf. A 1% swap fee makes over-selling show up in equity.
+/// @notice pokeRepay sells only what open requests still need, and a de-lever target
+/// lapses once hf is back at targetHf
 contract SubLoopUnwindSizingTest is Test {
     MockERC20 hollar;
     MockERC20 prime;
@@ -24,7 +23,7 @@ contract SubLoopUnwindSizingTest is Test {
 
     uint256 constant SEED = 1_000e18;
     uint256 constant TARGET_HF = 1.05e18;
-    uint16 constant FEE_BPS = 100; // 1% swap fee — makes forced selling measurable
+    uint16 constant FEE_BPS = 100; // 1% swap fee makes over-selling measurable
 
     function setUp() public {
         hollar = new MockERC20("HOLLAR", "HOLLAR", 18);

@@ -14,9 +14,8 @@ import {MockSwapper} from "./mocks/MockSwapper.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 
-/// @notice Configuration surface that must fail closed or follow governance rather
-///         than drift: the swap seam, the synthetic's liquidation threshold, the
-///         carry recipient, and the harvest distribution registry.
+/// @notice config that must fail closed or follow governance rather than drift:
+///         swapper, synthetic lt, carry recipient and the harvest registry.
 contract AdminConfigTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
@@ -114,12 +113,7 @@ contract AdminConfigTest is Test {
         vault.rebalance();
     }
 
-    // ── swap seam ────────────────────────────────────────────────────────────
-
-    /// REQ-SWAP (HydraAugustus) is not deployed on mainnet, so deploy scripts pass a
-    /// placeholder. Without a setter, pointing at the real swapper later would need a
-    /// UUPS upgrade of every vault — `script/DeployMain.s.sol` already documents this
-    /// function as existing.
+    /// deploys pass a placeholder swapper; repointing must not need a uups upgrade.
     function test_setSwapperRepointsWithoutUpgrade() public {
         assertEq(address(vault.swapper()), address(0), "placeholder at deploy");
         MockSwapper s = new MockSwapper(address(pool));
@@ -137,23 +131,18 @@ contract AdminConfigTest is Test {
         vault.setSwapper(address(s));
     }
 
-    // ── synthetic liquidation threshold ──────────────────────────────────────
-
-    /// INV-1 (`syntheticSupplied · synthLt ≥ mainDebt`) is the un-liquidatable
-    /// principal guard. Reading the threshold live means a governance retune of the
-    /// synth reserve is followed immediately instead of leaving the guard checking a
-    /// stale-high copy while the real Aave floor no longer covers the debt.
+    /// INV-1 reads the synth lt live, so a governance retune is followed immediately.
     function test_synthLtFollowsGovernance() public {
         assertEq(vault.synthLtBps(), 9800, "reads the live reserve config");
 
         _deposit();
         uint256 synthAt9800 = vault.syntheticSupplied();
 
-        // Governance tightens the synthetic reserve.
+        // governance tightens the synthetic reserve
         pool.initReserve(address(synth), address(aSynth), address(synthDebt), 5000, 100, 18, 1e18);
         assertEq(vault.synthLtBps(), 5000, "vault follows the change with no admin call");
 
-        // maintainPeg now tops the floor up against the NEW threshold.
+        // maintainPeg tops the floor up against the new threshold
         vault.maintainPeg();
         uint256 synthAt5000 = vault.syntheticSupplied();
         assertGt(synthAt5000, synthAt9800, "floor re-provisioned at the lower LT");
@@ -162,14 +151,13 @@ contract AdminConfigTest is Test {
         assertGe(synthAt5000 * 5000 / 1e4, debt, "INV-1 holds against the live threshold");
     }
 
-    /// The synthetic reserve is listed by the governance proposal AFTER the contracts
-    /// are deployed. Until then its LT is 0 and the floor cannot be established —
-    /// deposits must say so rather than panic on a division by zero.
+    /// until governance lists the synthetic reserve its lt is 0; deposits must revert
+    /// with SynthReserveNotListed rather than panic.
     function test_depositFailsClosedBeforeSynthReserveIsListed() public {
         MockPool bare = new MockPool();
         bare.initReserve(address(eth), address(aEth), address(ethDebt), 8500, 7500, 18, 3_000e18);
         bare.initReserve(address(hollar), address(aHollar), address(hollarDebt), 0, 0, 18, 1e18);
-        // synth deliberately NOT listed
+        // synth deliberately not listed
 
         CollateralVault v = CollateralVault(
             address(
@@ -197,15 +185,12 @@ contract AdminConfigTest is Test {
         v.deposit(1e18, address(this));
     }
 
-    // ── carry recipient ──────────────────────────────────────────────────────
-
     /// `initialize` never assigns a harvester, and only the wired harvester can
     /// skim: carry is never paid to an arbitrary caller or parked mid-flight.
     function test_harvestOnlyByWiredHarvester() public {
         assertEq(loop.harvester(), address(0), "unset at deploy");
 
-        // Build real carry: ramp the loop, then let PRIME appreciate so live equity
-        // exceeds the HOLLAR cost basis. Without surplus `harvest` is a no-op.
+        // build real carry: ramp, then let prime appreciate above the cost basis
         _deposit();
         for (uint256 i = 0; i < 40; i++) {
             loop.pokeBorrow();
@@ -237,11 +222,7 @@ contract AdminConfigTest is Test {
         loop.setHarvester(address(0));
     }
 
-    // ── harvest distribution registry ────────────────────────────────────────
-
-    /// `harvest` sums `sharesOf(v)` per registry entry and hard-requires the total to
-    /// equal `subLoop.totalShares()`. A vault listed twice double-counts and reverts
-    /// every harvest — permanently, because Harvester is not upgradeable.
+    /// a vault listed twice would double-count shares and revert every harvest.
     function test_addVaultRejectsDuplicates() public {
         harvester.addVault(address(vault));
         assertEq(harvester.vaultCount(), 1);

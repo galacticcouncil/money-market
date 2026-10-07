@@ -13,9 +13,8 @@ import {MockDiscountDebtToken, MockDiscountAToken} from "./mocks/MockDiscount.so
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 
-/// @notice Parameter campaign on real Propeller contracts, with explicit mocked
-/// market accrual and execution costs. No income donations or recovery funding.
-/// Static crypto prices isolate token accumulation from price speculation.
+/// @notice parameter campaign on real contracts with mocked accrual and execution costs;
+/// static crypto prices, no income donations or recovery funding
 contract OperationsTuningTest is HarvestTest {
     ExecutionController internal control;
     bytes32 internal constant ENTRY = keccak256("operations-entry");
@@ -118,7 +117,7 @@ contract OperationsTuningTest is HarvestTest {
         });
         require(c.entryBps <= c.sourceBps && c.exitBps <= c.sourceBps, "infeasible source quote");
         require(c.swapBps <= 100 && c.borrowEvery > 0);
-        // Preserve liquidation thresholds, target HF and crypto swap floor.
+        // preserve liquidation thresholds, target hf and crypto swap floor
         uint256 price = c.assetPrice;
         pool.setPrice(address(prime), c.primePrice);
         pool.setPrice(address(eth), price);
@@ -202,9 +201,7 @@ contract OperationsTuningTest is HarvestTest {
         uint256 backing = equity + main.activeFunds();
         uint256 funded = (vault.totalAssets() - initial) * price / 1e18;
         uint256 protocolFees = eth.balanceOf(address(fees)) * price / 1e18;
-        // Count both liabilities, retained equity, cash and protocol receipts.
-        // All economic wealth must come from modeled income after debt costs;
-        // swaps can only decrease it. The tiny fixture rounding reserve is not income.
+        // all wealth must come from modeled income net of debt costs; swaps only decrease it
         assertLe(int256(funded + backing + protocolFees) - int256(debt),
             int256(m.sourceIncome) - int256(m.mainInterest + m.loopInterest) + 1e12,
             "economic wealth exceeds earned net income");

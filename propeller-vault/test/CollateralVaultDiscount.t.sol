@@ -86,7 +86,7 @@ contract CollateralVaultDiscountTest is Test {
         _enable();
         assertEq(debt.getDiscountPercent(address(vault)), 0, "no position yet");
         vault.deposit(1e18, address(this));
-        vault.rebalance(); // Explicit keeper deployment before exercising a live position.
+        vault.rebalance();
         assertEq(synth.balanceOf(address(vault)), 0);
         assertGt(aSynth.balanceOf(address(vault)), 0);
         assertEq(debt.getDiscountPercent(address(vault)), 8_000);
@@ -96,9 +96,9 @@ contract CollateralVaultDiscountTest is Test {
     function test_incrementalDepositAndPegMaintenanceRefreshBacking() public {
         _enable();
         vault.deposit(1e18, address(this));
-        vault.rebalance(); // Explicit keeper deployment before exercising a live position.
+        vault.rebalance();
         vault.deposit(1e18, address(this));
-        vault.rebalance(); // Explicit keeper deployment before exercising a live position.
+        vault.rebalance();
         assertEq(debt.lastEligibleBalance(address(vault)), aSynth.balanceOf(address(vault)));
         debt.mint(address(vault), 10_000e18); // simulated accrued debt exceeding the old backing
         vault.maintainPeg();
@@ -109,7 +109,7 @@ contract CollateralVaultDiscountTest is Test {
     function test_upRebalanceRefreshesAfterNewSynthetic() public {
         _enable();
         vault.deposit(1e18, address(this));
-        vault.rebalance(); // Explicit keeper deployment before exercising a live position.
+        vault.rebalance();
         uint256 oldDebt = debt.balanceOf(address(vault));
         pool.setPrice(address(collateral), 200_000e18);
         vault.rebalance();
@@ -121,7 +121,7 @@ contract CollateralVaultDiscountTest is Test {
     function test_settleRefreshesAfterSyntheticWithdrawal() public {
         _enable();
         uint256 shares = vault.deposit(1e18, address(this));
-        vault.rebalance(); // Explicit keeper deployment before exercising a live position.
+        vault.rebalance();
         uint256 beforeSynth = aSynth.balanceOf(address(vault));
         uint256 request = vault.requestRedeem(shares / 2, address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
@@ -135,7 +135,7 @@ contract CollateralVaultDiscountTest is Test {
     function test_detachImmediatelyClearsDiscountAndExitsStillWork() public {
         _enable();
         uint256 shares = vault.deposit(1e18, address(this));
-        vault.rebalance(); // Explicit keeper deployment before exercising a live position.
+        vault.rebalance();
         vault.setDiscountController(address(0));
         assertEq(debt.getDiscountPercent(address(vault)), 0);
         assertTrue(synth.hasRole(synth.MINTER_ROLE(), address(vault)));
@@ -149,7 +149,7 @@ contract CollateralVaultDiscountTest is Test {
     function test_unregisterLeavesRepaymentAndPegMaintenanceAvailable() public {
         _enable();
         uint256 shares = vault.deposit(1e18, address(this));
-        vault.rebalance(); // Explicit keeper deployment before exercising a live position.
+        vault.rebalance();
         discount.unregisterVault(address(vault));
         vault.maintainPeg();
         uint256 request = vault.requestRedeem(shares, address(this));
@@ -173,7 +173,7 @@ contract CollateralVaultDiscountTest is Test {
     function test_legacyVaultWithoutControllerRemainsUndiscounted() public {
         discount.setDiscountBps(8_000);
         vault.deposit(1e18, address(this));
-        vault.rebalance(); // Explicit keeper deployment before exercising a live position.
+        vault.rebalance();
         assertEq(vault.discountController(), address(0));
         assertEq(debt.getDiscountPercent(address(vault)), 0);
     }

@@ -10,8 +10,7 @@ import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 
-/// Real Propeller bytecode with explicit market fixtures, not a liquidity engine.
-/// 180 main cases + 190 sensitivities cover the selected policy's comparison grid.
+/// real contracts with explicit market fixtures: 180 main cases + 190 sensitivities
 contract MainDebtCampaignTest is RecoveryE2ETest {
     struct Scenario {
         uint256 tvl;
@@ -178,8 +177,7 @@ contract MainDebtCampaignTest is RecoveryE2ETest {
         uint256 btcPrincipal = s.tvl * 1e18 / 120000 + 13;
         _deposit(ethVault, eth, ETH_USER, ethPrincipal);
         _fundSource(); // entry friction is explicit sponsorship, never hidden yield
-        // Shared NAV rounding can leave the other seed one USD base unit short.
-        // Fund that measured cohort deficit; do not weaken deposit admission.
+        // shared nav rounding can leave the other seed one usd base unit short; fund it
         _fundCohorts(tbtcVault);
         _deposit(tbtcVault, tbtc, BTC_USER, btcPrincipal);
         for (uint256 i; i < 40; ++i) loop.pokeBorrow();
@@ -239,7 +237,7 @@ contract MainDebtCampaignTest is RecoveryE2ETest {
                 + hollarDebt.balanceOf(address(tbtcVault));
             if (debt > metrics.peakDebt) metrics.peakDebt = debt;
         }
-        // Manual governance recovery is a separate, measured source of money.
+        // manual governance recovery is separate, measured money
         _fundSource();
         _fundCohorts(ethVault);
         _fundCohorts(tbtcVault);
@@ -253,8 +251,7 @@ contract MainDebtCampaignTest is RecoveryE2ETest {
         _accrue(endRate, endYield, 12 hours + s.exitLag);
         ethVault.maintainPeg();
         tbtcVault.maintainPeg();
-        // HF-safe sales converge geometrically; large books can need more than
-        // 600 keeper calls even with only cents remaining. No debt is rounded off.
+        // hf-safe sales converge geometrically; large books need >600 calls for the last cents
         for (uint256 i; i < 1500; ++i) {
             _fundSource();
             _fundCohorts(ethVault);
@@ -266,9 +263,7 @@ contract MainDebtCampaignTest is RecoveryE2ETest {
             tbtcVault.pokeSettle();
             if (ethVault.queueHead() == ethVault.queueTail() && tbtcVault.queueHead() == tbtcVault.queueTail()) break;
         }
-        // A source receivable is not spendable HOLLAR. If the bounded unwind
-        // campaign stalls, governance bridges every remaining exit explicitly;
-        // the original owners retain the source claims after Main is paid.
+        // a stalled unwind is bridged by governance; owners keep their source claims after main is paid
         _bridgeExitLiquidity(ethVault);
         _bridgeExitLiquidity(tbtcVault);
         ethVault.pokeSettle();
@@ -307,7 +302,7 @@ contract MainDebtCampaignTest is RecoveryE2ETest {
     }
 
     function applyIncentive(uint256 tvl, uint32 mode) external {
-        // Day-30 governance budget of 0.5% TVL. This is external funding, not yield.
+        // day-30 governance budget of 0.5% tvl: external funding, not yield
         uint256 budget = tvl * 1e18 / 200;
         for (uint256 i; i < (mode == 3 ? 1 : 2); ++i) {
             address borrower = mode == 3 ? address(loop)

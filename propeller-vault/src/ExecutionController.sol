@@ -6,10 +6,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-/// @notice Shared trade budgets and short-lived, caller-supplied execution quotes.
-/// Quotes tighten the independent oracle floors in each consumer. They are not
-/// trusted price feeds. preview executes the real routes in a reverting subcall:
-/// even a mined preview cannot borrow, trade, spend credit or retain user funds.
+/// @notice shared trade budgets plus short-lived caller quotes that only tighten each consumer's oracle floor.
+/// preview runs the real routes in a reverting subcall, so even a mined preview changes nothing.
 contract ExecutionController is AccessControl, ReentrancyGuard {
     struct Budget {
         address token;
@@ -181,9 +179,8 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
         return _consume(tokenIn, tokenOut, amount, fairOut, false);
     }
 
-    /// @dev Only a configured consumer can use its safety lane. Its code must
-    /// restrict this call to an outstanding safety deleveraging commitment.
-    /// Safety may bypass timing/volume expiry, never size, quote or price bounds.
+    /// @dev consumers must restrict their safety lane to an outstanding safety de-lever;
+    /// it bypasses timing/volume expiry, never size, quote or price bounds.
     function consumeSafety(address tokenIn, address tokenOut, uint256 amount, uint256 fairOut)
         external returns (uint256 minimum)
     {

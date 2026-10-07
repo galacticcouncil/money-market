@@ -11,8 +11,8 @@ import {PropellerYieldAccounting} from "../src/PropellerYieldAccounting.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 
-/// @notice regressions for the PR #62 review: lane policy, waiting exits and
-/// pending source accounting must not freeze unrelated maintenance
+/// @notice lane policy, waiting exits and pending source accounting must not
+/// freeze unrelated maintenance
 contract ReviewFindingsTest is HarvestTest {
     ExecutionController control;
     bytes32 constant ENTRY = keccak256("entry");
@@ -108,7 +108,7 @@ contract ReviewFindingsTest is HarvestTest {
         vm.warp(block.timestamp + 2 hours);
     }
 
-    // #1: interest below the service lane minimum must not revert the harvest.
+    // interest below the service lane minimum must not revert the harvest
     function test_reviewSubMinimumServiceSellsTheLaneMinimum() public {
         _depositAndRamp();
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 10);
@@ -124,7 +124,7 @@ contract ReviewFindingsTest is HarvestTest {
         assertGt(cash, 1e18, "the minimum sale's surplus stays as active cash");
     }
 
-    // #1: one vault's closed service lane must not roll back every vault's harvest.
+    // one vault's closed service lane must not roll back every vault's harvest
     function test_reviewLapsedServiceLaneSkipsOnlyThatVault() public {
         CollateralVault second = _twoVaultsWithLapsedService();
         uint256 sourceShares = loop.sharesOf(address(second));
@@ -134,7 +134,7 @@ contract ReviewFindingsTest is HarvestTest {
         assertEq(loop.sharesOf(address(second)), sourceShares, "its owned yield stays invested");
     }
 
-    // #1: a parked donation cannot route around the skipped vault's lane either.
+    // a parked donation cannot route around the skipped vault's lane either
     function test_reviewDonationCannotForceABlockedServiceSale() public {
         CollateralVault second = _twoVaultsWithLapsedService();
         prime.mint(address(harvester), 20e6);
@@ -143,7 +143,7 @@ contract ReviewFindingsTest is HarvestTest {
         assertEq(_ledger(vault).interestOf(0), 0);
     }
 
-    // #2: a waiting dust request cannot stop pending collateral from deploying.
+    // a waiting dust request cannot stop pending collateral from deploying
     function test_reviewWaitingRedeemDoesNotBlockDeployment() public {
         loop.setTranches(1000e18, 10_000_000e6);
         _deposit(vault, 1e18);
@@ -155,7 +155,7 @@ contract ReviewFindingsTest is HarvestTest {
         assertGt(hollarDebt.balanceOf(address(vault)), debt, "deployment continues");
     }
 
-    // #2: a settled request that is never claimed cannot block deployment forever.
+    // a settled request that is never claimed cannot block deployment forever
     function test_reviewUnclaimedSettledRedeemDoesNotBlockDeployment() public {
         loop.setTranches(1000e18, 10_000_000e6);
         _deposit(vault, 1e18);
@@ -173,7 +173,7 @@ contract ReviewFindingsTest is HarvestTest {
         assertGt(hollarDebt.balanceOf(address(vault)), debt, "deployment continues");
     }
 
-    // #3: an expired policy stops new risk, not user exits.
+    // an expired policy stops new risk, not user exits
     function test_reviewExpiredBudgetDoesNotFreezeExits() public {
         uint256 shares = _depositAndRamp();
         _enable();
@@ -186,7 +186,7 @@ contract ReviewFindingsTest is HarvestTest {
         assertLt(loop.unwindTargetEquity(), target, "the exit keeps selling after expiry");
     }
 
-    // #3: a delever on an unflagged lane falls back to the normal budget.
+    // a delever on an unflagged lane falls back to the normal budget
     function test_reviewUnflaggedUnwindLaneStillServesDelever() public {
         _depositAndRamp();
         _enable();
@@ -199,7 +199,7 @@ contract ReviewFindingsTest is HarvestTest {
         assertLt(hollarDebt.balanceOf(address(loop)), debt);
     }
 
-    // #3: an exit whose remaining need is below the lane minimum still completes.
+    // an exit whose remaining need is below the lane minimum still completes
     function test_reviewUnwindTailBelowLaneMinimumStillSells() public {
         uint256 shares = _depositAndRamp();
         _enable();
@@ -212,7 +212,7 @@ contract ReviewFindingsTest is HarvestTest {
         assertEq(loop.unwindTargetEquity(), 0, "a sub-minimum need sells the lane minimum");
     }
 
-    // #4: unallocated source accounting delays allocation, not share transfers.
+    // unallocated source accounting delays allocation, not share transfers
     function test_reviewPendingSourceAccountingKeepsTransfersAndHarvestLive() public {
         _depositAndRamp();
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
@@ -234,7 +234,7 @@ contract ReviewFindingsTest is HarvestTest {
         assertGt(vault.claimYield(address(this)), 0);
     }
 
-    // #10: new borrowing re-checks the synthetic floor.
+    // new borrowing re-checks the synthetic floor
     function test_reviewRebalanceCannotBorrowAgainstBreachedSyntheticFloor() public {
         loop.setTranches(1000e18, 10_000_000e6);
         _deposit(vault, 1e18);
@@ -249,7 +249,7 @@ contract ReviewFindingsTest is HarvestTest {
         assertGt(hollarDebt.balanceOf(address(vault)), 1100e18, "borrowing resumes once the floor is restored");
     }
 
-    // #11: a slice below the entry lane minimum waits instead of reverting.
+    // a slice below the entry lane minimum waits instead of reverting
     function test_reviewSubMinimumDeploymentWaitsWithoutReverting() public {
         _enable();
         _deposit(vault, 1e18);

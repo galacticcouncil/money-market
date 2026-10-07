@@ -2,21 +2,8 @@
 pragma solidity ^0.8.22;
 
 /// @title IYieldSource
-/// @notice The socket a `CollateralVault` plugs a yield strategy into. The vault
-///         hands over borrowed HOLLAR and receives *shares* priced off the
-///         source's live NAV; it never learns what the source does with them.
-///
-/// @dev    **This is the pluggable boundary.** Nothing here mentions PRIME, Aave,
-///         leverage, or a health factor — those belong to a specific
-///         *implementation* (`ISubLoop`), not to the contract between vault and
-///         strategy. A different venue (an ERC-4626/7540 wrapper, an RWA vault)
-///         implements this interface directly and the vault needs no change.
-///
-///         Deposits and withdrawals are **async by contract**: `deposit` only
-///         credits shares (the source ramps in at its own pace), and
-///         `requestUnwind` only records a target — the source frees HOLLAR
-///         gradually and the vault `pullFreed()`s it as it accrues. A synchronous
-///         source satisfies this trivially by freeing everything on the first pull.
+/// @notice the pluggable boundary between a CollateralVault and a yield strategy: HOLLAR in, NAV-priced shares out.
+/// @dev async by contract: deposit only credits shares and requestUnwind only records a target the vault later pulls.
 interface IYieldSource {
     /// @notice Source-wide freeze of user flows and new risk, not safety repayment.
     function emergencyPaused() external view returns (bool);
@@ -24,20 +11,15 @@ interface IYieldSource {
     function principalOf(address vault) external view returns (uint256);
     function releasePrincipal(address vault, uint256 amount) external;
 
-    // ── vault → source: put money in ──────────────────────────────────────
-
-    /// @notice Take `hollarAmount` from the calling vault and credit it shares at
-    ///         the source's current NAV. The HOLLAR need not be deployed by the
-    ///         time this returns — only accounted.
+    // vault → source: deposit
     function admissionCapacity() external view returns (uint256);
     function previewHarvest(uint256 shares) external view returns (uint256);
+    /// @notice credit the calling vault shares at current NAV; the HOLLAR may deploy later.
     function deposit(uint256 hollarAmount) external returns (uint256 shares);
 
-    // ── vault → source: take money out (async) ────────────────────────────
+    // vault → source: withdraw (async)
 
-    /// @notice Begin releasing `shares` of the calling vault's equity. Burns the
-    ///         shares and grows the source's release target; the HOLLAR is freed
-    ///         over blocks. Returns an id for tracking.
+    /// @notice burn `shares` of the calling vault and grow the release target; HOLLAR frees over blocks.
     function requestUnwind(uint256 shares) external returns (uint256 unwindId);
     function requestUnwindProtected(uint256 shares, uint256 basis) external returns (uint256 unwindId);
 
@@ -48,19 +30,14 @@ interface IYieldSource {
     /// @notice Freed-but-unpulled HOLLAR owed to `vault`.
     function freedOf(address vault) external view returns (uint256);
 
-    /// @notice Total HOLLAR the source still owes `vault` from unwinds it has been
-    ///         asked to perform but not yet fully returned — the in-flight amount
-    ///         (requested minus pulled), which includes `freedOf`. 0 once every
-    ///         requested unwind has been pulled. A vault checks this before
-    ///         abandoning the source (e.g. `setYieldSource`) so in-flight funds
-    ///         are never stranded.
+    /// @notice HOLLAR still owed to `vault` from requested unwinds (requested minus pulled, incl. freedOf).
     function pendingUnwindOf(address vault) external view returns (uint256);
 
     /// @notice Cumulative realized swap costs charged only to un-compounded
     /// yield earmarked for this vault's unwinds, never to source cost basis.
     function unwindExecutionCost(address vault) external view returns (uint256);
 
-    // ── pricing (what the vault's NAV is built on) ────────────────────────
+    // pricing
 
     /// @notice `vault`'s LIVE-share equity in USD8 (8 decimals), excluding
     /// outstanding withdrawal liabilities. Not HOLLAR's 18-decimal units.
@@ -75,41 +52,24 @@ interface IYieldSource {
     /// and unreserved cash, excluding freed cash already reserved for claims.
     function totalEquity() external view returns (uint256);
 
-    // ── monitoring ────────────────────────────────────────────────────────
+    // monitoring
 
-    /// @notice How far the source's live equity has fallen BELOW its cost basis,
-    ///         in basis points; 0 when equity is at or above basis. This is the
-    ///         mirror of the harvest surplus test (harvest skims equity above
-    ///         basis) — it is the venue-agnostic "negative carry" signal. A pure
-    ///         read with no side effects: callers monitor it and decide; the
-    ///         contract never acts on it automatically.
+    /// @notice equity shortfall below cost basis in bps (0 at or above basis); monitoring only.
     function negativeCarryBps() external view returns (uint256);
 
-    // ── yield realisation ─────────────────────────────────────────────────
+    // yield realisation
 
-    /// @notice Realise accrued carry and forward it to the configured harvester
-    ///         for per-vault, in-kind distribution. Only the harvester calls
-    ///         this, inside its own permissionless harvest.
-    /// @return surplus The amount skimmed, in the source's own yield asset.
+    /// @notice realise carry to the harvester; only the harvester calls this.
+    /// @return surplus amount skimmed, in the source's yield asset
     function harvest() external returns (uint256 surplus);
     function harvestCapacity() external view returns (uint256 sourceShares);
     function harvestFor(address vault, uint256 shares) external returns (uint256 amount, uint256 burned);
 }
 
 /// @title ILeveragedLoop
-/// @notice A yield source that levers a borrowed position and therefore has a
-///         health factor and needs de-levering.
-///
-/// @dev    Deliberately split out of `IYieldSource`: an unlevered source (a plain
-///         ERC-4626 wrapper, an RWA vault) has no health factor and must not be
-///         forced to fake one. The keeper cranks below are the only
-///         leverage-specific surface the outside world touches; `CollateralVault`
-///         binds to `IYieldSource`, so it *cannot* call these — the decoupling is
-///         compiler-enforced, not conventional.
+/// @notice a levered yield source with a health factor; kept out of IYieldSource so unlevered sources needn't fake one.
 interface ILeveragedLoop is IYieldSource {
-    /// @notice Deploy step: borrow and lever one bounded tranche in.
-    ///         Permissionless — bounded by an HF floor, a tranche cap and an
-    ///         oracle-fair min-out, so a caller can only advance state.
+    /// @notice deploy step: borrow and lever one bounded tranche in; permissionless.
     function pokeBorrow() external returns (uint256 borrowed);
 
     /// @notice Unwind step: repay debt with freed proceeds (raising HF) and

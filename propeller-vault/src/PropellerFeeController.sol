@@ -188,9 +188,8 @@ contract PropellerFeeController is AccessControl, ReentrancyGuard, IPropellerFee
         emit ProtocolFeeAccrued(msg.sender, asset, grossCollateral, fee, grossCollateral - fee);
     }
 
-    /// @notice A withdrawal realizes its owned source yield in HOLLAR. The
-    /// bound Main ledger applies the snapshotted rate only to actual yield
-    /// receipts, after source execution costs and before Main debt servicing.
+    /// @notice HOLLAR fee on a withdrawal's realized source yield, charged by the bound Main ledger
+    /// after source execution costs and before Main debt servicing.
     function collectSourceFee(uint256 amount) external override nonReentrant {
         address vault = IFeeLedger(msg.sender).vault();
         if (bindings[vault].asset == address(0) || IFeeVault(vault).mainDebt() != msg.sender) revert InvalidBinding();

@@ -12,11 +12,8 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 
-/// @notice CollateralVault Main-leg + the synthetic-flooring property: after a
-///         deposit opens the Main position (supply ETH, borrow HOLLAR, mint+
-///         supply synthetic, seed the loop), the Main HF stays >= 1 even when
-///         ETH crashes ~99% — the principal is un-liquidatable. A baseline
-///         (no synthetic) would be deep underwater at the same price.
+/// @notice once deployed, the synthetic floors main hf >= 1 even after a ~99% eth
+///         crash; a bare borrow at the same price is liquidatable.
 contract CollateralVaultDepositTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
@@ -146,7 +143,7 @@ contract CollateralVaultDepositTest is Test {
         (, , , , , uint256 hf0) = pool.getUserAccountData(address(vault));
         assertGt(hf0, 2e18, "HF high at spot");
 
-        // crash ETH 99% → $30. Synthetic alone floors HF >= 1 → no liquidation.
+        // eth −99% → $30; the synthetic alone floors hf >= 1
         pool.setPrice(address(eth), 30e18);
         (, , , , , uint256 hfCrash) = pool.getUserAccountData(address(vault));
         assertGe(hfCrash, 1e18, "principal un-liquidatable after 99% ETH crash");
@@ -157,8 +154,7 @@ contract CollateralVaultDepositTest is Test {
         assertGe(hfZero, 1e18, "HF floored at ~1 by synthetic alone");
     }
 
-    /// @notice Baseline: an identical ETH borrow WITHOUT the synthetic is deep
-    ///         underwater at the same crashed price — what Propeller prevents.
+    /// @notice baseline: the same borrow without the synthetic is underwater after the crash.
     function test_baselineWithoutSynthIsLiquidatable() public {
         // a bare account: supply 1 ETH, borrow $2220 HOLLAR, no synthetic
         address bare = address(0xB42E);

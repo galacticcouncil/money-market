@@ -12,12 +12,8 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 
-/// @notice Phase B: `negativeCarryBps()` — a pure monitoring view that reports how
-///         far the yield source's equity has fallen below its cost basis, in bps
-///         (0 when healthy). It is the mirror of the harvest surplus math:
-///         harvest skims equity ABOVE basis; this measures equity BELOW it. It
-///         does nothing but return a number — no pause, no unwind, no side effect.
-///         A human/bot reads it and decides.
+/// @notice `negativeCarryBps()` reports how far source equity is below cost basis,
+/// in bps; a side-effect-free monitoring view
 contract NegativeCarryViewTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
@@ -137,13 +133,13 @@ contract NegativeCarryViewTest is Test {
 
         uint256 got = loop.negativeCarryBps();
 
-        // matches the documented definition computed from live public state
+        // matches the definition computed from live public state
         uint256 reserved = loop.principalEquity() + loop.unwindTargetEquity();
         uint256 equity18 = loop.totalEquity() * 1e10;
         uint256 expected = reserved > equity18 ? ((reserved - equity18) * 1e4) / reserved : 0;
         assertEq(got, expected, "view equals the equity-below-basis definition");
 
-        // and the scenario genuinely produced a MATERIAL, leveraged drawdown
+        // the scenario produced a material leveraged drawdown
         assertGt(got, 2000, "a 10% PRIME drop is a large leveraged equity drawdown");
         assertLt(got, 10_000, "drawdown is a sane fraction");
     }

@@ -12,18 +12,8 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 
-/// @notice P-1: a *partially*-settled redemption must survive `claim()`.
-///         The redeem queue settles proportionally over blocks, so a request
-///         can have some collateral ready while the rest is still unwinding. A
-///         user who claims the ready slice must keep their request active and
-///         only burn the shares matching what they were actually paid — the
-///         unsettled remainder must still be claimable later.
-///
-///         Buggy behaviour (pre-fix): the first `claim()` pays the partial
-///         amount, deactivates the request, and burns ALL escrowed shares — the
-///         unsettled remainder is destroyed and silently socialised to the other
-///         holders. This test asserts the correct behaviour, so it fails on the
-///         buggy contract and passes on the fixed one.
+/// @notice a partially settled redemption survives `claim()`: only the paid slice's
+///         shares burn and the unsettled remainder stays claimable.
 contract PartialClaimTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
@@ -120,7 +110,7 @@ contract PartialClaimTest is Test {
     }
 
     function test_partialClaimKeepsRequestActiveAndReturnsRemainder() public {
-        // ── deposit 1 ETH and ramp the loop to target HF ──────────────────
+        // deposit 1 eth and ramp the loop to target hf
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         uint256 shares = vault.deposit(1e18, address(this));
@@ -130,36 +120,32 @@ contract PartialClaimTest is Test {
             loop.pokeBorrow();
         }
 
-        // ── request full redemption ───────────────────────────────────────
+        // request full redemption
         uint256 reqId = vault.requestRedeem(shares, address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(100);
 
-        // ── PARTIAL unwind: throttle the sell sliver so pokeRepay frees only a
-        //    little HOLLAR, then settle. The request ends up partially filled. ─
+        // throttle the sell sliver so the request ends up partially filled
         loop.setTranches(10_000_000e18, 100e6); // ~$100 of aPRIME per pokeRepay
         for (uint256 i = 0; i < 6; i++) {
             loop.pokeRepay();
         }
         vault.pokeSettle();
 
-        // sanity: the request is only PARTIALLY settled (queue head has not
-        // advanced past it) and some collateral is claimable.
+        // sanity: the queue head has not advanced past the request
         assertEq(vault.queueHead(), reqId, "request only partially settled");
 
-        // ── claim the ready slice ─────────────────────────────────────────
+        // claim the ready slice
         uint256 balBefore = eth.balanceOf(address(this));
         uint256 got1 = vault.claim(reqId, address(this));
         assertGt(got1, 0, "partial claim pays something");
         assertLt(got1, 1e18, "partial claim is less than full principal");
         assertEq(eth.balanceOf(address(this)) - balBefore, got1, "ETH received == claimed");
 
-        // ── CORE of P-1: the partial claim must NOT destroy the request ────
-        // Escrowed pVault shares (held at the vault) must only be burned in
-        // proportion to what was paid — the remainder stays escrowed.
+        // escrowed shares burn only in proportion to what was paid
         assertGt(vault.balanceOf(address(vault)), 0, "escrow not destroyed by partial claim");
 
-        // ── finish unwinding and settle the rest ──────────────────────────
+        // finish unwinding and settle the rest
         loop.setTranches(10_000_000e18, 10_000_000e6);
         for (uint256 i = 0; i < 400; i++) {
             if (loop.unwindTargetEquity() == 0) break;
@@ -167,19 +153,14 @@ contract PartialClaimTest is Test {
         }
         vault.pokeSettle();
 
-        // ── claim the remainder ───────────────────────────────────────────
+        // claim the remainder
         uint256 got2 = vault.claim(reqId, address(this));
         assertGt(got2, 0, "remainder is claimable");
 
-        // total across both claims ≈ the full 1 ETH principal
+        // total across both claims ≈ the full 1 eth principal
         assertApproxEqRel(got1 + got2, 1e18, 0.02e18, "full principal returned across partial claims");
 
-        // once settlement completes, the escrow is burned down to (at most)
-        // proportional-settlement dust — the unwind spiral delevers to target HF
-        // and frees marginally less than the snapshotted debtShare, so a few wei
-        // of shares can remain, backed by the matching wei of un-withdrawn
-        // collateral. The point of P-1 is that the *bulk* of the escrow is no
-        // longer destroyed by the first partial claim (asserted above).
+        // proportional-settlement dust may remain in escrow, backed by matching collateral
         assertApproxEqAbs(vault.balanceOf(address(vault)), 0, 1e15, "escrow burned to dust once complete");
     }
 }

@@ -14,9 +14,7 @@ import {MockDispatch} from "../mocks/MockDispatch.sol";
 import {Handler} from "./Handler.sol";
 import {PropellerMainDebt} from "../../src/PropellerMainDebt.sol";
 
-/// @notice Invariant suite. The fuzzer drives the Handler through random
-///         deposit/ramp/redeem/unwind/settle/claim sequences; after every call
-///         these must hold (see note-propeller-impl §8 / the invariants chat).
+/// @notice invariants that must hold after every random handler call
 contract PropellerInvariantTest is Test {
     uint16 constant SYNTH_LT = 9800;
 

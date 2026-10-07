@@ -62,9 +62,8 @@ contract FeeForkSource {
     }
 }
 
-/// @notice Real forked Aave Pool/aToken supply code, with controlled ERC20
-/// collateral, oracle quotes, swap output and source weights. Forge cannot run
-/// Hydration's Substrate asset/DEX precompiles: this is NOT a full network E2E test.
+/// @notice real forked aave pool/atoken code with controlled collateral, quotes and swaps;
+/// not a full network e2e (forge can't run hydration's substrate precompiles)
 contract ProtocolFeesForkTest is Test {
     address constant POOL = 0x1b02E051683b5cfaC5929C25E84adb26ECf87B38;
     address constant ETH = 0x0000000000000000000000000000000100000022;

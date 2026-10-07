@@ -15,10 +15,8 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {MockSwapper} from "./mocks/MockSwapper.sol";
 
-/// @notice Harvest: simulate PRIME yield (aPRIME accrues in the loop), then
-///         harvest skims the surplus above cost basis, compounds it into the
-///         ETH vault's collateral → pETH share price rises ("deposit ETH, earn
-///         ETH"), and the loop equity returns to its principal basis.
+/// @notice harvest skims prime carry above cost basis and compounds it into the
+///         eth vault's collateral; loop equity returns to its basis.
 contract HarvestTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
@@ -58,8 +56,7 @@ contract HarvestTest is Test {
         pool.initReserve(address(eth), address(aEth), address(ethDebt), 8500, 7500, 18, 3_000e18);
         pool.initReserve(address(hollar), address(aHollar), address(hollarDebt), 0, 0, 18, 1e18);
         pool.initReserve(address(prime), address(aPrime), address(primeDebt), 8800, 8500, 6, 1e18);
-        // synth: LT 98%, SMALL non-zero LTV so it can be enabled as collateral
-        // (the planned listing — an LTV-0 reserve can never be collateral on Aave)
+        // synth: lt 98%, small non-zero ltv so it can be enabled as collateral
         pool.initReserve(address(synth), address(aSynth), address(synthDebt), 9800, 100, 18, 1e18);
 
         swapper = new MockSwapper(address(pool));
@@ -104,8 +101,7 @@ contract HarvestTest is Test {
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
         RoundingReserveFixture.fund(vault);
         loop.registerVault(address(vault));
-        // permissionless keeper ops: no KEEPER_ROLE grants. harvest payout pins
-        // to the configured harvester; compound needs a slippage tolerance set.
+        // compound needs a slippage tolerance set
         loop.setHarvester(address(harvester));
         loop.setTranches(10_000_000e18, 10_000_000e6);
         vault.setCompoundSlippageBps(100); // 1% vs oracle-fair
@@ -148,10 +144,8 @@ contract HarvestTest is Test {
             "earned execution allowance stays in PRIME");
     }
 
-    /// PRIME price appreciation (+6%) is carry like any other: harvest skims it
-    /// at the ORACLE price (bug C — a $1 assumption would withdraw 6% too much
-    /// PRIME and dip the loop HF below target) and compounds it into the
-    /// deposit. Net effect on a 1 ETH deposit ≈ maxLtv·loopLeverage·6%.
+    /// prime appreciation is carry: harvest skims it at the oracle price and
+    /// compounds it into the deposit without dipping loop hf.
     function test_primePriceAppreciationCompoundsToDeposit() public {
         _depositAndRamp();
         uint256 hfBefore = loop.healthFactor();
@@ -168,31 +162,30 @@ contract HarvestTest is Test {
             "only net carry above earned cost allowance compounds");
         assertApproxEqAbs(loop.totalEquity() * 1e10, loop.principalEquity() + retained, 2e12,
             "oracle-priced cost allowance retained");
-        // …and the loop HF did NOT dip below where it started (bug C symptom)
+        // loop hf did not dip below where it started
         assertGe(loop.healthFactor() + 0.005e18, hfBefore, "harvest left HF at target");
     }
 
-    /// bug A regression: harvest during an OPEN redemption must not skim the
-    /// exiter's in-flight equity (shares already burned, equity still in the
-    /// loop) — only true carry above basis + in-flight unwinds.
+    /// harvest during an open redemption skims only carry above basis + in-flight
+    /// unwinds, never the exiter's equity.
     function test_harvestSkipsInFlightUnwindEquity() public {
         uint256 shares = _depositAndRamp();
         uint256 equity0 = loop.totalEquity(); // ~2250e8
 
-        // open a redemption for HALF the position → ~half the equity in flight
+        // redeem half the position → ~half the equity in flight
         uint256 reqId = vault.requestRedeem(shares / 2, address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(100);
         uint256 inFlight = loop.unwindTargetEquity();
         assertApproxEqRel(inFlight, uint256(equity0) * 1e10 / 2, 0.01e18, "half equity in flight");
 
-        // Accrue enough carry for both the retained allowance and a harvest.
+        // accrue enough carry for both the retained allowance and a harvest
         uint256 yieldPrime = aPrime.balanceOf(address(loop)) / 50;
         aPrime.mint(address(loop), yieldPrime);
         uint256 retained = loop.executionCostReserve();
         uint256 expected = (loop.totalEquity() * 1e10 - loop.principalEquity() - inFlight - retained) / 1e12;
 
-        // harvest mid-redemption: skims ONLY the yield, not the exiter's slice
+        // harvest mid-redemption skims only the yield
         uint256 beforePrime = aPrime.balanceOf(address(loop));
         harvester.harvest(new uint256[](1));
         uint256 surplusPrime = beforePrime - aPrime.balanceOf(address(loop));

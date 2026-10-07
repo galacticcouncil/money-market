@@ -52,9 +52,8 @@ interface ICompoundVault is IMainDebtVault {
     function isUnderfunded() external view returns (bool);
 }
 
-/// @dev Stateless delegatecall implementation, deployed immutably with the vault
-/// implementation. The vault supplies the reentrancy and pause guards. No storage
-/// layouts, configurable delegate targets, or token approvals survive the call.
+/// @dev stateless delegatecall logic deployed with the vault implementation, which supplies the
+/// reentrancy and pause guards. no storage, delegate targets or approvals survive a call.
 contract CompoundLogic {
     using SafeERC20 for IERC20;
     // rebalance hysteresis around the reserve's max LTV: relever when utilization
@@ -146,9 +145,8 @@ contract CompoundLogic {
         remainingShares = held - slice;
     }
 
-    /// @dev State is returned to the vault; the immutable helper owns no slots.
-    /// while exits are in flight only deposited/earned credit deploys, as deposits
-    /// did before deferral; price resizing waits
+    /// @dev returns state to the vault. while exits are in flight only deposited/earned
+    /// credit deploys; price resizing waits
     function rebalance(bool exiting) external returns (uint256 shares, uint256 supplied, uint256 target, uint256 credit) {
         ICompoundVault v = ICompoundVault(address(this));
         IAavePool pool = v.pool();
@@ -250,9 +248,8 @@ contract CompoundLogic {
             service = out - controller.collectFee(out, msg.sender);
         }
         collateral.forceApprove(address(controller), 0);
-        // Pay execution costs from this harvest's owned reward fund when the
-        // oracle-valued servicing slice alone is insufficient after both swaps.
-        // Previously funded user collateral is never available to this call.
+        // execution costs beyond the servicing slice come from this harvest's reward fund,
+        // never from previously funded user collateral
         uint256 cashBefore = buffer.activeFunds();
         uint256 fresh = reward + service;
         collateral.forceApprove(address(buffer), fresh);

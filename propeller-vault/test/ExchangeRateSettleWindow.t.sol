@@ -12,20 +12,8 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 
-/// @notice P-2: settling a redemption withdraws the redeemer's collateral out of
-///         Aave into the vault's own balance, but the escrowed shares are not
-///         burned until `claim`. If `totalAssets()` counts only the Aave aToken,
-///         it drops at settle while `totalSupply` is unchanged — so the share
-///         price is understated for the whole settle→claim window. A deposit
-///         landing in that window is mis-minted (buys too many shares), diluting
-///         existing holders.
-///
-///         These tests assert the correct behaviour:
-///           (1) moving collateral aToken→vault at settle leaves the per-share
-///               value unchanged;
-///           (2) a deposit in the window mints at the same (un-depressed) rate.
-///         Both fail on the buggy contract and pass once `totalAssets()` also
-///         counts settled-but-unclaimed collateral held by the vault.
+/// @notice settled-but-unclaimed collateral still backs shares: settling leaves the
+///         share price unchanged and a deposit in the settle→claim window mints fairly.
 contract ExchangeRateSettleWindowTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
@@ -123,9 +111,7 @@ contract ExchangeRateSettleWindowTest is Test {
         loop.setTranches(10_000_000e18, 10_000_000e6);
     }
 
-    /// Drive a redemption all the way to "settled but unclaimed": the redeemer's
-    /// collateral has been withdrawn from Aave into the vault, the escrowed
-    /// shares are still outstanding, and nothing has been claimed yet.
+    /// unwind a redemption; callers settle it but never claim.
     function _settleWithoutClaiming(uint256 sharesToRedeem) internal {
         vault.requestRedeem(sharesToRedeem, address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
@@ -134,7 +120,7 @@ contract ExchangeRateSettleWindowTest is Test {
             if (loop.unwindTargetEquity() == 0) break;
             loop.pokeRepay();
         }
-        // NOTE: no claim — leaves collateral sitting in the vault, shares escrowed.
+        // no claim: shares stay escrowed
     }
 
     function test_settleDoesNotDepressSharePrice() public {
@@ -149,17 +135,15 @@ contract ExchangeRateSettleWindowTest is Test {
 
         _settleWithoutClaiming(aliceShares / 2);
 
-        // measured immediately BEFORE the settling withdraw
+        // measured immediately before the settling withdraw
         uint256 rateBefore = vault.exchangeRate();
         assertGt(rateBefore, 0, "sanity: rate positive");
 
-        // pokeSettle pulls the freed HOLLAR and withdraws the redeemer's
-        // collateral out of Aave into the vault — but burns no shares (no claim).
+        // settle moves the redeemer's collateral into the vault but burns no shares
         vault.pokeSettle();
         assertGt(eth.balanceOf(address(vault)), 0, "sanity: collateral now sits in the vault");
 
-        // Per-share value must be unchanged: the collateral only moved location
-        // (Aave aToken → vault balance); no value left, no shares burned.
+        // the collateral only moved location, so per-share value is unchanged
         uint256 rateAfter = vault.exchangeRate();
         assertEq(rateAfter, rateBefore, "settle must not change the share price");
     }
@@ -176,15 +160,14 @@ contract ExchangeRateSettleWindowTest is Test {
 
         _settleWithoutClaiming(aliceShares / 2);
 
-        // fair quote for a fresh 1 ETH deposit, taken BEFORE the settle
+        // fair quote for a fresh 1 eth deposit, taken before the settle
         uint256 fairShares = vault.convertToShares(1e18);
 
         vault.pokeSettle(); // enter the settle→claim window (collateral in vault, unclaimed)
 
-        // Bob deposits 1 ETH inside the window. Real per-share value is unchanged,
-        // so he must receive the same shares the pre-settle quote implied.
+        // bob deposits inside the window and must get the pre-settle quote
         eth.mint(bob, 1e18);
-        // Cover source conversion dust independently, never from Bob's deposit.
+        // cover source conversion dust independently, never from bob's deposit
         hollar.mint(address(loop), 1e18);
         hollar.mint(address(vault), 1e18);
         assertFalse(vault.isUnderfunded());

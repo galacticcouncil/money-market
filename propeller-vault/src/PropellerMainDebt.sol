@@ -31,9 +31,8 @@ interface IReserveRate {
     function getReserveNormalizedVariableDebt(address asset) external view returns (uint256);
 }
 
-/// @notice Per-vault Main debt and settlement accounting. No prefunded reserve.
-/// Debt units allocate the live (discounted) debt balance, including interest
-/// after an exit starts. Source repayments and operating cash never cross exits.
+/// @notice per-vault Main debt and settlement accounting. debt units allocate the live (discounted)
+/// debt balance; source repayments and operating cash never cross between exits.
 contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -248,9 +247,8 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
         sourceOutstanding += amount;
     }
 
-    /// @notice Preserve each source claim even if its Main debt is already paid.
-    /// A frozen proportional batch prevents the first exit taking the entire
-    /// cost allowance. New exits join the next batch; each call processes 64.
+    /// @notice credit source proceeds and costs to claims in a frozen proportional batch, 64 per call,
+    /// so the first exit can't take the whole cost allowance. new exits join the next batch.
     function creditSource(uint256 amount) external override onlyVault nonReentrant returns (uint256 activeCost) {
         uint256 cumulativeCost = IMainDebtVault(vault).yieldSource().unwindExecutionCost(vault);
         unallocatedCost += cumulativeCost - sourceCostCheckpoint;

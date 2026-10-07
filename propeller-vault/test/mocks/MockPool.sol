@@ -5,15 +5,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAavePool} from "../../src/interfaces/IAavePool.sol";
 import {MockERC20} from "./MockERC20.sol";
 
-/// @notice Minimal Aave v3 Pool mock that follows real getUserAccountData
-///         conventions: base values in 8-dp USD, liquidation threshold / LTV in
-///         bps, health factor in WAD (1e18). So the contract math under test is
-///         written to real Aave semantics, not mock-isms.
-///
-/// @dev    Tracks collateral via per-reserve aToken balances and debt via
-///         per-reserve variable-debt-token balances (both MockERC20s minted by
-///         this pool). `borrow` mints the borrowed asset to the caller (GHO/
-///         HOLLAR-style). HF is enforced on borrow/withdraw.
+/// @notice minimal aave v3 pool mock with real getUserAccountData units:
+///         8dp usd bases, lt/ltv in bps, hf in wad. hf is enforced on borrow/withdraw.
 contract MockPool is IAavePool {
     struct Reserve {
         MockERC20 aToken;
@@ -56,22 +49,9 @@ contract MockPool is IAavePool {
     function setRepayLimit(uint256 limit) external {
         repayLimit = limit;
     }
-    /// @notice asset => reserve is in isolation mode. Aave's
-    ///         `validateAutomaticUseAsCollateral` refuses to auto-enable a
-    ///         supplied asset as collateral when isolation mode is involved, so
-    ///         an isolated reserve's aToken stays OUT of totalCollateralBase
-    ///         until someone calls `setUserUseReserveAsCollateral` explicitly.
-    ///         PRIME is listed in isolation mode on the live market — this is
-    ///         exactly why `SubLoop.pokeBorrow` opens with an explicit enable,
-    ///         and why an un-ramped loop reports zero equity on-chain but not in
-    ///         a mock that auto-enables.
+    /// @notice isolated reserves are never auto-enabled as collateral (live prime is isolated).
     mapping(address => bool) public isolationMode;
-    /// @notice user => asset => counts as collateral. Models Aave's
-    ///         use-as-collateral flag: auto-set only on the FIRST supply and
-    ///         only when the reserve LTV > 0 (ValidationLogic LTV==0 gate) —
-    ///         the exact semantics that made the LTV-0 synth floor inert on
-    ///         the live market (bug B). An un-flagged aToken balance is NOT in
-    ///         totalCollateralBase.
+    /// @notice aave's use-as-collateral flag: auto-set only on a first supply with ltv > 0.
     mapping(address => mapping(address => bool)) public usingAsCollateral;
 
     uint256 internal constant BPS = 1e4;
@@ -95,42 +75,34 @@ contract MockPool is IAavePool {
         reserves[asset].priceWad = priceWad;
     }
 
-    /// @notice Test helper: list a reserve in isolation mode (suppresses the
-    ///         auto-enable-as-collateral on first supply, matching Aave).
+    /// @notice list a reserve in isolation mode (no auto-enable on first supply).
     function setIsolationMode(address asset, bool on) external {
         isolationMode[asset] = on;
     }
 
-    /// @notice Test helper: governance changing a reserve's max LTV (does NOT
-    ///         retro-enable existing suppliers — matches Aave).
+    /// @notice change a reserve's max ltv; existing suppliers are not retro-enabled.
     function setLtv(address asset, uint16 ltvBps) external {
         reserves[asset].ltvBps = ltvBps;
     }
 
-    /// @notice Price ($1 = 1e18) and decimals for a reserve — used by MockSwapper
-    ///         to price cross-asset swaps the way an oracle-fed router would.
+    /// @notice price ($1 = 1e18) and decimals, used by MockSwapper to price swaps.
     function assetPrice(address asset) external view returns (uint256 priceWad, uint8 dec) {
         Reserve storage r = reserves[asset];
         return (r.priceWad, r.decimals);
     }
 
-    // ── value helpers (native units → 8-dp USD) ───────────────────────────
     function _usd8(address asset, uint256 amt) internal view returns (uint256) {
         Reserve storage r = reserves[asset];
         // amt(native) * price(1e18=$1) / 10^dec → 18dp USD; / 1e10 → 8dp USD
         return (amt * r.priceWad) / (10 ** r.decimals) / 1e10;
     }
 
-    // ── IAavePool ─────────────────────────────────────────────────────────
     function supply(address asset, uint256 amount, address onBehalfOf, uint16) external override {
         IERC20(asset).transferFrom(msg.sender, address(this), amount);
         Reserve storage r = reserves[asset];
         bool firstSupply = r.aToken.balanceOf(onBehalfOf) == 0;
         r.aToken.mint(onBehalfOf, amount - supplyRoundingLoss[asset]);
-        // Aave SupplyLogic.executeSupply: auto-enable only on first supply, and
-        // validateAutomaticUseAsCollateral rejects LTV-0 reserves AND anything
-        // touching isolation mode. An isolated reserve therefore needs an
-        // explicit setUserUseReserveAsCollateral to ever count.
+        // like aave: auto-enable only on a first supply, never for ltv-0 or isolated reserves
         if (firstSupply && r.ltvBps > 0 && !isolationMode[asset]) {
             usingAsCollateral[onBehalfOf][asset] = true;
         }
@@ -183,9 +155,7 @@ contract MockPool is IAavePool {
         return uint256(r.ltvBps) | (uint256(r.ltBps) << 16);
     }
 
-    /// @notice Mock of the router/AaveTradeExecutor's on-behalf withdraw (the
-    ///         first hop of an unwind DCA route): burn `from`'s aToken and send
-    ///         the underlying to `to`. HF on `from` must stay >= 1.
+    /// @notice on-behalf withdraw (first hop of an unwind route); `from` must keep hf >= 1.
     function mockWithdrawTo(address asset, uint256 amount, address from, address to)
         external
         returns (uint256)
@@ -208,11 +178,7 @@ contract MockPool is IAavePool {
         return (collBase8, debtBase8, 0, wAvgLtBps, 0, hf);
     }
 
-    // Doubles as its own PoolAddressesProvider + AaveOracle so oracle-based
-    // min-out sizing resolves in tests. Returns each asset's real USD price (8dp)
-    // from its reserve `priceWad` (1e18 = $1) — consistent with MockSwapper's
-    // pricing, so the vault's compound oracle-floor matches the swap output.
-    // HOLLAR/PRIME stay $1 → SubLoop's 1:1 min-out math is unchanged.
+    // doubles as its own addresses provider + oracle, priced like MockSwapper
     function ADDRESSES_PROVIDER() external view returns (address) { return address(this); }
     function getPriceOracle() external view returns (address) { return address(this); }
     function getAssetPrice(address asset) external view returns (uint256) {
@@ -233,8 +199,7 @@ contract MockPool is IAavePool {
         for (uint256 i = 0; i < n; i++) {
             Reserve storage r = reserves[assets[i]];
             uint256 c = r.aToken.balanceOf(user);
-            // only FLAGGED balances count — an aToken supplied while the
-            // reserve was LTV-0 is invisible to HF/collateral (matches Aave).
+            // only flagged balances count, like aave
             if (c > 0 && usingAsCollateral[user][assets[i]]) {
                 uint256 v = _usd8(assets[i], c);
                 collBase8 += v;

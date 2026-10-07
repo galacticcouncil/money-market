@@ -17,10 +17,8 @@ interface IYieldVault is IERC20 {
     function convertToShares(uint256) external view returns (uint256);
 }
 
-/// @notice Separately owned, unencumbered source units and funded reward shares.
-/// Collateral shares never include receivables. A lazy index allocates reward
-/// fund units before collateral balances change; no operation scans holders.
-/// The fund's collateral shares keep earning while rewards remain unclaimed.
+/// @notice separately owned source units and funded reward shares, allocated by a lazy index
+/// before collateral balances change; no operation scans holders.
 contract PropellerYieldAccounting {
     uint256 private constant RAY = 1e27;
     uint256 private constant BPS = 10_000;
@@ -149,10 +147,8 @@ contract PropellerYieldAccounting {
         accountScale[owner] = unitScale;
     }
 
-    /// @dev Ownership and its fee vest together, before collateral balances
-    /// change. The protocol receives its reserved source units only on actual
-    /// realization. A later rate change cannot reassign earlier earnings, but
-    /// the servicing reserve for accrued interest follows the current rate.
+    /// @dev ownership and its fee vest before collateral balances change; a later rate change
+    /// can't reassign earlier earnings, though the interest servicing reserve follows it.
     function checkpoint(address from, address to) external onlyVault {
         IYieldVault v = IYieldVault(vault);
         IYieldSource s = v.yieldSource();
@@ -203,9 +199,8 @@ contract PropellerYieldAccounting {
         uint256 outsideSupply = supply - funded;
         uint256 outsideValue = value - selfValue;
         uint256 denominator = before_ + selfValue + 1;
-        // Loss followed by refilling must not exponentially inflate
-        // units. Rescale lazily, preserving far more precision than a
-        // collateral/source base unit and without visiting holders.
+        // rescale lazily so loss-then-refill can't inflate units exponentially;
+        // precision stays far finer than a base unit and no holder is visited
         uint256 limit = Math.mulDiv(uint256(1) << 160, denominator, Math.max(denominator, outsideValue));
         while (totalUnits > limit) {
             totalUnits >>= 64;
@@ -235,9 +230,8 @@ contract PropellerYieldAccounting {
         delete requestIndex[id];
         delete requestEpoch[id];
         delete requestScale[id];
-        // The owner's unharvested portion follows the exit and supplies its own
-        // execution allowance. Funded reward shares stay independently claimable.
-        // Exit surplus keeps #60's original-owner HOLLAR recovery semantics.
+        // the owner's unharvested portion follows the exit and funds its own execution
+        // allowance; funded reward shares stay independently claimable
         if (totalUnits != 0 && units[owner] != 0) {
             uint256 burned = Math.mulDiv(units[owner], shares, _weight(owner) + shares);
             rewardShares = Math.mulDiv(sourceShares, burned, totalUnits);
@@ -299,9 +293,8 @@ contract PropellerYieldAccounting {
         harvestProtocolUnits = 0;
     }
 
-    /// @notice Extra cash from servicing funded by the reward fund releases an
-    /// equal source claim back to that fund. Keep the existing unit owners;
-    /// allocating this release at the next checkpoint would enrich newcomers.
+    /// @notice return a reward-funded servicing surplus to the fund's existing unit owners,
+    /// not to whoever joins before the next checkpoint.
     function retainServicingSurplus(uint256 value) external onlyVault {
         if (value == 0) return;
         IYieldVault v = IYieldVault(vault);

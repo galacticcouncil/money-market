@@ -7,9 +7,8 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
 
-/// @notice Full Propeller topology with modeled market loss/interest. Uses real
-/// vault/source/harvest/fee logic, mock Aave/router, and external recovery funds.
-/// No emergency indexer or pro-rata governance payout implementation is implied.
+/// @notice full topology with modeled market loss/interest: real vault/source/harvest/fee
+/// logic, mock aave/router, external recovery funds
 contract RecoveryE2ETest is MultiVaultFlowTest {
     address constant SECOND_ETH_USER = address(0xE2);
     address constant DONOR = address(0xD0);
@@ -51,8 +50,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
 
     function _fundInterest(CollateralVault v) internal {
         PropellerMainDebt buffer = PropellerMainDebt(address(v.mainDebt()));
-        // Governance targets every debt cohort, including offline holders. A
-        // donation to the FIFO head must not be mistaken for cohort-wide funding.
+        // fund every debt cohort, incl. offline holders; a fifo-head donation is not cohort-wide
         for (uint256 key; key <= v.queueUnwind(); ++key) {
             uint256 interest = buffer.interestOf(key);
             if (interest == 0) continue;
@@ -65,10 +63,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
     }
 
     function _fundActiveDeficit(CollateralVault v) internal {
-        // Owned-yield withdrawals give vaults different source cost bases.
-        // A shared recapitalization at unit NAV is not a targeted restoration
-        // of every vault's Main obligation. Fund each active cohort explicitly,
-        // including offline holders, before reopening user flows.
+        // vaults have different source cost bases, so fund each active cohort before reopening
         uint256 required = v.yieldAccounting().requiredSourceBacking();
         uint256 available = loop.equityOf(address(v)) * 1e10 - v.yieldAccounting().sourceValue();
         if (required <= available) return;
@@ -83,8 +78,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
     }
 
     function _modelLoopLiquidation() internal {
-        // Model the terminal liquidation outcome, not an Aave liquidation engine:
-        // an outside liquidator pays the loop debt and receives its PRIME.
+        // terminal liquidation outcome: an outside liquidator pays the loop debt and takes its prime
         uint256 debt = hollarDebt.balanceOf(address(loop));
         hollar.mint(LIQUIDATOR, debt);
         vm.startPrank(LIQUIDATOR);
@@ -160,8 +154,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         vm.expectRevert("Pausable: paused");
         ethVault.transfer(ETH_USER, 1);
 
-        // Top up Main interest independently: a source recapitalization is not
-        // proof that its original exit quote covers newly accrued Main debt.
+        // top up main interest separately; recapitalizing the source doesn't cover new main debt
         uint256 ethInterest = hollarDebt.balanceOf(address(ethVault)) / 100;
         uint256 btcInterest = hollarDebt.balanceOf(address(tbtcVault)) / 100;
         hollarDebt.mint(address(ethVault), ethInterest);
@@ -193,7 +186,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         assertEq(eth.balanceOf(ETH_USER), 0);
         assertEq(tbtc.balanceOf(BTC_USER), 0);
 
-        // No partial FIFO reopening: restore the full source backing first.
+        // no partial fifo reopening: restore the full source backing first
         _donate(address(loop), shortfall - first + 1e12);
         assertEq(loop.negativeCarryBps(), 0);
         _fundActiveDeficit(ethVault);

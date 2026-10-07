@@ -9,7 +9,7 @@ import {PropellerYieldAccounting} from "../src/PropellerYieldAccounting.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 
-/// @dev Test-only append-only upgrade. It does NOT implement strategy rotation.
+/// @dev test-only append-only upgrade, not strategy rotation
 contract SubLoopUpgradeProbe is SubLoop {
     uint256 public compatibilityMarker;
 
@@ -18,7 +18,7 @@ contract SubLoopUpgradeProbe is SubLoop {
     }
 }
 
-/// @dev Deliberately unsafe test candidate: governance must never deploy this.
+/// @dev deliberately unsafe test candidate; never deploy
 contract SubLoopBrokenCounterProbe is SubLoopUpgradeProbe {
     function overwriteCostForTest(address vault, uint256 value) external onlyRole(UPGRADER_ROLE) {
         unwindExecutionCost[vault] = value;
@@ -37,7 +37,7 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
         this.seedPosition(false);
         this.seedPosition(true);
         for (uint256 i; i < 40; ++i) loop.pokeBorrow();
-        // Mock boundary: earned PRIME, not a sponsored HOLLAR operating balance.
+        // earned prime, not a sponsored hollar balance
         aPrime.mint(address(loop), 1_000e6);
         prime.mint(address(pool), 1_000e6);
         loop.configureDca(222, 43, 1043, 143, 1_000);
@@ -244,7 +244,7 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
         uint256 debt = ledger.debtOf(1);
         hollar.mint(address(this), debt);
         hollar.approve(address(ledger), debt);
-        ledger.fundPosition(1, debt); // Explicit recovery, not a principal write-off.
+        ledger.fundPosition(1, debt); // explicit recovery, not a principal write-off
         ethVault.pokeSettle();
         _claimEthExit();
         ledger.claimSurplus(0);
@@ -308,8 +308,7 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
             abi.encodeCall(bad.overwriteCostForTest, (address(ethVault), 0)));
         bytes32 ledgerBefore = _ledgerState(ethVault);
         uint256 pending = loop.pendingUnwindOf(address(ethVault));
-        // Upgrade authorization does not validate semantics. This candidate
-        // installs successfully but must fail the compatibility review/tests.
+        // upgrade auth doesn't check semantics: this installs but must fail compatibility tests
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         ethVault.pokeSettle();
         assertEq(_ledgerState(ethVault), ledgerBefore);

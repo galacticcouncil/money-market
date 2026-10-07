@@ -12,17 +12,8 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 
-/// @notice bug B regression — the lark-2 misconfiguration. Aave refuses to
-///         enable an LTV-0 reserve as collateral (and only auto-enables on the
-///         FIRST supply), so a synth listed with LTV 0:
-///           1. leaves the HF floor INERT (the "never liquidated" guarantee
-///              silently doesn't hold), and
-///           2. breaks `rebalance`: collBase8 misses the synth, so
-///              `ethValue8 = collBase8 − synthValue8` yields a phantom LTV in
-///              the hundreds of % → every call takes the de-lever branch and
-///              manufactures unwind requests.
-///         The remedy (small non-zero LTV listing + the vault's explicit
-///         enable on the next synth supply) restores both.
+/// @notice aave never enables an ltv-0 synth as collateral, which would leave the floor
+///         inert; deployment must revert, and an ltv bump + next supply recovers.
 contract SynthLtvZeroTest is Test {
     MockERC20 eth; MockERC20 aEth; MockERC20 ethDebt;
     MockERC20 hollar; MockERC20 aHollar; MockERC20 hollarDebt;
@@ -44,7 +35,7 @@ contract SynthLtvZeroTest is Test {
         pool.initReserve(address(eth), address(aEth), address(ethDebt), 8500, 7500, 18, 3_000e18);
         pool.initReserve(address(hollar), address(aHollar), address(hollarDebt), 0, 0, 18, 1e18);
         pool.initReserve(address(prime), address(aPrime), address(primeDebt), 8800, 8500, 6, 1e18);
-        // THE BUG: synth listed with LTV 0 (live lark-2 configuration)
+        // synth listed with ltv 0
         pool.initReserve(address(synth), address(aSynth), address(synthDebt), SYNTH_LT, 0, 18, 1e18);
 
         loop = SubLoop(address(new ERC1967Proxy(address(new SubLoop()), abi.encodeCall(SubLoop.initialize,
@@ -84,20 +75,18 @@ contract SynthLtvZeroTest is Test {
         vm.expectRevert("MockPool: ltv 0");
         vault.rebalance();
 
-        // remedy step 1: governance lists the synth with a small non-zero LTV.
-        // NOT retroactive — the existing position is still un-flagged…
+        // governance bumps the synth ltv; not retroactive for the existing position
         pool.setLtv(address(synth), 100);
         (uint256 collBefore8,,,,,) = pool.getUserAccountData(address(vault));
         assertEq(collBefore8, 3_000e8, "collateral stays funded without debt");
 
-        // remedy step 2: the NEXT synth supply (any deposit / peg top-up) hits
-        // the vault's explicit setUserUseReserveAsCollateral → floor engages
+        // the next synth supply's explicit collateral enable engages the floor
         vault.deposit(1e18, address(this));
         vault.rebalance();
         (uint256 collAfter8,,,,,) = pool.getUserAccountData(address(vault));
         assertGt(collAfter8, 10_000e8, "synth now in totalCollateralBase");
 
-        // floor live: 99% ETH crash keeps HF ≥ 1 (principal un-liquidatable)
+        // floor live: a 99% eth crash keeps hf ≥ 1
         pool.setPrice(address(eth), 30e18);
         (,,,,, uint256 hfCrash) = pool.getUserAccountData(address(vault));
         assertGe(hfCrash, 1e18, "floor engaged after remedy");
