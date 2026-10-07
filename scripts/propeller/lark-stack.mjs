@@ -19,7 +19,8 @@ for(const [index,accountIndex]of [[0,18],[1,20]]){
  const env={RPC_URL:'https://node4.lark.hydration.cloud',RPC_URLS:'https://node4.lark.hydration.cloud,https://4.lark.hydration.cloud',LOOPER_PRIVATE_KEY:toHex(account.getHdKey().privateKey),SUBLOOP_ADDRESS:r.addresses.source,HARVESTER_ADDRESS:r.addresses.harvester,EXECUTION_CONTROLLER:r.addresses.controller,VAULT_ADDRESSES:r.vaults.map(v=>v.address).join(','),PROPELLER_ROUNDING_RESERVES:JSON.stringify(r.vaults.map(v=>v.rounding)),SPONSORED_GAS:'true',POLL_INTERVAL_MS:'30000',SAFETY_INTERVAL_MS:'30000',SLOW_EVERY:'2',OPERATOR_COUNT:'2',OPERATOR_INDEX:String(index),OPERATOR_SLOT_SECONDS:'60',HARVEST_MIN_USD8:'1000000',HARVEST_MAX_DELAY_SECONDS:'60',QUOTE_TTL_SECONDS:'60',MAX_TX_GAS:'16777216'};
  services[`keeper${index}`]={...common,image:keeperImage,environment:env,deploy:{...common.deploy,replicas:keepers?1:0}};
 }
-for(const mode of ['mirror','markets'])services[mode]={...common,image:botImage,environment:{BOT_MODE:mode,BOT_LIVE:'true',BOT_MANIFEST:'/app/manifest.json',BOT_INTERVAL_MS:mode==='markets'?'5000':'30000'},configs:[{source:'propeller_manifest',target:'/app/manifest.json'}]};
+const intervals={mirror:'30000',markets:'5000',pools:'30000',replay:'6000'};
+for(const mode of Object.keys(intervals))services[mode]={...common,image:botImage,environment:{BOT_MODE:mode,BOT_LIVE:'true',BOT_MANIFEST:'/app/manifest.json',BOT_INTERVAL_MS:intervals[mode]},configs:[{source:'propeller_manifest',target:'/app/manifest.json'}]};
 const compose={version:'3.8',services,configs:{propeller_manifest:{external:true,name:MANIFEST_CONFIG}}};
 const file='/tmp/propeller-lark-stack.json';writeFileSync(file,JSON.stringify(compose,null,2)+'\n',{mode:0o600});
 console.log(JSON.stringify({file,keepers,genesis:r.genesis,keeperImage,botImage,services:Object.keys(services)}));

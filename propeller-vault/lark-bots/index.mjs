@@ -6,7 +6,7 @@ import {ApiPromise,WsProvider,Keyring} from '@polkadot/api';
 import {cryptoWaitReady} from '@polkadot/util-crypto';
 import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData} from 'viem';
 import {mnemonicToAccount} from 'viem/accounts';
-import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory} from './policy.mjs';
+import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory,omnipoolRatio,sizeOmnipoolTrade,deviationBps,replayTrades} from './policy.mjs';
 const RPC='https://4.lark.hydration.cloud',WS='wss://4.lark.hydration.cloud';
 const SOURCE='https://hdx.tarn.hydration.cloud';
 const mode=process.env.BOT_MODE||'markets',live=process.env.BOT_LIVE==='true';
@@ -26,6 +26,13 @@ const wallet=createWalletClient({chain,account,transport:http(RPC,{timeout:30000
 await cryptoWaitReady();
 const api=await ApiPromise.create({provider:new WsProvider(WS),noInitWarn:true});
 const signer=new Keyring({type:'sr25519'}).addFromUri('//Alice//propeller-20261005-arb');
+// one public test signer per mode; each runs in its own container
+const actor=mode==='pools'?new Keyring({type:'sr25519'}).addFromUri('//Alice//propeller-20261007-pools')
+ :mode==='replay'?new Keyring({type:'sr25519'}).addFromUri('//Alice//propeller-20261007-replay'):signer;
+const mainnet=['pools','replay'].includes(mode)?await ApiPromise.create({provider:new WsProvider(SOURCE.replace('https://','wss://')),noInitWarn:true}):null;
+const OMNIPOOL='0x6d6f646c6f6d6e69706f6f6c0000000000000000000000000000000000000000';
+const diaAbi=parseAbi(['function getValue(string) view returns(uint128,uint128)','function setMultipleValues(string[],uint256[])']);
+const pusherAbi=parseAbi(['function latestRoundData() view returns(uint80,int256,uint256,uint256,uint80)','function setPrice(int256)']);
 let pendingEvm,pendingSubstrate,nextEvmNonce=0,nextSubstrateNonce=0,stopping=false;
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{stopping=true;});
 async function identity(){
@@ -59,10 +66,42 @@ async function mirror(){
   pendingEvm=await wallet.writeContract({address:row.address,abi,functionName:'setPrice',args:[price],gas,gasPrice,nonce,type:'legacy'});
   const receipt=await pub.waitForTransactionReceipt({hash:pendingEvm,timeout:180000});assert.equal(receipt.status,'success');log('mirror-mined',{asset:row.name,hash:pendingEvm,gasUsed:receipt.gasUsed});pendingEvm=undefined;nextEvmNonce=nonce+1;
  }
+ await mirrorFeeds(block);
+}
+async function evmWrite(address,feedAbi,functionName,args,label){
+ const gasPrice=await pub.getGasPrice()*2n,data=encodeFunctionData({abi:feedAbi,functionName,args});
+ const estimate=BigInt(await pub.request({method:'eth_estimateGas',params:[{from:account.address,to:address,data,gas:toHex(3000000n),gasPrice:toHex(gasPrice)},'latest']}));
+ const gas=(estimate*120n+99n)/100n;assert.ok(gas<=3000000n);
+ await pub.simulateContract({address,abi:feedAbi,functionName,args,account,gas,gasPrice});
+ const nonce=Math.max(nextEvmNonce,await pub.getTransactionCount({address:account.address,blockTag:'pending'}));
+ pendingEvm=await wallet.writeContract({address,abi:feedAbi,functionName,args,gas,gasPrice,nonce,type:'legacy'});
+ const receipt=await pub.waitForTransactionReceipt({hash:pendingEvm,timeout:180000});assert.equal(receipt.status,'success');
+ log('mirror-mined',{feed:label,hash:pendingEvm,gasUsed:receipt.gasUsed});pendingEvm=undefined;nextEvmNonce=nonce+1;
+}
+// original forked feeds, so every reserve, adapter and stableswap peg follows mainnet unchanged
+async function mirrorFeeds(block){
+ for(const d of manifest.feeds?.dia??[]){
+  const keys=[],values=[];
+  for(const key of d.keys){
+   const [price,updatedAt]=await source.readContract({address:d.address,abi:diaAbi,functionName:'getValue',args:[key],blockNumber:block.number});
+   const [local,localAt]=await pub.readContract({address:d.address,abi:diaAbi,functionName:'getValue',args:[key]});
+   const update=price>0n&&(price!==local||updatedAt!==localAt);
+   log('dia-reference',{key,price,upstreamUpdatedAt:updatedAt,localPrice:local,update});
+   if(update){keys.push(key);values.push((price<<128n)|updatedAt);}
+  }
+  if(live&&keys.length)await evmWrite(d.address,diaAbi,'setMultipleValues',[keys,values],keys.join(','));
+ }
+ for(const p of manifest.feeds?.pushers??[]){
+  const upstream=await source.readContract({address:p.address,abi:pusherAbi,functionName:'latestRoundData',blockNumber:block.number});
+  const local=await pub.readContract({address:p.address,abi:pusherAbi,functionName:'latestRoundData'});
+  const update=upstream[1]>0n&&upstream[1]!==local[1];
+  log('pusher-reference',{feed:p.name,price:upstream[1],localPrice:local[1],update});
+  if(live&&update)await evmWrite(p.address,pusherAbi,'setPrice',[upstream[1]],p.name);
+ }
 }
 async function quote(at,input,output,amount,route,minimum=0n){
  const tx=api.tx.router.sell(input,output,amount.toString(),minimum.toString(),route);
- const dry=await at.call.dryRunApi.dryRunCall({system:{Signed:signer.address}},tx,4);
+ const dry=await at.call.dryRunApi.dryRunCall({system:{Signed:actor.address}},tx,4);
  if(!dry.isOk)throw Error('dry run unavailable');
  if(!dry.asOk.executionResult.isOk){
   const failure=dry.asOk.executionResult.asErr,error=failure.error??failure;
@@ -72,20 +111,21 @@ async function quote(at,input,output,amount,route,minimum=0n){
  const event=dry.asOk.emittedEvents.find(e=>e.section==='router'&&e.method==='Executed');
  assert.ok(event,'missing router fill');return BigInt(event.data[3].toString());
 }
-async function submit(tx){
+async function submit(tx,label='arb-mined',requireFill=true){
  if(pendingSubstrate)throw Error('prior substrate receipt uncertain; operator must reconcile');
  pendingSubstrate=true;
- const nonce=Math.max(nextSubstrateNonce,(await api.rpc.system.accountNextIndex(signer.address)).toNumber());
+ const nonce=Math.max(nextSubstrateNonce,(await api.rpc.system.accountNextIndex(actor.address)).toNumber());
  return new Promise((resolve,reject)=>{
   let unsub,settled=false;const timer=setTimeout(()=>{unsub?.();reject(Error('transaction receipt timeout'));},180000);
-  tx.signAndSend(signer,{nonce,era:0,blockHash:manifest.genesis,genesisHash:manifest.genesis},({status,dispatchError,events,txHash})=>{
+  tx.signAndSend(actor,{nonce,era:0,blockHash:manifest.genesis,genesisHash:manifest.genesis},({status,dispatchError,events,txHash})=>{
    if(status.isInvalid||status.isDropped||status.isUsurped){settled=true;clearTimeout(timer);unsub?.();reject(Error(`uncertain transaction ${txHash.toHex()}: ${status.type}`));return;}
    if(!status.isInBlock&&!status.isFinalized)return;
    settled=true;clearTimeout(timer);unsub?.();pendingSubstrate=false;nextSubstrateNonce=nonce+1;
    if(dispatchError){const meta=dispatchError.isModule?api.registry.findMetaError(dispatchError.asModule):null;reject(Error(`${txHash.toHex()}: ${meta?`${meta.section}.${meta.name}`:dispatchError.toString()}`));return;}
    const fills=events.filter(({event})=>event.section==='router'&&event.method==='Executed').map(({event})=>event.data.toJSON());
-   if(!fills.length){reject(Error(`mined transaction has no router fill: ${txHash.toHex()}`));return;}
-   log('arb-mined',{hash:txHash.toHex(),fills});resolve();
+   if(requireFill&&!fills.length){reject(Error(`mined transaction has no router fill: ${txHash.toHex()}`));return;}
+   const failed=events.filter(({event})=>event.section==='utility'&&event.method==='ItemFailed').length;
+   log(label,{hash:txHash.toHex(),fills:fills.length>8?fills.length:fills,failed});resolve();
   }).then(u=>{unsub=u;if(settled)u();}).catch(e=>{clearTimeout(timer);reject(e);});
  });
 }
@@ -133,12 +173,84 @@ async function markets(){
  await submit(api.tx.router.sell(best.input,best.output,best.amount.toString(),best.minOut.toString(),best.route));
  return unavailable.length===0;
 }
+async function omnipoolSide(at,id){
+ const asset=(await at.query.omnipool.assets(id)).unwrap(),free=(await at.call.currenciesApi.account(id,OMNIPOOL)).free;
+ return {hub:BigInt(asset.hubReserve.toString()),res:BigInt(free.toString())};
+}
+// keep each omnipool asset's price in the anchor at mainnet's, beyond the fee band
+async function pools(){
+ const block=await identity(),at=await api.at(block.hash);
+ const mainAt=await mainnet.at(await mainnet.rpc.chain.getFinalizedHead());
+ const anchor=manifest.omnipool.anchor,band=BigInt(process.env.POOL_BAND_BPS||40);
+ const larkAnchor=await omnipoolSide(at,anchor),mainAnchor=await omnipoolSide(mainAt,anchor);
+ let best;
+ for(const id of manifest.omnipool.assets){
+  if(id===anchor)continue;
+  const lark=await omnipoolSide(at,id),target=omnipoolRatio(await omnipoolSide(mainAt,id),mainAnchor);
+  const dev=deviationBps(omnipoolRatio(lark,larkAnchor),target);
+  log('pool-reference',{asset:id,devBps:dev});
+  if(dev<=band&&dev>=-band)continue;
+  const input=dev>0n?id:anchor,output=dev>0n?anchor:id;
+  const balance=BigInt((await at.call.currenciesApi.account(input,actor.address)).free.toString());
+  const cap=(dev>0n?lark.res:larkAnchor.res)*3n/100n,max=balance*9n/10n<cap?balance*9n/10n:cap;
+  const {amount}=sizeOmnipoolTrade(lark,larkAnchor,target,max);
+  if(amount===0n){log('inventory-refill-needed',{asset:input,balance});continue;}
+  const size=dev<0n?-dev:dev;
+  if(!best||size>best.size)best={asset:id,devBps:dev,size,input,output,amount};
+ }
+ if(!best){log('pools-aligned',{band});return true;}
+ const route=[{pool:'Omnipool',assetIn:best.input,assetOut:best.output}];
+ const out=await quote(at,best.input,best.output,best.amount,route);
+ log('pool-correction',{asset:best.asset,devBps:best.devBps,input:best.input,amount:best.amount,out});
+ if(live)await submit(api.tx.router.sell(best.input,best.output,best.amount.toString(),(out*9950n/10000n).toString(),route),'pool-mined');
+ return true;
+}
+const REPLAYED=new Set(['router.Executed','omnipool.SellExecuted','omnipool.BuyExecuted','stableswap.SellExecuted','stableswap.BuyExecuted','xyk.SellExecuted','xyk.BuyExecuted']);
+const scale=BigInt(Math.round(Number(process.env.REPLAY_SCALE||'1')*1e6));
+let replayNext;
+function tradeRow(name,d){
+ const n=i=>Number(d[i].toString()),b=i=>BigInt(d[i].toString());
+ if(name==='router.Executed')return {name,input:n(0),output:n(1),amount:b(2)};
+ if(name.startsWith('omnipool.'))return {name,input:n(1),output:n(2),amount:b(3)};
+ if(name.startsWith('stableswap.'))return {name,pool:n(1),input:n(2),output:n(3),amount:b(4)};
+ if(name==='xyk.SellExecuted')return {name,input:n(1),output:n(2),amount:b(3)};
+ return {name,input:n(2),output:n(1),amount:b(4)};
+}
+// replay finalized mainnet trades on Lark: same pair, same input size (times REPLAY_SCALE)
+async function replay(){
+ const block=await identity(),at=await api.at(block.hash);
+ const head=(await mainnet.rpc.chain.getHeader(await mainnet.rpc.chain.getFinalizedHead())).number.toNumber();
+ replayNext??=process.env.REPLAY_FROM?Number(process.env.REPLAY_FROM):head+1;
+ const last=Math.min(head,replayNext+Number(process.env.REPLAY_MAX_BLOCKS||20)-1),groups=[];
+ for(let n=replayNext;n<=last;n++){
+  const phases=new Map();
+  for(const {phase,event} of await (await mainnet.at(await mainnet.rpc.chain.getBlockHash(n))).query.system.events()){
+   const name=`${event.section}.${event.method}`;if(!REPLAYED.has(name))continue;
+   const key=phase.toString();(phases.get(key)??phases.set(key,[]).get(key)).push(tradeRow(name,event.data));
+  }
+  groups.push(...phases.values());
+ }
+ const from=replayNext;replayNext=last+1;
+ const trades=replayTrades(groups),spend={},calls=[],skipped=[];
+ // the hub token (H2O) is never minted for replay; it would distort omnipool accounting
+ for(const t of trades.filter(t=>t.input!==1&&t.output!==1).slice(0,Number(process.env.REPLAY_BATCH||25))){
+  const amount=t.amount*scale/1000000n;
+  spend[t.input]??=BigInt((await at.call.currenciesApi.account(t.input,actor.address)).free.toString());
+  if(amount===0n||amount>spend[t.input]){skipped.push(t.input);continue;}
+  spend[t.input]-=amount;
+  const stored=t.route??orientRoute((await at.query.router.routes({assetIn:Math.min(t.input,t.output),assetOut:Math.max(t.input,t.output)})).toJSON()??[],t.input,t.output);
+  calls.push(api.tx.router.sell(t.input,t.output,amount.toString(),'0',stored));
+ }
+ log('replay-window',{mainnetFrom:from,mainnetTo:last,trades:trades.length,submitting:calls.length,skippedInputs:[...new Set(skipped)]});
+ if(live&&calls.length)await submit(api.tx.utility.forceBatch(calls),'replay-mined',false);
+ return true;
+}
 try{
- await identity();assert.ok(['markets','mirror'].includes(mode));
+ await identity();assert.ok(['markets','mirror','pools','replay'].includes(mode));
  do{
-  try{const ok=(await (mode==='mirror'?mirror():markets()))!==false;writeFileSync('/tmp/propeller-bot-health.json',JSON.stringify({at:Date.now(),ok,mode}));if(!ok&&process.env.BOT_ONCE==='true')process.exitCode=1;}
+  try{const ok=(await ({mirror,markets,pools,replay})[mode]())!==false;writeFileSync('/tmp/propeller-bot-health.json',JSON.stringify({at:Date.now(),ok,mode}));if(!ok&&process.env.BOT_ONCE==='true')process.exitCode=1;}
   catch(e){log('error',{error:e.shortMessage??e.message});writeFileSync('/tmp/propeller-bot-health.json',JSON.stringify({at:Date.now(),ok:false,mode}));if(process.env.BOT_ONCE==='true')process.exitCode=1;}
   if(stopping||process.env.BOT_ONCE==='true')break;
   await new Promise(resolve=>setTimeout(resolve,interval));
  }while(!stopping);
-}finally{await api.disconnect();}
+}finally{await api.disconnect();await mainnet?.disconnect();}

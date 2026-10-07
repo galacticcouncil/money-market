@@ -8,4 +8,4 @@ export const CORE_FILE = `/tmp/propeller-lark-${DEPLOYMENT}.json`;
 export const FILE = process.env.PROPELLER_LARK_RESULT || CORE_FILE;
 export const PRICES_FILE = process.env.PROPELLER_LARK_PRICES || `/tmp/propeller-lark-prices-${DEPLOYMENT}.json`;
 export const STACK = 'propeller-oct2026';
-export const MANIFEST_CONFIG = `propeller-lark4-${DEPLOYMENT}-manifest`;
+export const MANIFEST_CONFIG = `propeller-lark4-${DEPLOYMENT}-manifest-v2`;

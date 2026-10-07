@@ -28,3 +28,25 @@ test('stored routes reverse every hop without mutating the source',()=>{
  assert.equal(route[0].assetIn,43);
  assert.throws(()=>orientRoute(route,34,43));
 });
+
+import {omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,replayTrades} from '../policy.mjs';
+test('omnipool sizing moves the asset/anchor ratio onto the target from either side', () => {
+ const asset={hub:1_000_000n*10n**12n,res:500_000n*10n**18n},anchor={hub:2_000_000n*10n**12n,res:2_000_000n*10n**18n};
+ const ratio=omnipoolRatio(asset,anchor);
+ for(const target of [ratio*99n/100n,ratio*101n/100n]){
+  const {sellAsset,amount}=sizeOmnipoolTrade(asset,anchor,target,asset.res);
+  assert.equal(sellAsset,target<ratio);
+  const after=omnipoolAfter(asset,anchor,sellAsset,amount);
+  assert.ok(deviationBps(after,target)<=1n&&deviationBps(after,target)>=-1n,`${after} vs ${target}`);
+ }
+ assert.equal(sizeOmnipoolTrade(asset,anchor,ratio/2n,10n**18n).amount,10n**18n,'capped at max');
+});
+test('replay keeps top-level routed trades and drops their inner pool legs', () => {
+ const trades=replayTrades([
+  [{name:'omnipool.SellExecuted',input:5,output:0,amount:10n},{name:'router.Executed',input:5,output:222,amount:10n}],
+  [{name:'stableswap.SellExecuted',pool:100,input:10,output:22,amount:7n}],
+  [{name:'xyk.BuyExecuted',input:0,output:30,amount:0n}],
+ ]);
+ assert.deepEqual(trades.map(t=>[t.input,t.output,t.amount]),[[5,222,10n],[10,22,7n]]);
+ assert.deepEqual(trades[1].route,[{pool:{Stableswap:100},assetIn:10,assetOut:22}]);
+});

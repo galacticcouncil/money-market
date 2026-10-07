@@ -25,3 +25,44 @@ export function orientRoute(route,input,output){
  for(let i=1;i<out.length;i++)if(Number(out[i-1].assetOut)!==Number(out[i].assetIn))throw Error('disconnected route');
  return out;
 }
+const SCALE=10n**18n;
+// asset price in the anchor (both omnipool sub-pools of {hub,res}), scaled by 1e18
+export function omnipoolRatio(asset,anchor){
+ if(asset.res<=0n||anchor.hub<=0n)throw Error('empty omnipool side');
+ return asset.hub*anchor.res*SCALE/(asset.res*anchor.hub);
+}
+// fee-free constant-product hop through the hub: sell `amount` of the asset (or the anchor)
+export function omnipoolAfter(asset,anchor,sellAsset,amount){
+ const [from,to]=sellAsset?[asset,anchor]:[anchor,asset];
+ const fromHub=from.hub*from.res/(from.res+amount),hub=from.hub-fromHub;
+ const next={from:{hub:fromHub,res:from.res+amount},to:{hub:to.hub+hub,res:to.res*to.hub/(to.hub+hub)}};
+ return sellAsset?omnipoolRatio(next.from,next.to):omnipoolRatio(next.to,next.from);
+}
+// smallest input that brings the asset/anchor ratio to `target`, capped at `max`
+export function sizeOmnipoolTrade(asset,anchor,target,max){
+ const ratio=omnipoolRatio(asset,anchor);
+ if(ratio===target||max<=0n)return {sellAsset:ratio>target,amount:0n};
+ const sellAsset=ratio>target;
+ let lo=0n,hi=max;
+ if(sellAsset?omnipoolAfter(asset,anchor,true,hi)>target:omnipoolAfter(asset,anchor,false,hi)<target)return {sellAsset,amount:hi};
+ for(let i=0;i<128&&hi-lo>1n;i++){
+  const mid=(lo+hi)/2n,after=omnipoolAfter(asset,anchor,sellAsset,mid);
+  if(sellAsset?after>target:after<target)lo=mid;else hi=mid;
+ }
+ return {sellAsset,amount:hi};
+}
+export function deviationBps(lark,main){return (lark-main)*10000n/main;}
+// top-level mainnet trades per extrinsic or hook phase; inner legs of a routed trade are skipped
+export function replayTrades(groups){
+ const out=[];
+ for(const events of groups){
+  const routed=events.filter(e=>e.name==='router.Executed');
+  if(routed.length){for(const e of routed)out.push({input:e.input,output:e.output,amount:e.amount,route:null});continue;}
+  for(const e of events){
+   if(e.name==='omnipool.SellExecuted'||e.name==='omnipool.BuyExecuted')out.push({input:e.input,output:e.output,amount:e.amount,route:[{pool:'Omnipool',assetIn:e.input,assetOut:e.output}]});
+   else if(e.name==='stableswap.SellExecuted'||e.name==='stableswap.BuyExecuted')out.push({input:e.input,output:e.output,amount:e.amount,route:[{pool:{Stableswap:e.pool},assetIn:e.input,assetOut:e.output}]});
+   else if(e.name==='xyk.SellExecuted'||e.name==='xyk.BuyExecuted')out.push({input:e.input,output:e.output,amount:e.amount,route:[{pool:'XYK',assetIn:e.input,assetOut:e.output}]});
+  }
+ }
+ return out.filter(t=>t.amount>0n&&t.input!==t.output);
+}
