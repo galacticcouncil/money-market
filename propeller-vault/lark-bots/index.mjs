@@ -6,7 +6,7 @@ import {ApiPromise,WsProvider,Keyring} from '@polkadot/api';
 import {cryptoWaitReady} from '@polkadot/util-crypto';
 import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData} from 'viem';
 import {mnemonicToAccount} from 'viem/accounts';
-import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory,omnipoolRatio,sizeOmnipoolTrade,deviationBps,replayTrades} from './policy.mjs';
+import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades} from './policy.mjs';
 const RPC='https://4.lark.hydration.cloud',WS='wss://4.lark.hydration.cloud';
 const SOURCE='https://hdx.tarn.hydration.cloud';
 const mode=process.env.BOT_MODE||'markets',live=process.env.BOT_LIVE==='true';
@@ -183,6 +183,7 @@ async function pools(){
  const mainAt=await mainnet.at(await mainnet.rpc.chain.getFinalizedHead());
  const anchor=manifest.omnipool.anchor,band=BigInt(process.env.POOL_BAND_BPS||40);
  const larkAnchor=await omnipoolSide(at,anchor),mainAnchor=await omnipoolSide(mainAt,anchor);
+ const minGain=BigInt(process.env.POOL_MIN_GAIN_BPS||5);
  let best;
  for(const id of manifest.omnipool.assets){
   if(id===anchor)continue;
@@ -193,10 +194,10 @@ async function pools(){
   const input=dev>0n?id:anchor,output=dev>0n?anchor:id;
   const balance=BigInt((await at.call.currenciesApi.account(input,actor.address)).free.toString());
   const cap=(dev>0n?lark.res:larkAnchor.res)*3n/100n,max=balance*9n/10n<cap?balance*9n/10n:cap;
-  const {amount}=sizeOmnipoolTrade(lark,larkAnchor,target,max);
-  if(amount===0n){log('inventory-refill-needed',{asset:input,balance});continue;}
-  const size=dev<0n?-dev:dev;
-  if(!best||size>best.size)best={asset:id,devBps:dev,size,input,output,amount};
+  const {sellAsset,amount}=sizeOmnipoolTrade(lark,larkAnchor,target,max);
+  const gain=correctionGainBps(lark,larkAnchor,target,sellAsset,amount);
+  if(gain<minGain){log('inventory-refill-needed',{asset:input,balance,gainBps:gain});continue;}
+  if(!best||gain>best.gain)best={asset:id,devBps:dev,gain,input,output,amount};
  }
  if(!best){log('pools-aligned',{band});return true;}
  const route=[{pool:'Omnipool',assetIn:best.input,assetOut:best.output}];

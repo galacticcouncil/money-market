@@ -29,7 +29,7 @@ test('stored routes reverse every hop without mutating the source',()=>{
  assert.throws(()=>orientRoute(route,34,43));
 });
 
-import {omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,replayTrades} from '../policy.mjs';
+import {omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades} from '../policy.mjs';
 test('omnipool sizing moves the asset/anchor ratio onto the target from either side', () => {
  const asset={hub:1_000_000n*10n**12n,res:500_000n*10n**18n},anchor={hub:2_000_000n*10n**12n,res:2_000_000n*10n**18n};
  const ratio=omnipoolRatio(asset,anchor);
@@ -40,6 +40,13 @@ test('omnipool sizing moves the asset/anchor ratio onto the target from either s
   assert.ok(deviationBps(after,target)<=1n&&deviationBps(after,target)>=-1n,`${after} vs ${target}`);
  }
  assert.equal(sizeOmnipoolTrade(asset,anchor,ratio/2n,10n**18n).amount,10n**18n,'capped at max');
+});
+test('a starved correction gains less than a funded one', () => {
+ const asset={hub:1_000_000n*10n**12n,res:500_000n*10n**18n},anchor={hub:2_000_000n*10n**12n,res:2_000_000n*10n**18n};
+ const target=omnipoolRatio(asset,anchor)*99n/100n,full=sizeOmnipoolTrade(asset,anchor,target,asset.res);
+ assert.ok(correctionGainBps(asset,anchor,target,true,full.amount)>=99n);
+ assert.ok(correctionGainBps(asset,anchor,target,true,10n**18n)<=1n);
+ assert.equal(correctionGainBps(asset,anchor,target,true,0n),0n);
 });
 test('replay keeps top-level routed trades and drops their inner pool legs', () => {
  const trades=replayTrades([

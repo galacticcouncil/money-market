@@ -52,6 +52,12 @@ export function sizeOmnipoolTrade(asset,anchor,target,max){
  return {sellAsset,amount:hi};
 }
 export function deviationBps(lark,main){return (lark-main)*10000n/main;}
+// deviation a trade removes; a short-inventory asset must not starve the others
+export function correctionGainBps(asset,anchor,target,sellAsset,amount){
+ if(amount===0n)return 0n;
+ const abs=x=>x<0n?-x:x;
+ return abs(deviationBps(omnipoolRatio(asset,anchor),target))-abs(deviationBps(omnipoolAfter(asset,anchor,sellAsset,amount),target));
+}
 // top-level mainnet trades per extrinsic or hook phase; inner legs of a routed trade are skipped
 export function replayTrades(groups){
  const out=[];
