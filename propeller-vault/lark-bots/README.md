@@ -14,7 +14,10 @@ this service. The market bot refuses a mirror older than 15 minutes.
 `markets` reads the stored native routes in both directions for PRIME/HOLLAR,
 ETH/HOLLAR, tBTC/HOLLAR, PRIME/ETH and PRIME/tBTC. Each cycle simulates $1, $100,
 $1,000 and $5,000 inputs against one pinned block, including every hop's fees
-and price impact. Only quotes at least 2 bps better than the MM oracle can be
+and price impact. Only PRIME/HOLLAR is traded: `pools` keeps ETH, tBTC and
+the other Omnipool assets at mainnet's pool prices, which sit off the MM oracle
+there too, and an oracle arb on those legs would fight it. Only quotes at least
+2 bps better than the MM oracle can be
 submitted. The actual minimum output is the larger of that oracle floor and
 the quote less 2 bps. A fresh simulation precedes signing. Quotes expire after
 five blocks or 60 seconds. The bot reports unquotable routes as unhealthy.

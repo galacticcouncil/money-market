@@ -155,7 +155,8 @@ async function markets(){
     const out=await quote(at,input,output,amount,route);quotes++;
     const row=profitableQuote({amount,out,fair});
     log('quote',{block:block.number,input,output,usd,amount,out,fair,shortfallBps:(fair-out)*10000n/fair});
-    if(row){
+    // eth and tbtc follow mainnet's omnipool through pool sync; arbing them to the oracle fights it
+    if(row&&(input===43&&output===222||input===222&&output===43)){
      if(retainsQuoteInventory(balances[input],amount,prices[input],decimals[input]))fills.push({...row,input,output,route,usd,profitUsd8:(out-fair)*prices[output]/10n**BigInt(decimals[output])});
      else inventoryBlocked.push({input,output,usd,balance:balances[input]});
     }
