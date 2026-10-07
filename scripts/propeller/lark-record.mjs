@@ -27,7 +27,7 @@ const head=markets.filter(r=>r.name==='quote').at(-1)?.block;
 save('market-observation.json',{latestQuoteBlock:head,quotes:markets.filter(r=>r.name==='quote'&&r.block===head),recentDecisions:markets.filter(r=>r.name!=='quote').slice(-30)});
 const mirrors=read('/tmp/propeller-lark-hosted-mirror.json').map(r=>parse(r.line)).filter(Boolean);
 save('oracle-observation.json',mirrors.slice(-18));
-const arbs=[...markets.filter(r=>r.name==='arb-mined')];
+const arbs=markets.filter(r=>r.name==='arb-mined');
 for(const name of ['markets-live','markets-fresh-head','markets-live-one']){
  const file=`/tmp/propeller-lark-${name}.log`;
  if(existsSync(file))for(const line of readFileSync(file,'utf8').split('\n')){const row=parse(line);if(row?.name==='arb-mined')arbs.push(row);}

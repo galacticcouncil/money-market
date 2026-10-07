@@ -9,8 +9,8 @@ const {ApiPromise, WsProvider, Keyring} = require('@polkadot/api');
 const {cryptoWaitReady} = require('@polkadot/util-crypto');
 const v = require('viem');
 const {mnemonicToAccount} = require('viem/accounts');
-export const RPC = 'https://4.lark.hydration.cloud';
-export const WS = 'wss://4.lark.hydration.cloud';
+const RPC = 'https://4.lark.hydration.cloud';
+const WS = 'wss://4.lark.hydration.cloud';
 export const GOV = '0xAa7e0000000000000000000000000000000Aa7e0';
 export const POOL = '0x1b02E051683b5cfaC5929C25E84adb26ECf87B38';
 export const HOLLAR = '0x531a654d1696ED52e7275A8cede955E82620f99a';
@@ -19,9 +19,8 @@ export const token = id => `0x${(0x100000000n + BigInt(id)).toString(16).padStar
 // These accounts must never hold real assets or be used outside Lark testnet.
 export const testAccount = index => mnemonicToAccount('test test test test test test test test test test test junk', {addressIndex:index});
 export const deployer = testAccount(17), keeper = testAccount(18);
-export {FILE};
 export const live = process.argv.includes('--live');
-export const json = value => JSON.stringify(value, (_,x)=>typeof x==='bigint'?x.toString():x,2);
+const json = value => JSON.stringify(value, (_,x)=>typeof x==='bigint'?x.toString():x,2);
 export const role = name => name ? v.keccak256(v.toHex(name)) : v.zeroHash;
 export {artifact, v};
 export async function context() {
@@ -58,9 +57,8 @@ export async function context() {
         if(previous.nonce===undefined){const at=await api.at(previous.blockHash);const used=(await at.query.system.account(signer.address)).nonce.toNumber();nonce=Math.max(nonce,used);}
         else nonce=Math.max(nonce,previous.nonce+1);
       }
-      // Lark's load-balanced historical block-hash reads can disagree with the
-      // signing header, producing BadProof for mortal extrinsics. Public test
-      // accounts use the explicitly verified genesis + nonce instead.
+      // lark's load-balanced block-hash reads can disagree with the signing header
+      // (BadProof on mortal extrinsics), so sign immortal against the verified genesis
       await tx.signAsync(signer,{nonce,era:0,blockHash:genesis,genesisHash:genesis});
       rec={label,hash:tx.hash.toHex(),nonce,signer:signer.address,signedExtrinsic:tx.toHex(),submittedAt:new Date().toISOString()};r.calls.push(rec);save();
     }else tx=api.tx(rec.signedExtrinsic);
@@ -99,8 +97,8 @@ export async function context() {
     }
     let info=(await api.query.referenda.referendumInfoFor(rec.ref)).unwrap();
     if(info.isOngoing&&!rec.voted){
-      // Clear only this deployment's completed votes. Leave other teams' votes
-      // and all ongoing referenda untouched; conviction locks remain intact.
+      // clear only this deployment's completed votes; other teams' votes, ongoing
+      // referenda and conviction locks stay untouched
       const voting=await api.query.convictionVoting.votingFor(alice.address,0);
       if(voting.isCasting){
         const votes=new Set(voting.asCasting.votes.map(([index])=>index.toNumber()));
@@ -134,20 +132,19 @@ export async function context() {
       }
     }
     assert.ok(expectedTask,`${label}: no scheduled task matches the exact preimage`);
-    for(let n=expectedTask.block;n<=expectedTask.block;n++){
-      while((await api.rpc.chain.getHeader()).number.toNumber()<n){assert.ok(Date.now()<until,'enactment timeout');await new Promise(resolve=>setTimeout(resolve,3000));}
-      const at=await api.at(await api.rpc.chain.getBlockHash(n));
-      const events=(await at.query.system.events()).map(({event})=>({section:event.section,method:event.method,data:event.data.toJSON()}));
-      const failure=events.find(e=>e.section==='scheduler'&&/CallUnavailable|PermanentlyOverweight/.test(e.method)&&Number(e.data[0][0])===expectedTask.block&&Number(e.data[0][1])===expectedTask.index);
-      if(failure){rec.failure={block:n,event:failure};save();throw Error(`${label}: ${failure.method}; do not resubmit without fixing the payload`);}
-      const dispatch=events.find(e=>e.section==='scheduler'&&e.method==='Dispatched'&&Number(e.data[0][0])===expectedTask.block&&Number(e.data[0][1])===expectedTask.index);
-      if(dispatch){
-        const relevant=events.filter(e=>['evm','scheduler','dispatcher','assetRegistry','utility','currencies','evmAccounts','duster'].includes(e.section));
-        rec.enactment={block:n,events:relevant};save();
-        assert.ok(!relevant.some(e=>/Failed|Unavailable|Overweight|Interrupted/.test(e.method)),`${label}: inner call failed`);
-        assert.ok(!JSON.stringify(dispatch.data).includes('"err"'),`${label}: scheduler failed`);
-        rec.verified=true;save();console.log('ENACTED',label,'referendum',rec.ref,'block',n);return;
-      }
+    const n=expectedTask.block;
+    while((await api.rpc.chain.getHeader()).number.toNumber()<n){assert.ok(Date.now()<until,'enactment timeout');await new Promise(resolve=>setTimeout(resolve,3000));}
+    const at=await api.at(await api.rpc.chain.getBlockHash(n));
+    const events=(await at.query.system.events()).map(({event})=>({section:event.section,method:event.method,data:event.data.toJSON()}));
+    const failure=events.find(e=>e.section==='scheduler'&&/CallUnavailable|PermanentlyOverweight/.test(e.method)&&Number(e.data[0][0])===expectedTask.block&&Number(e.data[0][1])===expectedTask.index);
+    if(failure){rec.failure={block:n,event:failure};save();throw Error(`${label}: ${failure.method}; do not resubmit without fixing the payload`);}
+    const dispatch=events.find(e=>e.section==='scheduler'&&e.method==='Dispatched'&&Number(e.data[0][0])===expectedTask.block&&Number(e.data[0][1])===expectedTask.index);
+    if(dispatch){
+      const relevant=events.filter(e=>['evm','scheduler','dispatcher','assetRegistry','utility','currencies','evmAccounts','duster'].includes(e.section));
+      rec.enactment={block:n,events:relevant};save();
+      assert.ok(!relevant.some(e=>/Failed|Unavailable|Overweight|Interrupted/.test(e.method)),`${label}: inner call failed`);
+      assert.ok(!JSON.stringify(dispatch.data).includes('"err"'),`${label}: scheduler failed`);
+      rec.verified=true;save();console.log('ENACTED',label,'referendum',rec.ref,'block',n);return;
     }
     throw Error(`No matching scheduler event for referendum ${rec.ref}`);
   }
@@ -199,5 +196,5 @@ export async function context() {
     const calls=capacity===0n?[govEvm(HOLLAR,hollarAbi,'addFacilitator',[GOV,'Lark test inventory',1000000n*10n**18n],500000)]:[];
     await enact(label,[...calls,govEvm(HOLLAR,hollarAbi,'mint',[to,amount],500000)]);
   }
-  return {api,pub,wallet,chain,r,save,read,readSig,sign,enact,evmSend,deploy,write,govEvm,nativeAccount,mintTestHollar,arb,alice};
+  return {api,pub,r,save,read,readSig,sign,enact,evmSend,deploy,write,govEvm,nativeAccount,mintTestHollar,arb};
 }

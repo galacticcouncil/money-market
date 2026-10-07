@@ -181,8 +181,7 @@ export async function probeRoutes({
       );
     }
   }
-  // Every submitted transaction retains its oracle-relative floor; rejected
-  // routes remain rejected. No pool/oracle storage is overwritten for a pass.
+  // submitted trades keep their oracle-relative floor; no pool/oracle storage is overwritten to pass
   for (const [input, output, hops] of routes) {
     if (hops) continue;
     const a = assets[input],

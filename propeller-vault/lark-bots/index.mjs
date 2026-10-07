@@ -39,8 +39,7 @@ async function identity(){
  assert.equal((await api.rpc.system.chain()).toString(),'Lark 4 Hydration');
  assert.equal((await api.rpc.chain.getBlockHash(0)).toHex(),manifest.genesis,'testnet reset');
  assert.equal(await pub.getChainId(),222222);
- // The EVM gateway can cache `latest` after a trade. Pin to the native head,
- // then read both storage and EVM prices at that explicit block number.
+ // the evm gateway can cache `latest` after a trade, so pin reads to the native head
  const header=await api.rpc.chain.getHeader(),at=await api.at(header.hash);
  const block={number:BigInt(header.number.toString()),hash:header.hash.toHex(),timestamp:BigInt((await at.query.timestamp.now()).toString())/1000n};
  assert.ok(Math.abs(Date.now()/1000-Number(block.timestamp))<120,'stale testnet head');return block;

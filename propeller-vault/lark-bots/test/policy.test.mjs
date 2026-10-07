@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory} from '../policy.mjs';
+import {fairOutput,profitableQuote,freshReference,orientRoute,retainsQuoteInventory,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute} from '../policy.mjs';
 test('correction trades preserve inventory for both-direction live quotes',()=>{
  assert.equal(retainsQuoteInventory(5100n*10n**18n,5000n*10n**18n,100000000n,18),true);
  assert.equal(retainsQuoteInventory(5000n*10n**18n,5000n*10n**18n,100000000n,18),false);
@@ -28,8 +28,6 @@ test('stored routes reverse every hop without mutating the source',()=>{
  assert.equal(route[0].assetIn,43);
  assert.throws(()=>orientRoute(route,34,43));
 });
-
-import {omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute} from '../policy.mjs';
 test('omnipool sizing moves the asset/anchor ratio onto the target from either side', () => {
  const asset={hub:1_000_000n*10n**12n,res:500_000n*10n**18n},anchor={hub:2_000_000n*10n**12n,res:2_000_000n*10n**18n};
  const ratio=omnipoolRatio(asset,anchor);

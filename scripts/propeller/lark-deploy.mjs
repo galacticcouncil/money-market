@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-import {context,artifact,v,GOV,POOL,HOLLAR,token,deployer,live} from './lark-context.mjs';
+import {context,artifact,v,GOV,POOL,HOLLAR,token,live} from './lark-context.mjs';
 const DISPATCH='0x0000000000000000000000000000000000000401';
 const require=createRequire(import.meta.url);
 const poolAbi=require('../../deployments/hydration/Pool-Implementation.json').abi;

@@ -2,7 +2,7 @@
 // No mainnet writes. Every governance payload and receipt is recorded.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {context,artifact,v,GOV,token,testAccount,role,live} from './lark-context.mjs';
+import {context,artifact,v,testAccount,role,live} from './lark-context.mjs';
 import {PRICES_FILE} from './lark-pins.mjs';
 const prices=JSON.parse(readFileSync(PRICES_FILE,'utf8'));
 const c=await context();
@@ -30,8 +30,8 @@ try {
    for(const o of r.oracles)r.previousOracles.push({asset:o.asset,source:await readSig(oracle,'function getSourceOfAsset(address) view returns(address)',[o.asset])});
    r.previousPrimePeg=(await api.query.stableswap.poolPegs(143)).toJSON();save();
  }
- // The copied July pool peg needs one bounded catch-up. Its original 40 ppb
- // per-block limit is restored after verifying the live peg has converged.
+ // one bounded peg catch-up; lark-approve-prime-cap restores the original
+ // per-block limit once the live peg has converged
  await enact('install-fresh-testnet-prices',[
    govEvm(oracle,v.parseAbi(['function setAssetSources(address[],address[])']),'setAssetSources',[r.oracles.map(o=>o.asset),r.oracles.map(o=>o.address)],1000000),
    api.tx.stableswap.updateAssetPegSource(143,43,{MMOracle:r.oracles.find(o=>o.assetId===43).address}),

@@ -5,9 +5,8 @@ import { createRequire } from "node:module";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { refillCapacity } from "./prime-replenishment.mjs";
-const deps = createRequire(
-  resolve(process.env.SOLANA_DEPS_ROOT || "/home/mrq/git/whm", "package.json")
-);
+if (!process.env.SOLANA_DEPS_ROOT) throw new Error("set SOLANA_DEPS_ROOT to a checkout with @solana/web3.js and @solana/spl-token");
+const deps = createRequire(resolve(process.env.SOLANA_DEPS_ROOT, "package.json"));
 const { PublicKey } = deps("@solana/web3.js");
 const { AccountLayout, MintLayout, TOKEN_PROGRAM_ID } =
   deps("@solana/spl-token");

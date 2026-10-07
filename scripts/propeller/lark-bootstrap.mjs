@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {context,artifact,v,deployer,role,live} from './lark-context.mjs';
+import {context,artifact,v,deployer,role} from './lark-context.mjs';
 const c=await context();
 try{
  const {r,read,readSig,write,evmSend,save}=c;

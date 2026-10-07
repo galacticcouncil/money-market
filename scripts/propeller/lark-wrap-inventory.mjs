@@ -12,7 +12,7 @@ const WRAPS=[
 const STASH=[[5,100000n*10n**10n],[40,200n*10n**9n],[1000809,15n*10n**18n]];
 const c=await context();
 try{
- const {api,r,save,enact,sign}=c;
+ const {api,r,enact,sign}=c;
  const pools=new Keyring({type:'sr25519'}).addFromUri('//Alice//propeller-20261007-pools');
  const withinFuse=async(label,mints)=>{
   if(r.governance.find(g=>g.label===label)?.verified)return;

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-import {context,artifact,v,GOV,POOL,HOLLAR,token,deployer,role,live} from './lark-context.mjs';
+import {context,artifact,v,POOL,HOLLAR,token,deployer,role,live} from './lark-context.mjs';
 const require=createRequire(import.meta.url), poolAbi=require('../../deployments/hydration/Pool-Implementation.json').abi;
 const c=await context();
 try{
@@ -23,8 +23,7 @@ try{
    api.tx.assetRegistry.register(5551,nativeName,'Erc20','10000000000000000','psHOL-OCT',18,loc,null,true),
    govEvm(configurator,cfg,'initReserves',[[input]],10000000),
  ]);
- if(!live)process.exitCode=0;
- else{
+ if(live){
   const sr=await pub.readContract({address:POOL,abi:poolAbi,functionName:'getReserveData',args:[a.synth]});assert.notEqual(sr.aTokenAddress,v.zeroAddress);a.aSynthetic=sr.aTokenAddress;save();
   const contract=(name,address,fn,args,gas=500000)=>govEvm(address,artifact(name).abi,fn,args,gas);
   const configure=[govEvm(configurator,cfg,'configureReserveAsCollateral',[a.synth,100n,9800n,10100n],500000),govEvm(configurator,cfg,'setReserveBorrowing',[a.synth,false],500000),govEvm(oracle,v.parseAbi(['function setAssetSources(address[],address[])']),'setAssetSources',[[a.synth],['0x6096C9D71F7c06024578a62F4B608a1Bb06834F8']],500000),contract('SubLoop',a.source,'configureDca',[222,43,1043,143,0]),contract('SubLoop',a.source,'setTranches',[50n*10n**18n,50n*10n**6n]),contract('SubLoop',a.source,'setHarvester',[a.harvester]),contract('Harvester',a.harvester,'setFeeController',[a.fees])];

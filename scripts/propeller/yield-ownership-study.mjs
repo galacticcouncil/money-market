@@ -19,7 +19,7 @@ export class Q {
   toString() { return this.d === 1n ? `${this.n}` : `${this.n}/${this.d}`; }
   toJSON() { return this.toString(); }
 }
-export const q = value => value instanceof Q ? value : new Q(value);
+const q = value => value instanceof Q ? value : new Q(value);
 const min = (a, b) => a.lt(b) ? a : b;
 
 export class OwnershipStudy {
@@ -72,7 +72,7 @@ export class OwnershipStudy {
   }
 }
 
-export function example() {
+function example() {
   const study = new OwnershipStudy();
   study.deposit('incumbent', 1);
   study.accrue(new Q(1, 10));

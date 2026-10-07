@@ -1,4 +1,4 @@
-export const ceilDiv=(x,y)=>(x+y-1n)/y;
+const ceilDiv=(x,y)=>(x+y-1n)/y;
 export function retainsQuoteInventory(balance,amount,price,decimals,reserveUsd8=100n*100000000n){
  return amount>0n&&amount<=balance&&price>0n
   &&(balance-amount)*price/10n**BigInt(decimals)>=reserveUsd8;

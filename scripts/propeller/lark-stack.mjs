@@ -3,7 +3,7 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const {mnemonicToAccount}=require('viem/accounts'),{toHex}=require('viem');
-import {CORE_FILE as FILE,GENESIS,STACK,MANIFEST_CONFIG} from './lark-pins.mjs';
+import {CORE_FILE as FILE,GENESIS,MANIFEST_CONFIG} from './lark-pins.mjs';
 const r=JSON.parse(readFileSync(FILE,'utf8'));
 assert.equal(r.rpc,'https://4.lark.hydration.cloud');
 assert.equal(r.genesis,GENESIS);
@@ -11,8 +11,7 @@ const keeperImage=process.env.KEEPER_IMAGE,botImage=process.env.BOT_IMAGE;
 assert.match(keeperImage??'',/^galacticcouncil\/propeller-lark-keeper@sha256:[0-9a-f]{64}$/);
 assert.match(botImage??'',/^galacticcouncil\/propeller-lark-bots@sha256:[0-9a-f]{64}$/);
 const keepers=process.argv.includes('--keepers');
-const common={restart:'unless-stopped',stop_grace_period:'4m',logging:{driver:'json-file',options:{'max-size':'10m','max-file':'3'}},deploy:{replicas:1,update_config:{order:'stop-first',failure_action:'rollback'},restart_policy:{condition:'any',delay:'15s'},resources:{limits:{cpus:'0.50',memory:'512M'},reservations:{memory:'128M'}}}};
-delete common.restart; // Swarm uses deploy.restart_policy.
+const common={stop_grace_period:'4m',logging:{driver:'json-file',options:{'max-size':'10m','max-file':'3'}},deploy:{replicas:1,update_config:{order:'stop-first',failure_action:'rollback'},restart_policy:{condition:'any',delay:'15s'},resources:{limits:{cpus:'0.50',memory:'512M'},reservations:{memory:'128M'}}}};
 const services={};
 for(const [index,accountIndex]of [[0,18],[1,20]]){
  const account=mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:accountIndex});
