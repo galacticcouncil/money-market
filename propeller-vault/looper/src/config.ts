@@ -69,6 +69,8 @@ export const CONFIG = {
   DEFICIT_RESUME_BPS: integer('DEFICIT_RESUME_BPS', 25, 0, deficitStop - 1),
   // how far back a restarted keeper looks for the deposit pause it may have made
   DEFICIT_PAUSE_LOOKBACK_BLOCKS: BigInt(integer('DEFICIT_PAUSE_LOOKBACK_BLOCKS', 500000)),
+  // seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner
+  SYNC_EVERY: integer('SYNC_EVERY', 3600),
   ALERT_WEBHOOK: process.env.ALERT_WEBHOOK,
 };
 

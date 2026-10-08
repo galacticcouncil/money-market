@@ -67,6 +67,8 @@ read each vault's pause, queue cursors and Main repayment target
 then, for each vault:
   settled request below the queue head      -> claim(id, owner)
   exit surplus >= CLAIM_MIN_SURPLUS         -> claimSurplus(id)
+  PRIME or collateral oracle update since its last sync,
+    or SYNC_EVERY elapsed, duty slot        -> sync()
 independent read loop, including during slow writes/receipt waits:
   source HF, synthetic coverage, Main interest, stale RPC, stuck receipts
 ```
@@ -170,6 +172,20 @@ falls below `DEFICIT_RESUME_BPS`. An unreadable deficit holds the ramp but
 neither pauses nor reopens. Every stop, resume, pause and reopen is an `[ALERT]`
 line. Above the stop the keeper re-pauses deposits that someone reopened.
 
+### Sync cadence
+
+Yield is allocated to holders at events, so the keeper calls each vault's
+permissionless `sync()` after a price that changes the allocation moves: PRIME for
+every vault, and the vault's own collateral. It polls each asset's Aave oracle
+source (`getSourceOfAsset`, then `latestRoundData`); a newer `updatedAt`, or an
+answer that moved under an unchanged `updatedAt`, is an update. Without updates a
+vault is synced every `SYNC_EVERY` seconds. A vault's last sync is the newest of the
+keeper's own syncs, its `Synced()` events and its yield accounting's
+`YieldCheckpoint` events, since any allocating checkpoint counts. Only the
+operator on duty syncs; the other finds that event on its own slot and skips.
+Frozen vaults, and vaults with unallocated source proceeds, are not synced.
+Unreadable oracles leave only the timer.
+
 ## Run
 
 Local:
@@ -221,6 +237,7 @@ Default scheduling values (operator examples, not approved production policies):
 | `DEFICIT_STOP_BPS` | `50` | Above this source or vault deficit, stop the ramp and pause the vault's deposits |
 | `DEFICIT_RESUME_BPS` | `25` | Below this, resume the ramp and reopen deposits a keeper paused; must be below the stop, `0` never reopens |
 | `DEFICIT_PAUSE_LOOKBACK_BLOCKS` | `500000` | How far back a restarted keeper searches for the deposit pause event |
+| `SYNC_EVERY` | `3600` | Seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner |
 
 A submitted transaction keeps its signer locked until its receipt is known.
 The nonce is locked before broadcast, so a send error that still reached a node

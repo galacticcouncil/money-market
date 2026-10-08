@@ -15,6 +15,7 @@ import {
   deficitLevel, deficitState, eventAccount, vaultDeficitBps, type DeficitState,
 } from './deficit-policy.js';
 import { LatestLog, newestInChunks, type EvidenceLog } from './log-evidence.js';
+import { SYNC_EVIDENCE, feedUpdate, syncDue, type FeedSeen } from './sync-policy.js';
 
 const hydration: Chain = {
   id: 222222,
@@ -95,6 +96,12 @@ const ACCOUNTING_ABI = parseAbi(['function sourceValue() view returns (uint256)'
 // granted to keepers through DEPOSIT_GUARDIAN_ROLE
 const DEPOSIT_PAUSE_ABI = parseAbi(['function pauseDeposits()', 'function unpauseDeposits()']);
 
+const SYNC_ABI = parseAbi(['function sync()']);
+const ORACLE_ABI = parseAbi([
+  'function getSourceOfAsset(address asset) view returns (address)',
+  'function latestRoundData() view returns (uint80, int256 answer, uint256, uint256 updatedAt, uint80)',
+]);
+
 const HARVESTER_ABI = [
   view('harvestable', 'bool'),
   view('lastHarvestAt', 'uint256'),
@@ -155,6 +162,8 @@ export class PropellerLooper {
   private deficits?: Map<Address, DeficitState>;
   private pauseNotes?: Map<Address, string>;
   private evidence?: Map<string, LatestLog>;
+  private feeds?: Map<string, FeedSeen>;
+  private synced?: Map<Address, bigint>;
 
   // drains a submitted transaction but never starts another write
   stop(): void { this.stopping = true; }
@@ -189,7 +198,8 @@ export class PropellerLooper {
     const safetyAttempted = !paused && (safetyDebt > 0n || hf < target);
     if (safetyAttempted) await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeRepay', 'pokeRepay (safety debt)');
     for (const vault of this.vaults) await this.poke(VAULT_ABI, vault, 'maintainPeg', `maintainPeg ${short(vault)}`);
-    const turn = operatorTurn(await this.blockTimestamp(), CONFIG.OPERATOR_SLOT_SECONDS, CONFIG.OPERATOR_COUNT, CONFIG.OPERATOR_INDEX);
+    const time = await this.blockTimestamp();
+    const turn = operatorTurn(time, CONFIG.OPERATOR_SLOT_SECONDS, CONFIG.OPERATOR_COUNT, CONFIG.OPERATOR_INDEX);
     const leverage = await this.readLeverage();
     console.log(
       `  HF ${fmtHf(hf)} → target ${fmtHf(target)}` +
@@ -200,6 +210,7 @@ export class PropellerLooper {
     const pending: Address[] = [];
     const deployment = new Set<Address>();
     const frozen = new Set<Address>();
+    const unsettled = new Set<Address>();
     let funded = true;
     let waiting = false;
     let started = false;
@@ -234,6 +245,7 @@ export class PropellerLooper {
         // unallocated source proceeds or costs only advance through pokeSettle
         const ledger = await this.read(VAULT_ABI, vault, 'mainDebt') as Address;
         const unallocated = await this.read(LEDGER_ABI, ledger, 'pendingSourceAccounting') as boolean;
+        if (unallocated) unsettled.add(vault);
         if (undeployed > 0n) deployment.add(vault);
         if (vaultPaused || emergency) frozen.add(vault);
         waiting ||= tail > next;
@@ -297,6 +309,73 @@ export class PropellerLooper {
     }
     // users only send withdraw: settled collateral and exit surplus are pushed to their owners
     for (const vault of this.vaults) await this.deliver(vault);
+    // frozen vaults can't sync and unallocated ones wouldn't allocate
+    if (turn) await this.syncVaults(new Set([...frozen, ...unsettled]), time);
+  }
+
+  // allocation follows prices: sync after a PRIME or collateral oracle update, and every SYNC_EVERY seconds
+  private async syncVaults(skip: ReadonlySet<Address>, now: bigint): Promise<void> {
+    const synced = (this.synced ??= new Map<Address, bigint>());
+    const every = BigInt(CONFIG.SYNC_EVERY);
+    let prime: Address | undefined, updates = new Map<string, bigint>();
+    const assets = new Map<Address, Address>();
+    try {
+      prime = await this.read([view('prime', 'address')], this.subLoop, 'prime') as Address;
+      for (const vault of this.vaults) assets.set(vault, await this.read(VAULT_ABI, vault, 'asset') as Address);
+      updates = await this.priceUpdates([prime, ...assets.values()], now);
+    } catch (error) {
+      console.log(`  oracle updates unreadable, syncing on SYNC_EVERY only: ${shortErr(error)}`);
+    }
+    for (const vault of this.vaults) {
+      if (skip.has(vault)) continue;
+      const times = [prime, assets.get(vault)].map(a => a && updates.get(a.toLowerCase()))
+        .filter((t): t is bigint => t !== undefined);
+      const updated = times.length ? times.reduce((a, b) => (b > a ? b : a)) : undefined;
+      let last = synced.get(vault) ?? 0n;
+      if (!syncDue(last, updated, now, every)) continue;
+      // another operator, or any allocating checkpoint, may already have synced
+      const seen = await this.lastSyncAt(vault).catch(error => {
+        console.log(`  sync evidence of ${short(vault)} unreadable: ${shortErr(error)}`);
+        return 0n;
+      });
+      if (seen > last) synced.set(vault, last = seen);
+      if (!syncDue(last, updated, now, every)) continue;
+      // mined after the head read at `now`, and block timestamps strictly increase
+      if (await this.poke(SYNC_ABI, vault, 'sync', `sync ${short(vault)}`)) synced.set(vault, now + 1n);
+    }
+  }
+
+  // newest update time per asset, from its Aave oracle source's answer and updatedAt
+  private async priceUpdates(assets: Address[], now: bigint): Promise<Map<string, bigint>> {
+    const provider = await this.read([view('ADDRESSES_PROVIDER', 'address')], this.pool, 'ADDRESSES_PROVIDER') as Address;
+    const oracle = await this.read([view('getPriceOracle', 'address')], provider, 'getPriceOracle') as Address;
+    const seen = (this.feeds ??= new Map<string, FeedSeen>());
+    const updates = new Map<string, bigint>();
+    for (const asset of new Set(assets.map(a => a.toLowerCase() as Address))) {
+      try {
+        const source = (await this.read(ORACLE_ABI, oracle, 'getSourceOfAsset', [asset]) as Address).toLowerCase();
+        if (/^0x0{40}$/.test(source)) continue;
+        const round = await this.read(ORACLE_ABI, source as Address, 'latestRoundData') as readonly bigint[];
+        const feed = feedUpdate(seen.get(source), round[1], round[3], now);
+        seen.set(source, feed);
+        updates.set(asset, feed.at);
+      } catch (error) {
+        console.log(`  oracle source of ${short(asset)} unreadable: ${shortErr(error)}`);
+      }
+    }
+    return updates;
+  }
+
+  private async lastSyncAt(vault: Address): Promise<bigint> {
+    const accounting = await this.read(VAULT_ABI, vault, 'yieldAccounting') as Address;
+    const trackers = (this.evidence ??= new Map<string, LatestLog>());
+    const key = `sync:${vault.toLowerCase()}`;
+    let tracker = trackers.get(key);
+    // at least a second per block, so SYNC_EVERY blocks cover SYNC_EVERY seconds
+    if (!tracker) trackers.set(key, tracker = new LatestLog(BigInt(CONFIG.SYNC_EVERY)));
+    const log = await tracker.find((from, to) => this.newestLog([vault, accounting], SYNC_EVIDENCE, from, to),
+      await this.publicClient.getBlockNumber());
+    return log ? (await this.publicClient.getBlock({blockNumber: log.block})).timestamp : 0n;
   }
 
   // true while any vault is stopped or unreadable: the ramp then waits

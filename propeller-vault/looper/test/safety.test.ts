@@ -161,6 +161,19 @@ test('a standby operator still acts on safety repayment while postponing optiona
   } finally { CONFIG.OPERATOR_COUNT = count; CONFIG.OPERATOR_INDEX = index; }
 });
 
+test('oracle-driven syncs run on the duty slot and skip unallocated or frozen vaults', async () => {
+  // an oracle source updated at 50, before this cycle's timestamp of 100, with no sync since
+  const feeds = { prime: OTHER, asset: OTHER, ADDRESSES_PROVIDER: OTHER, getPriceOracle: OTHER, getSourceOfAsset: OTHER,
+    latestRoundData: [1n, 5n, 0n, 50n, 1n] as any };
+  assert.deepEqual(await cycle(feeds), [`${VAULT}:sync`]);
+  assert.ok(!(await cycle({ ...feeds, pendingSourceAccounting: true })).includes(`${VAULT}:sync`));
+  assert.deepEqual(await cycle({ ...feeds, vaultPaused: true }), []);
+  const [count, index] = [CONFIG.OPERATOR_COUNT, CONFIG.OPERATOR_INDEX];
+  CONFIG.OPERATOR_COUNT = 2;
+  CONFIG.OPERATOR_INDEX = 0; // timestamp 100 is operator 1's slot
+  try { assert.deepEqual(await cycle(feeds), []); } finally { CONFIG.OPERATOR_COUNT = count; CONFIG.OPERATOR_INDEX = index; }
+});
+
 test('a broken vault queue monitor cannot prevent source safety repayment', async () => {
   assert.deepEqual(await cycle({healthFactor: TARGET - 1n, failRead: 'queueHead'}), [`${LOOP}:deLever`, `${LOOP}:pokeRepay`]);
   assert.deepEqual(await cycle({healthFactor: TARGET * 2n, failRead: 'queueHead'}), []);
