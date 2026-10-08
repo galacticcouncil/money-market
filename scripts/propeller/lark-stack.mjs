@@ -19,7 +19,7 @@ for(const [index,accountIndex]of [[0,18],[1,20]]){
  services[`keeper${index}`]={...common,image:keeperImage,environment:env,deploy:{...common.deploy,replicas:keepers?1:0}};
 }
 const intervals={mirror:'30000',markets:'5000',pools:'30000',replay:'6000'};
-for(const mode of Object.keys(intervals))services[mode]={...common,image:botImage,environment:{BOT_MODE:mode,BOT_LIVE:'true',BOT_MANIFEST:'/app/manifest.json',BOT_INTERVAL_MS:intervals[mode]},configs:[{source:'propeller_manifest',target:'/app/manifest.json'}]};
+for(const mode of Object.keys(intervals))services[mode]={...common,image:botImage,environment:{BOT_MODE:mode,BOT_LIVE:'true',BOT_MANIFEST:'/app/manifest.json',BOT_INTERVAL_MS:intervals[mode],...(mode==='markets'?{PEG_BAND_BPS:'0.5'}:{})},configs:[{source:'propeller_manifest',target:'/app/manifest.json'}]};
 // the depositor only exists with an explicit --depositor and a fixed schedule start
 if(process.argv.includes('--depositor')){
  assert.ok(/^\d+$/.test(process.env.DEPOSIT_START??''),'set DEPOSIT_START (unix seconds)');

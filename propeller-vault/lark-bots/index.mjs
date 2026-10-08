@@ -41,7 +41,7 @@ const mainnet=['pools','replay'].includes(mode)?await ApiPromise.create({provide
 const OMNIPOOL='0x6d6f646c6f6d6e69706f6f6c0000000000000000000000000000000000000000';
 const diaAbi=parseAbi(['function getValue(string) view returns(uint128,uint128)','function setMultipleValues(string[],uint256[])']);
 const pusherAbi=parseAbi(['function latestRoundData() view returns(uint80,int256,uint256,uint256,uint80)','function setPrice(int256)']);
-let pendingEvm,pendingSubstrate,nextEvmNonce=0,nextSubstrateNonce=0,stopping=false;
+let pendingEvm,pendingEvmAt=0,pendingSubstrate,nextEvmNonce=0,nextSubstrateNonce=0,stopping=false;
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{stopping=true;});
 async function identity(){
  assert.equal((await api.rpc.system.chain()).toString(),'Lark 4 Hydration');
@@ -54,7 +54,12 @@ async function identity(){
 }
 async function mirror(){
  const target=await identity(),block=await source.getBlock();
- if(pendingEvm){const receipt=await pub.getTransactionReceipt({hash:pendingEvm});assert.equal(receipt.status,'success');pendingEvm=undefined;}
+ // a reverted or reorged-out transaction is logged and dropped, never retried blindly
+ if(pendingEvm){
+  const receipt=await pub.getTransactionReceipt({hash:pendingEvm}).catch(()=>null);
+  if(!receipt&&Date.now()-pendingEvmAt<300000)throw Error('prior evm receipt pending');
+  log('evm-reconciled',{hash:pendingEvm,status:receipt?.status??'dropped'});pendingEvm=undefined;
+ }
  for(const row of manifest.oracles){
   const asset=row.asset,feed=await source.readContract({address:oracle,abi,functionName:'getSourceOfAsset',args:[asset],blockNumber:block.number});
   const round=await source.readContract({address:feed,abi,functionName:'latestRoundData',blockNumber:block.number});
@@ -70,7 +75,7 @@ async function mirror(){
   const gas=(estimate*120n+99n)/100n;assert.ok(gas<=1200000n);
   await pub.simulateContract({address:row.address,abi,functionName:'setPrice',args:[price],account,gas,gasPrice});
   const nonce=Math.max(nextEvmNonce,await pub.getTransactionCount({address:account.address,blockTag:'pending'}));
-  pendingEvm=await wallet.writeContract({address:row.address,abi,functionName:'setPrice',args:[price],gas,gasPrice,nonce,type:'legacy'});
+  pendingEvm=await wallet.writeContract({address:row.address,abi,functionName:'setPrice',args:[price],gas,gasPrice,nonce,type:'legacy'});pendingEvmAt=Date.now();
   const receipt=await pub.waitForTransactionReceipt({hash:pendingEvm,timeout:180000});assert.equal(receipt.status,'success');log('mirror-mined',{asset:row.name,hash:pendingEvm,gasUsed:receipt.gasUsed});pendingEvm=undefined;nextEvmNonce=nonce+1;
  }
  await mirrorFeeds(block);
@@ -82,7 +87,7 @@ async function evmWrite(address,feedAbi,functionName,args,label,event='mirror-mi
  await pub.simulateContract({address,abi:feedAbi,functionName,args,account:signer,gas,gasPrice});
  const pending=await pub.getTransactionCount({address:signer.address,blockTag:'pending'}),nonce=signer===account?Math.max(nextEvmNonce,pending):pending;
  const writer=signer===account?wallet:createWalletClient({chain,account:signer,transport:http(RPC,{timeout:30000})});
- pendingEvm=await writer.writeContract({address,abi:feedAbi,functionName,args,gas,gasPrice,nonce,type:'legacy'});
+ pendingEvm=await writer.writeContract({address,abi:feedAbi,functionName,args,gas,gasPrice,nonce,type:'legacy'});pendingEvmAt=Date.now();
  const receipt=await pub.waitForTransactionReceipt({hash:pendingEvm,timeout:180000});assert.equal(receipt.status,'success');
  log(event,{feed:label,hash:pendingEvm,gasUsed:receipt.gasUsed});pendingEvm=undefined;if(signer===account)nextEvmNonce=nonce+1;
 }
@@ -122,22 +127,32 @@ async function routerOuts(at,tx){
  const outs=dry.asOk.emittedEvents.filter(e=>e.section==='router'&&e.method==='Executed').map(e=>BigInt(e.data[3].toString()));
  assert.ok(outs.length,'missing router fill');return outs;
 }
+// lark reorgs drop or retract transactions; the account nonce settles what happened
+async function reconcile(){
+ if(!pendingSubstrate)return;
+ const chain=(await api.query.system.account(actor.address)).nonce.toNumber();
+ const pooled=(await api.rpc.system.accountNextIndex(actor.address)).toNumber();
+ if(chain>pendingSubstrate.nonce){log('substrate-reconciled',{nonce:pendingSubstrate.nonce,landed:true});nextSubstrateNonce=chain;pendingSubstrate=undefined;return;}
+ if(pooled<=pendingSubstrate.nonce&&Date.now()-pendingSubstrate.at>300000){log('substrate-reconciled',{nonce:pendingSubstrate.nonce,landed:false});nextSubstrateNonce=chain;pendingSubstrate=undefined;return;}
+ throw Error(`substrate nonce ${pendingSubstrate.nonce} still unsettled`);
+}
 async function submit(tx,label='arb-mined',requireFill=true){
- if(pendingSubstrate)throw Error('prior substrate receipt uncertain; operator must reconcile');
- pendingSubstrate=true;
+ await reconcile();
  const nonce=Math.max(nextSubstrateNonce,(await api.rpc.system.accountNextIndex(actor.address)).toNumber());
+ pendingSubstrate={nonce,at:Date.now()};
  return new Promise((resolve,reject)=>{
   let unsub,settled=false;const timer=setTimeout(()=>{unsub?.();reject(Error('transaction receipt timeout'));},180000);
   tx.signAndSend(actor,{nonce,era:0,blockHash:manifest.genesis,genesisHash:manifest.genesis},({status,dispatchError,events,txHash})=>{
    if(status.isInvalid||status.isDropped||status.isUsurped){settled=true;clearTimeout(timer);unsub?.();reject(Error(`uncertain transaction ${txHash.toHex()}: ${status.type}`));return;}
    if(!status.isInBlock&&!status.isFinalized)return;
-   settled=true;clearTimeout(timer);unsub?.();pendingSubstrate=false;nextSubstrateNonce=nonce+1;
+   settled=true;clearTimeout(timer);unsub?.();pendingSubstrate=undefined;nextSubstrateNonce=nonce+1;
    if(dispatchError){const meta=dispatchError.isModule?api.registry.findMetaError(dispatchError.asModule):null;reject(Error(`${txHash.toHex()}: ${meta?`${meta.section}.${meta.name}`:dispatchError.toString()}`));return;}
    const fills=events.filter(({event})=>event.section==='router'&&event.method==='Executed').map(({event})=>event.data.toJSON());
    if(requireFill&&!fills.length){reject(Error(`mined transaction has no router fill: ${txHash.toHex()}`));return;}
    const failed=events.filter(({event})=>event.section==='utility'&&event.method==='ItemFailed').length;
    log(label,{hash:txHash.toHex(),fills:fills.length>8?fills.length:fills,failed});resolve();
-  }).then(u=>{unsub=u;if(settled)u();}).catch(e=>{clearTimeout(timer);reject(e);});
+  // rejected at submission: it never reached the pool, so its nonce is free again
+  }).then(u=>{unsub=u;if(settled)u();}).catch(e=>{clearTimeout(timer);pendingSubstrate=undefined;reject(e);});
  });
 }
 async function markets(){
