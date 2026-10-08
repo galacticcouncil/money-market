@@ -1,6 +1,7 @@
 // Lark only: deposits, ramp and unwinds share one PRIME lane. At 50 HOLLAR a trade and
 // 1 HOLLAR/s of budget the deploys take every turn and the loop never levers. Raise both
-// directions to 1,000 a trade and 10/s; the 6 bps price limit and 60 s pacing stay.
+// directions to 1,000 a trade and 10/s, with the source's own tranches to match; the 6 bps
+// price limit and 60 s pacing stay.
 // The markets peg resupplies nearly every PRIME the loop buys, so refill its inventory too.
 import assert from 'node:assert/strict';
 import {context,artifact,live} from './lark-context.mjs';
@@ -16,10 +17,12 @@ try{
   return {name,b,l,capacity:10000n*unit,refill:10n*unit,maximum:1000n*unit};
  });
  const arb='0x'+Buffer.from(c.arb.publicKey.slice(0,20)).toString('hex'),prime=150000n*10n**6n;
- const limit=(await api.query.assetRegistry.assets(43)).unwrap().xcmRateLimit.unwrap().toBigInt();
- const state=(await api.query.circuitBreaker.assetLockdownState(43)).unwrap();
- assert.ok(state.isUnlocked,'PRIME is in lockdown');
- assert.ok(prime<=limit-((await api.query.tokens.totalIssuance(43)).toBigInt()-state.asUnlocked[1].toBigInt()),'PRIME mint would trip the deposit fuse');
+ if(!r.governance.find(g=>g.label==='lark-prime-throughput-1000')?.verified){
+  const limit=(await api.query.assetRegistry.assets(43)).unwrap().xcmRateLimit.unwrap().toBigInt();
+  const state=(await api.query.circuitBreaker.assetLockdownState(43)).unwrap();
+  assert.ok(state.isUnlocked,'PRIME is in lockdown');
+  assert.ok(prime<=limit-((await api.query.tokens.totalIssuance(43)).toBigInt()-state.asUnlocked[1].toBigInt()),'PRIME mint would trip the deposit fuse');
+ }
  const calls=[];
  // a limit maximum may not exceed its budget capacity, so budgets go first
  for(const x of lanes)calls.push(govEvm(r.addresses.controller,abi,'configureBudget',[x.b.group,x.b.token,x.capacity,x.refill,BigInt(x.b.expiresAt)],500000));
@@ -36,5 +39,11 @@ try{
    assert.equal(l[2],x.maximum,`${x.name} lane maximum not applied`);
   }
   console.log('arb PRIME',(await api.query.tokens.accounts(c.arb.address,43)).free.toString(),arb);
+ }
+ // the source caps every admission and ramp step at its own tranche too (50 at wiring)
+ await enact('lark-prime-tranches-1000',[govEvm(r.addresses.source,artifact('SubLoop').abi,'setTranches',[1000n*10n**18n,1000n*10n**6n],500000)]);
+ if(live){
+  assert.equal(await c.readSig(r.addresses.source,'function deployTranche() view returns(uint256)'),1000n*10n**18n);
+  r.testnetApprovals.find(a=>a.id==='prime-throughput-1000').scope+='; source deploy/unwind tranches 1,000';save();
  }
 }finally{await c.api.disconnect();}
