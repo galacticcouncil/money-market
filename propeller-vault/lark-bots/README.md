@@ -41,6 +41,17 @@ reserve. An asset whose inventory cannot remove `POOL_MIN_GAIN_BPS` logs
 wstETH) whenever the balance drops below 1% of the Omnipool reserve, so
 refills never trade on the Omnipool being corrected.
 
+Stableswap pools follow mainnet the same way, so replayed flow never leaves a
+pool where no arbitrageur would. Every Lark stableswap pool that also exists on
+mainnet is priced with Hydration's own stableswap math
+(`@galacticcouncil/math-stableswap`): reserves, amplification and pegs from
+each chain, each asset against the pool's first asset. A deviation beyond
+`STABLE_BAND_BPS` for two ticks becomes a single-hop trade in that pool,
+sized with the same math to land on mainnet's price. These candidates compete
+with Omnipool ones for the tick's one trade. Pool 143 is left to `markets`,
+which holds it at the oracle. Inventory for both sides of each pool came from
+referendum 459 (`lark-stable-inventory.mjs`).
+
 `replay` re-executes finalized mainnet extrinsic trades on Lark with the same
 pair and input amount, scaled by `REPLAY_SCALE`. A routed trade is rebuilt from
 its per-hop `broadcast.Swapped3` events. Trades whose hops cannot be rebuilt,
@@ -81,6 +92,8 @@ Required environment:
 | `BOT_ONCE` | `true` for one cycle, with a failing exit code for unhealthy routes |
 | `BOT_INTERVAL_MS` | Default 30,000; minimum 5,000 for testnet catch-up |
 | `POOL_BAND_BPS` | `pools`: tolerated deviation from mainnet, default 40 |
+| `STABLE_BAND_BPS` | `pools`: tolerated stableswap deviation from mainnet, default 5 |
+| `STABLE_MIN_GAIN_BPS` | `pools`: smallest stableswap correction worth a trade, default 2 |
 | `PEG_BAND_BPS` | `markets`: tolerated PRIME pool premium, default 1 |
 | `PEG_MAX_USD` | `markets`: largest peg trade, default 25,000 |
 | `PEG_MAX_LOSS_BPS` | `markets`: most a peg trade may lose to the oracle, default 5 |

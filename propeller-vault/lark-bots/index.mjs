@@ -3,10 +3,12 @@
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {ApiPromise,WsProvider,Keyring} from '@polkadot/api';
-import {cryptoWaitReady} from '@polkadot/util-crypto';
+import {createRequire} from 'node:module';
+import {cryptoWaitReady,blake2AsU8a} from '@polkadot/util-crypto';
 import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData} from 'viem';
 import {mnemonicToAccount} from 'viem/accounts';
-import {fairOutput,pegPremium,sizePeg,pegMinOut,freshReference,orientRoute,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit} from './policy.mjs';
+const stableMath=createRequire(import.meta.url)('@galacticcouncil/math-stableswap');
+import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit} from './policy.mjs';
 // node4 by default: the public 4.lark endpoint runs out of connections under outside load
 const RPC=process.env.LARK_RPC||'https://node4.lark.hydration.cloud',WS=process.env.LARK_WS||RPC.replace('https://','wss://');
 const SOURCE='https://hdx.tarn.hydration.cloud';
@@ -196,7 +198,7 @@ async function peg(at,prices,balances){
  // a rich pool is sold PRIME, a cheap one bought back; $100 of each side stays for the probes
  const input=before>0n?prime:stable,output=other(input),reserve=units(input,100n);
  const cap=units(input,PEG_MAX_USD),spare=balances[input]>reserve?balances[input]-reserve:0n;
- const amount=await sizePeg(a=>premiumAfter(input,a),before,cap<spare?cap:spare);
+ const amount=await sizeToTarget(a=>premiumAfter(input,a),before,cap<spare?cap:spare);
  if(amount===0n){log('inventory-refill-needed',{asset:input,balance:balances[input],premiumCbps:before});return null;}
  const out=await quote(at,input,output,amount,routes[input]),value=fair(input,amount);
  const minOut=pegMinOut({out,fair:value,maxLossBps:PEG_MAX_LOSS_BPS});
@@ -242,28 +244,77 @@ async function pools(){
  const larkAnchor=await omnipoolSide(at,anchor),mainAnchor=await omnipoolSide(mainAt,anchor);
  const minGain=BigInt(process.env.POOL_MIN_GAIN_BPS||5);
  let best;
+ const held=async id=>BigInt((await at.call.currenciesApi.account(id,actor.address)).free.toString());
  for(const id of manifest.omnipool.assets){
   if(id===anchor)continue;
   const lark=await omnipoolSide(at,id),target=omnipoolRatio(await omnipoolSide(mainAt,id),mainAnchor);
   const dev=deviationBps(omnipoolRatio(lark,larkAnchor),target);
   log('pool-reference',{asset:id,devBps:dev});
-  if(dev<=band&&dev>=-band){pendingSide.delete(id);continue;}
-  // a finalized mainnet trade the replay has not applied yet reads as a deviation for one tick
-  if(pendingSide.get(id)!==dev>0n){pendingSide.set(id,dev>0n);log('pool-deviation-pending',{asset:id,devBps:dev});continue;}
+  if(!debounced(`omnipool:${id}`,dev,band))continue;
   const input=dev>0n?id:anchor,output=dev>0n?anchor:id;
-  const balance=BigInt((await at.call.currenciesApi.account(input,actor.address)).free.toString());
+  const balance=await held(input);
   const cap=(dev>0n?lark.res:larkAnchor.res)*3n/100n,max=balance*9n/10n<cap?balance*9n/10n:cap;
   const {sellAsset,amount}=sizeOmnipoolTrade(lark,larkAnchor,target,max);
   const gain=correctionGainBps(lark,larkAnchor,target,sellAsset,amount);
   if(gain<minGain){log('inventory-refill-needed',{asset:input,balance,gainBps:gain});continue;}
-  if(!best||gain>best.gain)best={asset:id,devBps:dev,gain,input,output,amount};
+  if(!best||gain>best.gain)best={asset:id,devBps:dev,gain,input,output,amount,route:[{pool:'Omnipool',assetIn:input,assetOut:output}]};
  }
- if(!best){log('pools-aligned',{band});return true;}
- const route=[{pool:'Omnipool',assetIn:best.input,assetOut:best.output}];
- const out=await quote(at,best.input,best.output,best.amount,route);
- log('pool-correction',{asset:best.asset,devBps:best.devBps,input:best.input,amount:best.amount,out});
- if(live)await submit(api.tx.router.sell(best.input,best.output,best.amount.toString(),(out*9950n/10000n).toString(),route),'pool-mined');
+ // stableswap pools follow mainnet the same way; oracle-pegged ones are left to markets
+ const stableBand=BigInt(process.env.STABLE_BAND_BPS||5),stableMinGain=BigInt(process.env.STABLE_MIN_GAIN_BPS||2);
+ for(const key of await at.query.stableswap.pools.keys()){
+  const id=key.args[0].toNumber();
+  if(ORACLE_PEGGED.has(id))continue;
+  const [lark,main]=await Promise.all([stableState(at,id),stableState(mainAt,id)]);
+  if(!main)continue;
+  const base=lark.assets[0];
+  for(const asset of lark.assets.slice(1)){
+   const target=stableSpot(main,asset,base),now=stableSpot(lark,asset,base);
+   if(target<=0n)continue;
+   const dev=deviationBps(now,target);
+   log('stable-reference',{pool:id,asset,devBps:dev});
+   if(!debounced(`stable:${id}:${asset}`,dev,stableBand))continue;
+   const input=dev>0n?asset:base,output=dev>0n?base:asset;
+   const balance=await held(input),reserve=BigInt(lark.reserves.find(r=>r.asset_id===input).amount);
+   const cap=reserve*3n/100n,max=balance*9n/10n<cap?balance*9n/10n:cap;
+   const after=amount=>stableSpot(stableAfter(lark,input,output,amount),asset,base);
+   const amount=await sizeToTarget(async x=>after(x),now,max,target);
+   const abs=x=>x<0n?-x:x,gain=amount===0n?0n:abs(dev)-abs(deviationBps(after(amount),target));
+   if(gain<stableMinGain){log('inventory-refill-needed',{asset:input,pool:id,balance,gainBps:gain});continue;}
+   if(!best||gain>best.gain)best={pool:id,asset,devBps:dev,gain,input,output,amount,route:[{pool:{Stableswap:id},assetIn:input,assetOut:output}]};
+  }
+ }
+ if(!best){log('pools-aligned',{band,stableBand});return true;}
+ const out=await quote(at,best.input,best.output,best.amount,best.route);
+ log('pool-correction',{pool:best.pool??'omnipool',asset:best.asset,devBps:best.devBps,input:best.input,amount:best.amount,out});
+ if(live)await submit(api.tx.router.sell(best.input,best.output,best.amount.toString(),(out*9950n/10000n).toString(),best.route),'pool-mined');
  return true;
+}
+// a finalized mainnet trade the replay has not applied yet reads as a deviation for one tick
+function debounced(key,dev,band){
+ if(dev<=band&&dev>=-band){pendingSide.delete(key);return false;}
+ if(pendingSide.get(key)!==dev>0n){pendingSide.set(key,dev>0n);log('pool-deviation-pending',{key,devBps:dev});return false;}
+ return true;
+}
+const ORACLE_PEGGED=new Set([143]);
+// reserves, amplification and pegs as the stableswap math expects them
+async function stableState(at,id){
+ const pool=(await at.query.stableswap.pools(id)).toJSON();
+ if(!pool)return null;
+ const block=String((await at.query.system.number()).toNumber()),account=blake2AsU8a(stableMath.pool_account_name(id),256);
+ const reserves=await Promise.all(pool.assets.map(async a=>({asset_id:a,decimals:(await at.query.assetRegistry.assets(a)).toJSON().decimals,
+  amount:(await at.call.currenciesApi.account(a,account)).free.toString()})));
+ const pegs=(await at.query.stableswap.poolPegs(id)).toJSON()?.current.map(p=>p.map(x=>BigInt(x).toString()))??pool.assets.map(()=>['1','1']);
+ return {assets:pool.assets,reserves,pegs,fee:String(pool.fee/1e6),issuance:(await at.query.tokens.totalIssuance(id)).toString(),
+  amp:stableMath.calculate_amplification(String(pool.initialAmplification),String(pool.finalAmplification),String(pool.initialBlock),String(pool.finalBlock),block)};
+}
+// fee-free mid price: `output` per `input`
+function stableSpot(s,input,output){
+ return BigInt(stableMath.calculate_spot_price_with_fee('0',JSON.stringify(s.reserves),s.amp,String(input),String(output),s.issuance,'0',JSON.stringify(s.pegs)));
+}
+function stableAfter(s,input,output,amount){
+ if(amount===0n)return s;
+ const out=BigInt(stableMath.calculate_out_given_in(JSON.stringify(s.reserves),input,output,amount.toString(),s.amp,s.fee,JSON.stringify(s.pegs)));
+ return {...s,reserves:s.reserves.map(r=>({...r,amount:(BigInt(r.amount)+(r.asset_id===input?amount:r.asset_id===output?-out:0n)).toString()}))};
 }
 const REPLAYED=new Set(['router.Executed','broadcast.Swapped3','omnipool.SellExecuted','omnipool.BuyExecuted','stableswap.SellExecuted','stableswap.BuyExecuted','xyk.SellExecuted','xyk.BuyExecuted']);
 const scale=BigInt(Math.round(Number(process.env.REPLAY_SCALE||'1')*1e6));

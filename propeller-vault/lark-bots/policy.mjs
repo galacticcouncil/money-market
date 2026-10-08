@@ -8,13 +8,13 @@ export function pegPremium({buyOut,buyFair,sellOut,sellFair}){
  if(buyFair<=0n||sellFair<=0n)throw Error('nonpositive pricing input');
  return ((buyFair-buyOut)*1000000n/buyFair-(sellFair-sellOut)*1000000n/sellFair)/2n;
 }
-// largest input, to ~1/1024 of `max`, that moves the premium toward `target` without crossing it
-export async function sizePeg(premiumAfter,before,max,target=0n){
+// largest input, to ~1/1024 of `max`, that moves a price toward `target` without crossing it
+export async function sizeToTarget(priceAfter,before,max,target=0n){
  if(max<=0n||before===target)return 0n;
  const crossed=p=>before>target?p<target:p>target;
- if(!crossed(await premiumAfter(max)))return max;
+ if(!crossed(await priceAfter(max)))return max;
  let lo=0n,hi=max;const step=max/1024n;
- while(hi-lo>step&&hi-lo>1n){const mid=(lo+hi)/2n;if(crossed(await premiumAfter(mid)))hi=mid;else lo=mid;}
+ while(hi-lo>step&&hi-lo>1n){const mid=(lo+hi)/2n;if(crossed(await priceAfter(mid)))hi=mid;else lo=mid;}
  return lo;
 }
 // a peg trade may pay the pool fee, never more than `maxLossBps` under the oracle

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fairOutput,pegPremium,sizePeg,pegMinOut,freshReference,orientRoute,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute,depositOwed,userDeposit} from '../policy.mjs';
+import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute,depositOwed,userDeposit} from '../policy.mjs';
 test('PRIME NAV and token decimals govern the quote, not a 1:1 reserve ratio',()=>{
  assert.equal(fairOutput(1000000n,106290112n,100000000n,6,18),1062901120000000000n);
  assert.equal(fairOutput(1062901120000000000n,100000000n,106290112n,18,6),1000000n);
@@ -13,12 +13,12 @@ test('the peg premium cancels the pool fee from both probe directions',()=>{
 });
 test('peg sizing stops at the oracle, never past it',async()=>{
  const linear=(before,perUnit)=>async a=>before-a*perUnit;
- const down=await sizePeg(linear(567n,1n),567n,10000n);
+ const down=await sizeToTarget(linear(567n,1n),567n,10000n);
  assert.ok(down<=567n&&down>=567n-10000n/1024n,'a premium is sold down to the oracle within one step');
- assert.equal(await sizePeg(linear(567n,1n),567n,100n),100n,'a short cap corrects partially');
- const up=await sizePeg(async a=>-300n+a*3n,-300n,1024n);
+ assert.equal(await sizeToTarget(linear(567n,1n),567n,100n),100n,'a short cap corrects partially');
+ const up=await sizeToTarget(async a=>-300n+a*3n,-300n,1024n);
  assert.ok(up<=100n&&up>=99n,'a discount is bought back from below');
- assert.equal(await sizePeg(linear(0n,1n),0n,1000n),0n);
+ assert.equal(await sizeToTarget(linear(0n,1n),0n,1000n),0n);
 });
 test('a peg trade pays at most the loss cap under the oracle',()=>{
  assert.equal(pegMinOut({out:9994n,fair:10000n}),null);
