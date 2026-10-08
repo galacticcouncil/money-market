@@ -206,8 +206,8 @@ export async function context() {
     await enact(label,(await hollarMint(to,amount)).calls);
   }
   // room before a mint is parked by the deposit fuse and locks the asset; null without a fuse
-  async function fuseHeadroom(id){
-    const limit=(await api.query.assetRegistry.assets(id)).unwrap().xcmRateLimit.unwrapOr(null)?.toBigInt();
+  async function fuseHeadroom(id,limit){
+    limit??=(await api.query.assetRegistry.assets(id)).unwrap().xcmRateLimit.unwrapOr(null)?.toBigInt();
     const state=(await api.query.circuitBreaker.assetLockdownState(id)).unwrapOr(null);
     if(limit===undefined||!state)return null;
     assert.ok(state.isUnlocked,`${id} is in lockdown`);

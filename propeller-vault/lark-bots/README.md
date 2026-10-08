@@ -84,6 +84,11 @@ Monitor `inventory-refill-needed` as well as Docker health. Health confirms that
 the bot can quote all routes; a funded quote reserve does not mean there is
 enough spendable inventory to correct every profitable deviation. Refill only
 the isolated public test account, and keep those subsidies out of APY results.
+`scripts/propeller/lark-refill-bots.mjs --reports=<log>` turns these reports
+(and replay's skipped inputs) into refills through the seed mechanism: one
+referendum, deposit-fuse and facilitator checks, a journal entry, a per-asset
+ceiling and a minimum interval per bot and asset. It is a dry run unless
+`--live`.
 
 Required environment:
 
