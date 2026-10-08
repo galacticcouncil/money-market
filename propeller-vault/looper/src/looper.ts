@@ -479,7 +479,7 @@ export class PropellerLooper {
       const serviceLanes = new Set<string>();
       const data = encodeFunctionData({abi: abi as any, functionName, args});
       if (guarded) {
-        const quoted = await this.publicClient.getBlock({blockNumber: block.number - 1n});
+        const quoted = await this.publicClient.getBlock({blockNumber: block.number - BigInt(CONFIG.QUOTE_DEPTH_BLOCKS)});
         let result: Hex;
         [result, fills] = await this.quoteAction(address, data, functionName, quoted.number, budget) as readonly [Hex, readonly Fill[]];
         if (!hasWork(result)) return false;
@@ -525,7 +525,7 @@ export class PropellerLooper {
         // re-pin the chosen sizes so the quote still has room to land
         const head = await this.publicClient.getBlockNumber();
         if (head + BigInt(CONFIG.QUOTE_INCLUSION_BLOCKS) - quotedNumber > await this.maxQuoteBlocks()) {
-          const fresh = await this.publicClient.getBlock({blockNumber: head - 1n});
+          const fresh = await this.publicClient.getBlock({blockNumber: head - BigInt(CONFIG.QUOTE_DEPTH_BLOCKS)});
           const caps = fills.filter(f => !serviceLanes.has(f.lane.toLowerCase()))
             .map(f => ({lane: f.lane, amountIn: f.amountIn, minOut: 0n}));
           const [result, refilled] = (await this.publicClient.simulateContract({account: this.account,

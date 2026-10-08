@@ -40,6 +40,8 @@ export const CONFIG = {
   // blocks a quote must still have before the controller's window closes;
   // an older one is re-pinned at the chosen sizes just before signing
   QUOTE_INCLUSION_BLOCKS: integer('QUOTE_INCLUSION_BLOCKS', 2, 1, 255),
+  // quote this far below the head; a chain that reorgs its newest blocks voids quotes bound to them
+  QUOTE_DEPTH_BLOCKS: integer('QUOTE_DEPTH_BLOCKS', 1, 1, 64),
   // without a receipt by then, re-send the identical signed transaction
   RECEIPT_TIMEOUT_MS: integer('RECEIPT_TIMEOUT_MS', 60000, 1000),
   SLICE_PRICE_TOLERANCE_BPS: BigInt(integer('SLICE_PRICE_TOLERANCE_BPS', 1, 0, 100)),
