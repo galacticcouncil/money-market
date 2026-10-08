@@ -1,17 +1,19 @@
 // Lark only: keeps deposits open and exits settling from a pre-minted deployer
 // HOLLAR stash. every top-up is a recorded test subsidy, never yield.
 // Main cash above the active cohort's requirement is released to holders as a
-// gift at the next checkpoint, so fills cover the exact gap and nothing more.
+// gift at the next checkpoint, so fills cover the gap plus a float of Main
+// interest (--float seconds of it): enough for the keepers to see ready() and
+// ramp, and it costs no more than refilling the exact gap every block would.
 //   --mint=<hollar>   one governance mint into the stash, then exit
 //   --watch=<s>       repeat passes; each pass reloads the journal
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync,writeFileSync} from 'node:fs';
-import {context,v,HOLLAR,deployer,live} from './lark-context.mjs';
+import {context,v,HOLLAR,POOL,deployer,live} from './lark-context.mjs';
 const arg=(name,fallback)=>process.argv.find(a=>a.startsWith(`--${name}=`))?.split('=')[1]??fallback;
 const hollar=x=>BigInt(Math.round(Number(x)*1e6))*10n**12n,fmt=x=>Number((Number(x)/1e18).toFixed(4));
 const GAP_MAX=hollar(arg('gap-max','2'));
 const FILL_MAX=hollar(arg('fill-max','5')),TAIL_MAX=hollar(arg('tail-max','0.05')),TAIL_WAIT_S=Number(arg('tail-wait','600'));
-const MINT=arg('mint'),WATCH_S=Number(arg('watch','0'));
+const MINT=arg('mint'),WATCH_S=Number(arg('watch','0')),FLOAT_S=BigInt(arg('float','1800'));
 const STATE='/tmp/lark-nurse-state.json';
 const erc20=v.parseAbi(['function approve(address,uint256) returns(bool)','function transfer(address,uint256) returns(bool)']);
 const ledger=v.parseAbi(['function fundPosition(uint256,uint256)']),vaultAbi=v.parseAbi(['function pokeSettle() returns(uint256)']);
@@ -71,6 +73,8 @@ async function pass(){
    src=await readSource();
   }
 
+  // main interest accrues every block, PRIME equity only on oracle steps
+  const borrowRate=(await readSig(POOL,'function getReserveData(address) view returns(uint256,uint128,uint128,uint128,uint128,uint128,uint40,uint16,address,address,address,address,uint128,uint128,uint128)',[HOLLAR]))[4];
   const vaults={};
   for(const x of r.vaults){
    const md=x.mainDebt,ya=x.yieldAccounting;
@@ -82,11 +86,12 @@ async function pass(){
     return {debt,funds,headroom:-max(cohortGap,vaultGap),head,unwind,tail,pending,freed,underfunded,activeUnderfunded,ready};
    };
    let s=await read();
-   // gap fill: exactly the backing shortfall plus a hair, so nothing is released as a gift
-   if(s.debt>0n&&s.underfunded&&s.headroom<0n&&src.negCarry===0n){
-    const gap=-s.headroom,amount=((gap+max(gap/20n,10n**15n))/10n**12n+1n)*10n**12n;
+   // gap fill: the backing shortfall plus a float of interest, topped up before it runs dry
+   const float=s.debt*borrowRate*FLOAT_S/(31536000n*10n**27n);
+   if(s.debt>0n&&s.headroom<float/4n&&src.negCarry===0n){
+    const gap=max(-s.headroom,0n),amount=((gap+float+max(gap/20n,10n**15n))/10n**12n+1n)*10n**12n;
     if(amount>GAP_MAX)actions.push(`${x.name} gap ${fmt(gap)} > gap max; not papering over it`);
-    else if(live){await act('gap-fill',amount,{vault:x.address,mainDebt:md,key:'0',reason:'ramp/interest left the active cohort below its Main debt; exact gap only',before:{gap:gap.toString(),funds:s.funds.toString()}},fundLedger);s=await read();}
+    else if(live){await act('gap-fill',amount,{vault:x.address,mainDebt:md,key:'0',reason:'ramp/interest left the active cohort at or below its Main debt; gap plus an interest float',before:{gap:gap.toString(),funds:s.funds.toString()}},fundLedger);s=await read();}
     else actions.push(`would gap-fill ${x.name} ${fmt(amount)}`);
    }
    // exit tail: head started, source done, a sub-cent remainder unchanged for a while
