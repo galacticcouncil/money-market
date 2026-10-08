@@ -10,6 +10,7 @@ function integer(name: string, fallback: number, min = 1, max = Number.MAX_SAFE_
   return value;
 }
 const operatorCount = integer('OPERATOR_COUNT', 1);
+const deficitStop = integer('DEFICIT_STOP_BPS', 50, 1, 10_000);
 const sponsoredGas = process.env.SPONSORED_GAS ?? 'true';
 if (!['true', 'false'].includes(sponsoredGas)) throw new Error('SPONSORED_GAS must be true or false');
 
@@ -63,6 +64,11 @@ export const CONFIG = {
   // and the smallest exit surplus worth a transaction (HOLLAR wei)
   CLAIM_LOOKBACK: BigInt(integer('CLAIM_LOOKBACK', 256, 1)),
   CLAIM_MIN_SURPLUS: BigInt(process.env.CLAIM_MIN_SURPLUS || '10000000000000000'),
+  // off-chain deficit stop: above it the ramp halts and deposits pause; a keeper's pause lifts below resume
+  DEFICIT_STOP_BPS: deficitStop,
+  DEFICIT_RESUME_BPS: integer('DEFICIT_RESUME_BPS', 25, 0, deficitStop - 1),
+  // how far back a restarted keeper looks for the deposit pause it may have made
+  DEFICIT_PAUSE_LOOKBACK_BLOCKS: BigInt(integer('DEFICIT_PAUSE_LOOKBACK_BLOCKS', 500000)),
   ALERT_WEBHOOK: process.env.ALERT_WEBHOOK,
 };
 

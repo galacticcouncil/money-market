@@ -16,8 +16,8 @@
 #                           vault-level op was silently skipped for months.
 #   PROPELLER_ROUNDING_RESERVES - per-vault JSON base-unit minimum/target policy
 #   HARVESTER_ADDRESS     — Harvester; harvest is skipped when unset
-#   LOOPER_PRIVATE_KEY    — signer key. Every op the bot calls is PERMISSIONLESS,
-#                           so this account needs NO role — only gas.
+#   LOOPER_PRIVATE_KEY    — signer key. Maintenance is PERMISSIONLESS (gas only);
+#                           DEPOSIT_GUARDIAN_ROLE lets it pause/reopen deposits on a deficit.
 #   RPC_URL               — Hydration RPC (defaults below)
 #   POOL_ADDRESS          — aave main-market pool (for leverage logging)
 #   POLL_INTERVAL_MS      — cycle interval, default 30s
@@ -65,6 +65,9 @@ services:
       MAX_TX_GAS: ${MAX_TX_GAS:-16777216}
       RAMP_HF_BUFFER: ${RAMP_HF_BUFFER:-0.005}
       SLOW_EVERY: ${SLOW_EVERY:-10}
+      DEFICIT_STOP_BPS: ${DEFICIT_STOP_BPS:-50}
+      DEFICIT_RESUME_BPS: ${DEFICIT_RESUME_BPS:-25}
+      DEFICIT_PAUSE_LOOKBACK_BLOCKS: ${DEFICIT_PAUSE_LOOKBACK_BLOCKS:-500000}
       ALERT_WEBHOOK: ${ALERT_WEBHOOK:-}
     deploy:
       mode: replicated

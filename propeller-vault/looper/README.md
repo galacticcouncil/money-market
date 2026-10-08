@@ -15,8 +15,9 @@ from calling `pokeBorrow()` repeatedly off-chain. That's this bot.
 - per-call amount capped when `deployTranche` is nonzero; activation requires an approved nonzero limit,
 - HOLLAR→aPRIME swap uses an Aave-oracle `minOut` to bound execution slippage.
 
-The signer needs **no role**, only target-chain transaction funding (WETH for
-Hydration's EVM gas). A successful
+Maintenance needs **no role**, only target-chain transaction funding (WETH for
+Hydration's EVM gas); `DEPOSIT_GUARDIAN_ROLE` additionally lets the keeper pause
+and reopen deposits on a deficit (see below). A successful
 call changes leverage and incurs execution costs. The shared [execution controller](../docs/execution-controls-implementation.md) additionally
 bounds deployment of deposits, upward rebalances, harvests and source unwinds. Deposits
 themselves supply collateral without borrowing or swapping. Controlled trades
@@ -53,6 +54,8 @@ read source HF, repayment targets, route pause and emergency freeze
   low HF                                  -> schedule safety repayment first
 read each vault's pause, queue cursors and Main repayment target
   waiting request eligible by chain timestamp -> startUnwinds(8)
+  source or vault deficit above DEFICIT_STOP_BPS -> no pokeBorrow; pauseDeposits() on any operator
+  below DEFICIT_RESUME_BPS, paused by a keeper, duty slot -> unpauseDeposits()
   source safety target or active unwind       -> pokeRepay()
   active vault settlement, Main repayment target
     or unallocated source proceeds            -> pokeSettle()
@@ -103,7 +106,8 @@ Monitor `queueTail - queueUnwind` and `pendingWithdrawalShares` for waiting
 requests, `queueUnwind - queueHead` for active unwinds, and the scheduled/start
 events. Request counts alone are susceptible to tiny-request spam; monitor
 requested collateral value and its fraction of vault assets too. The keeper
-does not automatically decide when to freeze or reopen.
+does not automatically decide when to freeze or reopen; deposit pauses on a
+deficit are the only exception.
 
 Monitor each vault's `roundingReserve()` and `RoundingReserveUsed` events too.
 Both proposal generation/readiness and the keeper use the same required
@@ -138,6 +142,33 @@ export PROPELLER_ROUNDING_RESERVES='[{"vault":"0x1111111111111111111111111111111
 Include a separate entry for every address in `VAULT_ADDRESSES`. Proposal and
 readiness scripts use the same JSON against their `PROPELLER_VAULTS` list.
 The Docker stack requires and forwards this variable as well.
+
+### Deficit stop
+
+Underfunding is checked by the keeper, not by the contracts. Each cycle it reads
+two deficits, both in bps:
+
+- source: `negativeCarryBps()`, principal equity against live equity;
+- vault: active Main debt (`activePosition`) not covered by
+  `equityOf(vault) − sourceValue() + activeFunds()`, rounded up. While source
+  proceeds are unallocated (`pendingSourceAccounting`) `activeFunds` is stale,
+  so that view is skipped until `pokeSettle` has run.
+
+A vault's level is the larger of the two. Above `DEFICIT_STOP_BPS` the ramp
+stops and the vault's deposits are paused by whichever operator sees it first.
+Between the thresholds the previous state holds. Below `DEFICIT_RESUME_BPS` the
+ramp resumes, and the operator on duty reopens deposits, but only when the newest
+`DepositsPaused`/`DepositsUnpaused` event of that vault is a pause by a keeper: an
+account holding `DEPOSIT_GUARDIAN_ROLE` and none of `DEFAULT_ADMIN_ROLE`,
+`ADMIN_ROLE`, `GUARDIAN_ROLE` or `UPGRADER_ROLE`. The account is the one the event
+names, or else the sender of its transaction. A pause by governance or a guardian,
+a pause with no event within `DEFICIT_PAUSE_LOOKBACK_BLOCKS`, or an unreadable
+event leaves deposits paused and is reported once. Because the evidence is
+on-chain, a restarted keeper and the second operator reach the same decision; after
+a restart, a vault whose deposits are paused stays stopped until the deficit
+falls below `DEFICIT_RESUME_BPS`. An unreadable deficit holds the ramp but
+neither pauses nor reopens. Every stop, resume, pause and reopen is an `[ALERT]`
+line. Above the stop the keeper re-pauses deposits that someone reopened.
 
 ## Run
 
@@ -187,6 +218,9 @@ Default scheduling values (operator examples, not approved production policies):
 | `SAFETY_INTERVAL_MS` | `30000` | Independent read-loop interval |
 | `RPC_STALE_SECONDS` | `120` | Alert threshold for an old chain head |
 | `OPERATOR_SLOT_SECONDS` | `60` | Optional-work duty-slot duration |
+| `DEFICIT_STOP_BPS` | `50` | Above this source or vault deficit, stop the ramp and pause the vault's deposits |
+| `DEFICIT_RESUME_BPS` | `25` | Below this, resume the ramp and reopen deposits a keeper paused; must be below the stop, `0` never reopens |
+| `DEFICIT_PAUSE_LOOKBACK_BLOCKS` | `500000` | How far back a restarted keeper searches for the deposit pause event |
 
 A submitted transaction keeps its signer locked until its receipt is known.
 The nonce is locked before broadcast, so a send error that still reached a node
