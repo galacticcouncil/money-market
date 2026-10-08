@@ -28,6 +28,8 @@ PropellerLean/
 │  │                      requested-weighted alternative provably does (bug G, formalized)
 │  ├─ Aggregate.lean      portfolio-wide (whole book of positions) theorems: no over-mint,
 │  │                      peg band, and collateral-out-ge-in across every position at once
+│  ├─ YieldShares.lean    next version (plan §3): balances that include funded earnings, no
+│  │                      claims — Σ balanceOf identity, exact local transfers, value conservation
 │  └─ Examples.lean       worked numeric instances (concrete ETH position, dust threshold,
 │                          loop-at-HF-1.05, full-unwind) cross-checking the Solidity test suite
 └─ FixedPoint/
@@ -59,6 +61,23 @@ PropellerLean/
 | `floored_credit_no_over_credit` | the shipped `_creditFreed` weighting (remaining-to-credit, floored) never distributes more than `freed` |
 | `buggy_over_credits` / `buggy_strictly_over` | the REJECTED requested-weighted alternative provably over-credits — this is bug G, kept as a negative result so the fix's rationale is machine-checked too |
 | `accrueLoop_restores_freedBacked` | modeling loop yield: equity growth raises `subHF` and restores `freedBacked` after redemption pressure |
+
+## Next version (`juicer-next`, plan §2–§4, §7)
+
+Modeled from `../docs/next-version-plan.md` and track A's 9 Oct design update (no claims: units
+are the only claim on the fund, transfers beyond the wallet move units) while the Solidity lands in
+parallel; the bridge/parity tests follow once it merges. Same integrity bar: 0 `sorry`, axioms
+`propext`/`Classical.choice`/`Quot.sound` only.
+
+| Theorem | Claim |
+|---|---|
+| `ShareBook.totalBalance_add` / `ShareBook.run_totalBalance_add` | Σ balanceOf + (waiting requests' units)/totalUnits × F = totalSupply at every state reachable by deposit, transfer, allocation, harvest, requestRedeem and the escrow burn; so Σ balanceOf ≤ totalSupply, `=` once no units wait with a request (`totalBalance_eq`) |
+| `ShareBook.sum_slice_le` | the holders' funded slices never exceed F |
+| `ShareBook.transfer_balanceOf_from` / `_to` / `_other` | a transfer within the sender's balance moves exactly `x` of displayed balance; no third account's balance moves |
+| `ShareBook.transfer_frame` / `ShareBook.transfer_value` | a transfer writes only the two holders' wallets and units; value moves only between them |
+| `ShareBook.allocate_totalValue` / `allocate_value_mono` / `allocate_slice_dip` | allocation adds exactly the new yield in value and never lowers a holder's value; a displayed slice can dip by at most the holder's pro-rata share of the new yield |
+| `ShareBook.requestRedeem_max_empties` | `requestRedeem(balanceOf)` escrows the whole wallet and commits every unit |
+| `ShareBook.rejected_claim_shifts` | the plan's first claim rule (take `units/T × F`, burn units by value) lowers every passive holder's slice once S > 0 — kept as the reason for the redesign |
 
 ## Build & verify
 
