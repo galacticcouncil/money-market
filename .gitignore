@@ -25,6 +25,7 @@ deployments/*
 !deployments/lark2
 !deployments/gigahdx
 !deployments/bil
+!deployments/robinhood
 # deployments/chopsticks is intentionally ignored — it's a disposable local fork.
 
 # Foundry
