@@ -1,8 +1,8 @@
 import {readFileSync} from 'node:fs';
 import {spawn} from 'node:child_process';
-import {CORE_FILE as FILE} from './lark-pins.mjs';
+import {profile,CORE_FILE as FILE} from './lark-pins.mjs';
 const r=JSON.parse(readFileSync(FILE,'utf8'));
-Object.assign(process.env,{WS_URL:'wss://4.lark.hydration.cloud',RPC_URL:r.rpc,
+Object.assign(process.env,{WS_URL:profile.gateway.ws,RPC_URL:r.rpc,
  PROPELLER_SYNTH:r.addresses.synth,PROPELLER_SUBLOOP:r.addresses.source,PROPELLER_HARVESTER:r.addresses.harvester,
  PROPELLER_EXECUTION_CONTROLLER:r.addresses.controller,PROPELLER_EXECUTION_POLICY:JSON.stringify(r.executionPolicy),
  PROPELLER_VAULTS:r.vaults.map(v=>v.address).join(','),PROPELLER_SWAPPER:r.market.swapper,

@@ -1,4 +1,4 @@
-// Public development accounts. Hard-pinned to Lark 4 + its deployment genesis.
+// Public development accounts. Hard-pinned to the manifest's Lark chain + its deployment genesis.
 // This market maker is subsidized by test assets, never an APY forecast.
 import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
@@ -8,7 +8,7 @@ import {cryptoWaitReady,blake2AsU8a} from '@polkadot/util-crypto';
 import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData} from 'viem';
 import {mnemonicToAccount} from 'viem/accounts';
 const stableMath=createRequire(import.meta.url)('@galacticcouncil/math-stableswap');
-import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit} from './policy.mjs';
+import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit,botIdentity} from './policy.mjs';
 // node4 by default: the public 4.lark endpoint runs out of connections under outside load
 const RPC=process.env.LARK_RPC||'https://node4.lark.hydration.cloud',WS=process.env.LARK_WS||RPC.replace('https://','wss://');
 const SOURCE='https://hdx.tarn.hydration.cloud';
@@ -19,6 +19,7 @@ const PEG_BAND=BigInt(Math.round(Number(process.env.PEG_BAND_BPS||1)*100)),PEG_P
 const PEG_MAX_USD=BigInt(process.env.PEG_MAX_USD||25000),PEG_MAX_LOSS_BPS=BigInt(process.env.PEG_MAX_LOSS_BPS||5);
 assert.ok(Number.isSafeInteger(interval)&&interval>=5000&&interval<=300000);
 const manifest=JSON.parse(readFileSync(process.env.BOT_MANIFEST||'/app/manifest.json','utf8'));
+const {chainName,signers}=botIdentity(manifest);
 const log=(name,row)=>console.log(JSON.stringify({time:new Date().toISOString(),mode,name,...row},(_,x)=>typeof x==='bigint'?x.toString():x));
 const token=id=>`0x${(0x100000000n+BigInt(id)).toString(16).padStart(40,'0')}`;
 const hollar='0x531a654d1696ED52e7275A8cede955E82620f99a',oracle='0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760';
@@ -27,16 +28,16 @@ const abi=parseAbi(['function getAssetPrice(address) view returns(uint256)','fun
 const account=mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:19});
 // simulated depositors: public test accounts 21.. with uneven test inventory
 const depositors=mode==='deposits'?Array.from({length:Number(process.env.DEPOSIT_USERS||8)},(_,i)=>mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:21+i})):[];
-const chain={id:222222,name:'Lark 4 Hydration',nativeCurrency:{name:'WETH',symbol:'WETH',decimals:18},rpcUrls:{default:{http:[RPC]}}};
+const chain={id:222222,name:chainName,nativeCurrency:{name:'WETH',symbol:'WETH',decimals:18},rpcUrls:{default:{http:[RPC]}}};
 const pub=createPublicClient({chain,transport:http(RPC,{timeout:30000,retryCount:2}),cacheTime:0});
 const source=createPublicClient({transport:http(SOURCE,{timeout:30000,retryCount:2}),cacheTime:0});
 const wallet=createWalletClient({chain,account,transport:http(RPC,{timeout:30000})});
 await cryptoWaitReady();
 const api=await ApiPromise.create({provider:new WsProvider(WS),noInitWarn:true});
-const signer=new Keyring({type:'sr25519'}).addFromUri('//Alice//propeller-20261005-arb');
+const signer=new Keyring({type:'sr25519'}).addFromUri(signers.markets);
 // one public test signer per mode; each runs in its own container
-const actor=mode==='pools'?new Keyring({type:'sr25519'}).addFromUri('//Alice//propeller-20261007-pools')
- :mode==='replay'?new Keyring({type:'sr25519'}).addFromUri('//Alice//propeller-20261007-replay'):signer;
+const actor=mode==='pools'?new Keyring({type:'sr25519'}).addFromUri(signers.pools)
+ :mode==='replay'?new Keyring({type:'sr25519'}).addFromUri(signers.replay):signer;
 const mainnet=['pools','replay'].includes(mode)?await ApiPromise.create({provider:new WsProvider(SOURCE.replace('https://','wss://')),noInitWarn:true}):null;
 const OMNIPOOL='0x6d6f646c6f6d6e69706f6f6c0000000000000000000000000000000000000000';
 const diaAbi=parseAbi(['function getValue(string) view returns(uint128,uint128)','function setMultipleValues(string[],uint256[])']);
@@ -44,7 +45,7 @@ const pusherAbi=parseAbi(['function latestRoundData() view returns(uint80,int256
 let pendingEvm,pendingEvmAt=0,pendingSubstrate,nextEvmNonce=0,nextSubstrateNonce=0,stopping=false;
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{stopping=true;});
 async function identity(){
- assert.equal((await api.rpc.system.chain()).toString(),'Lark 4 Hydration');
+ assert.equal((await api.rpc.system.chain()).toString(),chainName);
  assert.equal((await api.rpc.chain.getBlockHash(0)).toHex(),manifest.genesis,'testnet reset');
  assert.equal(await pub.getChainId(),222222);
  // the evm gateway can cache `latest` after a trade, so pin reads to the native head

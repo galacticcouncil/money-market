@@ -1,11 +1,12 @@
 // Long-tail replay inventory and EVM-token inventory bought with test HOLLAR.
 import {createRequire} from 'node:module';
 import {context,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
 const {Keyring}=createRequire(import.meta.url)('@polkadot/api');
 const c=await context();
 try{
  const {api,r,save,enact,sign}=c;
- const kr=new Keyring({type:'sr25519'}),pools=kr.addFromUri('//Alice//propeller-20261007-pools'),replay=kr.addFromUri('//Alice//propeller-20261007-replay');
+ const kr=new Keyring({type:'sr25519'}),pools=kr.addFromUri(profile.signers.pools),replay=kr.addFromUri(profile.signers.replay);
  const xyk=new Set();for(const [,v]of await api.query.xyk.poolAssets.entries())for(const a of v.unwrap())xyk.add(a.toNumber());
  const funded=new Set(r.mainnetSync.funding.filter(f=>f.who===replay.address).map(f=>f.id));
  const calls=[];

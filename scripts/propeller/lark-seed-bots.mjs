@@ -5,10 +5,11 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {context,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
 const {Keyring}=createRequire(import.meta.url)('@polkadot/api');
 const round=process.argv.find(a=>a.startsWith('--round='))?.split('=')[1];
 assert.ok(round,'usage: --round=<name> [--live]');
-const SIGNERS={replay:'//Alice//propeller-20261007-replay',pools:'//Alice//propeller-20261007-pools',markets:'//Alice//propeller-20261005-arb'};
+const SIGNERS=profile.signers;
 const u=(n,d)=>BigInt(Math.round(n*1e6))*10n**BigInt(d)/1000000n;
 // [bot, asset, units to mint, aToken to supply it into (optional)]
 const PLANS={

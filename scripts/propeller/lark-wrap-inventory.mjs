@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {context,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
 const {Keyring}=createRequire(import.meta.url)('@polkadot/api');
 const WRAPS=[
  {mint:5,amount:5000n*10n**10n,out:1001,route:[{pool:'Aave',assetIn:5,assetOut:1001}]},
@@ -13,7 +14,7 @@ const STASH=[[5,100000n*10n**10n],[40,200n*10n**9n],[1000809,15n*10n**18n]];
 const c=await context();
 try{
  const {api,r,enact,sign}=c;
- const pools=new Keyring({type:'sr25519'}).addFromUri('//Alice//propeller-20261007-pools');
+ const pools=new Keyring({type:'sr25519'}).addFromUri(profile.signers.pools);
  const withinFuse=async(label,mints)=>{
   if(r.governance.find(g=>g.label===label)?.verified)return;
   for(const [id,amount] of mints){

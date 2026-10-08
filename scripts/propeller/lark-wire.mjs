@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {context,artifact,v,POOL,HOLLAR,token,deployer,role,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
 const require=createRequire(import.meta.url), poolAbi=require('../../deployments/hydration/Pool-Implementation.json').abi;
 const c=await context();
 try{
- const {r,api,pub,readSig,govEvm,enact,save}=c,a=r.addresses;
+ const {r,api,pub,readSig,govEvm,enact,save}=c,a=r.addresses,n=profile.names;
  assert.equal(r.sourceSlippagePpm,undefined,'Initial wiring is complete; do not overwrite later approved execution policy');
  assert.equal(r.vaults?.length,2);
  const provider=await readSig(POOL,'function ADDRESSES_PROVIDER() view returns(address)');
@@ -13,14 +14,14 @@ try{
  const reserve=await pub.readContract({address:POOL,abi:poolAbi,functionName:'getReserveData',args:[token(34)]});
  const slot='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
  const implementation=async address=>`0x${(await api.query.evm.accountStorages(address,slot)).toHex().slice(-40)}`;
- const input={aTokenImpl:await implementation(reserve.aTokenAddress),stableDebtTokenImpl:await implementation(reserve.stableDebtTokenAddress),variableDebtTokenImpl:await implementation(reserve.variableDebtTokenAddress),underlyingAssetDecimals:18,interestRateStrategyAddress:reserve.interestRateStrategyAddress,underlyingAsset:a.synth,treasury:r.feeRecipient,incentivesController:await readSig(reserve.aTokenAddress,'function getIncentivesController() view returns(address)'),aTokenName:'Propeller October Synthetic aToken',aTokenSymbol:'aPS-OCT',variableDebtTokenName:'Propeller October Variable Debt',variableDebtTokenSymbol:'vdPS-OCT',stableDebtTokenName:'Propeller October Stable Debt',stableDebtTokenSymbol:'sdPS-OCT',params:'0x'};
+ const input={aTokenImpl:await implementation(reserve.aTokenAddress),stableDebtTokenImpl:await implementation(reserve.stableDebtTokenAddress),variableDebtTokenImpl:await implementation(reserve.variableDebtTokenAddress),underlyingAssetDecimals:18,interestRateStrategyAddress:reserve.interestRateStrategyAddress,underlyingAsset:a.synth,treasury:r.feeRecipient,incentivesController:await readSig(reserve.aTokenAddress,'function getIncentivesController() view returns(address)'),aTokenName:n.aToken[0],aTokenSymbol:n.aToken[1],variableDebtTokenName:n.variableDebt[0],variableDebtTokenSymbol:n.variableDebt[1],stableDebtTokenName:n.stableDebt[0],stableDebtTokenSymbol:n.stableDebt[1],params:'0x'};
  const cfg=v.parseAbi(['function initReserves((address aTokenImpl,address stableDebtTokenImpl,address variableDebtTokenImpl,uint8 underlyingAssetDecimals,address interestRateStrategyAddress,address underlyingAsset,address treasury,address incentivesController,string aTokenName,string aTokenSymbol,string variableDebtTokenName,string variableDebtTokenSymbol,string stableDebtTokenName,string stableDebtTokenSymbol,bytes params)[])','function configureReserveAsCollateral(address,uint256,uint256,uint256)','function setReserveBorrowing(address,bool)','function setSupplyCap(address,uint256)']);
  r.synthAssetId=5551;save();
  const loc={parents:0,interior:{X1:[{AccountKey20:{network:null,key:a.synth}}]}};
- const nativeName='Propeller October HOLLAR';
+ const nativeName=n.asset;
  assert.ok(Buffer.byteLength(nativeName)<=api.consts.assetRegistry.stringLimit.toNumber());
  await enact('list-october-synthetic-v2',[
-   api.tx.assetRegistry.register(5551,nativeName,'Erc20','10000000000000000','psHOL-OCT',18,loc,null,true),
+   api.tx.assetRegistry.register(5551,nativeName,'Erc20','10000000000000000',n.synth[1],18,loc,null,true),
    govEvm(configurator,cfg,'initReserves',[[input]],10000000),
  ]);
  if(live){

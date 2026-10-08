@@ -4,12 +4,13 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {context,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
 const {Keyring}=createRequire(import.meta.url)('@polkadot/api');
 const JITOSOL=40,GSOL_SHARE=90001,GSOL=9001,JITOSOL_MINT=100n*10n**9n;
 const c=await context();
 try{
  const {api,r,save,enact,sign}=c;
- const pools=new Keyring({type:'sr25519'}).addFromUri('//Alice//propeller-20261007-pools');
+ const pools=new Keyring({type:'sr25519'}).addFromUri(profile.signers.pools);
  if(!r.depositRelease){
   const minted=new Map();
   const walk=call=>{

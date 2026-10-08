@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {context,v,testAccount,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
 const {Keyring}=createRequire(import.meta.url)('@polkadot/api');
 const ORACLE='0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760',POOL='0x1b02E051683b5cfaC5929C25E84adb26ECf87B38';
 const c=await context();
@@ -20,7 +21,7 @@ try{
   if(await readSig(address,'function pusher() view returns(address)').catch(()=>null))pushers.push({address,name:await readSig(address,'function description() view returns(string)')});
  }
  const anchor=222,omnipool=(await api.query.omnipool.assets.entries()).map(([k])=>k.args[0].toNumber());
- const kr=new Keyring({type:'sr25519'}),pools=kr.addFromUri('//Alice//propeller-20261007-pools'),replay=kr.addFromUri('//Alice//propeller-20261007-replay');
+ const kr=new Keyring({type:'sr25519'}),pools=kr.addFromUri(profile.signers.pools),replay=kr.addFromUri(profile.signers.replay);
  const evmOf=pair=>'0x'+Buffer.from(pair.publicKey.slice(0,20)).toString('hex');
  r.mainnetSync={feeds:{dia:[...dia].map(([address,keys])=>({address,keys})),pushers},omnipool:{anchor,assets:omnipool},signers:{mirror,pools:pools.address,replay:replay.address}};save();
  // DIA keeps its updater in slot 1; the pusher feeds are governance-owned

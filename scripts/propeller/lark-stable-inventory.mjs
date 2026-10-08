@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {context,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
 const {Keyring}=createRequire(import.meta.url)('@polkadot/api');
 const u=(n,d)=>BigInt(Math.round(n*1e6))*10n**BigInt(d)/1000000n;
 // --top-up=<asset>:<units> mints one more Token-type asset under its own label
@@ -19,7 +20,7 @@ const BASE_WRAPS=[[10,1002,u(29500,6)],[22,1003,u(26300,6)],[34,1007,u(0.5,18)],
 const c=await context();
 try{
  const {api,r,enact}=c;
- const pools=new Keyring({type:'sr25519'}).addFromUri('//Alice//propeller-20261007-pools');
+ const pools=new Keyring({type:'sr25519'}).addFromUri(profile.signers.pools);
  const decimals=topUp?(await api.query.assetRegistry.assets(Number(topUp[0]))).unwrap().decimals.toString():0;
  const MINTS=topUp?[[Number(topUp[0]),u(Number(topUp[1]),Number(decimals))]]:BASE,WRAPS=topUp?[]:BASE_WRAPS;
  const label=topUp?`pools-stable-topup-${topUp[0]}-${topUp[1]}`:'pools-stable-inventory';

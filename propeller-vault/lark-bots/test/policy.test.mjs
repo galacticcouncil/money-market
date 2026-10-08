@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute,depositOwed,userDeposit} from '../policy.mjs';
+import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute,depositOwed,userDeposit,botIdentity} from '../policy.mjs';
 test('PRIME NAV and token decimals govern the quote, not a 1:1 reserve ratio',()=>{
  assert.equal(fairOutput(1000000n,106290112n,100000000n,6,18),1062901120000000000n);
  assert.equal(fairOutput(1062901120000000000n,100000000n,106290112n,18,6),1000000n);
@@ -85,4 +85,12 @@ test('user-like deposits draw random sizes but track the schedule', () => {
  assert.equal(userDeposit({owed:100n*slot,slot,rand:()=>1}),5n*slot,'catch-up is still one user-sized deposit');
  assert.equal(userDeposit({owed:-slot,slot,rand:()=>1}),0n,'a slot ahead waits');
  assert.equal(userDeposit({owed:-slot+slot/20n,slot,rand:()=>1}),0n,'dust is skipped');
+});
+test('the manifest names the chain and signers; a lark 4 manifest keeps today\'s', () => {
+ assert.deepEqual(botIdentity({genesis:'0x01'}),{chainName:'Lark 4 Hydration',signers:{markets:'//Alice//propeller-20261005-arb',pools:'//Alice//propeller-20261007-pools',replay:'//Alice//propeller-20261007-replay'}});
+ const next=botIdentity({chainName:'Lark 7 Hydration',signers:{pools:'//Alice//p'}});
+ assert.equal(next.chainName,'Lark 7 Hydration');
+ assert.equal(next.signers.pools,'//Alice//p');
+ assert.equal(next.signers.markets,'//Alice//propeller-20261005-arb');
+ assert.throws(()=>botIdentity({chainName:'Hydration'}),/not a lark chain/);
 });

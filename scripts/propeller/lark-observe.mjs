@@ -2,12 +2,12 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import assert from 'node:assert/strict';
+import {requirePins,FILE,GENESIS} from './lark-pins.mjs';
 import {artifact} from './native-artifacts.mjs';
 const require=createRequire(import.meta.url),v=require('viem');
-import {FILE,GENESIS} from './lark-pins.mjs';
 const r=JSON.parse(readFileSync(FILE,'utf8'));
 assert.equal(r.genesis,GENESIS);
-const pub=v.createPublicClient({transport:v.http('https://node4.lark.hydration.cloud',{timeout:60000}),cacheTime:0});
+const pub=v.createPublicClient({transport:v.http(requirePins().rpc,{timeout:60000}),cacheTime:0});
 assert.equal(await pub.getChainId(),222222);
 assert.equal(await pub.request({method:'chain_getBlockHash',params:[0]}),r.genesis);
 const blockNumber=await pub.getBlockNumber({cacheTime:0}),block=await pub.getBlock({blockNumber});

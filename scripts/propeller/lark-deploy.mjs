@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {context,artifact,v,GOV,POOL,HOLLAR,token,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
 const DISPATCH='0x0000000000000000000000000000000000000401';
 const require=createRequire(import.meta.url);
 const poolAbi=require('../../deployments/hydration/Pool-Implementation.json').abi;
@@ -27,7 +28,7 @@ try{
   a.vaultImpl=await deploy('CollateralVault');save();
   a.compoundLogic=await read('CollateralVault',a.vaultImpl,'compoundLogic');save();
   assert.equal((await pub.getBytecode({address:a.compoundLogic})).toLowerCase(),artifact('CompoundLogic').deployedBytecode.object.toLowerCase());
-  a.synth=await deploy('SyntheticToken',['Propeller Synthetic HOLLAR October','psHOL-OCT',GOV]);save();
+  a.synth=await deploy('SyntheticToken',[...profile.names.synth,GOV]);save();
   a.subImpl=await deploy('SubLoop');save();
   const sourceInit=v.encodeFunctionData({abi:artifact('SubLoop').abi,functionName:'initialize',args:[POOL,HOLLAR,token(43),reserves.PRIME.aTokenAddress,1050000000000000000n,1100000000000000000n,GOV]});
   a.source=await deploy('ERC1967Proxy',[a.subImpl,sourceInit],'SubLoop.proxy');save();
@@ -40,7 +41,7 @@ try{
   for(const [name,id,cap]of [['ETH',34,10n*10n**18n],['TBTC',1000765,10n**18n/2n]]){
     let row=r.vaults.find(x=>x.name===name);
     if(!row){row={name,assetId:id,asset:token(id),aToken:reserves[name].aTokenAddress,cap};r.vaults.push(row);save();}
-    const init=v.encodeFunctionData({abi:artifact('CollateralVault').abi,functionName:'initialize',args:[`Propeller ${name} October`,`p${name}-OCT`,row.asset,POOL,a.source,swapper,HOLLAR,a.synth,row.aToken,reserves.HOLLAR.variableDebtTokenAddress,BigInt(row.cap),GOV]});
+    const init=v.encodeFunctionData({abi:artifact('CollateralVault').abi,functionName:'initialize',args:[...profile.names.vaults[name],row.asset,POOL,a.source,swapper,HOLLAR,a.synth,row.aToken,reserves.HOLLAR.variableDebtTokenAddress,BigInt(row.cap),GOV]});
     row.address=await deploy('ERC1967Proxy',[a.vaultImpl,init],`CollateralVault.${name}.proxy`);save();
     row.mainDebt=await deploy('PropellerMainDebt',[row.address],`MainDebt.${name}`);save();
     row.yieldAccounting=await read('PropellerMainDebt',row.mainDebt,'yieldAccounting');save();

@@ -1,8 +1,11 @@
 # Lark Propeller market services
 
-These services are fixtures for **Lark 4**, never production signers or an APY
-forecast. They refuse another chain name, chain ID or deployment genesis. Their
-public development accounts must never receive real assets.
+These services are fixtures for a **Lark** testnet, never production signers or
+an APY forecast. The manifest names the chain and its deployment genesis; they
+refuse any other chain name, chain ID or genesis, and any chain whose name is not
+a Lark. A manifest without `chainName`/`signers` (Lark 4's v3 config) means Lark 4
+and the signers below. Their public development accounts must never receive real
+assets.
 
 `mirror` follows the canonical mainnet Money Market sources for ETH, tBTC and
 PRIME. It records the original feed, price, source block and source timestamp,
@@ -86,7 +89,9 @@ Required environment:
 
 | Variable | Meaning |
 | --- | --- |
-| `BOT_MANIFEST` | JSON containing pinned `genesis` and `oracles` (asset ID, asset address, mirror address, name) |
+| `BOT_MANIFEST` | JSON containing pinned `genesis` and `oracles` (asset ID, asset address, mirror address, name); optional `chainName` and `signers` (`markets`, `pools`, `replay`) |
+| `LARK_RPC` | Lark HTTP endpoint, default `https://node4.lark.hydration.cloud` |
+| `LARK_WS` | Lark WebSocket endpoint, default `LARK_RPC` with `wss://` |
 | `BOT_MODE` | `mirror`, `markets`, `pools`, `replay` or `deposits` |
 | `BOT_LIVE` | Explicit `true` to sign; otherwise read-only |
 | `BOT_ONCE` | `true` for one cycle, with a failing exit code for unhealthy routes |

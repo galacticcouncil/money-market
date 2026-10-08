@@ -116,3 +116,10 @@ export function replayTrades(groups){
  }
  return out.filter(t=>t.amount>0n&&t.input!==t.output);
 }
+// a v3 manifest (lark 4) predates the chain identity fields
+const LARK4={chainName:'Lark 4 Hydration',signers:{markets:'//Alice//propeller-20261005-arb',pools:'//Alice//propeller-20261007-pools',replay:'//Alice//propeller-20261007-replay'}};
+export function botIdentity(manifest){
+ const id={chainName:manifest.chainName??LARK4.chainName,signers:{...LARK4.signers,...manifest.signers}};
+ if(!/lark/i.test(id.chainName))throw Error(`not a lark chain: ${id.chainName}`);
+ return id;
+}
