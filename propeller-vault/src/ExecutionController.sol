@@ -8,6 +8,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /// @notice shared trade budgets plus short-lived caller quotes that only tighten each consumer's oracle floor.
 /// preview runs the real routes in a reverting subcall, so even a mined preview changes nothing.
+/// async lanes (ICE intents) are charged at submit and closed by `recordAsync` once the fill or refund lands.
 contract ExecutionController is AccessControl, ReentrancyGuard {
     struct Budget {
         address token;
@@ -21,6 +22,7 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
     struct Quote { bytes32 lane; uint256 amountIn; uint256 minOut; }
     struct Trade { bytes32 lane; uint256 amountIn; uint256 amountOut; }
     struct Pacing { uint64 interval; uint64 nextAt; uint256 lastBlock; }
+    struct Async { address consumer; uint64 nonce; uint256 minimum; }
     mapping(bytes32 => Budget) public budgets;
     mapping(bytes32 => Limit) public limits;
     mapping(bytes32 => Pacing) public pacing;
@@ -38,18 +40,25 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
     mapping(bytes32 => uint256) private minimums;
     mapping(bytes32 => bool) private activeGroups;
     Trade[] private trades;
+    mapping(bytes32 => bool) public asyncLanes;
+    /// @notice the one in-flight async trade per lane, with the price-cap minimum taken at submit
+    mapping(bytes32 => Async) public pendingAsync;
 
     error InvalidPolicy();
     error InvalidQuote();
     error UnauthorizedAction();
     error QuoteRequired();
     error TradeSize();
+    error AsyncPending();
     error Simulation(bytes result);
     event BudgetConfigured(bytes32 indexed group, Budget budget);
     event LimitConfigured(bytes32 indexed lane, Limit limit);
     event ActionConfigured(address indexed target, bytes4 selector, bool enabled);
     event PriceConfigured(bytes32 indexed lane, uint16 maxShortfallBps, bool safety);
     event PacingConfigured(bytes32 indexed group, uint64 interval);
+    event AsyncConfigured(bytes32 indexed lane, bool enabled);
+    event AsyncOpened(bytes32 indexed lane, uint64 nonce, uint256 amountIn, uint256 minimum);
+    event AsyncRecorded(bytes32 indexed lane, uint64 nonce, uint256 amountOut);
     event Executed(address indexed caller, address indexed target, bytes4 selector);
 
     constructor(address admin, uint64 age, uint64 blocks_) {
@@ -114,19 +123,26 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
         emit PacingConfigured(group, interval);
     }
 
+    /// @notice Allow a lane's consumer to open trades that settle after the submitting transaction.
+    function configureAsync(bytes32 key, bool enabled) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        if (limits[key].maximum == 0) revert InvalidPolicy();
+        asyncLanes[key] = enabled;
+        emit AsyncConfigured(key, enabled);
+    }
+
     function _credit(Budget storage b) private view returns (uint256) {
         return Math.min(b.capacity, uint256(b.credit) + (block.timestamp - b.updatedAt) * b.refillPerSecond);
     }
 
     function available(address consumer, address tokenIn, address tokenOut) public view returns (uint256 amount) {
-        return _available(lane(consumer, tokenIn, tokenOut), false);
+        return _available(lane(consumer, tokenIn, tokenOut), false, true);
     }
 
     function availableSafety(address consumer, address tokenIn, address tokenOut) external view returns (uint256) {
-        return _available(lane(consumer, tokenIn, tokenOut), true);
+        return _available(lane(consumer, tokenIn, tokenOut), true, true);
     }
 
-    function _available(bytes32 key, bool safety) private view returns (uint256 amount) {
+    function _available(bytes32 key, bool safety, bool quoted) private view returns (uint256 amount) {
         Limit storage l = limits[key];
         Budget storage b = budgets[l.group];
         // an unflagged lane serves safety from its normal budget
@@ -139,7 +155,7 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
                 && (block.timestamp < p.nextAt || (p.lastBlock != 0 && p.lastBlock == block.number)))) return 0;
             amount = Math.min(l.maximum, _credit(b));
         }
-        if (caller != address(0) && (!simulating || quotes[key].amountIn != 0)) {
+        if (quoted && caller != address(0) && (!simulating || quotes[key].amountIn != 0)) {
             amount = Math.min(amount, quotes[key].amountIn - spent[key]);
         }
         if (amount < l.minimum) return 0;
@@ -152,7 +168,7 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
 
     function fitSafety(address consumer, address tokenIn, address tokenOut, uint256 wanted) external view returns (uint256 amount) {
         bytes32 key = lane(consumer, tokenIn, tokenOut);
-        amount = Math.min(wanted, _available(key, true));
+        amount = Math.min(wanted, _available(key, true, true));
         if (amount < limits[key].minimum) return 0;
     }
 
@@ -166,9 +182,47 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
         amount = wanted;
         // a routine tail below the lane minimum sells the minimum, or that exit never completes
         if (!safety) amount = Math.min(Math.max(amount, limits[key].minimum), IERC20(tokenIn).balanceOf(msg.sender));
-        amount = Math.min(amount, _available(key, safety));
+        amount = Math.min(amount, _available(key, safety, true));
         if (amount == 0 || amount < limits[key].minimum) return (0, 0);
         minimum = _consume(tokenIn, tokenOut, amount, Math.mulDiv(fairOut, amount, wanted), safety);
+    }
+
+    /// @notice `prepare` for a routine slice sold by intent: no caller quote, the fill is recorded later.
+    function prepareAsync(address tokenIn, address tokenOut, uint256 wanted, uint256 fairOut, uint64 nonce)
+        external returns (uint256 amount, uint256 minimum)
+    {
+        if (wanted == 0) return (0, 0);
+        bytes32 key = lane(msg.sender, tokenIn, tokenOut);
+        amount = Math.min(Math.max(wanted, limits[key].minimum), IERC20(tokenIn).balanceOf(msg.sender));
+        amount = Math.min(amount, _available(key, false, false));
+        if (amount == 0 || amount < limits[key].minimum) return (0, 0);
+        minimum = _open(key, amount, Math.mulDiv(fairOut, amount, wanted), nonce);
+    }
+
+    /// @notice Charge an async lane at submit, with the budget, pacing and price cap of `consume`.
+    /// The caller's own floor replaces the block-bound quote; `recordAsync` closes the trade.
+    function consumeAsync(address tokenIn, address tokenOut, uint256 amount, uint256 fairOut, uint64 nonce)
+        external returns (uint256 minimum)
+    {
+        return _open(lane(msg.sender, tokenIn, tokenOut), amount, fairOut, nonce);
+    }
+
+    function _open(bytes32 key, uint256 amount, uint256 fairOut, uint64 nonce) private returns (uint256 minimum) {
+        if (!asyncLanes[key] || nonce == 0) revert InvalidPolicy();
+        if (pendingAsync[key].nonce != 0) revert AsyncPending();
+        minimum = _charge(key, amount, fairOut, false, false);
+        pendingAsync[key] = Async(msg.sender, nonce, minimum);
+        emit AsyncOpened(key, nonce, amount, minimum);
+    }
+
+    /// @notice Close the lane's async trade with its fill, or zero when the input came back.
+    function recordAsync(bytes32 key, uint64 nonce, uint256 output) external {
+        Async storage a = pendingAsync[key];
+        if (a.nonce == 0 || a.nonce != nonce || a.consumer != msg.sender || (output != 0 && output < a.minimum)) {
+            revert InvalidQuote();
+        }
+        delete pendingAsync[key];
+        emit AsyncRecorded(key, nonce, output);
     }
 
     /// @dev Called immediately before each governed trade. A failed transaction
@@ -192,17 +246,8 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
     {
         if (caller == address(0)) revert QuoteRequired();
         bytes32 key = lane(msg.sender, tokenIn, tokenOut);
-        Limit storage l = limits[key];
-        if (amount < l.minimum || amount == 0 || amount > _available(key, safety)) revert TradeSize();
-        if (fairOut == 0) revert InvalidQuote();
-        minimum = Math.mulDiv(fairOut, 10_000 - maxShortfallBps[key], 10_000, Math.Rounding.Up);
-        Budget storage b = budgets[l.group];
-        b.credit = uint128(_credit(b) - Math.min(_credit(b), amount));
-        b.updatedAt = uint64(block.timestamp);
-        Pacing storage p = pacing[l.group];
-        p.nextAt = uint64(block.timestamp + p.interval);
-        p.lastBlock = block.number;
-        activeGroups[l.group] = true;
+        minimum = _charge(key, amount, fairOut, safety, true);
+        activeGroups[limits[key].group] = true;
         if (!simulating) {
             Quote storage q = quotes[key];
             if (q.minOut == 0) revert InvalidQuote();
@@ -211,6 +256,21 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
         minimums[key] = minimum;
         if (quotes[key].amountIn != 0) spent[key] += amount;
         trades.push(Trade(key, amount, 0));
+    }
+
+    function _charge(bytes32 key, uint256 amount, uint256 fairOut, bool safety, bool quoted)
+        private returns (uint256 minimum)
+    {
+        Limit storage l = limits[key];
+        if (amount < l.minimum || amount == 0 || amount > _available(key, safety, quoted)) revert TradeSize();
+        if (fairOut == 0) revert InvalidQuote();
+        minimum = Math.mulDiv(fairOut, 10_000 - maxShortfallBps[key], 10_000, Math.Rounding.Up);
+        Budget storage b = budgets[l.group];
+        b.credit = uint128(_credit(b) - Math.min(_credit(b), amount));
+        b.updatedAt = uint64(block.timestamp);
+        Pacing storage p = pacing[l.group];
+        p.nextAt = uint64(block.timestamp + p.interval);
+        p.lastBlock = block.number;
     }
 
     function record(address tokenIn, address tokenOut, uint256 output) external {
