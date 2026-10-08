@@ -18,7 +18,11 @@ const PLANS={
   ['pools',22,50000],
   ['markets',43,100000],
  ],
+ // the loop's ramp plus replayed mainnet PRIME buys outrun PRIME's fuse window
+ '20261008-b':[['markets',43,300000]],
 };
+// lark-only deposit fuse raises (units per window), applied before the mints
+const RAISES={'20261008-b':[[43,5000000]]};
 const plan=PLANS[round];
 assert.ok(plan,`unknown round ${round}`);
 const c=await context();
@@ -31,14 +35,15 @@ try{
   minted[id]=(minted[id]??0n)+u(n,decimals[id]);
  }
  if(!r.governance.find(g=>g.label===label)?.verified)for(const [id,amount] of Object.entries(minted)){
-  const limit=(await api.query.assetRegistry.assets(id)).unwrap().xcmRateLimit.unwrapOr(null)?.toBigInt();
+  const raised=(RAISES[round]??[]).find(([x])=>x===Number(id));
+  const limit=raised?u(raised[1],decimals[id]):(await api.query.assetRegistry.assets(id)).unwrap().xcmRateLimit.unwrapOr(null)?.toBigInt();
   const state=(await api.query.circuitBreaker.assetLockdownState(id)).unwrapOr(null);
   if(limit===undefined||!state)continue;
   assert.ok(state.isUnlocked,`${id} is in lockdown`);
   const used=(await api.query.tokens.totalIssuance(id)).toBigInt()-state.asUnlocked[1].toBigInt();
   assert.ok(amount<=limit-used,`${id}: ${amount} would trip the deposit fuse (${limit-used} left)`);
  }
- const calls=[],wraps=[];
+ const calls=(RAISES[round]??[]).map(([id,n])=>api.tx.assetRegistry.update(id,null,null,null,u(n,decimals[id]).toString(),null,null,null,null)),wraps=[];
  for(const [bot,id,n,aToken] of plan){
   const amount=u(n,decimals[id]);
   calls.push(api.tx.currencies.updateBalance(who(bot),id,amount.toString()));
@@ -55,8 +60,9 @@ try{
  await enact(label,calls);
  if(live){
   r.testSeeds??=[];
-  if(!r.testSeeds.some(s=>s.round===round))r.testSeeds.push({round,plan:plan.map(([bot,id,n,aToken])=>({bot,asset:id,units:n,...(aToken?{suppliedAs:aToken}:{})})),ref:r.governance.find(g=>g.label===label)?.ref,note:'test inventory; spent only by market simulation'});
+  if(!r.testSeeds.some(s=>s.round===round))r.testSeeds.push({round,...(RAISES[round]?{fuseRaises:RAISES[round].map(([asset,units])=>({asset,units}))}:{}),plan:plan.map(([bot,id,n,aToken])=>({bot,asset:id,units:n,...(aToken?{suppliedAs:aToken}:{})})),ref:r.governance.find(g=>g.label===label)?.ref,note:'test inventory; spent only by market simulation'});
   save();
+  for(const [bot,id] of plan)assert.equal((await api.query.tokens.accounts(who(bot),id)).reserved.toBigInt(),0n,`${id} parked by the fuse`);
   for(const [bot,id,,aToken] of plan){
    const held=(await api.call.currenciesApi.account(aToken??id,who(bot))).free.toString();
    console.log('HELD',bot,aToken??id,held);
