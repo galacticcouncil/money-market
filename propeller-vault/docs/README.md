@@ -10,7 +10,8 @@ covers deferred deposits, shared swap controls, oracle price bounds and keeper
 size selection. The [Lark deployment record](lark-deployment-2026-10-07.md)
 covers the fresh-fork contracts, UI, hosted keepers, a mined and claimed
 harvest, and the bots that keep Lark's oracles, pool prices and trade flow in
-step with mainnet. Earlier reports retain their original artifact scope.
+step with mainnet. The [new-Lark runbook](lark-next-runbook.md) brings the next
+version up on another chain. Earlier reports retain their original artifact scope.
 
 ## Start Here
 
