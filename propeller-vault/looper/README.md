@@ -181,7 +181,7 @@ Default scheduling values (operator examples, not approved production policies):
 | `QUOTE_DRIFT_BPS` | `2` | Additional tolerance from observed output; cannot widen oracle floors |
 | `QUOTE_SIZE_STEPS` | `6` | Bounded size samples, including when a large slice already succeeds |
 | `QUOTE_INCLUSION_BLOCKS` | `2` | Blocks of controller quote age kept for inclusion; older quotes are re-pinned before signing |
-| `QUOTE_DEPTH_BLOCKS` | `1` | Quote this many blocks below the head; raise it where the newest blocks reorg (Lark uses 3) |
+| `QUOTE_DEPTH_BLOCKS` | `3` | Quote this many blocks below the head, so a reorg of the newest blocks can't void the bound hash; with `QUOTE_INCLUSION_BLOCKS` it must fit the controller's `maxQuoteBlocks` (alerted otherwise) |
 | `RECEIPT_TIMEOUT_MS` | `60000` | Re-send interval for the same signed transaction while no receipt appears |
 | `SLICE_PRICE_TOLERANCE_BPS` | `1` | Choose the largest slice close to the best sampled unit prices; cannot widen oracle floors |
 | `SAFETY_INTERVAL_MS` | `30000` | Independent read-loop interval |

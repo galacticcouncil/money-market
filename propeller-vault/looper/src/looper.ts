@@ -596,8 +596,14 @@ export class PropellerLooper {
   }
 
   private async maxQuoteBlocks(): Promise<bigint> {
-    this.quoteBlocks ??= BigInt(await this.publicClient.readContract({address: CONFIG.EXECUTION_CONTROLLER,
-      abi: EXECUTION_ABI, functionName: 'maxQuoteBlocks'}));
+    if (this.quoteBlocks === undefined) {
+      this.quoteBlocks = BigInt(await this.publicClient.readContract({address: CONFIG.EXECUTION_CONTROLLER,
+        abi: EXECUTION_ABI, functionName: 'maxQuoteBlocks'}));
+      if (BigInt(CONFIG.QUOTE_DEPTH_BLOCKS + CONFIG.QUOTE_INCLUSION_BLOCKS) > this.quoteBlocks) {
+        console.error(`[ALERT] QUOTE_DEPTH_BLOCKS ${CONFIG.QUOTE_DEPTH_BLOCKS} + QUOTE_INCLUSION_BLOCKS ` +
+          `${CONFIG.QUOTE_INCLUSION_BLOCKS} exceed the controller's ${this.quoteBlocks}-block quote window`);
+      }
+    }
     return this.quoteBlocks;
   }
 

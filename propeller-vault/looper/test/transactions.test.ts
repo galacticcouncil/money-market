@@ -192,16 +192,16 @@ test('guarded writes use a pinned preview, bounded input and positive quote floo
   keeper.publicClient = guardedClient(simulations, hash, lane, result, 10n);
   try {
     assert.equal(await keeper.poke(parseAbi(['function pokeBorrow() returns (uint256)']), VAULT, 'pokeBorrow', 'ramp'), true);
-    assert.equal(simulations[0].blockNumber, 9n);
+    assert.equal(simulations[0].blockNumber, 7n, 'quoted three blocks below the head by default');
     assert.equal(sends[0].to, CONFIG.EXECUTION_CONTROLLER);
     const call = decodeFunctionData({abi: EXECUTION_ABI, data: sends[0].data});
     assert.equal(call.functionName, 'execute');
-    assert.deepEqual(call.args.slice(2), [9n, hash, 160n, [{lane, amountIn: 100n, minOut: 999n}]]);
-    assert.ok(!simulations.some(s => s.blockNumber === 9n && s.functionName === 'previewBounded'), 'a fresh quote is not re-pinned');
+    assert.deepEqual(call.args.slice(2), [7n, hash, 160n, [{lane, amountIn: 100n, minOut: 999n}]]);
+    assert.ok(!simulations.some(s => s.functionName === 'previewBounded'), 'a quote that still fits the window is not re-pinned');
   } finally { CONFIG.EXECUTION_CONTROLLER = previous; }
 });
 
-// one 100-unit lane; previews at block 19 pay 10% more
+// one 100-unit lane; previews at block 17 pay 10% more
 function guardedClient(simulations: any[], hash: string, lane: string, result: string, head: bigint) {
   return {
     getBlock: async (o: any) => ({number: o.blockNumber ?? head, timestamp: 100n, gasLimit: 45_000_000n, hash}),
@@ -213,7 +213,7 @@ function guardedClient(simulations: any[], hash: string, lane: string, result: s
       : r.functionName === 'maxQuoteBlocks' ? 5n : VAULT,
     simulateContract: async (request: any) => {
       simulations.push(request);
-      const amountOut = request.blockNumber === 19n ? 1100n : 1000n;
+      const amountOut = request.blockNumber === 17n ? 1100n : 1000n;
       return {request, result: ['preview', 'previewBounded'].includes(request.functionName)
         ? [result, [{lane, amountIn: 100n, amountOut}]] : result};
     },
@@ -237,11 +237,11 @@ test('a quote that would age out before inclusion is re-pinned at the chosen siz
   keeper.publicClient.getBlock = async (o: any) => ({number: o.blockNumber ?? 10n, timestamp: 100n, gasLimit: 45_000_000n, hash});
   try {
     assert.equal(await keeper.poke(parseAbi(['function pokeBorrow() returns (uint256)']), VAULT, 'pokeBorrow', 'ramp'), true);
-    const repin = simulations.find(s => s.blockNumber === 19n);
+    const repin = simulations.find(s => s.blockNumber === 17n);
     assert.equal(repin.functionName, 'previewBounded');
     assert.deepEqual(repin.args[2], [{lane, amountIn: 100n, minOut: 0n}]);
     const call = decodeFunctionData({abi: EXECUTION_ABI, data: sends[0].data});
-    assert.deepEqual(call.args.slice(2), [19n, hash, 160n, [{lane, amountIn: 100n, minOut: 1099n}]]);
+    assert.deepEqual(call.args.slice(2), [17n, hash, 160n, [{lane, amountIn: 100n, minOut: 1099n}]]);
   } finally { CONFIG.EXECUTION_CONTROLLER = previous; }
 });
 
@@ -375,4 +375,23 @@ test('an executable large quote is still compared with smaller, better-priced sl
   assert.ok(amounts.every(a => a >= 10n), 'sizing never goes below the configured minimum');
   assert.ok(amounts.includes(10n), 'even large budgets sample the minimum within the bounded search');
   } finally { CONFIG.EXECUTION_CONTROLLER = previous; }
+});
+
+test('quotes default to three blocks of depth and a window that cannot hold them is alerted once', async () => {
+  assert.equal(CONFIG.QUOTE_DEPTH_BLOCKS, 3);
+  const errors: string[] = [];
+  const previous = console.error;
+  console.error = (...args) => { errors.push(args.join(' ')); };
+  try {
+    for (const [window, alerts] of [[5n, 0], [4n, 1]] as const) {
+      errors.length = 0;
+      const keeper = Object.create(PropellerLooper.prototype) as any;
+      let reads = 0;
+      keeper.publicClient = {readContract: async () => { ++reads; return window; }};
+      assert.equal(await keeper.maxQuoteBlocks(), window);
+      assert.equal(await keeper.maxQuoteBlocks(), window);
+      assert.equal(reads, 1);
+      assert.equal(errors.length, alerts);
+    }
+  } finally { console.error = previous; }
 });
