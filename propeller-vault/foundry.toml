@@ -1,0 +1,28 @@
+[profile.default]
+src = "src"
+out = "out"
+test = "test"
+script = "script"
+# Reuse the sibling bil-vault's already-installed libs (forge-std, OZ, OZ-upgradeable)
+# so this module compiles without a separate `forge install`. Vendor independently
+# before audit if a clean dependency boundary is wanted.
+libs = ["../bil-vault/lib"]
+solc_version = "0.8.22"
+optimizer = true
+# The combined fee/discount vault has little EIP-170 headroom. Keep the runtime
+# size regression in ProtocolFeesTest passing at these production settings.
+optimizer_runs = 200
+evm_version = "paris"
+via_ir = true
+# read access for the verity forktest harness (reads bridge/forktest/bytecode/*.bin).
+fs_permissions = [{ access = "read", path = "./formal" }]
+
+[invariant]
+runs = 256
+depth = 50
+fail_on_revert = false
+shrink_run_limit = 0
+
+[rpc_endpoints]
+hydration = "${RPC_HYDRATION}"
+lark = "https://2.lark.hydration.cloud"
