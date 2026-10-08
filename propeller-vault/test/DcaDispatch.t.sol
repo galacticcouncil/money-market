@@ -104,6 +104,63 @@ contract DcaDispatchTest is Test {
         assertEq(uint8(DEPLOY_REFERENCE[1]), 0, "sell call index");
     }
 
+    // ── intent.submit_intent / remove_intent — ICE entries and exits ────────
+    //
+    // INTENT_SPIKE_REFERENCE is the payload of lark-4 tx 0xb9a55218…bfb9a (runtime 447), which
+    // the solver resolved and the lazy executor called back. The others come from
+    // scripts/propeller/gen-router-reference.mjs against the same runtime (intent pallet 98).
+
+    bytes constant INTENT_SPIKE_REFERENCE =
+        hex"620000de000000130400000000e8890423c78a0000000000000000cc648f000000000000000000000000000001b0552c1ca10100000100dbcbeb6d6e423f70aa28d6790c5af4100a7b98bb10c0ffee01";
+
+    /// HOLLAR(222) → aPRIME(1043) entry intent, forward data abi.encode(0, 1)
+    bytes constant INTENT_ENTRY_REFERENCE =
+        hex"620000de00000013040000000010632d5ec76b0500000000000000c09ee6050000000000000000000000000001b0552c1ca1010000010000000000000000000000000000000000000000aa010100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001";
+
+    /// aPRIME(1043) → HOLLAR(222) exit intent, forward data abi.encode(1, 2)
+    bytes constant INTENT_EXIT_REFERENCE =
+        hex"62000013040000de00000000e1f5050000000000000000000000000000acbb79a7e65d05000000000000000001b0552c1ca1010000010000000000000000000000000000000000000000aa010100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002";
+
+    /// intent.removeIntent(0x000001a11c10f5e00000000000000626)
+    bytes constant REMOVE_INTENT_REFERENCE = hex"62012606000000000000e0f5101ca1010000";
+
+    function test_submitIntentMatchesSpikeTransaction() public pure {
+        bytes memory got = DcaDispatch.encodeSubmitIntent(
+            222, 1043, 10e18, 9_397_452, 1_791_474_030_000, 0xdbcbEb6d6E423F70AA28D6790c5af4100A7b98Bb, hex"c0ffee01"
+        );
+        assertEq(got, INTENT_SPIKE_REFERENCE, "spike payload the solver accepted");
+    }
+
+    function test_submitIntentLanesMatchRuntimeMetadata() public pure {
+        address forward = 0x00000000000000000000000000000000000000AA;
+        bytes memory entry = DcaDispatch.encodeSubmitIntent(
+            222, 1043, 100e18, 99_000000, 1_791_474_030_000, forward, abi.encode(uint8(0), uint64(1))
+        );
+        assertEq(entry, INTENT_ENTRY_REFERENCE, "entry intent must match intent.submitIntent metadata");
+        bytes memory exit = DcaDispatch.encodeSubmitIntent(
+            1043, 222, 100_000000, 99e18, 1_791_474_030_000, forward, abi.encode(uint8(1), uint64(2))
+        );
+        assertEq(exit, INTENT_EXIT_REFERENCE, "exit intent must match intent.submitIntent metadata");
+    }
+
+    function test_removeIntentMatchesRuntimeMetadata() public pure {
+        assertEq(
+            DcaDispatch.encodeRemoveIntent(0x000001a11c10f5e00000000000000626),
+            REMOVE_INTENT_REFERENCE,
+            "removeIntent must match intent.removeIntent metadata"
+        );
+    }
+
+    function test_intentPalletIndexIsPinned() public pure {
+        assertEq(uint8(INTENT_SPIKE_REFERENCE[0]), 98, "Intent pallet index");
+        assertEq(uint8(INTENT_SPIKE_REFERENCE[1]), 0, "submit_intent call index");
+        assertEq(uint8(REMOVE_INTENT_REFERENCE[0]), 98, "Intent pallet index");
+        assertEq(uint8(REMOVE_INTENT_REFERENCE[1]), 1, "remove_intent call index");
+        assertEq(DcaDispatch.INTENT_PALLET, 98);
+        assertEq(DcaDispatch.SUBMIT_INTENT_CALL, 0);
+        assertEq(DcaDispatch.REMOVE_INTENT_CALL, 1);
+    }
+
     function test_ownerDerivation() public pure {
         // [b"ETH\0"][20-byte addr][8x00] — pallet-evm-accounts truncated_account_id
         assertEq(

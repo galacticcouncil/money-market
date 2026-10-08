@@ -29,6 +29,9 @@ library DcaDispatch {
     uint8 internal constant SCHEDULE_CALL = 0; // pallet_dca::Call::schedule is call 0
     uint8 internal constant ROUTER_PALLET = 67; // construct_runtime: Router = 67
     uint8 internal constant SELL_CALL = 0; // pallet_route::Call::sell is call 0
+    uint8 internal constant INTENT_PALLET = 98; // construct_runtime: Intent = 98 (runtime 447)
+    uint8 internal constant SUBMIT_INTENT_CALL = 0; // pallet_intent::Call::submit_intent
+    uint8 internal constant REMOVE_INTENT_CALL = 1; // pallet_intent::Call::remove_intent
 
     // PoolType<AssetId> SCALE tags (traits/src/router.rs)
     uint8 internal constant POOL_XYK = 0;
@@ -149,6 +152,60 @@ library DcaDispatch {
         return abi.encodePacked(head, r);
     }
 
+    /// @notice Dispatch an ICE swap intent owned by this caller's account. The pallet takes
+    ///         `amountIn` at submit; the solver pays at least `amountOut` and the lazy executor
+    ///         then calls `forward.execute(..., data)`. Expiry refunds without a callback.
+    function submitIntent(
+        uint32 assetIn,
+        uint32 assetOut,
+        uint128 amountIn,
+        uint128 amountOut,
+        uint64 deadlineMs,
+        address forward,
+        bytes memory data
+    ) internal {
+        _dispatch(encodeSubmitIntent(assetIn, assetOut, amountIn, amountOut, deadlineMs, forward, data));
+    }
+
+    /// @notice SCALE encoding of `intent.submit_intent(IntentInput{Swap{.., partial: false},
+    ///         Some(deadline), Some(Forward{contract, data})})`, pinned in test/DcaDispatch.t.sol.
+    function encodeSubmitIntent(
+        uint32 assetIn,
+        uint32 assetOut,
+        uint128 amountIn,
+        uint128 amountOut,
+        uint64 deadlineMs,
+        address forward,
+        bytes memory data
+    ) internal pure returns (bytes memory) {
+        bytes memory swap = abi.encodePacked(
+            INTENT_PALLET, SUBMIT_INTENT_CALL,
+            bytes1(0x00), // IntentDataInput::Swap
+            _le32(assetIn), _le32(assetOut), _le128(amountIn), _le128(amountOut),
+            bytes1(0x00) // partial: false
+        );
+        return abi.encodePacked(
+            swap,
+            bytes1(0x01), _le64(deadlineMs), // deadline: Some(unix ms)
+            bytes2(0x0100), forward, // on_resolved: Some(OnResolved::Forward), contract H160
+            _compact(uint32(data.length)), data
+        );
+    }
+
+    /// @notice Dispatch `intent.remove_intent(id)`: the reserved input returns to this caller.
+    function removeIntent(uint128 id) internal {
+        _dispatch(encodeRemoveIntent(id));
+    }
+
+    function encodeRemoveIntent(uint128 id) internal pure returns (bytes memory) {
+        return abi.encodePacked(INTENT_PALLET, REMOVE_INTENT_CALL, _le128(id));
+    }
+
+    function _dispatch(bytes memory call) private {
+        (bool ok, ) = DISPATCH.call(call);
+        if (!ok) revert DispatchFailed();
+    }
+
     /// @notice EVM-derived Substrate AccountId32 for an address:
     ///         [b"ETH\0"][20-byte addr][8x00] (pallet-evm-accounts
     ///         truncated_account_id — prefix FIRST, see lib.rs:553).
@@ -171,6 +228,13 @@ library DcaDispatch {
         return abi.encodePacked(
             bytes1(uint8(x)), bytes1(uint8(x >> 8)), bytes1(uint8(x >> 16)), bytes1(uint8(x >> 24))
         );
+    }
+
+    function _le64(uint64 x) private pure returns (bytes memory b) {
+        b = new bytes(8);
+        for (uint256 i = 0; i < 8; i++) {
+            b[i] = bytes1(uint8(x >> (8 * i)));
+        }
     }
 
     function _le128(uint128 x) private pure returns (bytes memory b) {

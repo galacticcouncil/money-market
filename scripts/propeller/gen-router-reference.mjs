@@ -16,6 +16,9 @@
 //
 //   WS=wss://rpc.hydradx.cloud node scripts/propeller/gen-router-reference.mjs
 //
+// Runtimes with ICE (447+, e.g. WS=wss://node4.lark.hydration.cloud) also print the
+// intent.submitIntent / intent.removeIntent references for encodeSubmitIntent / encodeRemoveIntent.
+//
 // Must be run from the repo root (needs node_modules/@polkadot/api).
 
 import { ApiPromise, WsProvider } from "@polkadot/api";
@@ -84,6 +87,45 @@ Paste into propeller-vault/test/DcaDispatch.t.sol:
     bytes constant DEPLOY_REFERENCE =
         hex"${deploy.method.toHex().slice(2)}";
 `);
+
+// ICE intents (runtime 447+, not on mainnet yet): DcaDispatch.encodeSubmitIntent / encodeRemoveIntent
+const EXPECT_INTENT_PALLET = 98;
+if (api.tx.intent) {
+  const [sIdx, sCall] = api.tx.intent.submitIntent.callIndex;
+  const [rIdx, rCall] = api.tx.intent.removeIntent.callIndex;
+  console.log(`intent.submitIntent : ${sIdx}/${sCall}  (DcaDispatch pins ${EXPECT_INTENT_PALLET}/0)`);
+  console.log(`intent.removeIntent : ${rIdx}/${rCall}  (DcaDispatch pins ${EXPECT_INTENT_PALLET}/1)`);
+  if (sIdx !== EXPECT_INTENT_PALLET || sCall !== 0 || rIdx !== EXPECT_INTENT_PALLET || rCall !== 1) {
+    console.error(`\n*** DRIFT: intent call indices moved; ICE entries and exits will revert DispatchFailed.`);
+    drift = true;
+  }
+  const FORWARD = "0x00000000000000000000000000000000000000aa";
+  // SubLoop forwards abi.encode(uint8 lane, uint64 nonce): 64 bytes, a two-byte compact length
+  const laneNonce = (lane, nonce) =>
+    "0x" + BigInt(lane).toString(16).padStart(64, "0") + BigInt(nonce).toString(16).padStart(64, "0");
+  const intent = (assetIn, assetOut, amountIn, amountOut, data) =>
+    api.tx.intent.submitIntent({
+      data: { Swap: { assetIn, assetOut, amountIn, amountOut, partial: false } },
+      deadline: 1791474030000,
+      onResolved: { Forward: { contract: FORWARD, data } },
+    });
+  const entry = intent(HOLLAR, APRIME, "100000000000000000000", "99000000", laneNonce(0, 1));
+  const exit = intent(APRIME, HOLLAR, "100000000", "99000000000000000000", laneNonce(1, 2));
+  const remove = api.tx.intent.removeIntent("0x000001a11c10f5e00000000000000626");
+  console.log(`
+    /// HOLLAR(${HOLLAR}) → aPRIME(${APRIME}) entry intent, forward data abi.encode(0, 1)
+    bytes constant INTENT_ENTRY_REFERENCE =
+        hex"${entry.method.toHex().slice(2)}";
+
+    /// aPRIME(${APRIME}) → HOLLAR(${HOLLAR}) exit intent, forward data abi.encode(1, 2)
+    bytes constant INTENT_EXIT_REFERENCE =
+        hex"${exit.method.toHex().slice(2)}";
+
+    /// intent.removeIntent(0x000001a11c10f5e00000000000000626)
+    bytes constant REMOVE_INTENT_REFERENCE =
+        hex"${remove.method.toHex().slice(2)}";
+`);
+}
 
 await api.disconnect();
 process.exit(drift ? 1 : 0);
