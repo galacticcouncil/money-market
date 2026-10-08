@@ -7,7 +7,8 @@ import {cryptoWaitReady} from '@polkadot/util-crypto';
 import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData} from 'viem';
 import {mnemonicToAccount} from 'viem/accounts';
 import {fairOutput,pegPremium,sizePeg,pegMinOut,freshReference,orientRoute,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit} from './policy.mjs';
-const RPC='https://4.lark.hydration.cloud',WS='wss://4.lark.hydration.cloud';
+// node4 by default: the public 4.lark endpoint runs out of connections under outside load
+const RPC=process.env.LARK_RPC||'https://node4.lark.hydration.cloud',WS=process.env.LARK_WS||RPC.replace('https://','wss://');
 const SOURCE='https://hdx.tarn.hydration.cloud';
 const mode=process.env.BOT_MODE||'markets',live=process.env.BOT_LIVE==='true';
 const interval=Number(process.env.BOT_INTERVAL_MS||30000);
