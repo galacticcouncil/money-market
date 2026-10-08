@@ -9,6 +9,7 @@ import {SubLoop} from "../src/SubLoop.sol";
 import {MockDiscountDebtToken, MockDiscountAToken} from "./mocks/MockDiscount.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 /// @notice parameter campaign on real contracts with mocked accrual and execution costs;
 /// static crypto prices, no income donations or recovery funding
@@ -140,8 +141,7 @@ contract MainnetTuningTest is HarvestTest {
                 uint256 mainBefore = hollarDebt.balanceOf(address(vault));
                 try vault.rebalance() {} catch (bytes memory reason) {
                     bytes4 selector = bytes4(reason);
-                    assertTrue(selector == CollateralVault.Underfunded.selector
-                        || selector == PropellerMainDebt.UnfundedInterest.selector
+                    assertTrue(selector == SubLoop.Underfunded.selector
                         || selector == PropellerMainDebt.OutstandingDebt.selector, "unexpected rebalance failure");
                 }
                 uint256 mainAfter = hollarDebt.balanceOf(address(vault));
@@ -149,10 +149,10 @@ contract MainnetTuningTest is HarvestTest {
                     ++m.rebalances;
                     if (mainAfter - mainBefore > m.maxRebalance) m.maxRebalance = mainAfter - mainBefore;
                 }
-                if (!main.ready()) ++m.blockedDays;
+                if (!Deficit.ready(main)) ++m.blockedDays;
                 if (day % c.borrowEvery == 0) {
                     // re-read guards after every transaction, as the keeper does
-                    for (uint256 i; i < 8 && main.ready() && loop.negativeCarryBps() == 0
+                    for (uint256 i; i < 8 && Deficit.ready(main) && loop.negativeCarryBps() == 0
                         && loop.healthFactor() > loop.targetHf() * 1_005_000 / 1_000_000
                         && loop.unwindTargetEquity() == 0 && loop.deleverDebtTarget() == 0; ++i) {
                         uint256 beforeDebt = hollarDebt.balanceOf(address(loop));

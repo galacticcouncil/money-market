@@ -150,6 +150,40 @@ contract GuardianPauseTest is Test {
         loop.pause();
     }
 
+    /// The keeper's deficit stop is its own flag: it never lifts a guardian's pause, and the
+    /// role can do nothing else.
+    function test_depositGuardianOnlySetsTheDeficitStop() public {
+        address keeper = address(0xD15C);
+        address stranger = address(0xBAD);
+        bytes32 depositGuardian = vault.DEPOSIT_GUARDIAN_ROLE();
+        bytes32 guardian = vault.GUARDIAN_ROLE();
+        bytes32 admin = vault.ADMIN_ROLE();
+        bytes32 upgrader = vault.UPGRADER_ROLE();
+        address next = address(new CollateralVault());
+        vault.grantRole(depositGuardian, keeper);
+        vault.pauseDeposits();
+
+        vm.startPrank(keeper);
+        vault.setDeficitStop(true);
+        assertTrue(vault.deficitStop(), "deposits stopped by the keeper");
+        vault.setDeficitStop(false);
+        assertFalse(vault.deficitStop(), "the keeper lifts its own stop");
+        assertTrue(vault.depositsPaused(), "but not the guardian's pause");
+        vm.expectRevert(abi.encodeWithSelector(CollateralVault.Unauthorized.selector, keeper, guardian));
+        vault.unpauseDeposits();
+        vm.expectRevert(abi.encodeWithSelector(CollateralVault.Unauthorized.selector, keeper, guardian));
+        vault.pause();
+        vm.expectRevert(abi.encodeWithSelector(CollateralVault.Unauthorized.selector, keeper, admin));
+        vault.setTvlCap(0);
+        vm.expectRevert(abi.encodeWithSelector(CollateralVault.Unauthorized.selector, keeper, upgrader));
+        vault.upgradeTo(next);
+        vm.stopPrank();
+
+        vm.prank(stranger);
+        vm.expectRevert(abi.encodeWithSelector(CollateralVault.Unauthorized.selector, stranger, depositGuardian));
+        vault.setDeficitStop(true);
+    }
+
     /// The pause must be reversible by the same holder — a halt is not a one-way
     /// lock. Covers full pause and the vault's deposit-only pause on both sides.
     function test_pauseIsReversible() public {

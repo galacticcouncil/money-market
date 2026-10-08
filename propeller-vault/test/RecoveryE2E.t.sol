@@ -6,6 +6,7 @@ import {CollateralVault} from "../src/CollateralVault.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 /// @notice full topology with modeled market loss/interest: real vault/source/harvest/fee
 /// logic, mock aave/router, external recovery funds
@@ -74,7 +75,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         hollar.approve(address(ledger), amount);
         ledger.fundPosition(0, amount);
         vm.stopPrank();
-        assertTrue(ledger.ready(), "every active cohort is backed before reopening");
+        assertTrue(Deficit.ready(ledger), "every active cohort is backed before reopening");
     }
 
     function _modelLoopLiquidation() internal {
@@ -141,8 +142,8 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         _modelLoopLiquidation();
         assertEq(ethVault.totalAssets(), checkpoint.ethBacking, "Main ETH was not seized");
         assertEq(tbtcVault.totalAssets(), checkpoint.btcBacking, "Main tBTC was not seized");
-        assertTrue(ethVault.isUnderfunded());
-        assertTrue(tbtcVault.isUnderfunded());
+        assertTrue(Deficit.underfunded(ethVault));
+        assertTrue(Deficit.underfunded(tbtcVault));
         loop.pauseEmergency();
         vm.prank(ETH_USER);
         vm.expectRevert("Pausable: paused");

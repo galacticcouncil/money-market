@@ -20,8 +20,6 @@ contract YieldValidationTest is HarvestTest {
                 eth.mint(owner, amount);
                 vm.startPrank(owner);
                 eth.approve(address(vault), amount);
-                // 6dp source fills can leave a tiny principal deficit; entry must reject it
-                if (vault.isUnderfunded()) vm.expectRevert(CollateralVault.Underfunded.selector);
                 vault.deposit(amount, owner);
                 vm.stopPrank();
             } else if (action == 1) {

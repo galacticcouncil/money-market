@@ -10,6 +10,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 /// @notice new capital must not receive carry earned before entry, even if it exits
 /// before the harvest runs
@@ -228,7 +229,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         vault.prepareHarvest();
         assertEq(_rewardValue(address(this)), 0);
         assertEq(vault.yieldAccounting().reservedShares(), 0);
-        assertFalse(vault.isUnderfunded(), "return to borrowed basis still backs Main");
+        assertFalse(Deficit.underfunded(vault), "return to borrowed basis still backs Main");
     }
 
     function test_repeatedYieldWriteOffDoesNotInflateAccountingUnits() public {
@@ -329,35 +330,25 @@ contract YieldEntryFairnessTest is HarvestTest {
         assertLe(vault.convertToAssets(shares) + _rewardValue(NEWCOMER), 1e18 + 1e9);
     }
 
-    function test_entryRejectsMainInterestCoveredOnlyBeforeFees() public {
+    function test_deficitSeesMainInterestCoveredOnlyBeforeFees() public {
         _depositAndRamp();
         aPrime.mint(address(loop), 25_500_000); // $25.50 gross; less than $25 net of fees
         hollarDebt.mint(address(vault), 25e18);
         vault.maintainPeg();
         assertGt(loop.equityOf(address(vault)) * 1e10, hollarDebt.balanceOf(address(vault)));
-        assertTrue(vault.isUnderfunded(), "gross receivables cannot fund a net servicing obligation");
-        eth.mint(NEWCOMER, 1e18);
-        vm.startPrank(NEWCOMER);
-        eth.approve(address(vault), 1e18);
-        vm.expectRevert(PropellerMainDebt.UnfundedInterest.selector);
-        vault.deposit(1e18, NEWCOMER);
-        vm.stopPrank();
-        assertEq(vault.balanceOf(NEWCOMER), 0);
+        assertTrue(Deficit.underfunded(vault), "gross receivables cannot fund a net servicing obligation");
     }
 
-    function test_fullFeeRequiresNetFundingForMainInterestBeforeEntry() public {
+    function test_fullFeeNeedsNetFundingForMainInterest() public {
         _depositAndRamp();
         fees.setProtocolFeeBps(address(vault), 10_000);
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
         hollarDebt.mint(address(vault), 25e18);
         vault.maintainPeg();
-        assertTrue(vault.isUnderfunded(), "100 percent fees leave no net interest funding");
+        assertTrue(Deficit.underfunded(vault), "100 percent fees leave no net interest funding");
         eth.mint(NEWCOMER, 1e18);
-        vm.startPrank(NEWCOMER);
+        vm.prank(NEWCOMER);
         eth.approve(address(vault), 1e18);
-        vm.expectRevert(PropellerMainDebt.UnfundedInterest.selector);
-        vault.deposit(1e18, NEWCOMER);
-        vm.stopPrank();
         PropellerMainDebt ledger = PropellerMainDebt(address(vault.mainDebt()));
         hollar.mint(address(this), 25e18);
         hollar.approve(address(ledger), 25e18);

@@ -11,6 +11,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 /// @notice settled-but-unclaimed collateral still backs shares: settling leaves the
 ///         share price unchanged and a deposit in the settle→claim window mints fairly.
@@ -170,7 +171,7 @@ contract ExchangeRateSettleWindowTest is Test {
         // cover source conversion dust independently, never from bob's deposit
         hollar.mint(address(loop), 1e18);
         hollar.mint(address(vault), 1e18);
-        assertFalse(vault.isUnderfunded());
+        assertFalse(Deficit.underfunded(vault));
         vm.startPrank(bob);
         eth.approve(address(vault), 1e18);
         uint256 bobShares = vault.deposit(1e18, bob);

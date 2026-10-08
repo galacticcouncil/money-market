@@ -11,6 +11,7 @@ import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
 import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "../src/interfaces/IAavePool.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockFeeSwapper} from "./mocks/MockFeeAttack.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 interface IFeeForkPool {
     struct ReserveData {
@@ -151,7 +152,7 @@ contract ProtocolFeesForkTest is Test {
     function testFork_ledgerNeedsNoSponsoredBalance() public view {
         PropellerMainDebt buffer = PropellerMainDebt(address(vault.mainDebt()));
         assertEq(buffer.ownedCash(), 0);
-        assertTrue(buffer.ready());
+        assertTrue(Deficit.ready(buffer));
     }
 
     function _checkRate(uint16 bps) internal {

@@ -13,8 +13,6 @@ interface IMainDebt {
     function vault() external view returns (address);
     function ownedCash() external view returns (uint256);
     function activeSourceRemaining() external view returns (uint256);
-    function activeUnderfunded() external view returns (bool);
-    function protocolReserve() external view returns (uint256);
     function beforeDeposit() external returns (uint256 debtBefore);
     function borrowed(uint256 debtBefore) external;
     function startExit(uint256 id, address owner, uint256 shares, uint256 supply,

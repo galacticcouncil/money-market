@@ -49,7 +49,7 @@ contract Market90DaysTest is RecoveryE2ETest {
     function _service(CollateralVault v) internal {
         v.maintainPeg();
         assertGe(v.syntheticSupplied() * v.synthLtBps() / 10_000, hollarDebt.balanceOf(address(v)));
-        // A deficit is expected to block resizing; only those errors are allowed.
+        // only the source's own refusal may block resizing; the deficit stop is off-chain
         try v.rebalance() {} catch (bytes memory reason) {
             bytes4 selector;
             assembly { selector := mload(add(reason, 32)) }

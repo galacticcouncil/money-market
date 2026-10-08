@@ -49,7 +49,6 @@ interface ICompoundVault is IMainDebtVault {
     function totalAssets() external view returns (uint256);
     function totalQueuedCollateral() external view returns (uint256);
     function synthLtBps() external view returns (uint256);
-    function isUnderfunded() external view returns (bool);
 }
 
 /// @dev stateless delegatecall logic deployed with the vault implementation, which supplies the
@@ -65,7 +64,6 @@ contract CompoundLogic {
     error ZeroAmount();
     error ZeroAddress();
     error PrincipalShortfall();
-    error Underfunded();
     error NoLoopEquity();
     error PrincipalNotFloored();
     event Rebalanced(uint256 ltvBefore, uint256 ltvAfter);
@@ -87,28 +85,6 @@ contract CompoundLogic {
             v.pool().withdraw(address(synthetic), burn, address(this));
             synthetic.burn(address(this), burn);
         }
-    }
-
-    function isUnderfunded(address vault) external view returns (bool) {
-        ICompoundVault v = ICompoundVault(vault);
-        if (v.totalAssets() < v.totalQueuedCollateral()) return true;
-        uint256 debt = v.hollarDebtToken().balanceOf(vault);
-        if (debt == 0) return false;
-        uint256 backing8 = v.yieldSource().equityOf(vault)
-            + (v.yieldSource().pendingUnwindOf(vault) + v.hollar().balanceOf(vault)) / 1e10;
-        uint256 reserve8;
-        if (address(v.mainDebt()) != address(0)) {
-            if (v.mainDebt().activeUnderfunded()) return true;
-            // protocol HOLLAR covers a source shortfall; collateral principal is untouched either way
-            reserve8 = v.mainDebt().protocolReserve() / 1e10;
-            backing8 += v.mainDebt().ownedCash() / 1e10 + reserve8;
-            backing8 -= v.yieldAccounting().sourceValue() / 1e10;
-            uint256 reserved = v.mainDebt().sourceFeeReserve() / 1e10;
-            if (reserved > backing8) return true;
-            backing8 -= reserved;
-        }
-        // with a funded reserve the per-vault backing test above decides; unfunded keeps the strict check
-        return (reserve8 == 0 && v.yieldSource().negativeCarryBps() != 0) || backing8 < debt / 1e10;
     }
 
     /// @notice Supply collateral without borrowing or trading. Deployment is a
@@ -167,7 +143,6 @@ contract CompoundLogic {
         uint256 targetDebt8 = value8 * maxLtv / 10_000;
         bool resize = !exiting && ltv + LTV_BAND_LOW_GAP_BPS < maxLtv;
         if (resize || (credit != 0 && debt8 < targetDebt8)) {
-            if (v.isUnderfunded()) revert Underfunded();
             uint256 previousDebt = ledger.beforeDeposit();
             uint256 add = (targetDebt8 - debt8) * 1e10;
             if (!resize) {

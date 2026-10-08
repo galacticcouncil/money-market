@@ -44,6 +44,8 @@ contract CollateralVault is
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
+    /// @notice may only set the deficit stop (the keeper's off-chain deficit check)
+    bytes32 public constant DEPOSIT_GUARDIAN_ROLE = keccak256("DEPOSIT_GUARDIAN_ROLE");
 
     // config
     IERC20 public collateral; // the deposited asset (ETH/tBTC/…)
@@ -61,6 +63,8 @@ contract CollateralVault is
     uint16 public compoundSlippageBps;
     uint256 public tvlCap; // deposit-side cap (collateral units)
     bool public depositsPaused;
+    /// @notice the keepers' deposit pause, separate so they can never lift a guardian's
+    bool public deficitStop;
 
     // accounting
     /// @notice Loop shares this vault holds in the shared SubLoop.
@@ -143,7 +147,9 @@ contract CollateralVault is
     error SourceNotEmpty(); // setYieldSource before the old source is drained
     error NoLoopEquity(); // requestRedeem while the source has nothing to unwind
     error SynthReserveNotListed(); // synthetic has no Aave liquidation threshold yet
-    error Underfunded();
+    error DeleverPending();
+    error NoActiveAssets();
+    error ReentrantTransfer();
     error BootstrapRequired();
     error InvalidDiscountController();
     error InvalidSlippage();
@@ -230,12 +236,6 @@ contract CollateralVault is
         return assets > totalQueuedCollateral ? assets - totalQueuedCollateral : 0;
     }
 
-    /// @notice A deficit freezes entry, never reduces existing principal claims.
-    /// The source reports USD8 equity; HOLLAR is the market's $1, 18dp unit.
-    function isUnderfunded() public view returns (bool) {
-        return CompoundLogic(compoundLogic).isUnderfunded(address(this));
-    }
-
     function asset() external view returns (address) {
         return address(collateral);
     }
@@ -252,13 +252,12 @@ contract CollateralVault is
     /// occur here; keepers deploy available collateral through quoted rebalances.
     function deposit(uint256 assets, address receiver) external nonReentrant whenNotPaused returns (uint256 shares) {
         if (receiver == address(0)) revert ZeroAddress();
-        if (depositsPaused) revert DepositsArePaused();
+        if (depositsPaused || deficitStop) revert DepositsArePaused();
         if (assets == 0) revert ZeroAmount();
         if (address(mainDebt) == address(0)) revert ZeroAddress();
-        if (deleverTarget != 0) revert Underfunded();
+        if (deleverTarget != 0) revert DeleverPending();
         mainDebt.beforeDeposit();
         yieldAccounting.checkpoint(address(0), receiver);
-        if (isUnderfunded()) revert Underfunded();
         // Governance funds the locked initial shares, never the first public user.
         if (totalSupply() == 0 && !hasRole(ADMIN_ROLE, _depositCaller())) revert BootstrapRequired();
         // one aToken balanceOf for both the cap check and share pricing
@@ -565,7 +564,7 @@ contract CollateralVault is
             if (assets <= DEAD_SHARES) revert DepositTooSmall();
             return assets - DEAD_SHARES;
         }
-        if (totalA == 0) revert Underfunded();
+        if (totalA == 0) revert NoActiveAssets();
         shares = Math.ceilDiv(assets * supply, totalA);
     }
 
@@ -602,7 +601,7 @@ contract CollateralVault is
         super._beforeTokenTransfer(from, to, amount);
         if (from != address(0) && to != address(0) && from != address(this) && to != address(this)
             && from != address(yieldAccounting)) {
-            if (_reentrancyGuardEntered()) revert Underfunded();
+            if (_reentrancyGuardEntered()) revert ReentrantTransfer();
             yieldAccounting.checkpoint(from, to);
         }
     }
@@ -673,6 +672,10 @@ contract CollateralVault is
 
     function unpauseDeposits() external onlyRole(GUARDIAN_ROLE) {
         depositsPaused = false;
+    }
+
+    function setDeficitStop(bool stop) external onlyRole(DEPOSIT_GUARDIAN_ROLE) {
+        deficitStop = stop;
     }
 
     function pause() external onlyRole(GUARDIAN_ROLE) {

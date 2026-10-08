@@ -5,6 +5,7 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 import {PluggableYieldSourceTest} from "./PluggableYieldSource.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 contract MainDebtTest is PluggableYieldSourceTest {
     function _ledger() internal view returns (PropellerMainDebt) {
@@ -63,7 +64,7 @@ contract MainDebtTest is PluggableYieldSourceTest {
         assertEq(ledger.ownedCash(), 0);
         assertEq(hollar.balanceOf(address(ledger)), 0);
         assertGt(hollarDebt.balanceOf(address(vault)), 0);
-        assertTrue(ledger.ready());
+        assertTrue(Deficit.ready(ledger));
     }
 
     function test_scaledBorrowRoundingRecordsObservedDebt() public {
@@ -119,19 +120,17 @@ contract MainDebtTest is PluggableYieldSourceTest {
         assertGt(_ledger().interestOf(0), 0, "the reserve does not service active holders");
     }
 
-    function test_reserveBacksTheGuardsWithoutPayingActiveInterest() public {
+    function test_depositsStayOpenThroughADeficitAndTheReserveStaysPut() public {
         _deposit(1e18);
         hollarDebt.mint(address(vault), 2e18);
         vault.maintainPeg();
         vault.pokeSettle();
-        assertFalse(_ledger().ready());
         _fundReserve(2e18);
-        assertTrue(_ledger().ready(), "protocol HOLLAR covers the shortfall");
-        assertFalse(vault.isUnderfunded());
+        assertFalse(Deficit.ready(_ledger()), "the keeper sees the deficit; the reserve backs nothing");
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         assertGt(vault.deposit(1e18, address(this)), 0, "collateral principal is not at risk, so deposits stay open");
-        assertEq(_ledger().interestOf(0), 2e18, "interest is still owed; the reserve only backs it");
+        assertEq(_ledger().interestOf(0), 2e18, "the reserve does not pay active interest");
         assertEq(_ledger().protocolReserve(), 2e18);
     }
 
@@ -153,16 +152,14 @@ contract MainDebtTest is PluggableYieldSourceTest {
         assertEq(_ledger().protocolReserve(), 5e18);
     }
 
-    function test_unfundedInterestPreservesPrincipalAndBlocksDeposits() public {
+    function test_unfundedInterestPreservesPrincipal() public {
         _deposit(1e18);
         hollarDebt.mint(address(vault), 100e18);
         vault.pokeSettle();
         assertEq(_cash(0), 0);
         assertEq(_ledger().interestOf(0), 100e18);
-        assertFalse(_ledger().ready());
+        assertFalse(Deficit.ready(_ledger()));
         assertEq(vault.totalAssets(), 1e18);
-        vm.expectRevert(PropellerMainDebt.UnfundedInterest.selector);
-        vault.deposit(1, address(this));
         _fund(0, 100e18);
         vault.pokeSettle();
         assertEq(_ledger().interestOf(0), 0);

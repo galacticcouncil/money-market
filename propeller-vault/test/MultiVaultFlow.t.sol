@@ -14,6 +14,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {MockSwapper} from "./mocks/MockSwapper.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 /// @notice two vaults (eth 75% ltv, tbtc 80%) share one subloop and harvester;
 ///         each earns carry in its own collateral and an eth exit leaves tbtc untouched.
@@ -340,10 +341,10 @@ contract MultiVaultFlowTest is Test {
         uint256 ethShares = ethVault.deposit(1e18, ETH_USER);
         ethVault.rebalance(); // Explicit keeper deployment before exercising a live position.
         vm.stopPrank();
-        // The first entry's execution deficit must recover before new entry.
-        assertTrue(tbtcVault.isUnderfunded());
+        // the keeper holds new entry until the first entry's execution deficit recovers
+        assertTrue(Deficit.underfunded(tbtcVault));
         hollar.mint(address(loop), 2e18);
-        assertFalse(tbtcVault.isUnderfunded());
+        assertFalse(Deficit.underfunded(tbtcVault));
         tbtc.mint(BTC_USER, 0.1e18);
         vm.startPrank(BTC_USER);
         tbtc.approve(address(tbtcVault), 0.1e18);

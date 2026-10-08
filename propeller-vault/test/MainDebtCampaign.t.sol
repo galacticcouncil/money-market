@@ -9,6 +9,7 @@ import {MockDiscountDebtToken, MockDiscountAToken} from "./mocks/MockDiscount.so
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {SubLoop} from "../src/SubLoop.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 /// real contracts with explicit market fixtures: 180 main cases + 190 sensitivities
 contract MainDebtCampaignTest is RecoveryE2ETest {
@@ -146,8 +147,7 @@ contract MainDebtCampaignTest is RecoveryE2ETest {
         try v.rebalance() {} catch (bytes memory reason) {
             bytes4 selector;
             assembly { selector := mload(add(reason, 32)) }
-            assertTrue(selector == CollateralVault.Underfunded.selector
-                || selector == PropellerMainDebt.UnfundedInterest.selector
+            assertTrue(selector == SubLoop.Underfunded.selector
                 || selector == PropellerMainDebt.OutstandingDebt.selector, "unexpected rebalance revert");
             ++metrics.blocked;
         }
@@ -225,7 +225,7 @@ contract MainDebtCampaignTest is RecoveryE2ETest {
                 _tryRebalance(tbtcVault);
                 if (loop.unwindTargetEquity() == 0 && loop.negativeCarryBps() == 0
                     && ethVault.pendingWithdrawalShares() == 0 && tbtcVault.pendingWithdrawalShares() == 0
-                    && _buffer(ethVault).ready() && _buffer(tbtcVault).ready()) {
+                    && Deficit.ready(_buffer(ethVault)) && Deficit.ready(_buffer(tbtcVault))) {
                     for (uint256 i; i < 8; ++i) loop.pokeBorrow();
                 }
             }

@@ -12,6 +12,7 @@ import {PropellerFeeController} from "../src/PropellerFeeController.sol";
 import {PropellerDiscount} from "../src/PropellerDiscount.sol";
 import {MockDiscountAToken, MockDiscountDebtToken} from "./mocks/MockDiscount.sol";
 import {MockFeeSwapper, MockFeeCallbackToken} from "./mocks/MockFeeAttack.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 contract ProtocolFeesTest is HarvestTest {
     address constant TREASURY = address(0xFEE);
@@ -433,7 +434,7 @@ contract ProtocolFeesTest is HarvestTest {
         fees.claimProtocolFees(address(eth));
         // A treasury deposit is subject to the same backing gate as any user.
         hollar.mint(address(loop), 1e18);
-        assertFalse(vault.isUnderfunded());
+        assertFalse(Deficit.underfunded(vault));
         vm.startPrank(TREASURY);
         eth.approve(address(vault), amount);
         uint256 shares = vault.deposit(amount, TREASURY);

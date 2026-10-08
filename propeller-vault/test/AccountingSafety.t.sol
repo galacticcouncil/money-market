@@ -5,6 +5,7 @@ import {PluggableYieldSourceTest} from "./PluggableYieldSource.t.sol";
 import {SubLoopUnwindTest} from "./SubLoopUnwind.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
     function test_publicDepositorCannotPayBootstrapCost() public {
@@ -104,12 +105,19 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         assertEq(vault.totalQueuedShares(), 0);
     }
 
-    function test_newDepositBlockedWhenMainDebtOutgrowsSource() public {
+    function test_depositStaysOpenWhenMainDebtOutgrowsSource() public {
         _deposit(1e18);
         hollarDebt.mint(address(vault), 10e18);
+        vault.maintainPeg();
+        assertTrue(Deficit.underfunded(vault), "the keeper sees the deficit");
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
-        vm.expectRevert(PropellerMainDebt.UnfundedInterest.selector);
+        assertGt(vault.deposit(1e18, address(this)), 0, "the contracts no longer refuse it");
+        vault.grantRole(vault.DEPOSIT_GUARDIAN_ROLE(), address(this));
+        vault.setDeficitStop(true);
+        eth.mint(address(this), 1e18);
+        eth.approve(address(vault), 1e18);
+        vm.expectRevert(CollateralVault.DepositsArePaused.selector);
         vault.deposit(1e18, address(this));
     }
 
@@ -131,12 +139,8 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         assertLt(repaid, snapshot);
         assertLt(paid, owed);
         assertEq(vault.queueHead(), request);
-        assertTrue(vault.isUnderfunded());
+        assertTrue(Deficit.underfunded(vault));
         vm.mockCall(address(source), abi.encodeWithSignature("pullFreed()"), abi.encode(0));
-        eth.mint(address(this), 1e18);
-        eth.approve(address(vault), 1e18);
-        vm.expectRevert(CollateralVault.Underfunded.selector);
-        vault.deposit(1e18, address(this));
         vault.pokeSettle();
         assertEq(vault.totalQueuedCollateral(), owed - paid);
 

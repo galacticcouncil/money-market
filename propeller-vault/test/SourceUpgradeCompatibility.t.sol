@@ -8,6 +8,7 @@ import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
 import {PropellerYieldAccounting} from "../src/PropellerYieldAccounting.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 /// @dev test-only append-only upgrade, not strategy rotation
 contract SubLoopUpgradeProbe is SubLoop {
@@ -269,17 +270,14 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
         _preparePartialExit();
         ethVault.pokeSettle();
         aPrime.burn(address(loop), aPrime.balanceOf(address(loop)) / 2);
-        assertTrue(ethVault.isUnderfunded());
+        assertTrue(Deficit.underfunded(ethVault));
         uint256 assets = ethVault.totalAssets();
         uint256 claim = loop.pendingUnwindOf(address(ethVault));
         _upgrade();
-        assertTrue(ethVault.isUnderfunded());
-        assertFalse(_ledger(ethVault).ready());
+        assertTrue(Deficit.underfunded(ethVault));
+        assertFalse(Deficit.ready(_ledger(ethVault)));
         assertEq(ethVault.totalAssets(), assets);
         assertEq(loop.pendingUnwindOf(address(ethVault)), claim);
-        vm.prank(ETH_USER);
-        vm.expectRevert(CollateralVault.Underfunded.selector);
-        ethVault.deposit(1, ETH_USER);
     }
 
     function test_upgradeRequiresAuthorityAndCannotReinitializeExistingState() public {

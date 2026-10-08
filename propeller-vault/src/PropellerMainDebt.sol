@@ -75,12 +75,11 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
     uint256 private allocationWeight;
     uint256 private allocationCursor;
     uint256 private allocationTail;
-    // protocol-owned HOLLAR, owned by no cohort: covers realized exit shortfalls and backs the guards
-    uint256 public override protocolReserve;
+    // protocol-owned HOLLAR, owned by no cohort: covers realized exit shortfalls
+    uint256 public protocolReserve;
 
     error Unauthorized();
     error InvalidConfiguration();
-    error UnfundedInterest();
     error TransferMismatch();
     error OutstandingDebt();
     error Paused();
@@ -168,25 +167,6 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
 
     function pendingSourceAccounting() external view override returns (bool) { return _pendingAllocation(); }
 
-    function activeUnderfunded() public view override returns (bool) {
-        uint256 debt = debtOf(0);
-        if (debt == 0) return false;
-        // No amount of gross carry services interest at a 100% fee. Net cash
-        // or already fee-reserved receivables must cover that obligation first.
-        IPropellerFeeController controller = IMainDebtVault(vault).feeController();
-        if (address(controller) != address(0) && controller.protocolFeeBps(vault) == BPS
-            && interestOf(0) > activeFunds()) return true;
-        PropellerYieldAccounting rewards = PropellerYieldAccounting(yieldAccounting);
-        // collateral principal is never at risk here; a source shortfall is protocol HOLLAR the reserve covers
-        uint256 sourceBacking = IMainDebtVault(vault).yieldSource().equityOf(vault) * 1e10 - rewards.sourceValue()
-            + protocolReserve;
-        return sourceBacking + activeFunds() < debt || sourceBacking < rewards.requiredSourceBacking();
-    }
-
-    function ready() external view returns (bool) {
-        return !activeUnderfunded() && !_pendingAllocation();
-    }
-
     function _pendingAllocation() private view returns (bool) {
         return unallocatedSource != 0 || unallocatedCost != 0
             || IMainDebtVault(vault).yieldSource().unwindExecutionCost(vault) != sourceCostCheckpoint;
@@ -195,9 +175,6 @@ contract PropellerMainDebt is IMainDebt, ReentrancyGuard {
     function beforeDeposit() external override onlyVault nonReentrant returns (uint256) {
         if (activeSourceRemaining != 0 || _pendingAllocation()) revert OutstandingDebt();
         _repay(0, 0);
-        // Earned source equity can back interest until the next harvest. Do not
-        // demand a cash top-up merely because another block accrued interest.
-        if (interestOf(0) != 0 && activeUnderfunded()) revert UnfundedInterest();
         return debtToken.balanceOf(vault);
     }
 

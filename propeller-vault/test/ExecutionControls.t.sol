@@ -328,10 +328,7 @@ contract ExecutionControlsTest is HarvestTest {
         (,,uint256 promised,,,,,,) = vault.redemptions(id);
         assertEq(vault.claim(id, address(this)), promised);
         assertEq(vault.reinvestAssets(), expected, "settlement does not recreate credit");
-        // usd8 equity vs wei debt: deployment waits for source income to cover the fractional deficit
-        vm.expectRevert(CollateralVault.Underfunded.selector);
-        control.preview(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
-        aPrime.mint(address(loop), 1);
+        // a fractional usd8-vs-wei deficit no longer holds deployment back
         _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
         assertLe(hollarDebt.balanceOf(address(vault)), vault.totalAssets() * 2250);
         assertEq(hollar.balanceOf(address(vault)), 0, "only an executable slice is borrowed");

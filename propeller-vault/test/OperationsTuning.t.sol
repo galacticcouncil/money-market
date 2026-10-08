@@ -12,6 +12,7 @@ import {SubLoop} from "../src/SubLoop.sol";
 import {MockDiscountDebtToken, MockDiscountAToken} from "./mocks/MockDiscount.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 /// @notice parameter campaign on real contracts with mocked accrual and execution costs;
 /// static crypto prices, no income donations or recovery funding
@@ -175,7 +176,7 @@ contract OperationsTuningTest is HarvestTest {
                         m.entryVolume += added;
                         m.maxRebalance = Math.max(m.maxRebalance, added);
                     }
-                    for (uint256 i; i < 8 && main.ready() && loop.negativeCarryBps() == 0
+                    for (uint256 i; i < 8 && Deficit.ready(main) && loop.negativeCarryBps() == 0
                         && loop.healthFactor() > loop.targetHf() * 1_005_000 / 1_000_000
                         && loop.unwindTargetEquity() == 0 && loop.deleverDebtTarget() == 0; ++i) {
                         uint256 added = _attempt(address(loop), abi.encodeCall(SubLoop.pokeBorrow, ()), m);
@@ -185,7 +186,7 @@ contract OperationsTuningTest is HarvestTest {
                         m.maxBorrow = Math.max(m.maxBorrow, added);
                     }
                 }
-                if (!main.ready()) ++m.blockedDays; // reported below as blocked observations
+                if (!Deficit.ready(main)) ++m.blockedDays; // reported below as blocked observations
             }
             assertGe(vault.totalAssets() - m.admitted, previous - previousAdmitted,
                 "ordinary operation spent funded user crypto");
@@ -306,7 +307,7 @@ contract OperationsTuningTest is HarvestTest {
         try this.quoted(target, data) returns (uint256 done) { return done; }
         catch (bytes memory reason) {
             bytes4 error = bytes4(reason);
-            assertTrue(error == CollateralVault.Underfunded.selector || error == PropellerMainDebt.UnfundedInterest.selector
+            assertTrue(error == SubLoop.Underfunded.selector
                 || error == PropellerMainDebt.OutstandingDebt.selector || error == ExecutionController.TradeSize.selector,
                 "unexpected admission/rebalance failure");
             ++m.quoteSkips;

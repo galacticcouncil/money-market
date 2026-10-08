@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {PluggableYieldSourceTest} from "./PluggableYieldSource.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {PropellerMainDebt} from "../src/PropellerMainDebt.sol";
+import {Deficit} from "./helpers/Deficit.sol";
 
 /// Regression evidence: collateral alone is not interest funding.
 contract InterestPolicyEvidenceTest is PluggableYieldSourceTest {
@@ -20,17 +21,14 @@ contract InterestPolicyEvidenceTest is PluggableYieldSourceTest {
         eth.mint(address(pool), amount);
     }
 
-    function test_compoundedYieldDoesNotSatisfyCurrentHollarBackingCheck() public {
+    function test_compoundedYieldIsNotHollarBacking() public {
         _seed();
         uint256 beforeAssets = vault.totalAssets();
         _growCollateral(1e17); // $300 at the fixture's ETH price
         hollarDebt.mint(address(vault), 100e18);
         vault.maintainPeg();
         assertEq(vault.totalAssets(), beforeAssets + 1e17);
-        assertTrue(vault.isUnderfunded(), "collateral yield is not HOLLAR repayment cash");
-        pool.setPrice(address(eth), 6000e18);
-        vm.expectRevert(CollateralVault.Underfunded.selector);
-        vault.rebalance();
+        assertTrue(Deficit.underfunded(vault), "collateral yield is not HOLLAR repayment cash");
     }
 
     function test_reborrowSubtractsAccruedMainInterest() public {
