@@ -205,5 +205,13 @@ export async function context() {
   async function mintTestHollar(label,to,amount){
     await enact(label,(await hollarMint(to,amount)).calls);
   }
-  return {api,pub,r,save,read,readSig,sign,enact,evmSend,deploy,write,govEvm,nativeAccount,hollarMint,mintTestHollar,arb};
+  // room before a mint is parked by the deposit fuse and locks the asset; null without a fuse
+  async function fuseHeadroom(id){
+    const limit=(await api.query.assetRegistry.assets(id)).unwrap().xcmRateLimit.unwrapOr(null)?.toBigInt();
+    const state=(await api.query.circuitBreaker.assetLockdownState(id)).unwrapOr(null);
+    if(limit===undefined||!state)return null;
+    assert.ok(state.isUnlocked,`${id} is in lockdown`);
+    return limit-((await api.query.tokens.totalIssuance(id)).toBigInt()-state.asUnlocked[1].toBigInt());
+  }
+  return {api,pub,r,save,read,readSig,sign,enact,evmSend,deploy,write,govEvm,nativeAccount,hollarMint,mintTestHollar,fuseHeadroom,arb};
 }

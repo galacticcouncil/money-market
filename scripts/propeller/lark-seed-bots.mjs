@@ -24,6 +24,8 @@ const PLANS={
 };
 // lark-only deposit fuse raises (units per window), applied before the mints
 const RAISES={'20261008-b':[[43,5000000]]};
+// a new lark starts with everything the lark 4 bots reported missing
+PLANS.baseline=[...PLANS['20261008-a'],...PLANS['20261008-b']];RAISES.baseline=RAISES['20261008-b'];
 const plan=PLANS[round];
 assert.ok(plan,`unknown round ${round}`);
 const c=await context();

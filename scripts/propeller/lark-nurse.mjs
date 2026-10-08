@@ -9,6 +9,9 @@
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync,writeFileSync} from 'node:fs';
 import {context,v,HOLLAR,POOL,deployer,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
+// the next version checks underfunding off-chain and keeps a reserve for exit shortfalls
+assert.ok(profile.legacy,`${profile.name}: no nurse or Main cushions on the next version`);
 const arg=(name,fallback)=>process.argv.find(a=>a.startsWith(`--${name}=`))?.split('=')[1]??fallback;
 const hollar=x=>BigInt(Math.round(Number(x)*1e6))*10n**12n,fmt=x=>Number((Number(x)/1e18).toFixed(4));
 const GAP_MAX=hollar(arg('gap-max','2'));

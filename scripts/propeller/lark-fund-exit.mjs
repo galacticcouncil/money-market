@@ -2,6 +2,9 @@
 // left the FIFO head short), so settlement moves on. never yield.
 import assert from 'node:assert/strict';
 import {context,v,HOLLAR,deployer,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
+// the next version checks underfunding off-chain and keeps a reserve for exit shortfalls
+assert.ok(profile.legacy,`${profile.name}: no nurse or Main cushions on the next version`);
 const arg=name=>process.argv.find(a=>a.startsWith(`--${name}=`))?.split('=')[1];
 const name=arg('vault'),request=BigInt(arg('request')??-1),amount=BigInt(Math.round(Number(arg('hollar'))*1e6))*10n**12n;
 assert.ok(name&&request>=0n&&amount>0n,'usage: --vault=<ETH|TBTC> --request=<id> --hollar=<amount> [--live]');

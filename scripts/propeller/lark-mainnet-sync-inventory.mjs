@@ -24,5 +24,5 @@ try{
   if(BigInt((await api.call.currenciesApi.account(id,pair.address)).free.toString())>0n)continue;
   await sign(api.tx.router.sell(222,id,(5000n*10n**18n).toString(),'0',[{pool:'Omnipool',assetIn:222,assetOut:id}]),`${name}.acquire-${id}`,pair);
  }
- if(live){for(const pair of [pools,replay])console.log(pair.address.slice(0,8),JSON.stringify(Object.fromEntries(await Promise.all([420,1001,9001,5,1000085].map(async id=>[id,(await api.call.currenciesApi.account(id,pair.address)).free.toString()])))));}
+ if(live){r.checks.syncInventory=true;save();for(const pair of [pools,replay])console.log(pair.address.slice(0,8),JSON.stringify(Object.fromEntries(await Promise.all([420,1001,9001,5,1000085].map(async id=>[id,(await api.call.currenciesApi.account(id,pair.address)).free.toString()])))));}
 }finally{await c.api.disconnect();}

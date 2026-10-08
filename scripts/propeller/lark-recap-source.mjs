@@ -2,6 +2,9 @@
 // after deployment entry costs, so deposits and ramping resume. never yield.
 import assert from 'node:assert/strict';
 import {context,v,HOLLAR,deployer,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
+// the next version checks underfunding off-chain and keeps a reserve for exit shortfalls
+assert.ok(profile.legacy,`${profile.name}: no nurse or Main cushions on the next version`);
 const arg=name=>process.argv.find(a=>a.startsWith(`--${name}=`))?.split('=')[1];
 const round=arg('round'),amount=BigInt(Math.round(Number(arg('hollar'))*1e6))*10n**12n;
 assert.ok(round&&amount>0n,'usage: --round=<tag> --hollar=<amount> [--live]');

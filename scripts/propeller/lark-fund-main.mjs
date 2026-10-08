@@ -2,6 +2,9 @@
 // gaps do not freeze deposits on Lark. Recorded as a subsidy, never as yield.
 import assert from 'node:assert/strict';
 import {context,v,HOLLAR,deployer,live} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
+// the next version checks underfunding off-chain and keeps a reserve for exit shortfalls
+assert.ok(profile.legacy,`${profile.name}: no nurse or Main cushions on the next version`);
 const AMOUNT=10n**18n;
 const c=await context();
 try{
