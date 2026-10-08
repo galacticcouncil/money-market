@@ -10,11 +10,8 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockYieldSource} from "./mocks/MockYieldSource.sol";
 
-/// @notice Phase A: proves PRIME is genuinely PLUGGABLE, not just renamed. The
-///         vault binds only to `IYieldSource`; here it runs a full deposit →
-///         redeem → claim against `MockYieldSource` — a source with no leverage,
-///         no PRIME, no Aave loop, no health factor, no keeper cranks. If this
-///         works with zero changes to the vault, the seam is real.
+/// @notice the vault runs a full deposit → redeem → claim against a non-leveraged
+/// `IYieldSource`, so the source is pluggable
 contract PluggableYieldSourceTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
@@ -27,7 +24,7 @@ contract PluggableYieldSourceTest is Test {
 
     MockPool pool;
     SyntheticToken synth;
-    MockYieldSource source; // the NON-leveraged plug
+    MockYieldSource source; // the non-leveraged plug
     CollateralVault vault;
 
     function setUp() public {
@@ -59,7 +56,7 @@ contract PluggableYieldSourceTest is Test {
                             "pETH",
                             address(eth),
                             address(pool),
-                            address(source), // ← a non-leveraged IYieldSource in the socket
+                            address(source), // non-leveraged source
                             address(0),
                             address(hollar),
                             address(synth),
@@ -78,11 +75,13 @@ contract PluggableYieldSourceTest is Test {
     }
 
     function test_depositRedeemClaimThroughNonLeveragedSource() public {
-        // deposit 1 ETH — the borrowed HOLLAR routes into the generic source
+        // fund collateral, then deploy hollar into the generic source
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         uint256 shares = vault.deposit(1e18, address(this));
         assertGt(shares, 0, "shares minted");
+        assertEq(vault.loopShares(), 0, "deposit waits for deployment");
+        vault.rebalance();
 
         assertGt(vault.loopShares(), 0, "vault holds shares in the generic source");
         assertGt(source.equityOf(address(vault)), 0, "source reports the vault's equity");
@@ -92,18 +91,14 @@ contract PluggableYieldSourceTest is Test {
             "borrowed HOLLAR is custodied by the source"
         );
 
-        // redeem the whole position. No ramp, no pokeBorrow/pokeRepay — this
-        // source has none; requestUnwind frees synchronously and pokeSettle pulls
-        // it straight back.
+        // no ramp or pokes: requestUnwind frees synchronously and pokeSettle pulls it back
         uint256 reqId = vault.requestRedeem(shares, address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(100);
         vault.pokeSettle();
         uint256 got = vault.claim(reqId, address(this));
 
-        // Full principal back through a source with no leverage at all. The only
-        // expected shortfall is DEAD_SHARES (1000 wei), so pin it tightly — a loose
-        // band would hide a real principal loss.
+        // only DEAD_SHARES (1000 wei) may be lost, so keep the band tight
         assertApproxEqAbs(got, 1e18, 1e6, "principal returned via the generic seam");
         assertApproxEqAbs(hollarDebt.balanceOf(address(vault)), 0, 1e12, "Main debt repaid");
     }

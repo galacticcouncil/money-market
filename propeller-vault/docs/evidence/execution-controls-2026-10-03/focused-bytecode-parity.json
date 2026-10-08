@@ -1,0 +1,37 @@
+[
+  {
+    "contract": "CollateralVault",
+    "creationEqual": true,
+    "runtimeEqual": true
+  },
+  {
+    "contract": "CompoundLogic",
+    "creationEqual": true,
+    "runtimeEqual": true
+  },
+  {
+    "contract": "SubLoop",
+    "creationEqual": true,
+    "runtimeEqual": true
+  },
+  {
+    "contract": "ExecutionController",
+    "creationEqual": true,
+    "runtimeEqual": true
+  },
+  {
+    "contract": "Harvester",
+    "creationEqual": true,
+    "runtimeEqual": true
+  },
+  {
+    "contract": "PropellerMainDebt",
+    "creationEqual": true,
+    "runtimeEqual": true
+  },
+  {
+    "contract": "PropellerYieldAccounting",
+    "creationEqual": true,
+    "runtimeEqual": true
+  }
+]

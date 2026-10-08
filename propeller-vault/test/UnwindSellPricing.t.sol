@@ -12,26 +12,10 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 
-/// @notice P-3: `pokeRepay` sizes the unwind sell (how many aPRIME to sell to
-///         raise a safe amount of HOLLAR) by ASSUMING 1 aPRIME = $1
-///         (SubLoop.sol:355 `... / 100`), instead of using the oracle price like
-///         every other leg (`_fundDeploy`, `harvest`, and the min-out three lines
-///         below all call `_oracleRate()`).
-///
-///         The collateral it may safely withdraw is a USD budget sized to keep
-///         HF ≥ STEP_HF_FLOOR (1.02). Converting that budget to a token amount at
-///         $1 when PRIME is worth more oversells — the withdraw pulls out MORE
-///         collateral value than the budget, so HF drops through the floor (and,
-///         at a large enough appreciation, the Aave withdraw reverts outright,
-///         stalling the unwind/de-lever spiral — a redemption outage exactly when
-///         PRIME, the yield asset, is doing well).
-///
-///         This asserts the documented invariant: after an unwind sell, the loop
-///         HF must stay ≥ STEP_HF_FLOOR. It fails on the $1-assuming code once
-///         PRIME appreciates, and passes once the sell is oracle-priced.
+/// @notice the unwind sell is sized at the oracle prime price, so loop hf stays
+///         >= STEP_HF_FLOOR after a sell even when prime trades above $1.
 contract UnwindSellPricingTest is Test {
-    // SubLoop.STEP_HF_FLOOR (internal constant) — the per-step HF floor the
-    // unwind sell is documented to preserve.
+    // mirrors SubLoop.STEP_HF_FLOOR (internal)
     uint256 constant STEP_HF_FLOOR = 1.02e18;
 
     MockERC20 eth;
@@ -129,17 +113,17 @@ contract UnwindSellPricingTest is Test {
     }
 
     function test_unwindSellSurvivesPrimeAppreciation() public {
-        // deposit 1 ETH and ramp the loop to target HF (~1.05) at PRIME = $1
+        // deposit 1 eth and ramp the loop to target hf (~1.05) at prime = $1
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         uint256 shares = vault.deposit(1e18, address(this));
+        vault.rebalance();
         for (uint256 i = 0; i < 40; i++) {
             loop.pokeBorrow();
         }
         assertApproxEqRel(loop.healthFactor(), 1.05e18, 0.03e18, "loop ramped to target");
 
-        // PRIME appreciates +30% — it's the yield asset, this is the good case.
-        // (The loop is now *more* collateralised; nothing here should be unsafe.)
+        // prime appreciates +30%; the loop is more collateralised, nothing should be unsafe
         pool.setPrice(address(prime), 1.30e18);
 
         // open a redemption so the unwind spiral has work to do
@@ -151,11 +135,7 @@ contract UnwindSellPricingTest is Test {
         uint256 aPrimeBefore = aPrime.balanceOf(address(loop));
         uint256 targetBefore = loop.unwindTargetEquity();
 
-        // One unwind step. The withdraw inside the router-sell must keep the
-        // loop's HF above Aave's limit. Sizing the sell at $1 while PRIME is
-        // $1.30 oversells by ~30%, so the withdraw pulls out too much collateral
-        // and Aave reverts it — pokeRepay reverts and the unwind/de-lever spiral
-        // stalls (redemption + safety-brake outage).
+        // a $1-sized sell at $1.30 would oversell ~30% and revert the in-route withdraw
         bool reverted;
         try loop.pokeRepay() {
             // ok
@@ -164,15 +144,11 @@ contract UnwindSellPricingTest is Test {
         }
         assertFalse(reverted, "pokeRepay reverted: unwind sell oversized at PRIME>$1 breached Aave HF");
 
-        // The step must have done REAL work at a correct (oracle) size — not
-        // trivially "not reverted" by selling nothing. A degenerate fix that
-        // skipped selling when PRIME>$1 would clear the assertFalse above; these
-        // pin that an actual sell + unwind-progress happened.
+        // the step must actually sell and progress, not pass by selling nothing
         assertLt(aPrime.balanceOf(address(loop)), aPrimeBefore, "an actual aPRIME sell occurred");
         assertLt(loop.unwindTargetEquity(), targetBefore, "unwind made progress (equity freed)");
 
-        // and the loop must be left healthy, at/above target (the repay leg lifts
-        // HF back up after the safe-sized sell)
+        // the repay leg lifts hf back up after the safe-sized sell
         assertGe(loop.healthFactor(), STEP_HF_FLOOR, "loop left healthy after the unwind step");
     }
 }

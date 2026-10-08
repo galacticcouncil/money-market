@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-03",
+  "baseCommit": "fdb820ae16b7581c0f3b8c310b8e2207ac3a537d",
+  "compiler": {
+    "version": "0.8.22+commit.4fc1097e",
+    "evmVersion": "london",
+    "viaIR": true,
+    "optimizerRuns": 200
+  },
+  "results": {
+    "solidityPassed": 358,
+    "solidityFailed": 0,
+    "solidityOptionalSkipped": 12,
+    "soliditySuites": 47,
+    "keeperPassed": 39,
+    "uiFunctionsMatched": 42,
+    "nativeStatus": "native-execution-controls-passed"
+  },
+  "limitations": [
+    "Local runtime 447 fixture with donated income and recovery funding, not organic APY",
+    "Controller policies are illustrative; no mainnet activation",
+    "Fresh mutable implementations; Main debt modules match executable code with metadata differences",
+    "Native keeper harvest has two PRIME-to-collateral lanes; native controlled Main-servicing batch remains an activation drill",
+    "Chopsticks RPC timestamp/hash normalization and bounded call-based gas estimator documented",
+    "Existing model APY predates the controller overhead and throughput limits"
+  ],
+  "sources": {
+    "propeller-vault/src/ExecutionController.sol": "2e87a44bea4dd31119ad8dd6378ad22bb3075ea4aee6463d5622b455711dff9d",
+    "propeller-vault/src/CollateralVault.sol": "923f0301b09025a1a650adb819e77ffcf74fe526fd9aecf8b18aee537b0a4cd7",
+    "propeller-vault/src/SubLoop.sol": "9b1f99f43e6f6d0aeab3fe4bc1b53519b2da1ad03593b531bc74846424077ee4",
+    "propeller-vault/src/Harvester.sol": "d24cda0705c654122b88a34e0938b932cc1d51a6d635fd14d6d61f4cfc50680c",
+    "propeller-vault/src/PropellerMainDebt.sol": "4a44492f6bf0748401a81a3c71b862f6057aecdd6bd59e1daf6028be80045ab3",
+    "propeller-vault/src/lib/CompoundLogic.sol": "dafee5e9ee559d036494c5ff24e14473314cb6c518281477a4542eed3cbadeb6",
+    "propeller-vault/src/interfaces/IYieldSource.sol": "b2afc98425222c5754905cce6efe190b40ed3bc07e9a2ae9c962870f67b23b08",
+    "propeller-vault/test/ExecutionControls.t.sol": "00467fbbb1c248a26229f049e11c792d4562f5a630477dd4f3bacc1cb1d25b8f",
+    "propeller-vault/test/mocks/MockYieldSource.sol": "95965953ca95955664f5201d44bf7f5cc053e995818c62673927b9f316ff7b17",
+    "propeller-vault/looper/src/config.ts": "5971fe5809f093a6c700559ba62bf59c3719c398b394f3f15a406759a6761a15",
+    "propeller-vault/looper/src/index.ts": "daddf780242cfafaa5421507f8df0fe50fbcd40f00e5fff6de06bc5dfc8ee21e",
+    "propeller-vault/looper/src/looper.ts": "bdec973df73edbc22c07b0900039b0d7487b8020e6301b2b8edf42e625c70a5a",
+    "propeller-vault/looper/src/execution-policy.ts": "32721064a6de8446314359f9e42ceee02afecdeb7d37d8ce826c04ad5649b91c",
+    "propeller-vault/looper/test/execution.test.ts": "3c533ec18fc28007567a643ef4c59e364209cabf172771da0017079fb7a1dfe8",
+    "propeller-vault/looper/test/safety.test.ts": "fe7b0b8c7c5a8150d3fb372cc6171b416b9ad116737696cca213b59ebfaef4a0",
+    "propeller-vault/looper/test/transactions.test.ts": "e2da61d1c1c7a3af6bf8dc843b46b427d0d4389ad309ea468be9e701fd714761",
+    "propeller-vault/looper/docker-stack.yml": "b5cc4a6ca1c76a3bc3ad5bde68f039c98918e14e65ff333adce3c5df3c86a2cd",
+    "scripts/propeller/native-execution-controls.mjs": "1a29a04166c5727d75cb324825c4fa20d4c6841c5b6144c4a65714f29d0d3567",
+    "scripts/propeller/native-verify-execution-controls.mjs": "4986a2e52b475e9b4636e882a888d213a9388e59e1d09623e6c06faeff23b476",
+    "scripts/propeller/native-yield-validation.mjs": "bfa8f5c4dcd6f115c3719297401c4d28ecad344ef5f377db7e137a34c8024dd1",
+    "scripts/propeller/verify-readiness.ts": "67149f8f8f22a2fa28896608bedad543bd6ad6a705a4fb9d45a151e6213f274a"
+  },
+  "evidence": {
+    "final-bytecode-parity.json": "2f01168c137d4d0a1c03a216efc9445e6a6310768586506bf38f4372bf2a691f",
+    "focused-bytecode-parity.json": "5d04ac2253ee9032def9e8a625399980b0c274ff321b956255bb18ba91cd442d",
+    "focused.log": "78d3aa0e6dba58b0072fb922a358a6c35a9cabfd84f395dfd8ea0eb717f26b70",
+    "keeper-build.log": "9f7d241ea4bbd7154c13c11f5dfc50a34a60f7748d3714e317e3bf050cfd4c7a",
+    "keeper-tests.log": "04c9be119b66a5b0f201e6b06f4d16feaa2db91f49a39c18809468d25de4666b",
+    "native-campaign.json": "06358bc1bf0b855d6817eb6d10852b229f0faa130d95e6bef9eebe0510b263bc",
+    "native-code-verification.json": "a97657d32b9b4dc4389ea3d187cbf2b0ac239d7815e3be95fd12c99d56f9700d",
+    "native-code-verification.log": "7f5aec960b578bcd985a907b3451712251cd9024b8cf03751c4115903a7a09b2",
+    "native-controls.json": "bac0c87aadd1792f7fcaae5a21499ecbf03efdcdb3465dd98f701ad924741683",
+    "native-keeper.log": "de4444a1f30e8771076fc8459aa1d057850237a12db52f39959dae1a60a51a66",
+    "production-build.log": "e523d75b66a7e4dc3664c094c6c3c7d0554af4813019a5f8d7c4db2ee7aea3d8",
+    "readiness-syntax.log": "90df8af19c4e31dedb9577d97dd3b3101c979960147d7a65145593f30a2f83aa",
+    "rpc-block-context.json": "aa38776d323fb96cbbc501d6cda44cb5fb562ad9738c1f0e005b434f803e4825",
+    "solidity.log": "b1f0d743ed95090034571cc9422b4257e7d58cf7cae7dd1981ab485e0038b9ef",
+    "source-storage.log": "3451d091a646622e71c5b2d6283a28eb314f99c70b544465844a41a2f827bba9",
+    "ui-abi.log": "e69f782c00dbb8227ba14c1a5710dbef9cb380acb4cb5eae161061d9db830688"
+  },
+  "logNormalization": "Trailing whitespace and empty final lines removed; diagnostic content preserved."
+}

@@ -1,0 +1,28 @@
+[
+  {
+    "asset": "ETH",
+    "source": "r3-threshold-30-ramp-1h-ETH.log",
+    "sha256": "d98bd0234a7c0a2ab4f98464beaa2513866400477090c3f5bae6d5926895a2e2",
+    "contractFundedUsd": 354.4239503777539,
+    "modelFundedUsd": 354.6488218255896,
+    "differenceUsd": 0.22487144783571011,
+    "contractFirstCryptoDay": 88.04166666666667,
+    "modelFirstCryptoDay": 88.04166666666667,
+    "harvests": 32,
+    "unconvertedUserUsd": 45.56770456487961,
+    "maxAccountingError": 2.863771442207508e-10
+  },
+  {
+    "asset": "BTC",
+    "source": "r3-threshold-30-ramp-1h-BTC.log",
+    "sha256": "8664217862046c2ba8a6e5d44f68b9f9a3bc45d8e0822985b2fbae12cda0d0a6",
+    "contractFundedUsd": 373.8792326852486,
+    "modelFundedUsd": 373.9202081397707,
+    "differenceUsd": 0.04097545452208351,
+    "contractFirstCryptoDay": 88.04166666666667,
+    "modelFirstCryptoDay": 88.04166666666667,
+    "harvests": 32,
+    "unconvertedUserUsd": 48.61486011240186,
+    "maxAccountingError": 1.708997388050193e-10
+  }
+]

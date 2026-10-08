@@ -1,0 +1,112 @@
+TAP version 13
+# Subtest: amount conversion preserves six-decimal stress amounts
+ok 1 - amount conversion preserves six-decimal stress amounts
+  ---
+  duration_ms: 1.51629
+  type: 'test'
+  ...
+# Subtest: exact-output BUY quote agrees with exact-input within fee and rounding dust
+ok 2 - exact-output BUY quote agrees with exact-input within fee and rounding dust
+  ---
+  duration_ms: 2.918246
+  type: 'test'
+  ...
+# Subtest: runtime quote direction and buyback-fee gate match official HSM math
+ok 3 - runtime quote direction and buyback-fee gate match official HSM math
+  ---
+  duration_ms: 2.741733
+  type: 'test'
+  ...
+# Subtest: old static HSM helper uses the same corrected BUY direction
+ok 4 - old static HSM helper uses the same corrected BUY direction
+  ---
+  duration_ms: 1.218634
+  type: 'test'
+  ...
+# Subtest: funded pools at the peg do not trigger buybacks
+ok 5 - funded pools at the peg do not trigger buybacks
+  ---
+  duration_ms: 0.306496
+  type: 'test'
+  ...
+# Subtest: zero collateral or zero burn bucket independently prevent intervention
+ok 6 - zero collateral or zero burn bucket independently prevent intervention
+  ---
+  duration_ms: 0.780525
+  type: 'test'
+  ...
+# Subtest: OCW will not burn a candidate larger than its remaining bucket
+ok 7 - OCW will not burn a candidate larger than its remaining bucket
+  ---
+  duration_ms: 0.572361
+  type: 'test'
+  ...
+# Subtest: flash capacity and minimum trade size are separate gates
+ok 8 - flash capacity and minimum trade size are separate gates
+  ---
+  duration_ms: 0.386858
+  type: 'test'
+  ...
+# Subtest: a full shock consumes reserves and preserves exact token conservation
+ok 9 - a full shock consumes reserves and preserves exact token conservation
+  ---
+  duration_ms: 392.588424
+  type: 'test'
+  ...
+# Subtest: larger mint ceilings alone produce identical downside protection
+ok 10 - larger mint ceilings alone produce identical downside protection
+  ---
+  duration_ms: 1067.350162
+  type: 'test'
+  ...
+# Subtest: collateral donations do not remove the independent burn constraint
+ok 11 - collateral donations do not remove the independent burn constraint
+  ---
+  duration_ms: 742.825221
+  type: 'test'
+  ...
+# Subtest: funded and explicitly counterfactual burn expansion improves recovery
+ok 12 - funded and explicitly counterfactual burn expansion improves recovery
+  ---
+  duration_ms: 1873.901409
+  type: 'test'
+  ...
+# Subtest: an offline keeper cannot improve the instantaneous sell price
+ok 13 - an offline keeper cannot improve the instantaneous sell price
+  ---
+  duration_ms: 433.335779
+  type: 'test'
+  ...
+# Subtest: half service delays intervention, not initial price impact
+ok 14 - half service delays intervention, not initial price impact
+  ---
+  duration_ms: 845.844266
+  type: 'test'
+  ...
+# Subtest: pool sizing constrains terminal price, not just average execution
+ok 15 - pool sizing constrains terminal price, not just average execution
+  ---
+  duration_ms: 6.695379
+  type: 'test'
+  ...
+# Subtest: tighter bands require more depth; balanced depth scales with pressure
+ok 16 - tighter bands require more depth; balanced depth scales with pressure
+  ---
+  duration_ms: 12.522731
+  type: 'test'
+  ...
+# Subtest: additional LP sizing respects existing imbalance and existing liquidity
+ok 17 - additional LP sizing respects existing imbalance and existing liquidity
+  ---
+  duration_ms: 3.772332
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5402.361639

@@ -12,11 +12,16 @@ import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "./interfaces/IAave
 
 interface IFeeVault {
     function collateral() external view returns (address);
+    function hollar() external view returns (address);
     function collateralAToken() external view returns (address);
     function pool() external view returns (address);
     function yieldSource() external view returns (address);
     function feeController() external view returns (address);
+    function mainDebt() external view returns (address);
+    function yieldAccounting() external view returns (address);
 }
+
+interface IFeeLedger { function vault() external view returns (address); }
 
 interface IFeeHarvester {
     function subLoop() external view returns (address);
@@ -85,6 +90,8 @@ contract PropellerFeeController is AccessControl, ReentrancyGuard, IPropellerFee
         b.harvester = harvester;
         validateVault(vault, harvester);
         _markCustody(vault);
+        _markCustody(v.mainDebt());
+        _markCustody(v.yieldAccounting());
         _markCustody(harvester);
         _markCustody(source);
         _markCustody(pool);
@@ -156,15 +163,46 @@ contract PropellerFeeController is AccessControl, ReentrancyGuard, IPropellerFee
         // Caller-funded contributions do not access the source's yield.
         if (compoundCaller != b.harvester) return 0;
         fee = Math.mulDiv(grossCollateral, b.feeBps, BPS);
+        _collect(b.asset, grossCollateral, fee);
+    }
+
+    /// @notice The bound vault realizes source units already split between
+    /// holders and the protocol by its immutable ownership ledger.
+    function collectHarvestFee(uint256 grossCollateral, uint256 fee, address compoundCaller)
+        external override nonReentrant
+    {
+        Binding memory b = bindings[msg.sender];
+        validateVault(msg.sender, compoundCaller);
+        if (fee > grossCollateral) revert InvalidFee();
+        _collect(b.asset, grossCollateral, fee);
+    }
+
+    function _collect(address asset, uint256 grossCollateral, uint256 fee) private {
         if (fee != 0) {
-            IERC20 token = IERC20(b.asset);
+            IERC20 token = IERC20(asset);
             uint256 beforeBalance = token.balanceOf(address(this));
             token.safeTransferFrom(msg.sender, address(this), fee);
             if (token.balanceOf(address(this)) != beforeBalance + fee) revert TransferMismatch();
-            claimableProtocolFees[b.asset] += fee;
+            claimableProtocolFees[asset] += fee;
         }
-        emit ProtocolFeeAccrued(msg.sender, b.asset, grossCollateral, fee, grossCollateral - fee);
+        emit ProtocolFeeAccrued(msg.sender, asset, grossCollateral, fee, grossCollateral - fee);
     }
+
+    /// @notice HOLLAR fee on a withdrawal's realized source yield, charged by the bound Main ledger
+    /// after source execution costs and before Main debt servicing.
+    function collectSourceFee(uint256 amount) external override nonReentrant {
+        address vault = IFeeLedger(msg.sender).vault();
+        if (bindings[vault].asset == address(0) || IFeeVault(vault).mainDebt() != msg.sender) revert InvalidBinding();
+        address asset = IFeeVault(vault).hollar();
+        IERC20 token = IERC20(asset);
+        uint256 before_ = token.balanceOf(address(this));
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        if (token.balanceOf(address(this)) != before_ + amount) revert TransferMismatch();
+        claimableProtocolFees[asset] += amount;
+        emit SourceFeeAccrued(vault, asset, amount);
+    }
+
+    event SourceFeeAccrued(address indexed vault, address indexed asset, uint256 fee);
 
     function claimProtocolFees(address asset) external nonReentrant {
         uint256 amount = claimableProtocolFees[asset];

@@ -13,22 +13,8 @@ import {MockYieldSource} from "./mocks/MockYieldSource.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 
-/// @notice Admin control over which yield source the vault routes into.
-///
-///   `setYieldSource(new)` (ADMIN_ROLE) repoints the vault, and is allowed ONLY
-///   when the current source owes this vault nothing at all: no live shares,
-///   nothing freed-but-unpulled, no in-flight unwind. That makes it a wiring
-///   lever (fresh vault, or after every holder has exited through the normal
-///   redemption queue) rather than an emergency one.
-///
-///   There is deliberately NO admin path that force-unwinds a live position out
-///   of its source. An earlier `adminUnwind()` did exactly that — pausing the
-///   vault, de-risking everyone to bare collateral, and relying on a relative
-///   drain tolerance to decide when the old source counted as empty. It was
-///   removed: it locked non-redeeming holders behind a guard that realized
-///   slippage could make unsatisfiable, and its tolerance scaled with position
-///   size rather than being true dust. To abandon a funded source now: `pause()`
-///   to stop new flow, let holders redeem, then repoint.
+/// @notice `setYieldSource` is a wiring lever: allowed only while the current source
+///         owes the vault nothing; there is no force-unwind admin path.
 contract AdminSourceControlTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
@@ -120,31 +106,20 @@ contract AdminSourceControlTest is Test {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         vault.deposit(1e18, address(this));
+        vault.rebalance();
         for (uint256 i = 0; i < 40; i++) {
             loop.pokeBorrow();
         }
     }
 
-    // drive the unwind spiral + settle until the position is fully drained
-    function _drain() internal {
-        for (uint256 i = 0; i < 400; i++) {
-            if (loop.unwindTargetEquity() == 0) break;
-            loop.pokeRepay();
-        }
-        vault.pokeSettle();
-    }
-
-
-    /// A fresh vault has never routed HOLLAR into a source, so repointing is
-    /// trivially safe — this is the wiring use of `setYieldSource`.
+    /// a fresh vault has never routed hollar into a source, so repointing is safe.
     function test_setYieldSourceOnFreshVault() public {
         MockYieldSource next = new MockYieldSource(address(hollar));
         vault.setYieldSource(address(next));
         assertEq(address(vault.yieldSource()), address(next), "source repointed");
     }
 
-    /// Once a deposit has funded the source, repointing must refuse: the old
-    /// source holds this vault's shares and abandoning it would strand them.
+    /// once funded, repointing must refuse: it would strand the old source's shares.
     function test_setYieldSourceRevertsWhileFunded() public {
         _depositAndRamp();
         MockYieldSource next = new MockYieldSource(address(hollar));
@@ -152,9 +127,7 @@ contract AdminSourceControlTest is Test {
         vault.setYieldSource(address(next));
     }
 
-    /// With an unwind in flight the old source still owes the vault equity it has
-    /// not yet freed. Swapping now would strand that HOLLAR, so the guard must
-    /// refuse until `pendingUnwindOf` is exactly zero.
+    /// an in-flight unwind still owes the vault hollar; refuse until `pendingUnwindOf` is zero.
     function test_setYieldSourceGuardsInFlightUnwind() public {
         _depositAndRamp();
         vault.requestRedeem(vault.balanceOf(address(this)), address(this));
@@ -167,14 +140,8 @@ contract AdminSourceControlTest is Test {
         vault.setYieldSource(address(next));
     }
 
-    /// A funded vault can NEVER be repointed, even after every holder has exited.
-    /// `DEAD_SHARES` stay locked in `totalSupply`, so each `requestRedeem` unwinds
-    /// only `loopShares · shares / supply` and always leaves the dead shares'
-    /// proportional slice behind — `loopShares` never returns to exactly 0.
-    ///
-    /// This is the documented boundary of the lever, asserted so it cannot drift
-    /// into looking like a migration path: to change a live vault's yield source,
-    /// deploy a new vault and let holders migrate through the redemption queue.
+    /// a funded vault can never be repointed: the dead shares' loop slice never unwinds,
+    /// so `loopShares` never returns to 0. migration means a new vault.
     function test_setYieldSourceUnreachableOnceFunded() public {
         _depositAndRamp();
         uint256 id = vault.requestRedeem(vault.balanceOf(address(this)), address(this));
@@ -185,7 +152,7 @@ contract AdminSourceControlTest is Test {
             loop.pokeRepay();
             vault.pokeSettle();
         }
-        // Recover rounding deficits without discarding either layer's claims.
+        // recover rounding deficits without discarding either layer's claims
         hollar.mint(address(loop), 1e18);
         loop.pokeRepay();
         hollar.mint(address(vault), 1e18);

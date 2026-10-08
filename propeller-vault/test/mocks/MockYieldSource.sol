@@ -4,16 +4,8 @@ pragma solidity ^0.8.22;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IYieldSource} from "../../src/interfaces/IYieldSource.sol";
 
-/// @notice A minimal, NON-leveraged `IYieldSource` — the point of the seam. It
-///         has no health factor, no Aave, no PRIME, no keeper cranks: it just
-///         custodies the HOLLAR handed to it 1:1 and frees it synchronously on
-///         request. If `CollateralVault` can deposit into and redeem through this
-///         with zero code changes, then PRIME is genuinely pluggable (the vault
-///         binds only to `IYieldSource`, not to the leveraged loop).
-///
-/// @dev    Shares are 1:1 with HOLLAR (no yield modelled — this is a seam test,
-///         not a yield test). `requestUnwind` frees the whole slice immediately;
-///         `pullFreed` pays it out.
+/// @notice minimal non-leveraged `IYieldSource`: custodies hollar 1:1 and frees it
+/// synchronously on request, no yield modelled
 contract MockYieldSource is IYieldSource {
     IERC20 public immutable hollar;
     bool public emergencyPaused;
@@ -23,21 +15,36 @@ contract MockYieldSource is IYieldSource {
     }
 
     mapping(address => uint256) internal _shares;
+    mapping(address => uint256) public principalOf;
     mapping(address => uint256) internal _freed;
     uint256 internal _totalShares;
+    uint256 public pullBps = 10_000;
+    function unwindExecutionCost(address) external pure returns (uint256) { return 0; }
+
+    function setPullBps(uint256 bps) external { require(bps <= 10_000); pullBps = bps; }
 
     constructor(address _hollar) {
         hollar = IERC20(_hollar);
     }
 
+    function admissionCapacity() external pure returns (uint256) { return type(uint256).max; }
+    function previewHarvest(uint256) external pure returns (uint256) { return 0; }
+
     function deposit(uint256 hollarAmount) external returns (uint256 shares) {
         hollar.transferFrom(msg.sender, address(this), hollarAmount);
         shares = hollarAmount; // 1:1
         _shares[msg.sender] += shares;
+        principalOf[msg.sender] += shares;
         _totalShares += shares;
     }
 
-    function requestUnwind(uint256 shares) external returns (uint256 unwindId) {
+    function requestUnwind(uint256 shares) public returns (uint256 unwindId) {
+        uint256 basis = principalOf[msg.sender] * shares / _shares[msg.sender];
+        principalOf[msg.sender] -= basis;
+        return _unwind(shares);
+    }
+
+    function _unwind(uint256 shares) private returns (uint256) {
         require(_shares[msg.sender] >= shares, "insufficient shares");
         _shares[msg.sender] -= shares;
         _totalShares -= shares;
@@ -45,10 +52,22 @@ contract MockYieldSource is IYieldSource {
         return 0;
     }
 
+    function requestUnwindProtected(uint256 shares, uint256 basis) external returns (uint256) {
+        principalOf[msg.sender] -= basis;
+        return _unwind(shares);
+    }
+
+    function releasePrincipal(address vault, uint256 amount) external { principalOf[vault] -= amount; }
+
+    function accountingLocked() external pure returns (bool) { return false; }
+
+    function harvestCapacity() external pure returns (uint256) { return 0; }
+    function harvestFor(address, uint256) external pure returns (uint256, uint256) { return (0, 0); }
+
     function pullFreed() external returns (uint256 hollarSent) {
-        hollarSent = _freed[msg.sender];
+        hollarSent = _freed[msg.sender] * pullBps / 10_000;
         if (hollarSent == 0) return 0;
-        _freed[msg.sender] = 0;
+        _freed[msg.sender] -= hollarSent;
         hollar.transfer(msg.sender, hollarSent);
     }
 

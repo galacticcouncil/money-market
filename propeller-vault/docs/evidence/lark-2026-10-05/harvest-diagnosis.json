@@ -1,0 +1,71 @@
+{
+  "block": "415942",
+  "readOnly": true,
+  "livePolicyUnchanged": true,
+  "live": {
+    "error": "The contract function \"preview\" reverted with the following reason:\nAddress: low-level delegate call failed",
+    "details": "VM Exception while processing transaction: revert Address: low-level delegate call failed",
+    "causes": [
+      {
+        "abiItem": {
+          "inputs": [
+            {
+              "name": "message",
+              "type": "string"
+            }
+          ],
+          "name": "Error",
+          "type": "error"
+        },
+        "args": [
+          "Address: low-level delegate call failed"
+        ],
+        "errorName": "Error"
+      },
+      "0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000027416464726573733a206c6f772d6c6576656c2064656c65676174652063616c6c206661696c656400000000000000000000000000000000000000000000000000",
+      "0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000027416464726573733a206c6f772d6c6576656c2064656c65676174652063616c6c206661696c656400000000000000000000000000000000000000000000000000"
+    ]
+  },
+  "diagnosticPriceFloorsOnly": {
+    "error": "The contract function \"preview\" reverted.",
+    "details": "VM Exception while processing transaction: revert",
+    "causes": [
+      {
+        "abiItem": {
+          "type": "error",
+          "name": "TradeSize",
+          "inputs": []
+        },
+        "errorName": "TradeSize"
+      },
+      "0x1f5d0c4f",
+      "0x1f5d0c4f"
+    ]
+  },
+  "diagnosticFloorsAndServiceMinimums": [
+    "0x000000000000000000000000000000000000000000000000000000000001c62a",
+    [
+      {
+        "lane": "0x8fa896c4455f3dcff3c7e6c8ee1703db1192e299a51d59c6e98d55b73335e133",
+        "amountIn": "92125",
+        "amountOut": "35971031016421"
+      },
+      {
+        "lane": "0x791f40efc082776f2e9941ee9a1255e8c6f69a6e15401676ba31d8d90b576549",
+        "amountIn": "31743933683",
+        "amountOut": "82783399290654"
+      },
+      {
+        "lane": "0xf3243209af0db096ae755016ddbd5700613158cfc47a8c6aab7ff5f03df1537b",
+        "amountIn": "24141",
+        "amountOut": "296876947649"
+      },
+      {
+        "lane": "0x03d1700fb9edefc559eaedf7fa7acd7d4627f994c6869a1d33a2ce164353c9bd",
+        "amountIn": "285138459",
+        "amountOut": "23649734492087"
+      }
+    ]
+  ],
+  "traceUnavailable": "The method \"debug_traceCall\" does not exist / is not available."
+}

@@ -9,6 +9,16 @@ proxies; superseded by the fresh-redeploy decision). Dead code removed
 SubLoop.hollarDebtToken, dcaPeriod), setDcaScheduler, MockDcaScheduler;
 SubLoop.initialize is 7 args, configureDca 5.
 
+## Deferred Source Rotation (2026-09-23)
+
+The [upgrade boundary and future implementation plan](docs/source-upgrades.md)
+prepare gradual old-strategy unwind/new-strategy allocation behind the stable
+source proxy. Compatibility tests and a storage-layout gate are added now;
+strategy adapters, migration controls and legacy-claim recovery accounting are
+not implemented. Build and independently review the rotation when a replacement
+venue is selected, before relying on it for an emergency. This applies to a
+future production deployment from the current code, not the old lark-2 proxies.
+
 ## Implemented (this branch, suite green)
 
 - **A [CRITICAL] harvest skimmed in-flight unwind equity** — `surplus18` now

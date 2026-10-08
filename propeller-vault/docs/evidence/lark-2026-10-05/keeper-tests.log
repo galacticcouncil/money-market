@@ -1,0 +1,419 @@
+TAP version 13
+# Subtest: small harvests batch until costs fit; debt urgency and delay never wait for profitability
+ok 1 - small harvests batch until costs fit; debt urgency and delay never wait for profitability
+  ---
+  duration_ms: 0.995529
+  type: 'test'
+  ...
+# Subtest: quotes cap input, preserve a positive floor and reject ambiguous repeated routes
+ok 2 - quotes cap input, preserve a positive floor and reject ambiguous repeated routes
+  ---
+  duration_ms: 0.949139
+  type: 'test'
+  ...
+# Subtest: redundant operators rotate optional work and do not depend on a leader heartbeat
+ok 3 - redundant operators rotate optional work and do not depend on a leader heartbeat
+  ---
+  duration_ms: 0.145133
+  type: 'test'
+  ...
+# Subtest: interest-inclusion headroom preserves the unit price and never expands the primary slice
+ok 4 - interest-inclusion headroom preserves the unit price and never expands the primary slice
+  ---
+  duration_ms: 0.152313
+  type: 'test'
+  ...
+# Subtest: sizing compares successful quotes and keeps the largest slice close to the best price
+ok 5 - sizing compares successful quotes and keeps the largest slice close to the best price
+  ---
+  duration_ms: 0.484249
+  type: 'test'
+  ...
+# Subtest: equal unit prices choose throughput, including better-than-oracle quotes
+ok 6 - equal unit prices choose throughput, including better-than-oracle quotes
+  ---
+  duration_ms: 0.233465
+  type: 'test'
+  ...
+# Subtest: sizing cannot hide a worse servicing price or omit an active harvest recipient
+ok 7 - sizing cannot hide a worse servicing price or omit an active harvest recipient
+  ---
+  duration_ms: 0.214404
+  type: 'test'
+  ...
+# Subtest: invalid sizing data is rejected before submission
+ok 8 - invalid sizing data is rejected before submission
+  ---
+  duration_ms: 0.231704
+  type: 'test'
+  ...
+# Subtest: rounding policy uses exact base units and covers every vault
+ok 9 - rounding policy uses exact base units and covers every vault
+  ---
+  duration_ms: 0.707903
+  type: 'test'
+  ...
+# Subtest: rounding policy rejects ambiguous or unsafe thresholds
+ok 10 - rounding policy rejects ambiguous or unsafe thresholds
+  ---
+  duration_ms: 0.538161
+  type: 'test'
+  ...
+# Subtest: monitor distinguishes low reserve from missing custody
+ok 11 - monitor distinguishes low reserve from missing custody
+  ---
+  duration_ms: 0.198733
+  type: 'test'
+  ...
+
+[2026-10-05T11:34:19.769Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.770Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.770Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.770Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-05T11:34:19.771Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.771Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-05T11:34:19.771Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-05T11:34:19.772Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.772Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.772Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-05T11:34:19.772Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-05T11:34:19.772Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.773Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-05T11:34:19.773Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.773Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.773Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.773Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.777Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-05T11:34:19.777Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.778Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-05T11:34:19.778Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.778Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.778Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.778Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.778Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-05T11:34:19.778Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.778Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-05T11:34:19.778Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+# Subtest: low HF schedules and services safety repayment without user redemptions
+ok 12 - low HF schedules and services safety repayment without user redemptions
+  ---
+  duration_ms: 1.57144
+  type: 'test'
+  ...
+# Subtest: an existing safety target is serviced even if HF recovered
+ok 13 - an existing safety target is serviced even if HF recovered
+  ---
+  duration_ms: 0.202954
+  type: 'test'
+  ...
+# Subtest: Main down-rebalance is settled with an empty redemption queue
+ok 14 - Main down-rebalance is settled with an empty redemption queue
+  ---
+  duration_ms: 0.230925
+  type: 'test'
+  ...
+# Subtest: active exits prevent ramping and share a single source repayment
+ok 15 - active exits prevent ramping and share a single source repayment
+  ---
+  duration_ms: 0.223635
+  type: 'test'
+  ...
+# Subtest: source pause stops swaps but not settlement of already freed funds
+ok 16 - source pause stops swaps but not settlement of already freed funds
+  ---
+  duration_ms: 0.245415
+  type: 'test'
+  ...
+# Subtest: idle healthy loop ramps normally
+ok 17 - idle healthy loop ramps normally
+  ---
+  duration_ms: 0.375328
+  type: 'test'
+  ...
+# Subtest: unfunded operating buffer blocks ramp but not repayment
+ok 18 - unfunded operating buffer blocks ramp but not repayment
+  ---
+  duration_ms: 0.617212
+  type: 'test'
+  ...
+# Subtest: late source recoveries are pulled even after collateral exits completed
+ok 19 - late source recoveries are pulled even after collateral exits completed
+  ---
+  duration_ms: 0.204094
+  type: 'test'
+  ...
+# Subtest: idle recovery surplus is not a repayment obligation
+ok 20 - idle recovery surplus is not a repayment obligation
+  ---
+  duration_ms: 0.177103
+  type: 'test'
+  ...
+# Subtest: cooldown-only requests do not start source repayment or ramping
+ok 21 - cooldown-only requests do not start source repayment or ramping
+  ---
+  duration_ms: 0.169904
+  type: 'test'
+  ...
+# Subtest: eligible requests start before a single source repayment and settlement
+ok 22 - eligible requests start before a single source repayment and settlement
+  ---
+  duration_ms: 0.186524
+  type: 'test'
+  ...
+# Subtest: local vault freeze prevents starts, FIFO settlement and new ramping
+ok 23 - local vault freeze prevents starts, FIFO settlement and new ramping
+  ---
+  duration_ms: 0.156533
+  type: 'test'
+  ...
+# Subtest: emergency freeze stops existing exit servicing without a safety target
+ok 24 - emergency freeze stops existing exit servicing without a safety target
+  ---
+  duration_ms: 0.151183
+  type: 'test'
+  ...
+# Subtest: source emergency preserves safety repayment and Main committed repayment
+ok 25 - source emergency preserves safety repayment and Main committed repayment
+  ---
+  duration_ms: 0.158523
+  type: 'test'
+  ...
+# Subtest: source swap pause postpones starting otherwise eligible unwinds
+ok 26 - source swap pause postpones starting otherwise eligible unwinds
+  ---
+  duration_ms: 0.194754
+  type: 'test'
+  ...
+# Subtest: rounding monitor read failure alerts without blocking debt service
+ok 27 - rounding monitor read failure alerts without blocking debt service
+  ---
+  duration_ms: 3.613241
+  type: 'test'
+  ...
+# Subtest: harvest precedes optional ramp and reinvests in the same maintenance cycle
+ok 28 - harvest precedes optional ramp and reinvests in the same maintenance cycle
+  ---
+  duration_ms: 0.192044
+  type: 'test'
+  ...
+# Subtest: empty harvests do not submit transactions or trigger extra maintenance
+ok 29 - empty harvests do not submit transactions or trigger extra maintenance
+  ---
+  duration_ms: 0.247375
+  type: 'test'
+  ...
+# Subtest: pending collateral deploys first and extra leverage waits for refreshed backing next cycle
+ok 30 - pending collateral deploys first and extra leverage waits for refreshed backing next cycle
+  ---
+  duration_ms: 0.277745
+  type: 'test'
+  ...
+# Subtest: harvest availability never bypasses emergency or local pause
+ok 31 - harvest availability never bypasses emergency or local pause
+  ---
+  duration_ms: 0.203664
+  type: 'test'
+  ...
+# Subtest: a standby operator still acts on safety repayment while postponing optional ramp
+ok 32 - a standby operator still acts on safety repayment while postponing optional ramp
+  ---
+  duration_ms: 0.227024
+  type: 'test'
+  ...
+# Subtest: a broken vault queue monitor cannot prevent source safety repayment
+ok 33 - a broken vault queue monitor cannot prevent source safety repayment
+  ---
+  duration_ms: 0.363558
+  type: 'test'
+  ...
+  harvest economics: valueUSD8=1000000000 gasUSD8=0 urgent=false execute=true
+  harvest economics: valueUSD8=1000000000 gasUSD8=300000000000 urgent=false execute=false
+  settle → 0x123
+  settle → 0x123
+  settle → 0x123
+  settle → 0x123
+  settle → 0x123
+  settle → 0x123
+  settle → 0x123
+  settle → 0x123
+  settle: skipped (estimation unavailable)
+  settle: skipped (out of gas at submitted allowance)
+  settle → 0x123
+  settle: no useful work
+  compared 1 executable sizes at block 9
+  ramp → 0xabababababababababababababababababababababababababababababababab
+  settle → 0xabababababababababababababababababababababababababababababababab
+  settle: skipped (RPC disconnected)
+  compared 7 executable sizes at block 99
+# Subtest: a mismatched controller rejects the entire harvest before previewing any swaps
+ok 34 - a mismatched controller rejects the entire harvest before previewing any swaps
+  ---
+  duration_ms: 0.792975
+  type: 'test'
+  ...
+# Subtest: operator-funded gas cannot suppress a price-safe harvest and needs no gas oracle
+ok 35 - operator-funded gas cannot suppress a price-safe harvest and needs no gas oracle
+  ---
+  duration_ms: 0.482829
+  type: 'test'
+  ...
+# Subtest: cached pending nonces cannot reuse a mined maintenance nonce
+ok 36 - cached pending nonces cannot reuse a mined maintenance nonce
+  ---
+  duration_ms: 2.867196
+  type: 'test'
+  ...
+# Subtest: shutdown refuses new work and cancels writes still awaiting their nonce
+ok 37 - shutdown refuses new work and cancels writes still awaiting their nonce
+  ---
+  duration_ms: 1.143072
+  type: 'test'
+  ...
+# Subtest: shutdown drains a submitted transaction before releasing its signer lock
+ok 38 - shutdown drains a submitted transaction before releasing its signer lock
+  ---
+  duration_ms: 0.895547
+  type: 'test'
+  ...
+# Subtest: large settlement uses estimated gas and the live fee quote
+ok 39 - large settlement uses estimated gas and the live fee quote
+  ---
+  duration_ms: 0.412888
+  type: 'test'
+  ...
+# Subtest: small operations only reserve their estimated gas plus margin
+ok 40 - small operations only reserve their estimated gas plus margin
+  ---
+  duration_ms: 0.689273
+  type: 'test'
+  ...
+# Subtest: an operator budget cannot be silently exceeded
+ok 41 - an operator budget cannot be silently exceeded
+  ---
+  duration_ms: 0.431788
+  type: 'test'
+  ...
+# Subtest: the live chain limit also bounds the submission budget
+ok 42 - the live chain limit also bounds the submission budget
+  ---
+  duration_ms: 0.375477
+  type: 'test'
+  ...
+# Subtest: a larger operator budget cannot bypass the native per-transaction cap
+ok 43 - a larger operator budget cannot bypass the native per-transaction cap
+  ---
+  duration_ms: 0.360567
+  type: 'test'
+  ...
+# Subtest: estimation failure never falls back to a fixed gas limit
+ok 44 - estimation failure never falls back to a fixed gas limit
+  ---
+  duration_ms: 0.430858
+  type: 'test'
+  ...
+# Subtest: an RPC gas result cannot bypass successful simulation at the submitted allowance
+ok 45 - an RPC gas result cannot bypass successful simulation at the submitted allowance
+  ---
+  duration_ms: 0.398048
+  type: 'test'
+  ...
+# Subtest: a reverted receipt is not treated as successful maintenance
+ok 46 - a reverted receipt is not treated as successful maintenance
+  ---
+  duration_ms: 0.374027
+  type: 'test'
+  ...
+# Subtest: a successful no-op simulation never becomes a paid transaction
+ok 47 - a successful no-op simulation never becomes a paid transaction
+  ---
+  duration_ms: 0.108712
+  type: 'test'
+  ...
+# Subtest: guarded writes use a pinned preview, bounded input and positive quote floor
+ok 48 - guarded writes use a pinned preview, bounded input and positive quote floor
+  ---
+  duration_ms: 2.5904
+  type: 'test'
+  ...
+# Subtest: a receipt RPC failure retains the signer lock instead of blindly sending another transaction
+ok 49 - a receipt RPC failure retains the signer lock instead of blindly sending another transaction
+  ---
+  duration_ms: 0.349696
+  type: 'test'
+  ...
+# Subtest: a rejected large quote is retried at a smaller input while RPC errors are not resized
+ok 50 - a rejected large quote is retried at a smaller input while RPC errors are not resized
+  ---
+  duration_ms: 0.481019
+  type: 'test'
+  ...
+# Subtest: an executable large quote is still compared with smaller, better-priced slices
+ok 51 - an executable large quote is still compared with smaller, better-priced slices
+  ---
+  duration_ms: 0.602541
+  type: 'test'
+  ...
+1..51
+# tests 51
+# suites 0
+# pass 51
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 83.158401

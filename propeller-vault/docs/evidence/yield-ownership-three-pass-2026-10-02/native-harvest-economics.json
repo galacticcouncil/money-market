@@ -1,0 +1,38 @@
+[
+  {
+    "hash": "0x663d227cb3eed453ef03bfd5ef7e520942c789c6c0dcbe05ec2c539520cc4d65",
+    "gasUsed": "5779669",
+    "effectiveGasPrice": "5536035",
+    "gasCostEth": 0.000031996449872415,
+    "gasCostUsdAtPin": 0.0865655325813618,
+    "grossPrime": 1039.255837,
+    "grossUsdAtPin": 1104.1479171850917
+  },
+  {
+    "hash": "0x856978be934507eacab9b93292c924e043efb66f2cedf90d09a8ae92e6e89ff0",
+    "gasUsed": "5384856",
+    "effectiveGasPrice": "5535918",
+    "gasCostEth": 0.000029810121257808,
+    "gasCostUsdAtPin": 0.08065047945278042,
+    "grossPrime": 10.392551,
+    "grossUsdAtPin": 11.04147134166141
+  },
+  {
+    "hash": "0x32feb640ae6e14d4b14226b4bc00b72d660765e8627981a7fb8c32462f6b0ff8",
+    "gasUsed": "5380856",
+    "effectiveGasPrice": "5535300",
+    "gasCostEth": 0.0000297846522168,
+    "gasCostUsdAtPin": 0.08058157364891826,
+    "grossPrime": 1.627043,
+    "grossUsdAtPin": 1.7286370455291302
+  },
+  {
+    "hash": "0x156be4673367b4a94377ef32860d6111181d40db9ebc85a557ed0f3533417780",
+    "gasUsed": "5380856",
+    "effectiveGasPrice": "5534799",
+    "gasCostEth": 0.000029781956407944,
+    "gasCostUsdAtPin": 0.08057428021073096,
+    "grossPrime": 1.224172,
+    "grossUsdAtPin": 1.3006104136765202
+  }
+]

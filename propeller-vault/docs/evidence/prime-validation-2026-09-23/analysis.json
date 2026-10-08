@@ -1,0 +1,430 @@
+{
+  "snapshot": {
+    "block": "14939389",
+    "hash": "0x220c097d16037c002458543dfcd803884221e2d061dcde192035cd1161d95fef",
+    "solanaSlot": 449664642
+  },
+  "reference": {
+    "wyldsPerPrime": 1.060818912277193,
+    "updatedAt": "2026-09-23T09:22:44.000Z",
+    "ageSeconds": 876,
+    "maxStalenessSeconds": 3600,
+    "fresh": true,
+    "feedId": "0x0007c8ed155d952e003b1e15ce7666fea785cfbe216577d578fce3920e997271",
+    "hydrationActive": 1.0505,
+    "activeDiscountBps": 98.22857950683384
+  },
+  "liquidity": {
+    "stakeWylds": 129614424.041234,
+    "primeSupply": 122180167.331441,
+    "wyldsPerPrimeFromInventory": 1.0608466731726265,
+    "redeemablePrimeAtReference": 122183364.701708,
+    "primeClaimWylds": 129611032.210384,
+    "usdcDepositVault": 0,
+    "usdcRedemptionVault": 729596.913202,
+    "nttCustodyPrime": 9176937.389976
+  },
+  "redemption": {
+    "slot": 449664644,
+    "count": 9,
+    "requestedWylds": 825233.320505,
+    "requests": [
+      {
+        "address": "eNygWCyQLLXpVVkJMBUA97zmns8dgJNvHRDJN13LXDM",
+        "user": "GZuo1UULWf7gKHcjzEtXck8DP7ZqE3hsT81VZ7tV7u9d",
+        "amount": "100056560000",
+        "mint": "8fr7WGTVFszfyNWRMXj6fRjZZAnDwmXwEpCrtzmUkdih",
+        "bump": 255
+      },
+      {
+        "address": "25rBPh5gXinQ43jqkZbZ4iwoasKwL1GzjTYPrSw2giMY",
+        "user": "4MTPLvpHkC1uZ8hJQ615oNs3idRLymgzGszhVb8Z61Rq",
+        "amount": "400000",
+        "mint": "8fr7WGTVFszfyNWRMXj6fRjZZAnDwmXwEpCrtzmUkdih",
+        "bump": 255
+      },
+      {
+        "address": "2JX25aV8ZfLrp6mdSLBtZQbQQaMJQz3z7pBHtgrEJ8YV",
+        "user": "ExrhViqsV9AdSj39iS7ZAGuyP3kKLL1BeburD3yEnTst",
+        "amount": "13980000",
+        "mint": "8fr7WGTVFszfyNWRMXj6fRjZZAnDwmXwEpCrtzmUkdih",
+        "bump": 254
+      },
+      {
+        "address": "3zqHiDoLE9eC8S64cneC7y9ie7JdwdtHwXRY3WVRJ1M4",
+        "user": "EKMMq3GWNjKTVoNPGgqwXzd5WkSGpdpm3qBBGv8r4Lgf",
+        "amount": "300208530505",
+        "mint": "8fr7WGTVFszfyNWRMXj6fRjZZAnDwmXwEpCrtzmUkdih",
+        "bump": 255
+      },
+      {
+        "address": "7TSsiUy2bkYbA6qudRYgFbHDh3R3gwzHWnJkQbUVhoP2",
+        "user": "EQ6UUR8XKp6gsYWb7UgFTVtjnHL8jbvgMmbpeEds7oYj",
+        "amount": "1000000000",
+        "mint": "8fr7WGTVFszfyNWRMXj6fRjZZAnDwmXwEpCrtzmUkdih",
+        "bump": 254
+      },
+      {
+        "address": "8qd2biuEkhbfBqbWaz5Whi6QtJFjz1tRh4y2Qjo9bEqL",
+        "user": "C2BhbZ1F5vynwNs1zvFaqHmhD18bmjztJbyopTBexyEp",
+        "amount": "211921310000",
+        "mint": "8fr7WGTVFszfyNWRMXj6fRjZZAnDwmXwEpCrtzmUkdih",
+        "bump": 255
+      },
+      {
+        "address": "APd2UNehM3AcJhcbY1dZ7s4zeGjbsvjtQ6dceL3Ctfpe",
+        "user": "3A4R7migcxTR4mRCJQceodNpmmZ4PSS7n7zmxAj1hXNs",
+        "amount": "150000000000",
+        "mint": "8fr7WGTVFszfyNWRMXj6fRjZZAnDwmXwEpCrtzmUkdih",
+        "bump": 255
+      },
+      {
+        "address": "GYBvgXmH2ipYZDkbcYyivRKKoSGndACM9WFPVV9knRML",
+        "user": "2JvQnNYGPMHn7LZFBkVXS6yUUbYXJUJMHmnaGgpMY21A",
+        "amount": "60000000000",
+        "mint": "8fr7WGTVFszfyNWRMXj6fRjZZAnDwmXwEpCrtzmUkdih",
+        "bump": 253
+      },
+      {
+        "address": "HBUdE5soL8sd7ZgHE23qNNPpsfv1fhxGDBhUBkLDV4ih",
+        "user": "EXQRUQFhAcMq8j6jJqJag7jSNRvLCkXjgTe8KAX3htCE",
+        "amount": "2032540000",
+        "mint": "8fr7WGTVFszfyNWRMXj6fRjZZAnDwmXwEpCrtzmUkdih",
+        "bump": 255
+      }
+    ],
+    "limitation": "Outstanding requests at a later snapshot, not settlement-time evidence; user balances/delegations can change.",
+    "nominalCashGap": 95636.40730299999,
+    "caveat": "Requests and cash are near-contemporaneous, not atomically pinned. Not proof of insolvency, executable requests or settlement time."
+  },
+  "bridge": {
+    "paused": false,
+    "outboundLimitPrime": 449016.984704,
+    "outboundCapacityPrime": 449016.984704,
+    "durationSeconds": 86400,
+    "limitation": "Immediate-release capacity, not a hard daily transfer maximum: excess outbound transfers can be queued for 24h. No maker capital or execution SLA implied."
+  },
+  "history": {
+    "from": "2026-08-24T00:00:00.000Z",
+    "toExclusive": "2026-09-23T00:00:00.000Z",
+    "classifiedActions": 1060,
+    "excludedWrappers": 35,
+    "excludedUnresolved": 5,
+    "primeSold": 219794.255144,
+    "primeBought": 232658.858567,
+    "netPrimeSold": -12864.603423,
+    "meanSellUsdPerDay": 7724.740233429625,
+    "medianSellUsdPerDay": 312.2658581811995,
+    "p90SellUsdPerDay": 12804.259950920998,
+    "maxSellUsdPerDay": 129002.37053447698,
+    "daysUnder1000UsdSales": 22,
+    "longestGapBetween1000UsdSalesHours": 166.41166666666666,
+    "largestSellerShare": 0.5548550134088301,
+    "observedDaily": {
+      "2026-08-24": {
+        "buyUsd": 20330.805995736977,
+        "sellUsd": 10869.927739268842,
+        "count": 30
+      },
+      "2026-08-25": {
+        "buyUsd": 0,
+        "sellUsd": 179.44053584926422,
+        "count": 8
+      },
+      "2026-08-26": {
+        "buyUsd": 244.69382509790478,
+        "sellUsd": 123.915541271267,
+        "count": 8
+      },
+      "2026-08-27": {
+        "buyUsd": 9991.322779657212,
+        "sellUsd": 1321.5902624030928,
+        "count": 127
+      },
+      "2026-08-28": {
+        "buyUsd": 68888.01876072849,
+        "sellUsd": 40987.80909427512,
+        "count": 245
+      },
+      "2026-08-29": {
+        "buyUsd": 0,
+        "sellUsd": 732.3841646439348,
+        "count": 171
+      },
+      "2026-08-30": {
+        "buyUsd": 0,
+        "sellUsd": 346.3297309080872,
+        "count": 7
+      },
+      "2026-08-31": {
+        "buyUsd": 0,
+        "sellUsd": 642.4158589751905,
+        "count": 8
+      },
+      "2026-09-01": {
+        "buyUsd": 2.425720083648657,
+        "sellUsd": 133.05839561806877,
+        "count": 9
+      },
+      "2026-09-02": {
+        "buyUsd": 40007.902847680605,
+        "sellUsd": 62.06799323644226,
+        "count": 8
+      },
+      "2026-09-03": {
+        "buyUsd": 0,
+        "sellUsd": 236.57953887596153,
+        "count": 9
+      },
+      "2026-09-04": {
+        "buyUsd": 150.36049939605152,
+        "sellUsd": 10395.977538269644,
+        "count": 9
+      },
+      "2026-09-05": {
+        "buyUsd": 0,
+        "sellUsd": 347.8494687612874,
+        "count": 7
+      },
+      "2026-09-06": {
+        "buyUsd": 0,
+        "sellUsd": 259.9233233232405,
+        "count": 7
+      },
+      "2026-09-07": {
+        "buyUsd": 0,
+        "sellUsd": 330.74203379322216,
+        "count": 6
+      },
+      "2026-09-08": {
+        "buyUsd": 32721.889417142513,
+        "sellUsd": 515.2521927205936,
+        "count": 57
+      },
+      "2026-09-09": {
+        "buyUsd": 28.068780510395925,
+        "sellUsd": 592.6008065129199,
+        "count": 26
+      },
+      "2026-09-10": {
+        "buyUsd": 1136.9936077155935,
+        "sellUsd": 109.94166352406711,
+        "count": 26
+      },
+      "2026-09-11": {
+        "buyUsd": 25039.127046089252,
+        "sellUsd": 129002.37053447698,
+        "count": 176
+      },
+      "2026-09-12": {
+        "buyUsd": 0,
+        "sellUsd": 133.1550145388835,
+        "count": 16
+      },
+      "2026-09-13": {
+        "buyUsd": 0,
+        "sellUsd": 239.21440167435298,
+        "count": 6
+      },
+      "2026-09-14": {
+        "buyUsd": 0,
+        "sellUsd": 293.7896825691769,
+        "count": 8
+      },
+      "2026-09-15": {
+        "buyUsd": 23385.70321798262,
+        "sellUsd": 57.494500866893375,
+        "count": 9
+      },
+      "2026-09-16": {
+        "buyUsd": 127.93752828422282,
+        "sellUsd": 1377.1422668591683,
+        "count": 23
+      },
+      "2026-09-17": {
+        "buyUsd": 22473.410573315858,
+        "sellUsd": 30213.24985579013,
+        "count": 16
+      },
+      "2026-09-18": {
+        "buyUsd": 634.4451096564153,
+        "sellUsd": 62.43049791109044,
+        "count": 9
+      },
+      "2026-09-19": {
+        "buyUsd": 349.7332573528979,
+        "sellUsd": 223.44062261026363,
+        "count": 6
+      },
+      "2026-09-20": {
+        "buyUsd": 0,
+        "sellUsd": 73.16140353590862,
+        "count": 3
+      },
+      "2026-09-21": {
+        "buyUsd": 0,
+        "sellUsd": 1765.4626918890426,
+        "count": 14
+      },
+      "2026-09-22": {
+        "buyUsd": 24.912480523079438,
+        "sellUsd": 113.48964793647653,
+        "count": 6
+      }
+    },
+    "limitation": "Endpoint actions, not all pool legs or proven cross-chain arbitrage. Gaps include censored window boundaries; historical activity is not an SLA."
+  },
+  "scenarios": [
+    {
+      "name": "current-oracle-and-peg",
+      "minimumPrimeRefillFor1000HollarEntry": {
+        "25": 138076.913621,
+        "50": 82771.997093,
+        "100": 4352.722672
+      },
+      "quotes": [
+        {
+          "prime": 1000,
+          "hollar": 1060.5650706199492,
+          "usdcAfterPool110": 1059.810809,
+          "costUsdcAtReference": 1060.818912,
+          "edgeBps": -9.5,
+          "next1000HollarEntryLossBps": 102.8
+        },
+        {
+          "prime": 10000,
+          "hollar": 10601.668779143509,
+          "usdcAfterPool110": 10593.618071,
+          "costUsdcAtReference": 10608.189122,
+          "edgeBps": -13.73,
+          "next1000HollarEntryLossBps": 95.44
+        },
+        {
+          "prime": 50000,
+          "hollar": 52929.90906427725,
+          "usdcAfterPool110": 52878.210359,
+          "costUsdcAtReference": 53040.945613,
+          "edgeBps": -30.68,
+          "next1000HollarEntryLossBps": 67.97
+        },
+        {
+          "prime": 100000,
+          "hollar": 105697.90601590714,
+          "usdcAfterPool110": 105564.79266,
+          "costUsdcAtReference": 106081.891227,
+          "edgeBps": -48.74,
+          "next1000HollarEntryLossBps": 41.65
+        },
+        {
+          "prime": 150000,
+          "hollar": 158341.03891315046,
+          "usdcAfterPool110": 158093.95466,
+          "costUsdcAtReference": 159122.836841,
+          "edgeBps": -64.65,
+          "next1000HollarEntryLossBps": 20.13
+        }
+      ]
+    },
+    {
+      "name": "conditional-oracle-and-pool-peg-updated",
+      "minimumPrimeRefillFor1000HollarEntry": {
+        "25": 135030.700009,
+        "50": 80094.422784,
+        "100": 2197.878779
+      },
+      "quotes": [
+        {
+          "prime": 1000,
+          "hollar": 1070.7882500945786,
+          "usdcAfterPool110": 1070.026663,
+          "costUsdcAtReference": 1060.818912,
+          "edgeBps": 86.79,
+          "next1000HollarEntryLossBps": 100.99
+        },
+        {
+          "prime": 10000,
+          "hollar": 10703.903863729185,
+          "usdcAfterPool110": 10695.769979,
+          "costUsdcAtReference": 10608.189122,
+          "edgeBps": 82.55,
+          "next1000HollarEntryLossBps": 93.71
+        },
+        {
+          "prime": 50000,
+          "hollar": 53441.09819931698,
+          "usdcAfterPool110": 53388.757619,
+          "costUsdcAtReference": 53040.945613,
+          "edgeBps": 65.57,
+          "next1000HollarEntryLossBps": 66.49
+        },
+        {
+          "prime": 100000,
+          "hollar": 106720.0639942362,
+          "usdcAfterPool110": 106585.061341,
+          "costUsdcAtReference": 106081.891227,
+          "edgeBps": 47.43,
+          "next1000HollarEntryLossBps": 40.35
+        },
+        {
+          "prime": 150000,
+          "hollar": 159873.51676304988,
+          "usdcAfterPool110": 159622.581988,
+          "costUsdcAtReference": 159122.836841,
+          "edgeBps": 31.4,
+          "next1000HollarEntryLossBps": 18.86
+        }
+      ]
+    }
+  ],
+  "ramp": [
+    {
+      "tvl": 100000,
+      "grossHollar": 478676.4705882354,
+      "hollarPerDayFor30DayRamp": 15955.88235294118,
+      "primePerDayAtReference": 15041.099068162062,
+      "multipleOfObservedGrossDailySells": 2.0655558466406965
+    },
+    {
+      "tvl": 500000,
+      "grossHollar": 2393382.352941177,
+      "hollarPerDayFor30DayRamp": 79779.41176470589,
+      "primePerDayAtReference": 75205.4953408103,
+      "multipleOfObservedGrossDailySells": 10.327779233203481
+    },
+    {
+      "tvl": 1000000,
+      "grossHollar": 4786764.705882354,
+      "hollarPerDayFor30DayRamp": 159558.82352941178,
+      "primePerDayAtReference": 150410.9906816206,
+      "multipleOfObservedGrossDailySells": 20.655558466406962
+    },
+    {
+      "tvl": 10000000,
+      "grossHollar": 47867647.05882354,
+      "hollarPerDayFor30DayRamp": 1595588.235294118,
+      "primePerDayAtReference": 1504109.9068162064,
+      "multipleOfObservedGrossDailySells": 206.55558466406964
+    },
+    {
+      "tvl": 50000000,
+      "grossHollar": 239338235.29411772,
+      "hollarPerDayFor30DayRamp": 7977941.176470591,
+      "primePerDayAtReference": 7520549.5340810325,
+      "multipleOfObservedGrossDailySells": 1032.7779233203482
+    },
+    {
+      "tvl": 100000000,
+      "grossHollar": 478676470.58823544,
+      "hollarPerDayFor30DayRamp": 15955882.352941182,
+      "primePerDayAtReference": 15041099.068162065,
+      "multipleOfObservedGrossDailySells": 2065.5558466406965
+    }
+  ],
+  "limitations": [
+    "wYLDS acquisition modeled at 1 USDC as per mint source; not independent off-chain backing verification.",
+    "SDK pool143 -> pool110 quotes include pool fees but omit bridging, gas, settlement/funding costs, concurrent flow, HSM reactions and future price moves. No transaction submitted.",
+    "Pool110 output is aUSDC; converting it to USDC depends on Aave cash. No other venues or external trader inventories are assumed.",
+    "An oracle/peg update is hypothetical and not approved; replenishment is not guaranteed even when an arbitrage quote has positive gross edge."
+  ],
+  "providerCommitmentVerified": false
+}

@@ -1,0 +1,93 @@
+{
+  "scope": "Local source-upgrade compatibility preparation; no strategy rotation, production upgrade or migration approval.",
+  "solidity": {
+    "passed": 279,
+    "failed": 0,
+    "skipped": 3,
+    "total": 282,
+    "upgradeCases": [
+      "test_upgradeCannotHideAnUnderfundedOldPosition",
+      "test_upgradeLateRecoveryStillPaysOriginalExitOwner",
+      "test_upgradeLiveSourcePreservesPartialExitAndWaitingRequest",
+      "test_upgradePendingCostsAndReceiptsAreCreditedExactlyOnce",
+      "test_upgradePreservesEmergencyAndLocalPauses",
+      "test_upgradeRequiresAuthorityAndCannotReinitializeExistingState",
+      "test_upgradeResettingCostCounterBreaksSettlementWithoutErasingClaims"
+    ],
+    "skippedSetups": [
+      "ProtocolFeesForkTest",
+      "PropellerDiscountForkTest",
+      "VerityParityTest"
+    ]
+  },
+  "storage": {
+    "testsPassed": 8,
+    "baseLayout": {
+      "compatibleStoragePrefix": true,
+      "source": "src/SubLoop.sol",
+      "contract": "SubLoop",
+      "preservedEntries": 43,
+      "appendedEntries": 0,
+      "limitation": "No semantic, assembly-slot, economic or migration safety proof; gaps are conservatively frozen."
+    },
+    "probeLayout": {
+      "compatibleStoragePrefix": true,
+      "source": "test/SourceUpgradeCompatibility.t.sol",
+      "contract": "SubLoopUpgradeProbe",
+      "preservedEntries": 43,
+      "appendedEntries": 1,
+      "limitation": "No semantic, assembly-slot, economic or migration safety proof; gaps are conservatively frozen."
+    },
+    "baselineSha256": "f7cd4865eb9c06d3267346b0ad03733364ebbb1e8c533e4b72b3288c05fe521f"
+  },
+  "productionArtifacts": {
+    "CollateralVault": {
+      "runtimeBytes": 24381,
+      "templateSha256": "7870bc4d8b78c30bae787dd7d4c09c7331e2a023acd35edef79f7f9d602c69ce",
+      "unchanged": true
+    },
+    "SubLoop": {
+      "runtimeBytes": 20436,
+      "templateSha256": "c37e86aeef7cce46587b853afa7fce18745757497cf85dc9aa81e8ae9561a08f",
+      "unchanged": true
+    },
+    "PropellerMainDebt": {
+      "runtimeBytes": 14279,
+      "templateSha256": "f56bec19ef4cd3a1b828f8e684905f670c5beae180e3c6c43841a13eb3f65fa7",
+      "unchanged": true
+    },
+    "PropellerFeeController": {
+      "runtimeBytes": 8052,
+      "templateSha256": "dd16c1ec3d01a53dd4992f73120b5705fea2763346e74c20fa5d0efb12a051d9",
+      "unchanged": true
+    },
+    "Harvester": {
+      "runtimeBytes": 7042,
+      "templateSha256": "41331b93874caaa952c9bf9e6372fe60ba9b1f7fec42663ca4a767abfb9eceaa",
+      "unchanged": true
+    },
+    "CompoundLogic": {
+      "runtimeBytes": 4974,
+      "templateSha256": "651b76697670a11c99ef77fc66903121c41e5475cca68efc68d9d52369a37ff6",
+      "unchanged": true
+    },
+    "PropellerDiscount": {
+      "runtimeBytes": 6740,
+      "templateSha256": "0ba6189d099e8a73012aa68829c51901793e66ea5eb190a99ebca7d1a54e5fdb",
+      "unchanged": true
+    }
+  },
+  "inputSha256": {
+    "regression": "2bf381d6e9740f3796dcee21a0d40ab9b84761aff119928e447512d1ea116288",
+    "storageTests": "efab4d36edc2036fd6051200816d7e9811d88bf6549d2a8b0be1956228a3ba78",
+    "baseLayout": "128ec59a6fd79504c7903a3174c58cec1378ae614100b2036c58e5256fb76727",
+    "probeLayout": "9b94cd6e78f93a51c68ee55826799348fee7330f9742b6677d83b962902222bf"
+  },
+  "limitations": [
+    "Real Propeller contracts with mock Aave/router; test-only upgrade candidates, not a second yield strategy.",
+    "The broken-counter probe is allowed to install; its settlement failure demonstrates why governance authorization is not semantic validation.",
+    "No fresh native or 90-day campaign rerun for this test/documentation-only revision; production bytecode matches the prior rehearsal.",
+    "Existing strict-entry, production-adapter, funding and liquidity release gates remain open.",
+    "The layout gate freezes existing gaps and compiler version; it does not prove assembly-slot, economic or migration safety."
+  ]
+}

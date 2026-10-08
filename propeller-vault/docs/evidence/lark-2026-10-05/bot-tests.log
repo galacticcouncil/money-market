@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: correction trades preserve inventory for both-direction live quotes
+ok 1 - correction trades preserve inventory for both-direction live quotes
+  ---
+  duration_ms: 0.761945
+  type: 'test'
+  ...
+# Subtest: PRIME NAV and token decimals govern the quote, not a 1:1 reserve ratio
+ok 2 - PRIME NAV and token decimals govern the quote, not a 1:1 reserve ratio
+  ---
+  duration_ms: 0.153633
+  type: 'test'
+  ...
+# Subtest: arbitrage minimum includes fees and never permits an oracle loss
+ok 3 - arbitrage minimum includes fees and never permits an oracle loss
+  ---
+  duration_ms: 0.235135
+  type: 'test'
+  ...
+# Subtest: stale, future or nonpositive canonical references cannot be refreshed
+ok 4 - stale, future or nonpositive canonical references cannot be refreshed
+  ---
+  duration_ms: 0.185184
+  type: 'test'
+  ...
+# Subtest: stored routes reverse every hop without mutating the source
+ok 5 - stored routes reverse every hop without mutating the source
+  ---
+  duration_ms: 1.448799
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10.834571

@@ -1,0 +1,15 @@
+{
+  "sourceFilesVerified": 54,
+  "runtimeTemplatesMatched": 36,
+  "contracts": [
+    "CollateralVault",
+    "SubLoop",
+    "PropellerMainDebt",
+    "PropellerYieldAccounting",
+    "CompoundLogic",
+    "SyntheticToken",
+    "Harvester",
+    "PropellerFeeController",
+    "PropellerDiscount"
+  ]
+}

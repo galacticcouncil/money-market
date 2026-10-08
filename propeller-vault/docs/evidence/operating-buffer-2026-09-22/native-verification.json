@@ -1,0 +1,2400 @@
+{
+  "scope": "Local Chopsticks rehearsal only; no production deployment or configuration approval.",
+  "baseCommit": "55acd38229f2ccc949f00c474e641d6a0df551b2",
+  "branch": "feat/propeller-interest-buffer",
+  "verifiedUncommittedBuild": true,
+  "inputSha256": {
+    "nativeResult": "dc0587d39d2d1fb54ac9e6aeb638c1f841c8655d5a63deeb48c4ee054337bfb2",
+    "readiness": "f029280e19c5d01a5f9a032745b5fd5b848d59509e98ca33936b695a470f0ce1",
+    "regression": "e2b666dddb1a25df0cdd078543571d3dffb45e6c6388cccb1bf3510ae080df5f",
+    "aaveFork": "06d770d576ec00743a14d037711d25db145e3b4773489af51e90e1878a17dfb8",
+    "artifactVerification": "c216e30b3c3ac0a63036fa9185d88f7a2400f25c070a3a02cd768bd63951d6ab"
+  },
+  "tests": {
+    "regression": {
+      "passed": 261,
+      "failed": 0,
+      "skipped": 11,
+      "total": 272
+    },
+    "aaveFork": {
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "total": 8
+    }
+  },
+  "readiness": {
+    "passed": 121,
+    "total": 131,
+    "failed": 10,
+    "operatingBufferChecksPassed": 16,
+    "failures": [
+      "[B. Substrate registry] assets(5550) exists: ",
+      "[B. Substrate registry] synthetic location → deployed SyntheticToken: {}",
+      "[E. Roles] subLoop ADMIN_ROLE -> governance: ",
+      "[E. Roles] subLoop UPGRADER_ROLE -> governance: ",
+      "[G. Vault pETH] ADMIN_ROLE -> governance: ",
+      "[G. Vault pETH] UPGRADER_ROLE -> governance: ",
+      "[G. Vault ptBTC] ADMIN_ROLE -> governance: ",
+      "[G. Vault ptBTC] UPGRADER_ROLE -> governance: ",
+      "[J. Fees and discount] fee owner is governance: ",
+      "[J. Fees and discount] discount enrollment owner is governance: "
+    ],
+    "explanation": "Development governance/owner stand-ins and absent synthetic Substrate registry mapping remain failures, not waived production checks."
+  },
+  "native": {
+    "status": "native-multi-user-multi-vault-campaign-passed",
+    "rpc": "http://127.0.0.1:8143",
+    "upstream": "wss://hdx.tarn.hydration.cloud",
+    "fork": {
+      "block": "14900756",
+      "hash": "0xc0f89ce05e34f0b024401fb220c0efc11c79b98a408b8e498281da4f744bae49",
+      "runtime": 443,
+      "chainId": 222222
+    },
+    "verifiedThroughBlock": "14900927",
+    "checks": {
+      "immutableHelper": {
+        "address": "0xa16E02E87b7454126E5E10d957A927A7F5B5d2be",
+        "runtimeBytes": 4974,
+        "codeHash": "0x3db7b7605b9cd4647c886c21e48a3e41c70c3220523cb7ccd92299d83e3b15f3"
+      },
+      "feeBinding": true,
+      "initialFeeBps": 500,
+      "discountInstalledAndRegistered": true,
+      "discountRateUpdateAndReset": true,
+      "committeeRateRole": true,
+      "entryOracleFloorRejected": true,
+      "nativeAccruedInterestServicedByHarvest": true,
+      "nativeMultiUserMultiVaultRealRouteHarvest": true,
+      "nativeFourPublicPositionsPaidInFull": true,
+      "constructorHelperMatchesArtifact": true,
+      "deployedCodeMatchesLocalArtifacts": true,
+      "proxyImplementationSlots": true,
+      "exitOwnershipAndPendingSourceClaims": true
+    },
+    "market": {
+      "pool": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+      "hollar": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+      "collateral": "0x0000000000000000000000000000000100000022",
+      "prime": "0x000000000000000000000000000000010000002B",
+      "aEth": "0x11a8f7fFbB7e0fbEd88BC20179Dd45B4Bd6874ff",
+      "aPrime": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+      "hollarDebt": "0x342923782cCaEBf9c38DD9cb40436e82C42c73B5"
+    },
+    "addresses": {
+      "vaultImpl": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "synth": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+      "subImpl": "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
+      "source": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "harvester": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+      "fees": "0x8a791620dd6260079bf849dc5567adc3f2fdc318",
+      "buffer": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+      "aSynthetic": "0xa8f540FB7852024Da35D30947bE0899299ba42F1",
+      "discount": "0x9a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae",
+      "tbtcVault": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+      "tbtcBuffer": "0x7a2088a1bfc9d81c55368ae168c2c02570cb814f",
+      "testRouteAdapter": "0xa85233c63b9ee964add6f2cffe00fd84eb32338f"
+    },
+    "overrides": [
+      "Parachain relay-parent override for local block production",
+      "Fund public development deployer with local HDX/WETH",
+      "Whitelist development deployer; no runtime/code-size/gas-limit overrides",
+      "Scheduler/preimage injection to simulate governance execution of synthetic reserve listing and HOLLAR discount installation",
+      "Fund three public development accounts with local gas/collateral/PRIME fixtures"
+    ],
+    "deployments": [
+      {
+        "label": "CollateralVault",
+        "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+        "transactionHash": "0x0fadc3f437388af34b24b7a1131ff1a34cf03ab9f6cdf7baaf3de6853b222103",
+        "block": "14900757",
+        "gasUsed": "10874958",
+        "runtimeBytes": 24399,
+        "codeHash": "0x824273cbf2a8efa5b06d33d2d7ad9ec3e528ce055a241ab3f87be9bc12b18927",
+        "exactCodeMatch": false,
+        "compiler": {
+          "version": "0.8.22+commit.4fc1097e"
+        },
+        "settings": {
+          "remappings": [
+            "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+            "forge-std/=../bil-vault/lib/forge-std/src/",
+            "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+            "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "solmate/=../bil-vault/lib/solmate/"
+          ],
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "compilationTarget": {
+            "src/CollateralVault.sol": "CollateralVault"
+          },
+          "evmVersion": "london",
+          "libraries": {},
+          "viaIR": true
+        },
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      },
+      {
+        "label": "SyntheticToken",
+        "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+        "transactionHash": "0xa5c7018c9bc6c33e12bf565e31b1fbe4966d5c3b3462d24d89a126d2e7b2ef83",
+        "block": "14900758",
+        "gasUsed": "1935042",
+        "runtimeBytes": 4827,
+        "codeHash": "0xcc832cf8c21a26f563727a946ff974d34b3c9ee48d96517b2b62b7f071cc8c6c",
+        "exactCodeMatch": true,
+        "compiler": {
+          "version": "0.8.22+commit.4fc1097e"
+        },
+        "settings": {
+          "remappings": [
+            "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+            "forge-std/=../bil-vault/lib/forge-std/src/",
+            "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+            "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "solmate/=../bil-vault/lib/solmate/"
+          ],
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "compilationTarget": {
+            "src/SyntheticToken.sol": "SyntheticToken"
+          },
+          "evmVersion": "london",
+          "libraries": {},
+          "viaIR": true
+        },
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      },
+      {
+        "label": "SubLoop",
+        "address": "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
+        "transactionHash": "0xc552c808748c0682217197eb091897af12e28e9a250b8b1f083500941e644041",
+        "block": "14900759",
+        "gasUsed": "7317804",
+        "runtimeBytes": 19766,
+        "codeHash": "0xf7fa3e473e7565821de0e85019eb2d0740a86935cc4acb156c98561cbb0f24ff",
+        "exactCodeMatch": false,
+        "compiler": {
+          "version": "0.8.22+commit.4fc1097e"
+        },
+        "settings": {
+          "remappings": [
+            "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+            "forge-std/=../bil-vault/lib/forge-std/src/",
+            "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+            "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "solmate/=../bil-vault/lib/solmate/"
+          ],
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "compilationTarget": {
+            "src/SubLoop.sol": "SubLoop"
+          },
+          "evmVersion": "london",
+          "libraries": {},
+          "viaIR": true
+        },
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      },
+      {
+        "label": "SubLoop.proxy",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x99595793a8242f1c98ff92c93c2519a08a917c784fea9b8f50ae9a689770f1b2",
+        "block": "14900760",
+        "gasUsed": "754326",
+        "runtimeBytes": 209,
+        "codeHash": "0x9f268fa4f4544ae58381ad1865b6d48dc68ce6d62ce40960fc8260eaf9b9cdf8",
+        "exactCodeMatch": true,
+        "compiler": {
+          "version": "0.8.22+commit.4fc1097e"
+        },
+        "settings": {
+          "remappings": [
+            "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+            "forge-std/=../bil-vault/lib/forge-std/src/",
+            "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+            "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "solmate/=../bil-vault/lib/solmate/"
+          ],
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "compilationTarget": {
+            "../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol": "ERC1967Proxy"
+          },
+          "evmVersion": "london",
+          "libraries": {},
+          "viaIR": true
+        },
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      },
+      {
+        "label": "CollateralVault.proxy",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x6fe3efabeec31b46ea0246d91b0d64310af77639cd3c14ec8d52df8b9c9ea5d3",
+        "block": "14900761",
+        "gasUsed": "924150",
+        "runtimeBytes": 209,
+        "codeHash": "0x9f268fa4f4544ae58381ad1865b6d48dc68ce6d62ce40960fc8260eaf9b9cdf8",
+        "exactCodeMatch": true,
+        "compiler": {
+          "version": "0.8.22+commit.4fc1097e"
+        },
+        "settings": {
+          "remappings": [
+            "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+            "forge-std/=../bil-vault/lib/forge-std/src/",
+            "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+            "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "solmate/=../bil-vault/lib/solmate/"
+          ],
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "compilationTarget": {
+            "../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol": "ERC1967Proxy"
+          },
+          "evmVersion": "london",
+          "libraries": {},
+          "viaIR": true
+        },
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      },
+      {
+        "label": "PropellerOperatingBuffer",
+        "address": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+        "transactionHash": "0x2b18784f3a4e9fb54d91863ed8f5a8d159eb63483eaef43166ee8c744936c44e",
+        "block": "14900762",
+        "gasUsed": "5703744",
+        "runtimeBytes": 15124,
+        "codeHash": "0x6f9d179f33e3c54dcbac5a74076cb10efca21ea5c894432f6b89699070959c86",
+        "exactCodeMatch": false,
+        "compiler": {
+          "version": "0.8.22+commit.4fc1097e"
+        },
+        "settings": {
+          "remappings": [
+            "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+            "forge-std/=../bil-vault/lib/forge-std/src/",
+            "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+            "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "solmate/=../bil-vault/lib/solmate/"
+          ],
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "compilationTarget": {
+            "src/PropellerOperatingBuffer.sol": "PropellerOperatingBuffer"
+          },
+          "evmVersion": "london",
+          "libraries": {},
+          "viaIR": true
+        },
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      },
+      {
+        "label": "Harvester",
+        "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+        "transactionHash": "0x8ec338096f64fb43b88bd6e6230799bb9fd3d3f7ec12e358ecd0a4f51f9f43b1",
+        "block": "14900765",
+        "gasUsed": "2703276",
+        "runtimeBytes": 7042,
+        "codeHash": "0x724d6c63000faf9e299cbe3b2a1aa0d8e19fd5b397976eed18e7970c9fc50b71",
+        "exactCodeMatch": false,
+        "compiler": {
+          "version": "0.8.22+commit.4fc1097e"
+        },
+        "settings": {
+          "remappings": [
+            "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+            "forge-std/=../bil-vault/lib/forge-std/src/",
+            "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+            "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "solmate/=../bil-vault/lib/solmate/"
+          ],
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "compilationTarget": {
+            "src/Harvester.sol": "Harvester"
+          },
+          "evmVersion": "london",
+          "libraries": {},
+          "viaIR": true
+        },
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      },
+      {
+        "label": "PropellerFeeController",
+        "address": "0x8a791620dd6260079bf849dc5567adc3f2fdc318",
+        "transactionHash": "0xf435fc70f595f4bb4ecb742ca6f70fddd3ec1d75e77a9d3333ca07feabe8faf3",
+        "block": "14900766",
+        "gasUsed": "3115392",
+        "runtimeBytes": 8052,
+        "codeHash": "0xf6c8e681f931e6caf5af7f2e27b6ede5318cfc6f7bd25f808896a9194d7bec97",
+        "exactCodeMatch": true,
+        "compiler": {
+          "version": "0.8.22+commit.4fc1097e"
+        },
+        "settings": {
+          "remappings": [
+            "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+            "forge-std/=../bil-vault/lib/forge-std/src/",
+            "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+            "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+            "solmate/=../bil-vault/lib/solmate/"
+          ],
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs"
+          },
+          "compilationTarget": {
+            "src/PropellerFeeController.sol": "PropellerFeeController"
+          },
+          "evmVersion": "london",
+          "libraries": {},
+          "viaIR": true
+        },
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      },
+      {
+        "label": "PropellerDiscount",
+        "address": "0x9a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae",
+        "transactionHash": "0x42cebe8050c97dbd840a4eb822105a4e1d779f7b3eb63111970afb2ad20c7552",
+        "block": "14900775",
+        "gasUsed": "2677656",
+        "runtimeBytes": 6740,
+        "codeHash": "0x8c271ac03187f9b33c597d776e0c7277a841d7ddb1d176aacc7d2eaf4b2e7d94",
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      },
+      {
+        "label": "NativeRouteSwapper",
+        "address": "0xa85233c63b9ee964add6f2cffe00fd84eb32338f",
+        "transactionHash": "0x0cc0ceed572031a77ff767adf2174254039f90abe673e0dfed95b4f7d6f999a4",
+        "gasUsed": "1030656",
+        "runtimeBytes": 2704,
+        "codeHash": "0xe14e92486dd2f9d854c0403ae615c0401949acae536a6525a96039291c53f650",
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      },
+      {
+        "label": "CollateralVaultTBTC.proxy",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x0cb01be187f214217a26fa04fbc3dd53311efbb9b2d41ef6c403b8fe2716b07e",
+        "gasUsed": "924150",
+        "runtimeBytes": 209,
+        "codeHash": "0x9f268fa4f4544ae58381ad1865b6d48dc68ce6d62ce40960fc8260eaf9b9cdf8",
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      },
+      {
+        "label": "PropellerOperatingBuffer.tBTC",
+        "address": "0x7a2088a1bfc9d81c55368ae168c2c02570cb814f",
+        "transactionHash": "0x478efeaae63936f7987b61d782a8bfd4a8348178ef90a3f1ca822b5c672766fd",
+        "gasUsed": "5703744",
+        "runtimeBytes": 15124,
+        "codeHash": "0x6c2b69b1dbd8380c8e72965fbd3a228a68fb550cc4d081452bc1cedebfd3230b",
+        "receiptReverified": false,
+        "historicalReceiptUnavailable": true,
+        "artifactMatchExceptImmutables": true
+      }
+    ],
+    "calls": [
+      {
+        "label": "CollateralVault.setOperatingBuffer",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xbd99d83ed48dce7101965a615716c879553af84bb3eebe59d18b55250a02b1d1",
+        "gasUsed": "61208"
+      },
+      {
+        "label": "PropellerOperatingBuffer.configure",
+        "address": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+        "transactionHash": "0x400b1407e9381d8d4068e115dee4a87d0e4939938fda70c03bca61ecabe63e8f",
+        "gasUsed": "59844"
+      },
+      {
+        "label": "SyntheticToken.grantRole",
+        "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+        "transactionHash": "0xabd9ab3460daf5c199cf3ea2569bb2df9b9f77daff10c55b8c9378a24220a982",
+        "gasUsed": "51201"
+      },
+      {
+        "label": "SubLoop.registerVault",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x7bc9d51d95af85089c32130b570ea2c8ed69eb3145462c181e5b307e6437f778",
+        "gasUsed": "53802"
+      },
+      {
+        "label": "SubLoop.setHarvester",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xd7e6e9e0b054faec8123b19c7949d2f8022159340e27779953f76b0c0891b5a5",
+        "gasUsed": "50986"
+      },
+      {
+        "label": "Harvester.addVault",
+        "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+        "transactionHash": "0x9c3840889e580a95a0443a3a73ca48be4acd31146e489d1fed88879a581c33e1",
+        "gasUsed": "127368"
+      },
+      {
+        "label": "Harvester.setFeeController",
+        "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+        "transactionHash": "0x97ab26ceee2cd0d376a15b9091cdb0aae769259066db2a621d2a626f3d60e572",
+        "gasUsed": "49652"
+      },
+      {
+        "label": "CollateralVault.setFeeController",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x4e863a69e1a32d8a64cf0bf97b2336242c8e682ba5bd151a6bf2fbb258599d27",
+        "gasUsed": "55477"
+      },
+      {
+        "label": "PropellerFeeController.registerVault",
+        "address": "0x8a791620dd6260079bf849dc5567adc3f2fdc318",
+        "transactionHash": "0x52ed74b507578e78d3d54afcfaa703c0f4fb7792b00d346d758048a6dc32a9ab",
+        "gasUsed": "382104"
+      },
+      {
+        "label": "Aave.initReserves(psHOLLAR)",
+        "block": 14900774,
+        "events": [
+          {
+            "section": "evm",
+            "method": "Log",
+            "data": [
+              {
+                "address": "0xa8f540fb7852024da35d30947be0899299ba42f1",
+                "topics": [
+                  "0xb19e051f8af41150ccccb3fc2c2d8d15f4a4cf434f32a559ba75fe73d6eea20b",
+                  "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                  "0x0000000000000000000000001b02e051683b5cfac5929c25e84adb26ecf87b38"
+                ],
+                "data": "0x000000000000000000000000e52567ff06acd6cbe7ba94dc777a3126e180b6d90000000000000000000000007472a3d0891df2401d981a5954d07e364f05060f000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000001a50726f70656c6c65722053796e7468657469632061546f6b656e0000000000000000000000000000000000000000000000000000000000000000000000000007615053594e5448000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              }
+            ]
+          },
+          {
+            "section": "evm",
+            "method": "Log",
+            "data": [
+              {
+                "address": "0x1219d21959db7f5c65aa8654535620ced466eca7",
+                "topics": [
+                  "0x40251fbfb6656cfa65a00d7879029fec1fad21d28fdcff2f4f68f52795b74f2c",
+                  "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                  "0x0000000000000000000000001b02e051683b5cfac5929c25e84adb26ecf87b38"
+                ],
+                "data": "0x0000000000000000000000007472a3d0891df2401d981a5954d07e364f05060f000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001f50726f70656c6c65722053796e74686574696320537461626c65204465627400000000000000000000000000000000000000000000000000000000000000000873645053594e54480000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              }
+            ]
+          },
+          {
+            "section": "evm",
+            "method": "Log",
+            "data": [
+              {
+                "address": "0x96c5ac107097a9ec52a2f9348db83ef3d35ae6ee",
+                "topics": [
+                  "0x40251fbfb6656cfa65a00d7879029fec1fad21d28fdcff2f4f68f52795b74f2c",
+                  "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                  "0x0000000000000000000000001b02e051683b5cfac5929c25e84adb26ecf87b38"
+                ],
+                "data": "0x0000000000000000000000007472a3d0891df2401d981a5954d07e364f05060f000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002150726f70656c6c65722053796e746865746963205661726961626c65204465627400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000876645053594e54480000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              }
+            ]
+          },
+          {
+            "section": "evm",
+            "method": "Log",
+            "data": [
+              {
+                "address": "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4",
+                "topics": [
+                  "0x3a0ca721fc364424566385a1aa271ed508cc2c0949c2272575fb3013a163a45f",
+                  "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                  "0x000000000000000000000000a8f540fb7852024da35d30947be0899299ba42f1"
+                ],
+                "data": "0x0000000000000000000000001219d21959db7f5c65aa8654535620ced466eca700000000000000000000000096c5ac107097a9ec52a2f9348db83ef3d35ae6ee0000000000000000000000005383a606ece147e94c1fa0b7375bc778f132b832"
+              }
+            ]
+          },
+          {
+            "section": "evm",
+            "method": "Executed",
+            "data": [
+              "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4"
+            ]
+          },
+          {
+            "section": "dispatcher",
+            "method": "AaveManagerCallDispatched",
+            "data": [
+              "0xde2934b8eeabc196ec4b56afbfe3cd9e89afc8b2f644ce5e0181a89b75aeb3df",
+              {
+                "ok": {
+                  "actualWeight": {
+                    "refTime": 61074618000,
+                    "proofSize": 611827
+                  },
+                  "paysFee": "No"
+                }
+              }
+            ]
+          },
+          {
+            "section": "scheduler",
+            "method": "Dispatched",
+            "data": [
+              [
+                14900774,
+                0
+              ],
+              null,
+              {
+                "ok": null
+              }
+            ]
+          }
+        ],
+        "simulatedGovernance": true
+      },
+      {
+        "label": "HOLLAR.updateDiscountToken",
+        "block": 14900776,
+        "events": [
+          {
+            "section": "evm",
+            "method": "Log",
+            "data": [
+              {
+                "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+                "topics": [
+                  "0x6b489e1dbfbe36f55c511c098bcc9d92fec7f04f74ceb75018697ab68f7d3529",
+                  "0x000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a",
+                  "0x0000000000000000000000009a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae"
+                ],
+                "data": "0x"
+              }
+            ]
+          },
+          {
+            "section": "evm",
+            "method": "Executed",
+            "data": [
+              "0x342923782ccaebf9c38dd9cb40436e82c42c73b5"
+            ]
+          },
+          {
+            "section": "dispatcher",
+            "method": "AaveManagerCallDispatched",
+            "data": [
+              "0x543c4c2365f9fb4b58fd91c96492fb75f889f2dc1986690fed300f15a07ad223",
+              {
+                "ok": {
+                  "actualWeight": {
+                    "refTime": 998193000,
+                    "proofSize": 11063
+                  },
+                  "paysFee": "No"
+                }
+              }
+            ]
+          },
+          {
+            "section": "scheduler",
+            "method": "Dispatched",
+            "data": [
+              [
+                14900776,
+                0
+              ],
+              null,
+              {
+                "ok": null
+              }
+            ]
+          }
+        ],
+        "simulatedGovernance": true
+      },
+      {
+        "label": "HOLLAR.updateDiscountRateStrategy",
+        "block": 14900777,
+        "events": [
+          {
+            "section": "evm",
+            "method": "Log",
+            "data": [
+              {
+                "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+                "topics": [
+                  "0x194bd59f47b230edccccc2be58b92dde3a5dadd835751a621af59006928bccef",
+                  "0x00000000000000000000000033a7c640140febafecc9801af723a0c14420eed7",
+                  "0x0000000000000000000000009a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae"
+                ],
+                "data": "0x"
+              }
+            ]
+          },
+          {
+            "section": "evm",
+            "method": "Executed",
+            "data": [
+              "0x342923782ccaebf9c38dd9cb40436e82c42c73b5"
+            ]
+          },
+          {
+            "section": "dispatcher",
+            "method": "AaveManagerCallDispatched",
+            "data": [
+              "0x8dfc084b70d73a4f85ca092716a3ee201bcf7ee76d7da08ac311b67ba9900b37",
+              {
+                "ok": {
+                  "actualWeight": {
+                    "refTime": 998868000,
+                    "proofSize": 11070
+                  },
+                  "paysFee": "No"
+                }
+              }
+            ]
+          },
+          {
+            "section": "scheduler",
+            "method": "Dispatched",
+            "data": [
+              [
+                14900777,
+                0
+              ],
+              null,
+              {
+                "ok": null
+              }
+            ]
+          }
+        ],
+        "simulatedGovernance": true
+      },
+      {
+        "label": "CollateralVault.setDiscountController",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "encodedArgs": "[\"0x9a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae\"]",
+        "transactionHash": "0x6dfaede0c1fa1995496883064f03e79d096654f263651c7885f6ba54d126af1f",
+        "gasUsed": "144781"
+      },
+      {
+        "label": "PropellerDiscount.registerVault",
+        "address": "0x9a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae",
+        "encodedArgs": "[\"0xdc64a140aa3e981100a9beca4e685f962f0cf6c9\"]",
+        "transactionHash": "0x6371b32b832c335e7aeb37079baf926b246df3623b8d9a0e2772ccfba3d166b1",
+        "gasUsed": "187077"
+      },
+      {
+        "label": "PropellerDiscount.setDiscountBps",
+        "address": "0x9a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae",
+        "encodedArgs": "[8000]",
+        "transactionHash": "0xbde33425aec85f1725a4a729acbfa69b86f26dfc2bf4ee5135a50a03b9b17865",
+        "gasUsed": "154578"
+      },
+      {
+        "label": "PropellerDiscount.setDiscountBps",
+        "address": "0x9a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae",
+        "encodedArgs": "[0]",
+        "transactionHash": "0xfc95a086e259ce9a6f5f59ebd7411b8aa494cce52836a89437971ae342d30446",
+        "gasUsed": "95310"
+      },
+      {
+        "label": "Aave.configureSyntheticCollateral",
+        "block": 14900782,
+        "events": [
+          {
+            "section": "evm",
+            "method": "Log",
+            "data": [
+              {
+                "address": "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4",
+                "topics": [
+                  "0x637febbda9275aea2e85c0ff690444c8d87eb2e8339bbede9715abcc89cb0995",
+                  "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512"
+                ],
+                "data": "0x000000000000000000000000000000000000000000000000000000000000006400000000000000000000000000000000000000000000000000000000000026480000000000000000000000000000000000000000000000000000000000002774"
+              }
+            ]
+          },
+          {
+            "section": "evm",
+            "method": "Executed",
+            "data": [
+              "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4"
+            ]
+          },
+          {
+            "section": "dispatcher",
+            "method": "AaveManagerCallDispatched",
+            "data": [
+              "0xf46a231c2b878a1eb50473de62d49c404dc6e12feeffec44d4ac27b8102d628f",
+              {
+                "ok": {
+                  "actualWeight": {
+                    "refTime": 1612268000,
+                    "proofSize": 17204
+                  },
+                  "paysFee": "No"
+                }
+              }
+            ]
+          },
+          {
+            "section": "scheduler",
+            "method": "Dispatched",
+            "data": [
+              [
+                14900782,
+                0
+              ],
+              null,
+              {
+                "ok": null
+              }
+            ]
+          }
+        ],
+        "simulatedGovernance": true
+      },
+      {
+        "label": "Aave.configureSyntheticOracle",
+        "block": 14900783,
+        "events": [
+          {
+            "section": "evm",
+            "method": "Log",
+            "data": [
+              {
+                "address": "0xad33c0f0c42c5a0eaa65b5895d2bdb20cb6e8760",
+                "topics": [
+                  "0x22c5b7b2d8561d39f7f210b6b326a1aa69f15311163082308ac4877db6339dc1",
+                  "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                  "0x0000000000000000000000006096c9d71f7c06024578a62f4b608a1bb06834f8"
+                ],
+                "data": "0x"
+              }
+            ]
+          },
+          {
+            "section": "evm",
+            "method": "Executed",
+            "data": [
+              "0xad33c0f0c42c5a0eaa65b5895d2bdb20cb6e8760"
+            ]
+          },
+          {
+            "section": "dispatcher",
+            "method": "AaveManagerCallDispatched",
+            "data": [
+              "0xeb082488fa2a89755766b330ae3543cf6138e86427c853d6e13928a698ef4120",
+              {
+                "ok": {
+                  "actualWeight": {
+                    "refTime": 1430393000,
+                    "proofSize": 15385
+                  },
+                  "paysFee": "No"
+                }
+              }
+            ]
+          },
+          {
+            "section": "scheduler",
+            "method": "Dispatched",
+            "data": [
+              [
+                14900783,
+                0
+              ],
+              null,
+              {
+                "ok": null
+              }
+            ]
+          }
+        ],
+        "simulatedGovernance": true
+      },
+      {
+        "label": "SubLoop.configureDca",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "encodedArgs": "[222,43,1043,143,10000]",
+        "transactionHash": "0xbc14e83a4f497f8cd91db1d19761f0b25051ab5ef904adba78d413d8b290b8c8",
+        "gasUsed": "52607"
+      },
+      {
+        "label": "SubLoop.setTranches",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "encodedArgs": "[\"100000000000000000000\",\"100000000\"]",
+        "transactionHash": "0x28f904c96d19a7a18f2e7cb80615c30b24e96be6b454f54da1bb317ede5e9514",
+        "gasUsed": "84912"
+      },
+      {
+        "label": "campaign.btcBufferBinding",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xa67d48733f7800fca9cf91c90135fe73e44de1e93e12b97eb527140ba145af41",
+        "gasUsed": "61208",
+        "args": [
+          "0x7a2088a1bfc9d81c55368ae168c2c02570cb814f"
+        ]
+      },
+      {
+        "label": "campaign.btcBufferPolicy",
+        "address": "0x7a2088a1bfc9d81c55368ae168c2c02570cb814f",
+        "transactionHash": "0x57f0309538eee70e00f3ff388eaec197726599f18cccfed1d85cb2dc074df17e",
+        "gasUsed": "59844",
+        "args": [
+          604800,
+          10,
+          "50000000000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.rootCustodyAndRoutes",
+        "simulatedGovernance": true,
+        "events": [
+          {
+            "section": "duster",
+            "method": "Added",
+            "data": [
+              "12ZuLmUxW86zR1QYroZpKgGBSzbPeYvJ3mhSaSkRze1AT4WJ"
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "duster",
+            "method": "Added",
+            "data": [
+              "12ZuLmV161qfX23dFUoc28pkLZqoFqGEK8xBS51bnssq8k2e"
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "duster",
+            "method": "Added",
+            "data": [
+              "12ZuLmUVqPaRiz2zyr3ZC1uAegZczfqHsggDC8eLiJd5YcNA"
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "duster",
+            "method": "Added",
+            "data": [
+              "12ZuLmUa7roKG9jnSZ5n274XnETRh7mUTJA8CDFfyvzgNcWQ"
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "duster",
+            "method": "Added",
+            "data": [
+              "12ZuLmUfQ1AYcudPBQEqEYoXVHeKrJVpyNtmrMxFH1vTZ7Eb"
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "duster",
+            "method": "Added",
+            "data": [
+              "12ZuLmUifyCpqJK3m5TnFP3CvqCvhkM6H1WbJhHGbpN3f8KX"
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "duster",
+            "method": "Added",
+            "data": [
+              "12ZuLmUMqMAJdp2FieG5HkGZW3opmeVYzGqoHfeyrXZRk8NP"
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "duster",
+            "method": "Added",
+            "data": [
+              "12ZuLmUperU3aAe1xem2i1p3Ypk7y819PM4XVtXM1g2FW5Hm"
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "router",
+            "method": "RouteUpdated",
+            "data": [
+              [
+                34,
+                43
+              ]
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "router",
+            "method": "RouteUpdated",
+            "data": [
+              [
+                43,
+                1000765
+              ]
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "router",
+            "method": "RouteUpdated",
+            "data": [
+              [
+                34,
+                222
+              ]
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "router",
+            "method": "RouteUpdated",
+            "data": [
+              [
+                222,
+                1000765
+              ]
+            ]
+          },
+          {
+            "section": "utility",
+            "method": "ItemCompleted",
+            "data": []
+          },
+          {
+            "section": "utility",
+            "method": "BatchCompleted",
+            "data": []
+          },
+          {
+            "section": "scheduler",
+            "method": "Dispatched",
+            "data": [
+              [
+                14900791,
+                0
+              ],
+              null,
+              {
+                "ok": null
+              }
+            ]
+          },
+          {
+            "section": "preimage",
+            "method": "Cleared",
+            "data": [
+              "0x39121dcc129d143eb7129fede6818af6445c0d196b28ea46408dbf5cc0ef7c92"
+            ]
+          },
+          {
+            "section": "system",
+            "method": "ExtrinsicSuccess",
+            "data": [
+              {
+                "weight": {
+                  "refTime": 1912274000,
+                  "proofSize": 12815
+                },
+                "class": "Mandatory",
+                "paysFee": "Yes"
+              }
+            ]
+          },
+          {
+            "section": "relayChainInfo",
+            "method": "CurrentBlockNumbers",
+            "data": [
+              14900791,
+              33109648
+            ]
+          },
+          {
+            "section": "system",
+            "method": "ExtrinsicSuccess",
+            "data": [
+              {
+                "weight": {
+                  "refTime": 1779123000,
+                  "proofSize": 11322
+                },
+                "class": "Mandatory",
+                "paysFee": "Yes"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "campaign.bootstrapApprove",
+        "address": "0x0000000000000000000000000000000100000022",
+        "transactionHash": "0x40530c902df1e63a567e97149be50ea7055f9da4dbb6a848f3cd785de7323fef",
+        "gasUsed": "24400",
+        "args": [
+          "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+          "20000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.bootstrapSupply",
+        "address": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+        "transactionHash": "0xef791b689cd392ca2ee6c1603b03b399734bed2f8f4911e10fd44088f6e92fd6",
+        "gasUsed": "191323",
+        "args": [
+          "0x0000000000000000000000000000000100000022",
+          "20000000000000000000",
+          "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+          0
+        ]
+      },
+      {
+        "label": "campaign.bootstrapBorrow",
+        "address": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+        "transactionHash": "0x26284269595cce9db32e1ad698d541ce73aaa9a32bccb5c4338c8afa7b103bd5",
+        "gasUsed": "284626",
+        "args": [
+          "0x531a654d1696ED52e7275A8cede955E82620f99a",
+          "20000000000000000000000",
+          "2",
+          0,
+          "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+        ]
+      },
+      {
+        "label": "campaign.ETH.bootstrapApprove",
+        "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "transactionHash": "0xb9145cb83667953df854caa1b4c064997ac523cc5a3f115b8d2e56e3f860409c",
+        "gasUsed": "46199",
+        "args": [
+          "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+          "1000000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.ETH.bootstrapFund",
+        "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+        "transactionHash": "0x37c383b65ca096826b31c10544e8cae2ca4a8d392658a3e5032570e8183747ea",
+        "gasUsed": "87531",
+        "args": [
+          "1000000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.tBTC.bootstrapApprove",
+        "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "transactionHash": "0x0211394b44d7ae833ff531b49c4a68ae0f903e95202917c8a4b34e071daec824",
+        "gasUsed": "46199",
+        "args": [
+          "0x7a2088a1bfc9d81c55368ae168c2c02570cb814f",
+          "1000000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.tBTC.bootstrapFund",
+        "address": "0x7a2088a1bfc9d81c55368ae168c2c02570cb814f",
+        "transactionHash": "0xcc483f22082d40e995f2019bfe86e0b88172808f29c8f1bcd1f0c18787c5d297",
+        "gasUsed": "87531",
+        "args": [
+          "1000000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.btcMinter",
+        "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+        "transactionHash": "0xf0a344baeb6a96f78c92fb43c21c06983f74edbbd939059ea32ce6e14e91147e",
+        "gasUsed": "51213",
+        "args": [
+          "0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6",
+          "0x4a679253410272dd5232b3ff7cf5dbb88f295319"
+        ]
+      },
+      {
+        "label": "campaign.btcSource",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xf1d4744e46f74bc75b3d1b59436871a356430223d42ca682be9294bd5a64b614",
+        "gasUsed": "53814",
+        "args": [
+          "0x4a679253410272dd5232b3ff7cf5dbb88f295319"
+        ]
+      },
+      {
+        "label": "campaign.btcHarvester",
+        "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+        "transactionHash": "0x0f65c703483b319d32ffa997ca0ffec0e6cbe8e0fb6b1eb54734b708356313cc",
+        "gasUsed": "84912",
+        "args": [
+          "0x4a679253410272dd5232b3ff7cf5dbb88f295319"
+        ]
+      },
+      {
+        "label": "campaign.btcFees",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xc76401d8fe7b614b9c5bfbd37855a5034a30246aef24b4045b381f1a8f010d32",
+        "gasUsed": "55477",
+        "args": [
+          "0x8a791620dd6260079bf849dc5567adc3f2fdc318"
+        ]
+      },
+      {
+        "label": "campaign.btcFeeRegistration",
+        "address": "0x8a791620dd6260079bf849dc5567adc3f2fdc318",
+        "transactionHash": "0x623e40554b00b506950f7d52a97bd418093be06e0b0f25bc2e702db3e2477171",
+        "gasUsed": "216033",
+        "args": [
+          "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+          "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6"
+        ]
+      },
+      {
+        "label": "campaign.btcDiscountBinding",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x1b78091590803cce2569c4d054a347d907f6557267693c0c6509c17d92d1c9b3",
+        "gasUsed": "144781",
+        "args": [
+          "0x9a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae"
+        ]
+      },
+      {
+        "label": "campaign.btcDiscount",
+        "address": "0x9a9f2ccfde556a7e9ff0848998aa4a0cfd8863ae",
+        "transactionHash": "0x4c8869622e182f18117bbfdfa435c1de264f6a87a7e1763d866bcf14021706fd",
+        "gasUsed": "169989",
+        "args": [
+          "0x4a679253410272dd5232b3ff7cf5dbb88f295319"
+        ]
+      },
+      {
+        "label": "campaign.tranches",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xcc9ad7ba4c540672a48b1670ac583a0b1939884a709f05d606c79a11a7fdca72",
+        "gasUsed": "36946",
+        "args": [
+          "1000000000000000000000",
+          "100000000"
+        ]
+      },
+      {
+        "label": "campaign.34.adapter",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x1c539f2a0fb6bc7ca779301cc82a1b178f8128dd4aeb395369620e508a5fec26",
+        "gasUsed": "35090",
+        "args": [
+          "0xa85233c63b9ee964add6f2cffe00fd84eb32338f"
+        ]
+      },
+      {
+        "label": "campaign.34.slippage",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x460d93d71880e151d8cff1775c50499c1c45eaec3df371a75e638d06689282e1",
+        "gasUsed": "34747",
+        "args": [
+          100
+        ]
+      },
+      {
+        "label": "campaign.34.reserveApprove",
+        "address": "0x0000000000000000000000000000000100000022",
+        "transactionHash": "0xd7ff92903df0634b2a60c539fac848d6aa5b0a25b11ac02b496e8151ed2f0488",
+        "gasUsed": "24376",
+        "args": [
+          "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+          "21494820526600"
+        ]
+      },
+      {
+        "label": "campaign.34.reserveFund",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x66b67e3f4ebd8c4f4a876b08a4ebf99525ac1c6f359bfbc928ad52f8338ec9c4",
+        "gasUsed": "93109",
+        "args": [
+          "21494820526600"
+        ]
+      },
+      {
+        "label": "campaign.34.seedApprove",
+        "address": "0x0000000000000000000000000000000100000022",
+        "transactionHash": "0xec889565c1ad69633ea7ed6878805c382e4991673185ef63ae839700a5ff1e1c",
+        "gasUsed": "24364",
+        "args": [
+          "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+          "10000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.explicitForkOnlyEntryFloor",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x330aa5ce350ca77324239bafcb0afc5db851a7f9549effec546ba41ba41d6fe6",
+        "gasUsed": "35507",
+        "args": [
+          222,
+          43,
+          1043,
+          143,
+          12000
+        ]
+      },
+      {
+        "label": "campaign.34.seed",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x40cb1771786d3b5bd7ff5deff74d4fbd5a9eeee39580bda5d003eaa607ba50c9",
+        "gasUsed": "2204428",
+        "args": [
+          "10000000000000000",
+          "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+        ]
+      },
+      {
+        "label": "campaign.1000765.adapter",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x1e3baea85f847fc0fb347e2af5b25f2d9d8ca0921e946adc1c55246d94b659a8",
+        "gasUsed": "32290",
+        "args": [
+          "0xa85233c63b9ee964add6f2cffe00fd84eb32338f"
+        ]
+      },
+      {
+        "label": "campaign.1000765.slippage",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x251449ae7f06c1edd50c929833fd5f4b41080473ad6dc9a660a3802419c9d8d4",
+        "gasUsed": "34747",
+        "args": [
+          100
+        ]
+      },
+      {
+        "label": "campaign.1000765.reserveApprove",
+        "address": "0x00000000000000000000000000000001000f453d",
+        "transactionHash": "0xd6e6e062cb635152029cbe7498dccc62c5190d0ac4b93e1764ae8cbb17ed075b",
+        "gasUsed": "24376",
+        "args": [
+          "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+          "428213499948"
+        ]
+      },
+      {
+        "label": "campaign.1000765.reserveFund",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xe775a5f3917a34da7ba51ac64fd018a55a0cea84810a0125686299a95bcd49b5",
+        "gasUsed": "93097",
+        "args": [
+          "428213499948"
+        ]
+      },
+      {
+        "label": "campaign.1000765.seedApprove",
+        "address": "0x00000000000000000000000000000001000f453d",
+        "transactionHash": "0xdf51a0751227606d274f5d9afae3a102ec75c09451e43680fdd8747f4b4b4922",
+        "gasUsed": "24376",
+        "args": [
+          "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+          "100000000000000"
+        ]
+      },
+      {
+        "label": "campaign.donorApprove",
+        "address": "0x0000000000000000000000000000000100000022",
+        "transactionHash": "0x8b1e09a93790808c645a844976dcf05826e723ae9e995c77da5de8efb0ffb956",
+        "gasUsed": "24400",
+        "args": [
+          "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+          "20000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.donorSupply",
+        "address": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+        "transactionHash": "0xb98886e58c95ef33d52b251fc8b883c2c328a3dc1607323279e55fa84b2c7f8b",
+        "gasUsed": "149846",
+        "args": [
+          "0x0000000000000000000000000000000100000022",
+          "20000000000000000000",
+          "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+          0
+        ]
+      },
+      {
+        "label": "campaign.donorBorrow",
+        "address": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+        "transactionHash": "0xe4eb1a82b3be3894f2c1357972b5c62b3dc8c0dec97df79ba9efc5e4def68bd0",
+        "gasUsed": "277710",
+        "args": [
+          "0x531a654d1696ED52e7275A8cede955E82620f99a",
+          "10000000000000000000000",
+          "2",
+          0,
+          "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+        ]
+      },
+      {
+        "label": "campaign.seedRecovery",
+        "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "transactionHash": "0x08a663cbdbf2f9a268e16a770ce39963249467accc99e811baa6ffa34ff9fb26",
+        "gasUsed": "51263",
+        "args": [
+          "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+          "10000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.1000765.seed",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xd2d9d8e14d1a348665991a46ce34792c32892dad198e6c9f7ef28ec646980ee7",
+        "gasUsed": "2096866",
+        "args": [
+          "100000000000000",
+          "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+        ]
+      },
+      {
+        "label": "campaign.entrySourceFunding",
+        "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "transactionHash": "0x7b3752ba12314fb8d6bd00580d6a2bf6d7bc7dbcedd928e130409e3f0d0db445",
+        "gasUsed": "34175",
+        "args": [
+          "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+          "50000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.user0.approve",
+        "address": "0x0000000000000000000000000000000100000022",
+        "transactionHash": "0xb73c62dbae38714d78c019eca81b86279fc6615827dcd0531b7b8ec86a117d77",
+        "gasUsed": "24388",
+        "args": [
+          "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+          "100000000000000007"
+        ]
+      },
+      {
+        "label": "campaign.user0.deposit",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xb54f01bb8a79ddace48187cf73ae20a30fb44f3448e098c540251fa04d7956bf",
+        "gasUsed": "2114104",
+        "args": [
+          "100000000000000007",
+          "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+        ]
+      },
+      {
+        "label": "campaign.user1.approve",
+        "address": "0x0000000000000000000000000000000100000022",
+        "transactionHash": "0xcd8e6c013b7d0499eb7e86a59a43ae63cf91258c6a73686621187c9da262beb7",
+        "gasUsed": "24388",
+        "args": [
+          "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+          "100000000000000011"
+        ]
+      },
+      {
+        "label": "campaign.user1.deposit",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xbf9165985a09cc99daeed610aa25cd3fefe16b2da1601852ab77f5a8902573ea",
+        "gasUsed": "2114112",
+        "args": [
+          "100000000000000011",
+          "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+        ]
+      },
+      {
+        "label": "campaign.user2.approve",
+        "address": "0x00000000000000000000000000000001000f453d",
+        "transactionHash": "0x9338601ef3f2ac78fe5a6cf5a050f55194f697499dfdb984f402da963978360b",
+        "gasUsed": "24400",
+        "args": [
+          "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+          "3000000000000013"
+        ]
+      },
+      {
+        "label": "campaign.user2.deposit",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x88a0f9afe4bbabbf60fef03168c1cb9533c34e464a5dfc6d23ca6209ddff4767",
+        "gasUsed": "2112417",
+        "args": [
+          "3000000000000013",
+          "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+        ]
+      },
+      {
+        "label": "campaign.user3.approve",
+        "address": "0x00000000000000000000000000000001000f453d",
+        "transactionHash": "0x57dfee4cc36ade78308f8855d2c0792635c976d576fefe630fdf304382eeb821",
+        "gasUsed": "24400",
+        "args": [
+          "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+          "3000000000000017"
+        ]
+      },
+      {
+        "label": "campaign.user3.deposit",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x4b32d45d65cbfaceabc163c4b446052ce30df0c626cf6af75a94b45f2255095a",
+        "gasUsed": "2116612",
+        "args": [
+          "3000000000000017",
+          "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+        ]
+      },
+      {
+        "label": "campaign.ramp0",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xb50e5270be0563cdce1651637374b2591d2d06782e4d5cb999dd9f10ace14288",
+        "gasUsed": "1345928",
+        "args": []
+      },
+      {
+        "label": "campaign.ramp1",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x758767d71c16d39bf33c042294a17bd3c1af94f009976665099df56a67d825ae",
+        "gasUsed": "1362265",
+        "args": []
+      },
+      {
+        "label": "campaign.ramp2",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x739cd70044e46ee09163393a27aa981b2ee6a09493cc4cd78cc6f2dad99582f4",
+        "gasUsed": "1345165",
+        "args": []
+      },
+      {
+        "label": "campaign.yieldApprove",
+        "address": "0x000000000000000000000000000000010000002B",
+        "transactionHash": "0x9bef92b13b9a3454c9b107058f36bdacce854f74beb6e359e632bbc13040dbd7",
+        "gasUsed": "24352",
+        "args": [
+          "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+          "100000000"
+        ]
+      },
+      {
+        "label": "campaign.yieldFixture",
+        "address": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+        "transactionHash": "0x543ecfeb0530c635ad19f693e8e9aaa33b9ffa6ef98aa707d92e3f60c253a3f9",
+        "gasUsed": "149798",
+        "args": [
+          "0x000000000000000000000000000000010000002B",
+          "100000000",
+          "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+          0
+        ]
+      },
+      {
+        "label": "campaign.harvest",
+        "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+        "transactionHash": "0x837af3c1521c3a58889b495c3980098d9fdf0372a52bc71fec29c9949082d207",
+        "gasUsed": "4327188",
+        "args": [
+          []
+        ]
+      },
+      {
+        "label": "campaign.feeClaim34",
+        "address": "0x8a791620dd6260079bf849dc5567adc3f2fdc318",
+        "transactionHash": "0xc644eb6eceb3e85b30870918c6e1b224f76755a38d1854590233b3cc5afaa792",
+        "gasUsed": "35965",
+        "args": [
+          "0x0000000000000000000000000000000100000022"
+        ]
+      },
+      {
+        "label": "campaign.feeClaim1000765",
+        "address": "0x8a791620dd6260079bf849dc5567adc3f2fdc318",
+        "transactionHash": "0xff05d57829064e23443c1ae1981e914361620e65efeb088e0a0256b7be45a7fc",
+        "gasUsed": "35989",
+        "args": [
+          "0x00000000000000000000000000000001000f453d"
+        ]
+      },
+      {
+        "label": "campaign.user0.request",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x3d324134c18ac7e3f7a1f9e18640c71799410df0f82309489485c484f7c24f33",
+        "gasUsed": "297192",
+        "args": [
+          "99999999866946028",
+          "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+        ]
+      },
+      {
+        "label": "campaign.user1.request",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xc3bd6c6b5af44d2f651a080afd537bf6dad096342f6702cd7f4d7ccc1d606765",
+        "gasUsed": "197561",
+        "args": [
+          "99999999846842223",
+          "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+        ]
+      },
+      {
+        "label": "campaign.user2.request",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xd21da2908c5b4b6b06fc6784d9c7b3e588bda45701c6e03456ae7fad50edfd74",
+        "gasUsed": "297192",
+        "args": [
+          "2999999999484404",
+          "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+        ]
+      },
+      {
+        "label": "campaign.user3.request",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x9d5c453cc4c67e89bad9cac9a05e6ffa8bdf0c4cbeeb7d111f48dd24eb53225f",
+        "gasUsed": "197549",
+        "args": [
+          "2999999999337115",
+          "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+        ]
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.earlyStart",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x2157131ac2874011670c171458f5d8b6706b5c8fc253b1f35fb3f87eb6ada56e",
+        "gasUsed": "59722",
+        "args": [
+          "16"
+        ]
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.earlyStart",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x3910ea561a39ff2a94f5c1a869854858f925d99793d4d3af4c2342af64614340",
+        "gasUsed": "59722",
+        "args": [
+          "16"
+        ]
+      },
+      {
+        "label": "campaign.freeze",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xaa6f50c35ce565e59bb512e72a2823fe55aef06d84a38d113aebca07dec0e375",
+        "gasUsed": "52307",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.peg",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x8043b7e4722d5c94f19265bb22966696711c1120e477162ce0d6673df921c3cc",
+        "gasUsed": "291878",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.recoveryApprove",
+        "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "transactionHash": "0xeebd8f53798d142995a28da5a8ba38dd0456073b17a8b6aa5ffe17139ca9a80a",
+        "gasUsed": "46199",
+        "args": [
+          "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+          "100000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.recoverMain",
+        "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+        "transactionHash": "0x4caefd7987a5fabb44001a9b4165d3c075f7aeca1fa301f0ccefbca3ef99d1ec",
+        "gasUsed": "58930",
+        "args": [
+          "0",
+          "100000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.peg",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x9689d1d8f2c5bbd44ad9cee01959f1311ad91695483190f48de9d500c9f238d4",
+        "gasUsed": "291878",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.recoveryApprove",
+        "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "transactionHash": "0x47434eaca61c2e892a501fd259b4e6d2a30c967be3c285539c1ddbf1f68e9dbd",
+        "gasUsed": "46199",
+        "args": [
+          "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
+          "100000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.recoverMain",
+        "address": "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
+        "transactionHash": "0xfe60f59d3dd7232f7bfdbce69de55a06f8f56a4fbeeb63060eaaba32637cd898",
+        "gasUsed": "58930",
+        "args": [
+          "0",
+          "100000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.recoverSource",
+        "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "transactionHash": "0x11fe07842d62f43678e5465c8fda57e56424a9bfbf42fd1221cec6b7b6eab017",
+        "gasUsed": "34175",
+        "args": [
+          "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+          "100000000000000000000"
+        ]
+      },
+      {
+        "label": "campaign.resume",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x0ac6634ba7f77f0c077e9cd6456c453da4507ae00be970cb56cdcd879cdecce3",
+        "gasUsed": "30225",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.start",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xd1b204e7f0818af6bdd5a47198ddd472f8dbc49e909a1826ebd4e4cf09414888",
+        "gasUsed": "1103856",
+        "args": [
+          "16"
+        ]
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.start",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x2307bcf85ef4383da8ce30f17b33ccaa39a606970743142580454d099aeb9c62",
+        "gasUsed": "976488",
+        "args": [
+          "16"
+        ]
+      },
+      {
+        "label": "campaign.repay0",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x590993c15d466f103f5154c93cce7427a4ac74fc9670bc759e25d80622bcb0cf",
+        "gasUsed": "1402277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle0",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x6152508dc08cec19219913b5ae87100a0ae194ff9a3a264718088798871e3aa0",
+        "gasUsed": "1038649",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle0",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xb9b9ac38bd4963ff43be71e9ab359154422dc0397743251b5fd85e7671d82916",
+        "gasUsed": "1041469",
+        "args": []
+      },
+      {
+        "label": "campaign.repay1",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x6e9985603e62d457fbfab22877af9ab69730c5bf59cbe6c089fa52277e398cdf",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle1",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x6f0842859509239b766719172a4ee0d1321513710f98f304d05d37a6103771b4",
+        "gasUsed": "1008452",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle1",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xbc3dbab5191536dc1e85f8f4c28cbb878ae0d2541a15a7b888c5de30681bf2a4",
+        "gasUsed": "1008205",
+        "args": []
+      },
+      {
+        "label": "campaign.repay2",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x470761950f7476e353416b3313623b06af6bea83a60b31134125481882cef29d",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle2",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xe6df1c1f6fba489c72e000489445a62e74a2a69e6d25479e8dd7202afc69a531",
+        "gasUsed": "1008452",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle2",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xeba5da4b78a5b6f8953025128380fe6a145ed0163da49869caf3a6b4e2abbaa9",
+        "gasUsed": "1008205",
+        "args": []
+      },
+      {
+        "label": "campaign.repay3",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xe343bace67312ee938b79ca21c301d001c920f991557389c86176ff7f28b73e1",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle3",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x459345e48af7e72a4068db18abba0721018323dc8b01f938cf52d952159f3247",
+        "gasUsed": "1008452",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle3",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x74332e5cbd91bb6b5f00d3e5f410bde5d985ca19fa5e8eb8cfcd7123cc33df72",
+        "gasUsed": "1006152",
+        "args": []
+      },
+      {
+        "label": "campaign.repay4",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xaff23cad4d795980e886c4338bb91fdad279ef284ccf0c8de3a40c5008dd6e8d",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle4",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xfc4856ceb0a6180853e00d21f455bcd0329b855b5a70ad81e4bbe1ddf3d55330",
+        "gasUsed": "1008452",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle4",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xaed22a1cc9703ef8e8703ab7ab8ee3327c5ce9eab0b74c4a4f03f6c71a0a9c4e",
+        "gasUsed": "1011272",
+        "args": []
+      },
+      {
+        "label": "campaign.repay5",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x4f464c4389e52043828a1df024b0520aed51af2cda86140d281d0edbe50a89e8",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle5",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x5c53ed5397e261e85eff79d1dd141223df38555d9a7d30591ad905261f0e2eb4",
+        "gasUsed": "1015761",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle5",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xf1535a262607d61fcdb3538ebd9028e7f53344ad0ea0919ae6fb7f148ee503e9",
+        "gasUsed": "1006152",
+        "args": []
+      },
+      {
+        "label": "campaign.repay6",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xbcd44a08534b2fda546f30f1a70e2154775c0861adaa5ee0781fb2adb19c50e9",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle6",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xcf7550a46c9b653aa7be59f75c47afb7a9c6814a59950bb3a02888baeaa7dea0",
+        "gasUsed": "1363173",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle6",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x542b4919836944df58b7e276ee89c0c8c0951de0aae7c7415f442b5e3ec55ce5",
+        "gasUsed": "1006152",
+        "args": []
+      },
+      {
+        "label": "campaign.repay7",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x6703ed4822b621ca696bf89856bd7e1d19d0fcfcb6e4c0e803c1b7784440a990",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle7",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xc693c9775ee3da5d680d12465c1e649f82f0b90bc305080060aca990fed4649b",
+        "gasUsed": "724916",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle7",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x40776cb3d78783093897298275b49aa5b93ca3ea2b0de554de62c13cf506f348",
+        "gasUsed": "1365993",
+        "args": []
+      },
+      {
+        "label": "campaign.repay8",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x0c6c6d995ee0be6c48875cc63edb9ea75a3b8ca681e42ce3205798cff6403e51",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle8",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x8d681c3766f1d3edb5773f67e0f4395217b42d7bd12dc0c8d5411dd8357bc61a",
+        "gasUsed": "707816",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle8",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xa15e15db5aec1fcaf5460cf337d177d1d7a2c6738f1a6da2465d2839fcc8dbe5",
+        "gasUsed": "720116",
+        "args": []
+      },
+      {
+        "label": "campaign.repay9",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x08abb0ccd0b3859c6b99e629f1632c022a7d198d676e8b77c9e0628fc94db86c",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle9",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xb46a05cbdd8bed512176af40263cfa7be6855e2b0dca3fac650ba73583312335",
+        "gasUsed": "707816",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle9",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x4b23ecd6e8b2d0800a4e69a9369257d35675b93a37222eb686cda718197a1858",
+        "gasUsed": "703016",
+        "args": []
+      },
+      {
+        "label": "campaign.repay10",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xdfe226bd047201e309f92f46b7e12132ee123acd12a5d35796fc9b6c919b819a",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle10",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x2339754433238541a3af98f620d6658486424681822aaad1af26c92d53ba6f73",
+        "gasUsed": "1019524",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle10",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x4caba8d153b4ffc7e6f076913680ebf2d9e33fc94408340cb9fdaae744c8737d",
+        "gasUsed": "1015035",
+        "args": []
+      },
+      {
+        "label": "campaign.repay11",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xede9deea2ebdad9f2a579b8524aebb1f8fba4c0ffbeed7edcbfc661a6a822554",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle11",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xf0c1d076ea88efe08f3f7a714ca6ac28afaa3a47c4ecf91e8de1420d072472f3",
+        "gasUsed": "1014828",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle11",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xb0c277eb7c32c393c3065c8a18aecf13db5e50138917284922a4286d2e622e29",
+        "gasUsed": "1008205",
+        "args": []
+      },
+      {
+        "label": "campaign.repay12",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xb76ee724a3241e0caef5fd23cade78f837948417bc3277dc9f3083e7227516f1",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle12",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x16595fc011fe73a6b869f1835fd340aa12de72c84b002aafa91d3e853f0389a2",
+        "gasUsed": "1008452",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle12",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x425f480bbd9c3853bd9b35bf07bfb9559a6b8abde01346618359e2e0fd51bd13",
+        "gasUsed": "1006152",
+        "args": []
+      },
+      {
+        "label": "campaign.repay13",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xcb8e2567949e9c602b43c16555ea31d7ab8f6e02efac2fcf2792fc748a757032",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle13",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xd14dab851722f7081dc6ed5fc31c7ccaee54343f80e6be8416dee7f87b983a7e",
+        "gasUsed": "1008452",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle13",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xd4b963165e0bb72bc8afd83440eae32b5b08269d5983142efcddec128828d636",
+        "gasUsed": "1006152",
+        "args": []
+      },
+      {
+        "label": "campaign.repay14",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xb79cf118cecac41c5dce152ac5186b0c629f26ba68d3ee567ae2da70cfa8817e",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle14",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xf96d194c7d424c0cb3e94be2955c768c70db8b5071f66ccd07379a5336ad146e",
+        "gasUsed": "1008452",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle14",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x3d91f50383336ea2bd2503a7115be706efaa41d7f101d967276c149bdad1a2e1",
+        "gasUsed": "1011272",
+        "args": []
+      },
+      {
+        "label": "campaign.repay15",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x64d16fb9911f711fc6b2daf1916fff44b591a5e5df47de86559bfabd6debca35",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle15",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x00b99939a719c1865ab88b241947ad7447f69946bf4de9faf1f785c51ef7b623",
+        "gasUsed": "1012639",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle15",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x2a6423190c1f96b3cb61c7bf3241d1b63756986d0a30e7d43573e6f8d029c835",
+        "gasUsed": "1012392",
+        "args": []
+      },
+      {
+        "label": "campaign.repay16",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x09a1ed5ff1705bd0ff071a383203f3786cad021010ff902c208457d639ebb7fd",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle16",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x7f0f78b20c20bbc1e75ea90b9dddddef452330c5e4fd04c75123fb059f40ec4c",
+        "gasUsed": "1087607",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle16",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xe3c6019313172e0636dcc0d78e214f41b1529688ecd0e30a5c192aed493b020d",
+        "gasUsed": "1008205",
+        "args": []
+      },
+      {
+        "label": "campaign.repay17",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x6c112a3ff22e907f51ee33ee03961de06ba661d5be9dde26ff84af224b855b34",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle17",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x9e63b28a01b049d98f375af05dec07c2482f1ed433ccca674e9131a7bae21bf7",
+        "gasUsed": "1008452",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle17",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x3dc4635d2ca9688810b6675e82df526d06c8cfe036377eb96d00deed2905b645",
+        "gasUsed": "1083118",
+        "args": []
+      },
+      {
+        "label": "campaign.repay18",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0xa7de6c6548fdc038f068a28ad62d1fc4790b1d30add02d7c0f1798335efb0049",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle18",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xd1ef24ca56cdc4e5c6c558ee51b2943a20f635bbcf68620a759bb0a44ecefdff",
+        "gasUsed": "1018750",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle18",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x2838900aae8df218b9081fc73fccbe05929b899a2e6f081bf7ee57d40ef4b9af",
+        "gasUsed": "1006152",
+        "args": []
+      },
+      {
+        "label": "campaign.repay19",
+        "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "transactionHash": "0x839419f3d379d81d21a312f7fa084e8c2a8f3c46576a3fd9041067d00a4d2a12",
+        "gasUsed": "1404277",
+        "args": []
+      },
+      {
+        "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle19",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xac90fe31b9c20ef6b41547abb335986c835ffa3abc320231724c2f558ebb8372",
+        "gasUsed": "667315",
+        "args": []
+      },
+      {
+        "label": "campaign.0x4a679253410272dd5232b3ff7cf5dbb88f295319.settle19",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x83f13109d84cc2bbc78355cf9c1ccdd59f022372eb97d1162a588550ffdc3ae6",
+        "gasUsed": "1016450",
+        "args": []
+      },
+      {
+        "label": "campaign.user0.claim",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0xae24debe60f360f826d9fbc73e10ceb0159490758e482130e05cff5be1db0d26",
+        "gasUsed": "128910",
+        "args": [
+          "0",
+          "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+        ]
+      },
+      {
+        "label": "campaign.user1.claim",
+        "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "transactionHash": "0x23daea505c477aa348e10bcbe13a520851e1dfe1f8d691b84efe41f30fe514e5",
+        "gasUsed": "114510",
+        "args": [
+          "1",
+          "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+        ]
+      },
+      {
+        "label": "campaign.user2.claim",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0xf66a7a989fce19fc4851d8f3788d96de9b99e4d5768801ea97112393ba5fc513",
+        "gasUsed": "128910",
+        "args": [
+          "0",
+          "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+        ]
+      },
+      {
+        "label": "campaign.user3.claim",
+        "address": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "transactionHash": "0x29f553fa6b2f693fd001f034955772e9b192854c7c4fbfe19c4a09c7bf10d498",
+        "gasUsed": "114510",
+        "args": [
+          "1",
+          "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+        ]
+      },
+      {
+        "label": "campaign.user0.claimBuffer",
+        "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+        "transactionHash": "0xa4ea2b4ce2c924e755f5e8301ef1e15c87cc774ec566f84ef954c7bf2a4c5c48",
+        "gasUsed": "91978",
+        "args": [
+          "0"
+        ]
+      },
+      {
+        "label": "campaign.user1.claimBuffer",
+        "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+        "transactionHash": "0xfc5f6fe795d9797a75c1b2d8fba397257b037dc87d4ae00134b7089a22e7d142",
+        "gasUsed": "91990",
+        "args": [
+          "1"
+        ]
+      },
+      {
+        "label": "campaign.user2.claimBuffer",
+        "address": "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
+        "transactionHash": "0x3151dd6d50fce737b1787672eb352b4d386c328c5c5ab31410dd7de4c9d6cb93",
+        "gasUsed": "74878",
+        "args": [
+          "0"
+        ]
+      },
+      {
+        "label": "campaign.user3.claimBuffer",
+        "address": "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
+        "transactionHash": "0x6bc3abe365a9bcd24c3876aa89239ad2601d8b9297a23c3fe466059bc34b7a24",
+        "gasUsed": "74890",
+        "args": [
+          "1"
+        ]
+      }
+    ],
+    "receiptCaveat": "Every receipt checked when mined; pruned receipt lookups are marked unavailable, not reverified. Final live code and bindings were rechecked.",
+    "testOnlyPolicy": {
+      "slippagePpm": 12000,
+      "trancheHollar": "100",
+      "productionApproval": false
+    },
+    "entryFloorFinding": "Pinned HOLLAR/PRIME quote: 20.5 HOLLAR -> 19.312911 PRIME; Aave PRIME=$1.0505 implies 19.319371 PRIME at 1% floor. Actual route rejects. No production widening approved.",
+    "operatingBootstrap": {
+      "hollarPerVault": "1000000000000000000000",
+      "source": "external fork-only donor debt"
+    },
+    "roundingPolicies": [
+      {
+        "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "assetId": 34,
+        "minimum": "10746910263300",
+        "target": "21494820526600"
+      },
+      {
+        "vault": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "assetId": 1000765,
+        "minimum": "213606749974",
+        "target": "428213499948"
+      }
+    ],
+    "preHarvest": {
+      "eth": "210000304166385168",
+      "btc": "6100002157010572",
+      "buffers": [
+        {
+          "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+          "buffer": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+          "interest": "52115775208400118"
+        },
+        {
+          "vault": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+          "buffer": "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
+          "interest": "50533649741662950"
+        }
+      ]
+    },
+    "collateralPayouts": [
+      {
+        "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "user": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "deposited": "100000000000000007",
+        "promised": "112078552552515149",
+        "paid": "112078552552515149"
+      },
+      {
+        "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "user": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+        "deposited": "100000000000000011",
+        "promised": "112078552529983095",
+        "paid": "112078552529983095"
+      },
+      {
+        "vault": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "user": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "deposited": "3000000000000013",
+        "promised": "3356676836984029",
+        "paid": "3356676836984029"
+      },
+      {
+        "vault": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "user": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+        "deposited": "3000000000000017",
+        "promised": "3356676836819228",
+        "paid": "3356676836819228"
+      }
+    ],
+    "unpaidSourceClaims": [
+      {
+        "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "id": "0",
+        "owner": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "unpaidSourceClaim": "0"
+      },
+      {
+        "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "id": "1",
+        "owner": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+        "unpaidSourceClaim": "59846412587140330026"
+      },
+      {
+        "vault": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "id": "0",
+        "owner": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "unpaidSourceClaim": "0"
+      },
+      {
+        "vault": "0x4a679253410272dd5232b3ff7cf5dbb88f295319",
+        "id": "1",
+        "owner": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+        "unpaidSourceClaim": "55376485522087109087"
+      }
+    ],
+    "unpaidSourceClaimTotalWei": "115222898109227439113",
+    "timeAdvances": "One day before harvest; seven days after exit requests. This is not a native 90-day path.",
+    "externalSupport": {
+      "primeDonatedToSource": "100 PRIME; fixture for harvest execution, not earned yield",
+      "hollarBootstrap": "1000 HOLLAR per vault, from a fork-only donor borrow",
+      "hollarSourceSupport": "10 HOLLAR before second seed, 50 HOLLAR before public entries, 100 HOLLAR during recovery",
+      "hollarActiveRecovery": "100 HOLLAR per vault via fundPosition(0), allocated before all four exits start",
+      "warning": "Collateral gains and HOLLAR payouts include donated capital; neither is an APY estimate."
+    },
+    "limitations": [
+      "Fork-only route adapter, production adapter not supplied",
+      "Donated PRIME fixture tests harvest execution, not realized yield",
+      "Explicit external HOLLAR donations for swap friction and recovery",
+      "Seven-day native time advance; 90-day paths are separate modeled tests"
+    ],
+    "infrastructureCaveat": "Chopsticks eth_getStorageAt uses H256 encoding for runtime U256 slot index; implementation slots read from native EVM.AccountStorages instead."
+  }
+}

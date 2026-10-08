@@ -12,10 +12,8 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 
-/// @notice Full user journey end-to-end: deposit ETH → loop ramps → request
-///         redeem → loop deleverages → pokeSettle repays Main debt / burns synth
-///         / withdraws ETH → claim returns the ETH. Asserts the user gets back
-///         ~their full 1 ETH principal.
+/// @notice full journey: deposit → ramp → redeem → unwind → settle → claim returns
+/// ~the full 1 eth principal
 contract IntegrationWithdrawTest is Test {
     MockERC20 eth;
     MockERC20 aEth;
@@ -114,37 +112,36 @@ contract IntegrationWithdrawTest is Test {
     }
 
     function test_depositRampWithdrawReturnsPrincipal() public {
-        // ── deposit 1 ETH ─────────────────────────────────────────────────
+        // deposit 1 eth
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         uint256 shares = vault.deposit(1e18, address(this));
+        vault.rebalance();
 
-        // ── ramp the loop to target HF ────────────────────────────────────
+        // ramp the loop to target hf
         for (uint256 i = 0; i < 40; i++) {
             loop.pokeBorrow();
         }
         assertApproxEqRel(loop.healthFactor(), 1.05e18, 0.03e18, "loop at target HF");
 
-        // ── request full redemption ───────────────────────────────────────
+        // request full redemption
         uint256 reqId = vault.requestRedeem(shares, address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(100);
 
-        // ── deleverage the loop (the unwind spiral) ───────────────────────
+        // unwind spiral
         for (uint256 i = 0; i < 400; i++) {
             if (loop.unwindTargetEquity() == 0) break;
             loop.pokeRepay();
         }
 
-        // ── settle + claim ────────────────────────────────────────────────
+        // settle + claim
         vault.pokeSettle();
         uint256 balBefore = eth.balanceOf(address(this));
         uint256 got = vault.claim(reqId, address(this));
 
-        // user gets back ~their full 1 ETH principal
         assertApproxEqRel(got, 1e18, 0.02e18, "principal returned ~1 ETH");
         assertEq(eth.balanceOf(address(this)) - balBefore, got, "ETH received");
-        // Main debt cleared
         assertApproxEqAbs(hollarDebt.balanceOf(address(vault)), 0, 5e18, "Main debt repaid");
     }
 }

@@ -1,5 +1,10 @@
 # Propeller Readiness and 90-Day Pressure Tests
 
+**Historical study.** For the current implementation, test counts and release
+gates, use [RC1](release-candidate.md) and the later
+[production-route and retention campaign](route-execution-calibration.md).
+Values and statements of readiness below apply to their dated snapshots only.
+
 Local investigation, 2026-09-18. Branch `fix/propeller-accounting-readiness`.
 These runs were performed locally without production transactions. See the
 [current status and resource index](README.md) for the publication checkpoint.
@@ -296,13 +301,13 @@ and pool-math input/output accounting use integer token units.
 From the repository root:
 
 ```sh
-HYDRATION_MATH_ROOT=/home/mrq/git/sdk/packages \
+HYDRATION_MATH_ROOT=<sdk checkout>/packages \
   node scripts/propeller/pressure-model.mjs \
   /tmp/propeller-market-snapshot-20260918.json \
   /tmp/propeller-pressure-results-20260918.json
 
 PROPELLER_MARKET_SNAPSHOT=/tmp/propeller-market-snapshot-20260918.json \
-HYDRATION_MATH_ROOT=/home/mrq/git/sdk/packages \
+HYDRATION_MATH_ROOT=<sdk checkout>/packages \
   node scripts/propeller/pressure-model.test.mjs
 ```
 

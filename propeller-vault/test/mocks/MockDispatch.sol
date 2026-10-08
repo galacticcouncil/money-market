@@ -4,22 +4,8 @@ pragma solidity ^0.8.22;
 import {MockERC20} from "./MockERC20.sol";
 import {MockPool} from "./MockPool.sol";
 
-/// @notice Test stand-in for the Frontier dispatch precompile (0x0401), where
-///         `DcaDispatch.routerSell` sends its SCALE-encoded
-///         `pallet_route::sell` calls. Tests `vm.etch` this contract's code at
-///         the precompile address and `configure` it (storage lives at 0x0401).
-///
-///         It decodes the SCALE head (pallet, call, asset_in, asset_out,
-///         amount_in, min_amount_out — the route tail is ignored; legs are
-///         keyed by asset-id pair) and executes the swap with real-route
-///         semantics against MockPool:
-///
-///         deploy  HOLLAR → aPRIME : burn caller HOLLAR, supply oracle-priced
-///                                   PRIME on the caller's behalf (the folded
-///                                   stableswap + Aave-supply hops);
-///         unwind  aPRIME → HOLLAR : withdraw caller aPRIME (HF-checked, the
-///                                   in-route Aave hop), mint oracle-priced
-///                                   HOLLAR to the caller.
+/// @notice stand-in for the dispatch precompile (0x0401), etched there by tests. decodes
+///         the router.sell scale head and runs hollar↔aprime legs at oracle prices on MockPool.
 contract MockDispatch {
     uint8 internal constant ROUTER_PALLET = 67;
     uint8 internal constant SELL_CALL = 0;
@@ -29,11 +15,11 @@ contract MockDispatch {
     MockERC20 public prime;
     uint32 public hollarId;
     uint32 public aPrimeId;
-    /// @notice swap fee (bps) charged on the output of each leg — models the
-    ///         stableswap fee / price impact of pool-143. 0 by default
-    ///         (frictionless); must stay under the caller's slippage bound or
-    ///         the minOut check rejects the fill (as it would live).
+    /// @notice per-leg output fee in bps (pool fee / impact); 0 = frictionless.
     uint16 public feeBps;
+    uint256 public hollarSold;
+    uint256 public hollarBought;
+    uint256 public grossPrimeSoldHollar;
 
     function configure(
         address _pool,
@@ -65,6 +51,7 @@ contract MockDispatch {
         (uint256 pPrime, ) = pool.assetPrice(address(prime));
 
         if (assetIn == hollarId && assetOut == aPrimeId) {
+            hollarSold += amountIn;
             // deploy leg: HOLLAR (18dp) → aPRIME (6dp) at the oracle rate
             hollar.burn(msg.sender, amountIn);
             uint256 out6 = (amountIn * pHollar) / pPrime / 1e12;
@@ -74,12 +61,13 @@ contract MockDispatch {
             prime.approve(address(pool), out6);
             pool.supply(address(prime), out6, msg.sender, 0);
         } else if (assetIn == aPrimeId && assetOut == hollarId) {
-            // unwind leg: aPRIME (6dp) → HOLLAR (18dp); the in-route withdraw
-            // burns the caller's aPRIME and HF-checks the caller's position
+            // unwind leg: aPRIME (6dp) → HOLLAR (18dp); the withdraw hf-checks the caller
             pool.mockWithdrawTo(address(prime), amountIn, msg.sender, address(this));
             prime.burn(address(this), amountIn);
             uint256 out18 = (amountIn * pPrime * 1e12) / pHollar;
+            grossPrimeSoldHollar += out18;
             out18 = (out18 * (10_000 - feeBps)) / 10_000;
+            hollarBought += out18;
             require(out18 >= minOut, "MockDispatch: minOut");
             hollar.mint(msg.sender, out18);
         } else {

@@ -6,11 +6,12 @@ import {CollateralVault} from "../../src/CollateralVault.sol";
 import {SubLoop} from "../../src/SubLoop.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockPool} from "../mocks/MockPool.sol";
+import {PropellerMainDebt} from "../../src/PropellerMainDebt.sol";
+import {MockDispatch} from "../mocks/MockDispatch.sol";
+import {DcaDispatch} from "../../src/lib/DcaDispatch.sol";
 
-/// @notice Randomized driver for the Propeller invariant suite. A single actor
-///         (this handler) deposits, drives the deploy/unwind DCA + keeper pokes,
-///         requests redemptions, settles and claims — in whatever order the
-///         fuzzer picks. Ghost vars track quantities the invariants compare to.
+/// @notice single-actor fuzz driver for the invariant suite; ghost vars track what
+/// the invariants compare against
 contract Handler is Test {
     CollateralVault public vault;
     SubLoop public loop;
@@ -38,7 +39,6 @@ contract Handler is Test {
         prime = _prime;
     }
 
-    // ── user: deposit ───────────────────────────────────────────────────────
     function deposit(uint256 amt) external {
         uint256 cap = vault.tvlCap();
         uint256 used = vault.totalAssets();
@@ -50,15 +50,14 @@ contract Handler is Test {
         successfulDeposits++;
     }
 
-    // ── keeper: ramp the loop (each poke borrows + levers a tranche) ─────────
     function ramp(uint256 n) external {
         n = bound(n, 1, 8);
+        vault.rebalance();
         for (uint256 i = 0; i < n; i++) {
             loop.pokeBorrow();
         }
     }
 
-    // ── user: request redemption ──────────────────────────────────────────────
     function requestRedeem(uint256 seed) external {
         uint256 bal = vault.balanceOf(address(this));
         if (bal == 0) return;
@@ -78,7 +77,6 @@ contract Handler is Test {
         }
     }
 
-    // ── keeper: deleveraging spiral (pokeRepay sells + repays per call) ───────
     function churnUnwind(uint256 n) external {
         if (loop.unwindTargetEquity() == 0) return;
         n = bound(n, 1, 12);
@@ -88,12 +86,41 @@ contract Handler is Test {
         }
     }
 
-    // ── keeper: settle queued redemptions ─────────────────────────────────────
     function settle() external {
         vault.pokeSettle();
     }
 
-    // ── user: claim a settled request ─────────────────────────────────────────
+    function accrueMainInterest(uint256 seed) external {
+        MockERC20 debt = MockERC20(address(vault.hollarDebtToken()));
+        uint256 balance = debt.balanceOf(address(vault));
+        if (balance == 0) return;
+        debt.mint(address(vault), bound(seed, 1, balance / 100_000 + 1));
+        vault.maintainPeg();
+    }
+
+    function accruePrimeAndExecutionCost(uint256 seed, uint16 costBps) external {
+        MockERC20 aPrime = MockERC20(address(loop.primeAToken()));
+        uint256 earned = bound(seed, 1, aPrime.balanceOf(address(loop)) / 20 + 1);
+        aPrime.mint(address(loop), earned);
+        prime.mint(address(pool), earned);
+        MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(uint16(bound(costBps, 0, 10)));
+    }
+
+    function externalRepayment(uint256 seed) external {
+        uint256 balance = vault.hollarDebtToken().balanceOf(address(vault));
+        if (balance == 0) return;
+        uint256 amount = bound(seed, 1, balance);
+        MockERC20 cash = MockERC20(address(vault.hollar()));
+        cash.mint(address(this), amount);
+        cash.approve(address(pool), amount);
+        pool.repay(address(cash), amount, 2, address(vault));
+    }
+
+    function claimMainSurplus(uint256 seed) external {
+        if (vault.queueUnwind() == 0) return;
+        PropellerMainDebt(address(vault.mainDebt())).claimSurplus(seed % vault.queueUnwind());
+    }
+
     function claim(uint256 seed) external {
         uint256 len = reqIds.length;
         if (len == 0) return;
@@ -110,9 +137,7 @@ contract Handler is Test {
             bool active
         ) = vault.redemptions(id);
         if (!active || settled == 0) return;
-        // claim may be partial: shares are burned only in proportion to the
-        // collateral paid, so track the ACTUAL burn (escrow balance delta)
-        // rather than assuming the whole request closes.
+        // claims can be partial, so track the actual escrow burn
         uint256 escrowBefore = vault.balanceOf(address(vault));
         ghostClaimed += vault.claim(id, address(this));
         ghostEscrowed -= (escrowBefore - vault.balanceOf(address(vault)));

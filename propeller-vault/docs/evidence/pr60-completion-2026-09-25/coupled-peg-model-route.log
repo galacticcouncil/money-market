@@ -1,0 +1,154 @@
+TAP version 13
+# Subtest: arbitrage redistributes existing HOLLAR without minting or burning
+ok 1 - arbitrage redistributes existing HOLLAR without minting or burning
+  ---
+  duration_ms: 26.46142
+  type: 'test'
+  ...
+# Subtest: no prefunded inventory means no assumed free arbitrage
+ok 2 - no prefunded inventory means no assumed free arbitrage
+  ---
+  duration_ms: 1.643962
+  type: 'test'
+  ...
+# Subtest: execution and inventory risk threshold can close an arbitrage
+ok 3 - execution and inventory risk threshold can close an arbitrage
+  ---
+  duration_ms: 1.171653
+  type: 'test'
+  ...
+# Subtest: arbitrage outage prevents inventory trades
+ok 4 - arbitrage outage prevents inventory trades
+  ---
+  duration_ms: 23.305899
+  type: 'test'
+  ...
+# Subtest: no settlement capacity cannot replenish consumed PRIME
+ok 5 - no settlement capacity cannot replenish consumed PRIME
+  ---
+  duration_ms: 22.542204
+  type: 'test'
+  ...
+# Subtest: PRIME subscriptions spend cash now and deliver only after delay
+ok 6 - PRIME subscriptions spend cash now and deliver only after delay
+  ---
+  duration_ms: 22.84276
+  type: 'test'
+  ...
+# Subtest: settlement outage also delays already-funded deliveries
+ok 7 - settlement outage also delays already-funded deliveries
+  ---
+  duration_ms: 20.553817
+  type: 'test'
+  ...
+# Subtest: aToken redemption uses shared cash and stops when empty
+ok 8 - aToken redemption uses shared cash and stops when empty
+  ---
+  duration_ms: 20.281481
+  type: 'test'
+  ...
+# Subtest: small remaining money-market cash supports only a partial redemption
+ok 9 - small remaining money-market cash supports only a partial redemption
+  ---
+  duration_ms: 20.393083
+  type: 'test'
+  ...
+# Subtest: HSM buyback spends collateral and decreases its existing bucket
+ok 10 - HSM buyback spends collateral and decreases its existing bucket
+  ---
+  duration_ms: 61.056747
+  type: 'test'
+  ...
+# Subtest: HSM premium-side mint is backed by newly received collateral
+ok 11 - HSM premium-side mint is backed by newly received collateral
+  ---
+  duration_ms: 45.725402
+  type: 'test'
+  ...
+# Subtest: HSM minting respects both issuance capacity and holdings ceiling
+ok 12 - HSM minting respects both issuance capacity and holdings ceiling
+  ---
+  duration_ms: 1.353676
+  type: 'test'
+  ...
+# Subtest: donating HSM collateral does not create extra burn capacity
+ok 13 - donating HSM collateral does not create extra burn capacity
+  ---
+  duration_ms: 1.087891
+  type: 'test'
+  ...
+# Subtest: external HOLLAR demand spends finite independent cash, not arb profits
+ok 14 - external HOLLAR demand spends finite independent cash, not arb profits
+  ---
+  duration_ms: 2.294944
+  type: 'test'
+  ...
+# Subtest: external borrower repayment burns only the purchased HOLLAR
+ok 15 - external borrower repayment burns only the purchased HOLLAR
+  ---
+  duration_ms: 2.124371
+  type: 'test'
+  ...
+# Subtest: zero buyer funding cannot be turned into organic demand
+ok 16 - zero buyer funding cannot be turned into organic demand
+  ---
+  duration_ms: 0.674203
+  type: 'test'
+  ...
+# Subtest: the entry guard queues demand instead of executing a bad fill
+ok 17 - the entry guard queues demand instead of executing a bad fill
+  ---
+  duration_ms: 2.025279
+  type: 'test'
+  ...
+# Subtest: entry and exit update inventory and repay only actual proceeds
+ok 18 - entry and exit update inventory and repay only actual proceeds
+  ---
+  duration_ms: 0.687054
+  type: 'test'
+  ...
+# Subtest: market mint-cap increases are permissions, not LP or reserve funding
+ok 19 - market mint-cap increases are permissions, not LP or reserve funding
+  ---
+  duration_ms: 1.470309
+  type: 'test'
+  ...
+# Subtest: coupled short run records queues, daily prices, and conservation
+ok 20 - coupled short run records queues, daily prices, and conservation
+  ---
+  duration_ms: 3250.366046
+  type: 'test'
+  ...
+# Subtest: external PRIME valuation cannot relax the oracle-based entry guard
+ok 21 - external PRIME valuation cannot relax the oracle-based entry guard
+  ---
+  duration_ms: 2.474117
+  type: 'test'
+  ...
+# Subtest: LP withdrawals remove real assets once and preserve the global ledger
+ok 22 - LP withdrawals remove real assets once and preserve the global ledger
+  ---
+  duration_ms: 0.341906
+  type: 'test'
+  ...
+# Subtest: outside lender withdrawals constrain cash without burning pool aTokens
+ok 23 - outside lender withdrawals constrain cash without burning pool aTokens
+  ---
+  duration_ms: 10.91554
+  type: 'test'
+  ...
+# Subtest: entry pause does not turn off exits
+ok 24 - entry pause does not turn off exits
+  ---
+  duration_ms: 0.378937
+  type: 'test'
+  ...
+1..24
+# tests 24
+# suites 0
+# pass 24
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3558.355604

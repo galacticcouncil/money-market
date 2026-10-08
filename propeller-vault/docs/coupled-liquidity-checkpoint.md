@@ -1,5 +1,9 @@
 # Coupled Liquidity Research Checkpoint
 
+**Historical research checkpoint.** The later [PRIME validation](prime-pricing-replenishment.md)
+adds pricing and replenishment evidence but does not establish a committed
+provider or finish the calibrated launch-capacity campaign. See [RC1](release-candidate.md).
+
 2026-09-22. **The full recalibrated six-TVL campaign is unfinished.** These are
 public observations, preliminary simulations and model infrastructure, not a
 production liquidity requirement or approved launch capacity. No production
@@ -130,7 +134,7 @@ not a normal-operation minimum.
 Run from the repository root with Node.js 22+ and the Hydration SDK math packages
 available. The recorded runs used `math-stableswap` 2.5.0 and `math-hsm` 1.2.0;
 the output includes their WASM hashes. Set `HYDRATION_MATH_ROOT` to your SDK
-`packages` directory. On the analysis machine it is `/home/mrq/git/sdk/packages`.
+`packages` directory.
 
 ```sh
 HYDRATION_MATH_ROOT=/path/to/sdk/packages \

@@ -1,0 +1,168 @@
+{
+  "chain_getFinalizedHead": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": "0x02f6c220e92ae361c69ffbc6fe624c691ce9b9191e49ef5d34d891cdd2f6de7c"
+  },
+  "eth_getBlockByNumber": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "hash": "0xe9b54fa528e8019ddaa03da03446ece522dc59b77c158441c932e5c9fcee515d",
+      "number": "0xe99073",
+      "gasUsed": "0x0",
+      "gasLimit": "0x2aea540",
+      "timestamp": "0x6abfd206",
+      "baseFeePerGas": "0x466539"
+    }
+  },
+  "eth_gasPrice": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": "0x466539"
+  },
+  "state_getRuntimeVersion": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "specName": "hydradx",
+      "implName": "hydradx",
+      "authoringVersion": 1,
+      "specVersion": 447,
+      "implVersion": 0,
+      "apis": [
+        [
+          "0xdf6acb689907609b",
+          5
+        ],
+        [
+          "0x37e397fc7c91f5e4",
+          2
+        ],
+        [
+          "0x40fe3ad401f8959a",
+          6
+        ],
+        [
+          "0xd2bc9897eed08f15",
+          3
+        ],
+        [
+          "0xf78b278be53f454c",
+          2
+        ],
+        [
+          "0xab3c0572291feb8b",
+          1
+        ],
+        [
+          "0xdd718d5cc53262d4",
+          1
+        ],
+        [
+          "0xea93e3f16f3d6962",
+          3
+        ],
+        [
+          "0x695c80446b8b3d4e",
+          1
+        ],
+        [
+          "0x9af86751b70c112d",
+          1
+        ],
+        [
+          "0xbc9d89904f5b923f",
+          1
+        ],
+        [
+          "0x37c8bb1350a9a2a8",
+          4
+        ],
+        [
+          "0x582211f65bb14b89",
+          6
+        ],
+        [
+          "0xe65b00e46cedd0aa",
+          2
+        ],
+        [
+          "0x0bb67a52fcd040ff",
+          1
+        ],
+        [
+          "0x34a3d488166b5a55",
+          1
+        ],
+        [
+          "0x542334fe4fd7cada",
+          1
+        ],
+        [
+          "0x6ff52ee858e6c5bd",
+          1
+        ],
+        [
+          "0xd7bdd8a272ca0d65",
+          2
+        ],
+        [
+          "0x04e70521a0d3d2f8",
+          1
+        ],
+        [
+          "0x91b1c8b16328eb92",
+          2
+        ],
+        [
+          "0x9ffb505aa738d69c",
+          1
+        ],
+        [
+          "0x2b5f5bcd2460e4f0",
+          1
+        ],
+        [
+          "0xa2b2b484fcb86943",
+          1
+        ],
+        [
+          "0x75fc5fbf0e9c71bc",
+          1
+        ],
+        [
+          "0x6aa673a4e69ae9a5",
+          1
+        ],
+        [
+          "0xfbc577b9d747efd6",
+          1
+        ]
+      ],
+      "transactionVersion": 1,
+      "systemVersion": 1,
+      "stateVersion": 1
+    }
+  },
+  "chain_getHeader": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "parentHash": "0xbd514ba7f9a80a5a954f1f7c5e167b6e4d20e97fcf1d427bb23007acb2d109eb",
+      "number": "0xe9905e",
+      "stateRoot": "0xa66c7ebca2d2d853f4eb397a5edd5af79296433902232e76b8fd9edae74f7c04",
+      "extrinsicsRoot": "0xf1a45eed6531f44b16a68737abfd50331b9ae3e557b1b2f63039b21c10058227",
+      "digest": {
+        "logs": [
+          "0x06434d4c53100102010c",
+          "0x066175726120faa2ca1100000000",
+          "0x045250535290de045f0e0355f760206882d758dc3c131c7605df52d639cc27412e2b9d847da2b6d9ed07",
+          "0x0466726f6e8801db6ad9de476ec686a802de101c94626b18ceb97166f8c4954fb613aae6632da900",
+          "0x0561757261010176fe61ff256cdaca25bc260c5c42513114099e8a96efedffb0ab83286f643202d3093f37f732cf68a17b6134716a45c438088a10166af18863480464674dcb83"
+        ]
+      }
+    }
+  },
+  "queriedAt": "2026-10-02T15:47:55.764627+00:00"
+}

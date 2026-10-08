@@ -1,0 +1,110 @@
+
+[2026-10-02T17:40:06.524Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.526Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.526Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.527Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T17:40:06.527Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.528Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T17:40:06.528Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+[ALERT] 0x0000000000000000000000000000000000000002: Main debt backing or source allocation incomplete; new ramp disabled
+
+[2026-10-02T17:40:06.528Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+[ALERT] 0x0000000000000000000000000000000000000002: Main debt backing or source allocation incomplete; new ramp disabled
+
+[2026-10-02T17:40:06.529Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.529Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T17:40:06.529Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T17:40:06.530Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.530Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T17:40:06.530Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.530Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.531Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.531Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.535Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T17:40:06.535Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.535Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T17:40:06.535Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+  settle → 0x123
+  settle → 0x123
+[ALERT] settle: gas estimate 16777216 plus 20% margin exceeds budget 16777216
+[ALERT] settle: gas estimate 7372545 plus 20% margin exceeds budget 8000000
+[ALERT] settle: gas estimate 14344272 plus 20% margin exceeds budget 16777216
+  settle: skipped (estimation unavailable)
+  settle → 0x123
+[ALERT] settle: transaction reverted (0x123)
+✔ rounding policy uses exact base units and covers every vault (2.022175ms)
+✔ rounding policy rejects ambiguous or unsafe thresholds (0.400587ms)
+✔ monitor distinguishes low reserve from missing custody (0.227994ms)
+✔ low HF schedules and services safety repayment without user redemptions (2.401082ms)
+✔ an existing safety target is serviced even if HF recovered (0.322586ms)
+✔ Main down-rebalance is settled with an empty redemption queue (0.324086ms)
+✔ active exits prevent ramping and share a single source repayment (0.332785ms)
+✔ source pause stops swaps but not settlement of already freed funds (0.379427ms)
+✔ idle healthy loop ramps normally (0.345506ms)
+✔ unfunded operating buffer blocks ramp but not repayment (0.620251ms)
+✔ late source recoveries are pulled even after collateral exits completed (0.258865ms)
+✔ idle recovery surplus is not a repayment obligation (0.248535ms)
+✔ cooldown-only requests do not start source repayment or ramping (0.293445ms)
+✔ eligible requests start before a single source repayment and settlement (0.244964ms)
+✔ local vault freeze prevents starts, FIFO settlement and new ramping (0.209594ms)
+✔ emergency freeze stops existing exit servicing without a safety target (0.200904ms)
+✔ source emergency preserves safety repayment and Main committed repayment (0.214314ms)
+✔ source swap pause postpones starting otherwise eligible unwinds (0.228364ms)
+✔ rounding monitor read failure alerts without blocking debt service (3.888318ms)
+✔ harvest precedes optional ramp and reinvests in the same maintenance cycle (0.271505ms)
+✔ empty harvests do not submit transactions or trigger extra maintenance (0.182103ms)
+✔ harvest availability never bypasses emergency or local pause (0.249174ms)
+✔ large settlement uses estimated gas and the live fee quote (0.486358ms)
+✔ small operations only reserve their estimated gas plus margin (0.255764ms)
+✔ an operator budget cannot be silently exceeded (0.191993ms)
+✔ the live chain limit also bounds the submission budget (0.521099ms)
+✔ a larger operator budget cannot bypass the native per-transaction cap (0.184344ms)
+✔ estimation failure never falls back to a fixed gas limit (0.215604ms)
+✔ a reverted receipt is not treated as successful maintenance (0.171653ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 401.20529

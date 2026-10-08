@@ -1,0 +1,99 @@
+{
+  "parentCommit": "6cac12f7982b9a867c9a2ee8696a32f5ad7f18c2",
+  "productionContractChanges": false,
+  "window": [
+    "2026-07-04",
+    "2026-10-02 exclusive"
+  ],
+  "rounds": 4,
+  "scenarios": 140,
+  "modelTestsPassed": 24,
+  "calibrationCases": 2,
+  "independentPoolChecks": 6,
+  "mathDependencies": {
+    "stableswap": {
+      "version": "2.5.0",
+      "wasmSha256": "a3cb6c3ea278d231cf6af1e75dbeabe465a24825b379f27c008f030d43234c93"
+    },
+    "hsm": {
+      "version": "1.2.0",
+      "wasmSha256": "b98b025623d907590d055bcfe6e03a24406379638a1af7c40e4b79cd7f8205eb"
+    }
+  },
+  "plotting": {
+    "library": "matplotlib",
+    "version": "3.11.2"
+  },
+  "sourceHashes": {
+    "scripts/propeller/collect-historical-model.mjs": "ab0c19180c701f58128013fa35b9d646a3200890aef64d9757de832b35987a1f",
+    "scripts/propeller/historical-apy-model.mjs": "170ab63865186100aa5e82baba2c2eccf3a2fcf24dcd651c3576d80ba5128283",
+    "scripts/propeller/historical-apy-model.test.mjs": "51743da8211d8f6b581fd6e70c47e4da81ebc9edcdf248ec0339f25365029bde",
+    "scripts/propeller/tune-historical-apy.mjs": "606246f9614e35d9fa8893612be68e9c63d75f93f330bec31fb9b07ead587f59",
+    "scripts/propeller/validate-historical-model.mjs": "13cc106864d84177d1576760805b94ac79648d14fd85c082075b5d9ee3a131b4",
+    "scripts/propeller/verify-historical-pools.mjs": "76e6c79eb5c783d5070c4267db35279307a2b07ec9dfb896dbdf241cd5be8f24",
+    "scripts/propeller/plot-historical-apy.py": "475385ee16a30911f9c11fd5109145ae6f26fa360bdf8eb895b875de7183ebef",
+    "scripts/propeller/pressure-model.mjs": "3f2a75a3fe04fc55bc6420897b00b098a66df2959a211506a012005dd3df3ff4",
+    "scripts/propeller/tune-operations.mjs": "91045475bae8f5bf80372499074dd98bf01930be8e3f6bad119d56a1daa017bd",
+    "propeller-vault/docs/historical-apy-four-rounds-2026-10-03.md": "adbb40ad9a6d96ae1ded7ccf3a91131f0fa43d47571970a52aad129f2d3f4e67"
+  },
+  "files": {
+    "analysis.json.gz": {
+      "sha256": "2a20dd32884c7d767aef07e23bd16a4362c32e855823636d8c70aaf515ed8711",
+      "bytes": 242899
+    },
+    "calibration.json": {
+      "sha256": "95e88e3432761c516addc0619f2bf169ba5a3f692409ab7079e7e32c1799448c",
+      "bytes": 1238
+    },
+    "calibration.log": {
+      "sha256": "6b48419b61591802e61b988b7022a617f43db58fb4f1adc8083034d12e08db1a",
+      "bytes": 993
+    },
+    "campaign.log": {
+      "sha256": "6171b06779ce89b576c248a66babd7c6863ce62ed764364aa39a9bc65924f095",
+      "bytes": 5410
+    },
+    "cases.csv": {
+      "sha256": "7bc113ba5751bfe6c6b888b0a183d31e63e3965cae7013db08034e0ea2cb8b4e",
+      "bytes": 22503
+    },
+    "collection.log": {
+      "sha256": "b8715318c5fd56a435975a1b7532148d59c88c0bcb09f0af359d52c7a6f68a24",
+      "bytes": 8724
+    },
+    "historical-returns.png": {
+      "sha256": "af04af748eb7f7c1b37bce63a3a551e802d72fb19efd88c2a6dd174e1bf27700",
+      "bytes": 191552
+    },
+    "historical-returns.svg": {
+      "sha256": "adbc4732f1f744fdb000ef7528b64a9fb47a3e3ded5ba5e4dc209bfccdbd36ae",
+      "bytes": 172198
+    },
+    "history.json.gz": {
+      "sha256": "6f3b21d63f3bce074d30e3e8cf7178e1c8af8c818d5f02ed66e0320372bdffff",
+      "bytes": 1713281
+    },
+    "raw-responses.json.gz": {
+      "sha256": "a47887b07f74a8b393a9c016dc1df12320235e19f6eef4df502a64741f8d9294",
+      "bytes": 1456416
+    },
+    "rpc-verification.json": {
+      "sha256": "420bc3d648840a6c4835e7b65ec874bce0e0b08c86a768a9bb85f99ff0445f65",
+      "bytes": 3779
+    },
+    "rpc-verification.log": {
+      "sha256": "1aeaa02384177503f8db79557eccf73f0d7f168403b1edeea947a32022bc376d",
+      "bytes": 228
+    },
+    "tests.log": {
+      "sha256": "40d35647806178a7f2dc7525ab80869d8c2615c79c0bc614bf06e67c1539b954",
+      "bytes": 2260
+    }
+  },
+  "inputUncompressedSha256": "a2f3ac212a04bff3ecdb16a0281ad3213e80720c906ea41ad9c1df7a27160900",
+  "notes": [
+    "Source hash identifies exact model implementation; this is an economic approximation, not Solidity or native keeper replay.",
+    "raw-responses.json.gz retains cached JSON request records and their contents, not raw HTTP framing.",
+    "Archived results exclude collateral reserve supply interest and terminal exit costs."
+  ]
+}

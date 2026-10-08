@@ -1,0 +1,119 @@
+{
+  "blockWeights": {
+    "baseBlock": {
+      "refTime": 431614000,
+      "proofSize": 0
+    },
+    "maxBlock": {
+      "refTime": 1500000000000,
+      "proofSize": 10485760
+    },
+    "perClass": {
+      "normal": {
+        "baseExtrinsic": {
+          "refTime": 1779123000,
+          "proofSize": 11322
+        },
+        "maxExtrinsic": {
+          "refTime": 1085720877000,
+          "proofSize": 7590854
+        },
+        "maxTotal": {
+          "refTime": 1125000000000,
+          "proofSize": 7864320
+        },
+        "reserved": {
+          "refTime": 0,
+          "proofSize": 0
+        }
+      },
+      "operational": {
+        "baseExtrinsic": {
+          "refTime": 1779123000,
+          "proofSize": 11322
+        },
+        "maxExtrinsic": {
+          "refTime": 1460720877000,
+          "proofSize": 10212294
+        },
+        "maxTotal": {
+          "refTime": 1500000000000,
+          "proofSize": 10485760
+        },
+        "reserved": {
+          "refTime": 375000000000,
+          "proofSize": 2621440
+        }
+      },
+      "mandatory": {
+        "baseExtrinsic": {
+          "refTime": 1779123000,
+          "proofSize": 11322
+        },
+        "maxExtrinsic": null,
+        "maxTotal": null,
+        "reserved": null
+      }
+    }
+  },
+  "events": [
+    {
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        {
+          "weight": {
+            "refTime": 1912274000,
+            "proofSize": 12815
+          },
+          "class": "Mandatory",
+          "paysFee": "Yes"
+        }
+      ]
+    },
+    {
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        {
+          "weight": {
+            "refTime": 1779123000,
+            "proofSize": 11322
+          },
+          "class": "Mandatory",
+          "paysFee": "Yes"
+        }
+      ]
+    },
+    {
+      "section": "ethereum",
+      "method": "Executed",
+      "data": [
+        "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+        "0x0000000000000000000000000000000000000000",
+        "0x44d4fe3912aed7dc6ec1a4abc39f56a970ed52d0ab470b5f71b5e4892576ff3e",
+        {
+          "error": {
+            "outOfGas": null
+          }
+        },
+        "0x"
+      ]
+    },
+    {
+      "section": "system",
+      "method": "ExtrinsicSuccess",
+      "data": [
+        {
+          "weight": {
+            "refTime": 301670966000,
+            "proofSize": 51867
+          },
+          "class": "Normal",
+          "paysFee": "No"
+        }
+      ]
+    }
+  ],
+  "estimate": "14344272"
+}

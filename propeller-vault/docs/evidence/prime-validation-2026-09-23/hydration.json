@@ -1,0 +1,296 @@
+{
+  "upstream": "hdx.tarn.hydration.cloud",
+  "block": "14939389",
+  "hash": "0x220c097d16037c002458543dfcd803884221e2d061dcde192035cd1161d95fef",
+  "retrievedAt": "2026-09-23T09:39:15.646Z",
+  "oracles": {
+    "active": {
+      "address": "0xDEe587cC569bf1FcBdcD6d1472031d225f34C307",
+      "latestRoundData": [
+        "9",
+        "105050000",
+        "1785463206",
+        "1785463206",
+        "9"
+      ],
+      "latestAnswer": "105050000",
+      "decimals": 8,
+      "owner": "0xAa7e0000000000000000000000000000000Aa7e0",
+      "codeHash": "0x359df9048981f2c68d95d494f01de779acb5f45fe407fe654511136c8642650a",
+      "ageSeconds": 4692636
+    },
+    "wormholeCandidate": {
+      "address": "0x6e3E9403Cf486af5f2cE0A6b3d7a23ee0e6BC84e",
+      "latestRoundData": [
+        "83",
+        "105967921",
+        "1789592754",
+        "1789592754",
+        "83"
+      ],
+      "latestAnswer": "105967921",
+      "decimals": 8,
+      "owner": "0x582e2fAc5af62dC024396b5e7F549c72273A69c3",
+      "codeHash": "0x359df9048981f2c68d95d494f01de779acb5f45fe407fe654511136c8642650a",
+      "ageSeconds": 563088
+    },
+    "legacyMrl": {
+      "address": "0x82022F77ae239Ad99bB1F2aC0d8DaFF6Cc976a07",
+      "latestRoundData": [
+        "1871",
+        "105125295",
+        "1785439506",
+        "1785439506",
+        "1871"
+      ],
+      "latestAnswer": "105125295",
+      "decimals": 8,
+      "owner": "0x6D6E6E7Dc8aba5B44845DDA12e7d41846D91c653",
+      "codeHash": "0x359df9048981f2c68d95d494f01de779acb5f45fe407fe654511136c8642650a",
+      "ageSeconds": 4716336
+    },
+    "dayEma": {
+      "address": "0x000001040000000000000000000000de0000002b",
+      "latestRoundDataError": "ContractFunctionExecutionError: The contract function \"latestRoundData\" reverted with the following signature:\n0x756e6b6e\n\nUnable to decode signature \"0x756e6b6e\" as it was not found on the provided ABI.\nMake sure you are using the correct ABI and that the error exists on it.\nYou can look up the decoded signature here: https://4byte.sourcify.dev/?q",
+      "latestAnswer": "106105730",
+      "decimals": 8,
+      "ownerError": "ContractFunctionExecutionError: The contract function \"owner\" reverted with the following signature:\n0x756e6b6e\n\nUnable to decode signature \"0x756e6b6e\" as it was not found on the provided ABI.\nMake sure you are using the correct ABI and that the error exists on it.\nYou can look up the decoded signature here: https://4byte.sourcify.dev/?q=0x756e6b6"
+    },
+    "receiverTarget": {
+      "address": "0x09221057Cf7E75953D199FB319E606972A6A82Cd",
+      "latestRoundData": [
+        "25",
+        "106080381",
+        "1790148858",
+        "1790148858",
+        "25"
+      ],
+      "latestAnswer": "106080381",
+      "decimals": 8,
+      "owner": "0xAa7e0000000000000000000000000000000Aa7e0",
+      "codeHash": "0x0664eea983e1194929b83c31455cf436f944fab5c29955b55b32400aa3cc38ea",
+      "ageSeconds": 6984
+    }
+  },
+  "bridge": {
+    "address": "0xFCaF4aA069C565d25539028970703F01e47D3E0B",
+    "isPaused": false,
+    "token": "0x000000000000000000000000000000010000002B",
+    "chainId": 73,
+    "rateLimitDuration": "86400",
+    "getCurrentOutboundCapacity": "184467440737000000",
+    "getCurrentInboundCapacity": "184467440737000000"
+  },
+  "errors": {},
+  "aaveOracle": "0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760",
+  "activeSource": "0xDEe587cC569bf1FcBdcD6d1472031d225f34C307",
+  "price": "105050000",
+  "peg": {
+    "source": [
+      {
+        "mmOracle": "0xdee587cc569bf1fcbdcd6d1472031d225f34c307"
+      },
+      {
+        "value": [
+          1,
+          1
+        ]
+      }
+    ],
+    "updatedAt": 14932135,
+    "maxPegUpdate": 40,
+    "current": [
+      [
+        "0xb61f57af57a86574996108908dfb4496",
+        "0xad5e0c8e0e7a875355b10d647139458f"
+      ],
+      [
+        1,
+        1
+      ]
+    ]
+  },
+  "assetLocation": {
+    "parents": 0,
+    "interior": {
+      "x3": [
+        {
+          "generalKey": {
+            "length": 2,
+            "data": "0x7768000000000000000000000000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "generalIndex": 1
+        },
+        {
+          "generalKey": {
+            "length": 32,
+            "data": "0x26759f460ee5f743ed66d27c8f2a5623bf39d53ed575955320661e6e13e0e3da"
+          }
+        }
+      ]
+    }
+  },
+  "receiver": {
+    "address": "0x582e2fAc5af62dC024396b5e7F549c72273A69c3",
+    "oracles": "0x09221057Cf7E75953D199FB319E606972A6A82Cd",
+    "latestPrices": [
+      "1060803812746703280",
+      "1790148856",
+      "1790148858"
+    ],
+    "maxPriceAge": "300",
+    "owner": "0x0000000000000000000000000000000000000000"
+  },
+  "receiverTargetHistory": [
+    {
+      "block": "14740420",
+      "hash": "0x103a0fdf3e624fcb227b90bacf71b90ea0617d645b7469a33512dfb287947cc9",
+      "roundId": "6",
+      "answer": "105993604",
+      "timestamp": "1789718430"
+    },
+    {
+      "block": "14750050",
+      "hash": "0x451a5d71bcf839c4c51ca5f73fa0c47d94a30fe25e9593bec420bf1df90aceed",
+      "roundId": "7",
+      "answer": "105997769",
+      "timestamp": "1789740042"
+    },
+    {
+      "block": "14760003",
+      "hash": "0xccf26ed833c4dad3f5af9a11d973f822ae873e7dc96350a448d2d275d3e95393",
+      "roundId": "8",
+      "answer": "106002304",
+      "timestamp": "1789761660"
+    },
+    {
+      "block": "14769999",
+      "hash": "0x32031aff961581f420ebb3ce7f60f7a791817bf3a9b492ac6f31e24be2bb4421",
+      "roundId": "9",
+      "answer": "106006586",
+      "timestamp": "1789783278"
+    },
+    {
+      "block": "14779820",
+      "hash": "0x1189b3fc20ed6c24f6e33f86fa1f74f34fc6289e8f017dec8c994c3b6008c6e8",
+      "roundId": "10",
+      "answer": "106010662",
+      "timestamp": "1789804896"
+    },
+    {
+      "block": "14789770",
+      "hash": "0x1f3ed889823e43f0d360e237129a5fe4227f6dec56808adac0273fdd94eb3299",
+      "roundId": "11",
+      "answer": "106015078",
+      "timestamp": "1789826514"
+    },
+    {
+      "block": "14799910",
+      "hash": "0xa0a18472b7ee7c0f3c46409e80b4f9fbdc9a75c0344c872825088a253cc1be94",
+      "roundId": "12",
+      "answer": "106019163",
+      "timestamp": "1789848132"
+    },
+    {
+      "block": "14809953",
+      "hash": "0x3dd2d706710ff84aba12f1753fc76aea913e885535d5fcd9069c861924de318b",
+      "roundId": "13",
+      "answer": "106023598",
+      "timestamp": "1789869750"
+    },
+    {
+      "block": "14819827",
+      "hash": "0x7cb8ebaf22e44793f089f24fdff14a716623297f97f311dabd5278a9819b3ede",
+      "roundId": "14",
+      "answer": "106027923",
+      "timestamp": "1789891386"
+    },
+    {
+      "block": "14829730",
+      "hash": "0x6064286b7ce3fba3a1e1555d0bc9d8671b7a33ab59a2e0d904131ace12078ea1",
+      "roundId": "15",
+      "answer": "106032251",
+      "timestamp": "1789912998"
+    },
+    {
+      "block": "14839627",
+      "hash": "0x69be9e0b0e6d26ba830b9b41a7b974694fe14e000cd4e775e19d178a94bea904",
+      "roundId": "16",
+      "answer": "106036592",
+      "timestamp": "1789934604"
+    },
+    {
+      "block": "14849387",
+      "hash": "0x218edd508e1ff493dbb686362c6d2984cf091f86876942eab16c96e3d2d2da58",
+      "roundId": "17",
+      "answer": "106040758",
+      "timestamp": "1789956222"
+    },
+    {
+      "block": "14859522",
+      "hash": "0xcad34d4ec4a8facc6b1837ea6086540a754430261be123b973ba446c70f67c02",
+      "roundId": "18",
+      "answer": "106045333",
+      "timestamp": "1789977834"
+    },
+    {
+      "block": "14878195",
+      "hash": "0xe509386a06f836ab77a11b369587ef2c3ed99ad49b88caef671cf9fee3c48a6c",
+      "roundId": "19",
+      "answer": "106053442",
+      "timestamp": "1790019156"
+    },
+    {
+      "block": "14888174",
+      "hash": "0xad5e55de73d6ce337f0e863404e224072ddfc1849c872da714add0a086ef7a8e",
+      "roundId": "20",
+      "answer": "106057937",
+      "timestamp": "1790040774"
+    },
+    {
+      "block": "14897701",
+      "hash": "0x0b42ea80f957f9f88cf9a180b78989ab15dd0c52b78458376d3bcfdaa8681833",
+      "roundId": "21",
+      "answer": "106062392",
+      "timestamp": "1790062440"
+    },
+    {
+      "block": "14907204",
+      "hash": "0x449c9a33feef6a66cd8adba65dc1ee0fe228e81a7b522f6072b8d664592bf891",
+      "roundId": "22",
+      "answer": "106066849",
+      "timestamp": "1790084010"
+    },
+    {
+      "block": "14916780",
+      "hash": "0xe14cfcd9c845ac8fd1fc0f8407972626ca45c12a2c64acebe536b6ec6e082de4",
+      "roundId": "23",
+      "answer": "106071342",
+      "timestamp": "1790105628"
+    },
+    {
+      "block": "14926609",
+      "hash": "0xaade06617cc4d0687e3afe9c34b0bb4b4b067b331d3e75c208b7168595f9b89d",
+      "roundId": "24",
+      "answer": "106076017",
+      "timestamp": "1790127288"
+    },
+    {
+      "block": "14936255",
+      "hash": "0x76a55b5d1e84e626592b37a0214a5777a6ee2ef8acfff21914d617e2e4e1668e",
+      "roundId": "25",
+      "answer": "106080381",
+      "timestamp": "1790148858"
+    }
+  ],
+  "circuitBreaker": {
+    "globalWithdrawLimitConfig": {
+      "limit": "0x00000000000000056bc75e2d63100000",
+      "window": 21600000
+    },
+    "globalAssetOverrides": "External",
+    "xcmEgressBuffer": null
+  }
+}

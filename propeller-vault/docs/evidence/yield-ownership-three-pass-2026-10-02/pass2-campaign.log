@@ -1,0 +1,143 @@
+campaign.adapter.asset43 PASS 47670
+campaign.adapter.asset222 PASS 47886
+campaign.adapter.asset34 PASS 47670
+campaign.adapter.asset1000765 PASS 47718
+campaign.btcBufferBinding PASS 84912
+campaign.btcMinter PASS 51213
+campaign.btcSource PASS 53935
+campaign.btcHarvester PASS 84912
+campaign.btcFees PASS 55543
+campaign.btcFeeRegistration PASS 254736
+campaign.btcDiscountBinding PASS 144914
+campaign.btcDiscount PASS 170077
+campaign.tranches PASS 37159
+campaign.34.adapter PASS 35190
+campaign.34.slippage PASS 34813
+campaign.34.reserveApprove PASS 24376
+campaign.34.reserveFund PASS 93139
+campaign.1000765.adapter PASS 32390
+campaign.1000765.slippage PASS 34813
+campaign.1000765.reserveApprove PASS 24376
+campaign.1000765.reserveFund PASS 93127
+campaign.donorApprove PASS 24400
+campaign.donorSupply PASS 191323
+campaign.donorBorrow PASS 284626
+campaign.probe.aPrimeApprove PASS 24364
+campaign.probe.aPrimeSupply PASS 180405
+campaign.probe.approve34 PASS 24508
+campaign.probe.approve43 PASS 24508
+campaign.probe.approve222 PASS 46307
+campaign.probe.approve1000765 PASS 24508
+ROUTE_QUOTE {"input":222,"output":1043,"dollars":1,"amount":"1000000000000000000","fair":"941228","kind":"native-loop","outputAmount":"940862","oracleLossBps":3.88,"minOut100bps":"931815","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":1043,"dollars":10,"amount":"10000000000000000000","fair":"9412288","kind":"native-loop","outputAmount":"9408628","oracleLossBps":3.88,"minOut100bps":"9318165","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":1043,"dollars":25,"amount":"25000000000000000000","fair":"23530720","kind":"native-loop","outputAmount":"23521563","oracleLossBps":3.89,"minOut100bps":"23295412","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":1043,"dollars":100,"amount":"100000000000000000000","fair":"94122881","kind":"native-loop","outputAmount":"94086125","oracleLossBps":3.9,"minOut100bps":"93181652","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":1043,"dollars":250,"amount":"250000000000000000000","fair":"235307204","kind":"native-loop","outputAmount":"235214661","oracleLossBps":3.93,"minOut100bps":"232954131","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":1043,"dollars":500,"amount":"500000000000000000000","fair":"470614408","kind":"native-loop","outputAmount":"470427146","oracleLossBps":3.97,"minOut100bps":"465908263","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":1043,"dollars":1000,"amount":"1000000000000000000000","fair":"941228816","kind":"native-loop","outputAmount":"940845590","oracleLossBps":4.07,"minOut100bps":"931816527","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":1043,"dollars":2500,"amount":"2500000000000000000000","fair":"2353072040","kind":"native-loop","outputAmount":"2352048691","oracleLossBps":4.34,"minOut100bps":"2329541319","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":1043,"dollars":5000,"amount":"5000000000000000000000","fair":"4706144080","kind":"native-loop","outputAmount":"4703879763","oracleLossBps":4.81,"minOut100bps":"4659082639","strict100bps":true}
+ROUTE_QUOTE {"input":1043,"output":222,"dollars":1,"amount":"941228","fair":"999999132837480000","kind":"native-loop","outputAmount":"999587772771003831","oracleLossBps":4.11,"minOut100bps":"989999141509105200","strict100bps":true}
+ROUTE_QUOTE {"input":1043,"output":222,"dollars":10,"amount":"9412288","fair":"9999999827902080000","kind":"native-loop","outputAmount":"9995884559062022386","oracleLossBps":4.11,"minOut100bps":"9899999829623059200","strict100bps":true}
+ROUTE_QUOTE {"input":1043,"output":222,"dollars":25,"amount":"23530720","fair":"24999999569755200000","kind":"native-loop","outputAmount":"24989704461495876719","oracleLossBps":4.11,"minOut100bps":"24749999574057648000","strict100bps":true}
+ROUTE_QUOTE {"input":1043,"output":222,"dollars":100,"amount":"94122881","fair":"99999999341461710000","kind":"native-loop","outputAmount":"99958680184972702096","oracleLossBps":4.13,"minOut100bps":"98999999348047092900","strict100bps":true}
+ROUTE_QUOTE {"input":1043,"output":222,"dollars":250,"amount":"235307204","fair":"249999999947315640000","kind":"native-loop","outputAmount":"249896008442386400923","oracleLossBps":4.15,"minOut100bps":"247499999947842483600","strict100bps":true}
+ROUTE_QUOTE {"input":1043,"output":222,"dollars":500,"amount":"470614408","fair":"499999999894631280000","kind":"native-loop","outputAmount":"499789704851826391372","oracleLossBps":4.2,"minOut100bps":"494999999895684967200","strict100bps":true}
+ROUTE_QUOTE {"input":1043,"output":222,"dollars":1000,"amount":"941228816","fair":"999999999789262560000","kind":"native-loop","outputAmount":"999570161629527578924","oracleLossBps":4.29,"minOut100bps":"989999999791369934400","strict100bps":true}
+ROUTE_QUOTE {"input":1043,"output":222,"dollars":2500,"amount":"2353072040","fair":"2499999999473156400000","kind":"native-loop","outputAmount":"2498856043602497845217","oracleLossBps":4.57,"minOut100bps":"2474999999478424836000","strict100bps":true}
+ROUTE_QUOTE {"input":1043,"output":222,"dollars":5000,"amount":"4706144080","fair":"4999999998946312800000","kind":"native-loop","outputAmount":"4997480871951380356728","oracleLossBps":5.03,"minOut100bps":"4949999998956849672000","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":34,"dollars":1,"amount":"941228","fair":"369620808330612","kind":"HydraAugustus.sell","outputAmount":"367980014893039","oracleLossBps":44.39,"minOut100bps":"365924600247305","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":34,"dollars":10,"amount":"9412288","fair":"3696211224910989","kind":"HydraAugustus.sell","outputAmount":"3679747825475405","oracleLossBps":44.54,"minOut100bps":"3659249112661879","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":34,"dollars":25,"amount":"23530720","fair":"9240528062277474","kind":"HydraAugustus.sell","outputAmount":"9199138525524643","oracleLossBps":44.79,"minOut100bps":"9148122781654699","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":34,"dollars":100,"amount":"94122881","fair":"36962112641810506","kind":"HydraAugustus.sell","outputAmount":"36791934334062933","oracleLossBps":46.04,"minOut100bps":"36592491515392400","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":34,"dollars":250,"amount":"235307204","fair":"92405282193577179","kind":"HydraAugustus.sell","outputAmount":"91956743176176045","oracleLossBps":48.54,"minOut100bps":"91481229371641407","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":34,"dollars":500,"amount":"470614408","fair":"184810564387154359","kind":"HydraAugustus.sell","outputAmount":"183836553576395851","oracleLossBps":52.7,"minOut100bps":"182962458743282815","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":34,"dollars":1000,"amount":"941228816","fair":"369621128774308719","kind":"HydraAugustus.sell","outputAmount":"367365710905246875","oracleLossBps":61.01,"minOut100bps":"365924917486565631","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":34,"dollars":2500,"amount":"2353072040","fair":"924052821935771798","kind":"HydraAugustus.sell","outputAmount":"916115479894334701","oracleLossBps":85.89,"minOut100bps":"914812293716414080","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":34,"dollars":5000,"amount":"4706144080","fair":"1848105643871543596","kind":"HydraAugustus.sell","error":"ContractFunctionExecutionError: Execution reverted with reason: 0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000145452414e534645525f46524f4d5f4641494c4544000000000000000000000000.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000000000000000000000000000000000010000002b000000000000000000000000"}
+ROUTE_QUOTE {"input":43,"output":1000765,"dollars":1,"amount":"941228","fair":"11713406804573","kind":"HydraAugustus.sell","outputAmount":"11617523422158","oracleLossBps":81.85,"minOut100bps":"11596272736527","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":1000765,"dollars":10,"amount":"9412288","fair":"117134167604242","kind":"HydraAugustus.sell","outputAmount":"116173583994223","oracleLossBps":82,"minOut100bps":"115962825928199","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":1000765,"dollars":25,"amount":"23530720","fair":"292835419010607","kind":"HydraAugustus.sell","outputAmount":"290426672862498","oracleLossBps":82.25,"minOut100bps":"289907064820500","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":1000765,"dollars":100,"amount":"94122881","fair":"1171341688487243","kind":"HydraAugustus.sell","outputAmount":"1161560980370056","oracleLossBps":83.5,"minOut100bps":"1159628271602370","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":1000765,"dollars":250,"amount":"235307204","fair":"2928354239885328","kind":"HydraAugustus.sell","outputAmount":"2903174090167380","oracleLossBps":85.98,"minOut100bps":"2899070697486474","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":1000765,"dollars":500,"amount":"470614408","fair":"5856708479770656","kind":"HydraAugustus.sell","outputAmount":"5803921657943451","oracleLossBps":90.13,"minOut100bps":"5798141394972949","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":1000765,"dollars":1000,"amount":"941228816","fair":"11713416959541312","kind":"HydraAugustus.sell","outputAmount":"11598147775730645","oracleLossBps":98.4,"minOut100bps":"11596282789945898","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":1000765,"dollars":2500,"amount":"2353072040","fair":"29283542398853281","kind":"HydraAugustus.sell","outputAmount":"28922863163824022","oracleLossBps":123.16,"minOut100bps":"28990706974864748","strict100bps":false,"strictError":"ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000000000000000000000000000000000010000002b00000000000000000000000000000000000000000000000000000001000f453d000000000000000000000000000000000000000000000000000000008c4107a80000000000000000000000000000000000000000000000000066fee4f706356c00000000000000000000000000000000"}
+ROUTE_QUOTE {"input":43,"output":1000765,"dollars":5000,"amount":"4706144080","fair":"58567084797706562","kind":"HydraAugustus.sell","error":"ContractFunctionExecutionError: Execution reverted with reason: 0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000145452414e534645525f46524f4d5f4641494c4544000000000000000000000000.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000000000000000000000000000000000010000002b000000000000000000000000"}
+ROUTE_QUOTE {"input":34,"output":222,"dollars":1,"amount":"369621128852201","fair":"999999999999998025","kind":"HydraAugustus.sell","outputAmount":"997930142449161079","oracleLossBps":20.69,"minOut100bps":"989999999999998044","strict100bps":true}
+ROUTE_QUOTE {"input":34,"output":222,"dollars":10,"amount":"3696211288522017","fair":"9999999999999999193","kind":"HydraAugustus.sell","outputAmount":"9979152511923418298","oracleLossBps":20.84,"minOut100bps":"9899999999999999201","strict100bps":true}
+ROUTE_QUOTE {"input":34,"output":222,"dollars":25,"amount":"9240528221305043","fair":"24999999999999999337","kind":"HydraAugustus.sell","outputAmount":"24947260832863483132","oracleLossBps":21.09,"minOut100bps":"24749999999999999343","strict100bps":true}
+ROUTE_QUOTE {"input":34,"output":222,"dollars":100,"amount":"36962112885220172","fair":"99999999999999997348","kind":"HydraAugustus.sell","outputAmount":"99776636030457371974","oracleLossBps":22.33,"minOut100bps":"98999999999999997374","strict100bps":true}
+ROUTE_QUOTE {"input":34,"output":222,"dollars":250,"amount":"92405282213050432","fair":"249999999999999998781","kind":"HydraAugustus.sell","outputAmount":"249379574040009263651","oracleLossBps":24.81,"minOut100bps":"247499999999999998793","strict100bps":true}
+ROUTE_QUOTE {"input":34,"output":222,"dollars":500,"amount":"184810564426100864","fair":"499999999999999997562","kind":"HydraAugustus.sell","outputAmount":"498552549169540141222","oracleLossBps":28.94,"minOut100bps":"494999999999999997586","strict100bps":true}
+ROUTE_QUOTE {"input":34,"output":222,"dollars":1000,"amount":"369621128852201729","fair":"999999999999999997830","kind":"HydraAugustus.sell","outputAmount":"996279610551515944904","oracleLossBps":37.2,"minOut100bps":"989999999999999997851","strict100bps":true}
+ROUTE_QUOTE {"input":34,"output":222,"dollars":2500,"amount":"924052822130504324","fair":"2499999999999999998634","kind":"HydraAugustus.sell","outputAmount":"2484525964253052959250","oracleLossBps":61.89,"minOut100bps":"2474999999999999998647","strict100bps":true}
+ROUTE_QUOTE {"input":34,"output":222,"dollars":5000,"amount":"1848105644261008649","fair":"4999999999999999999974","kind":"HydraAugustus.sell","outputAmount":"4948594891592877223074","oracleLossBps":102.81,"minOut100bps":"4949999999999999999974","strict100bps":false,"strictError":"ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e40000000000000000000000000000000000000000000000000000000100000022000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a00000000000000000000000000000000000000000000000019a5ca4ab192650900000000000000000000000000000000000000000000010c570cb5c6a797ffe600000000000000000000000000000000"}
+ROUTE_QUOTE {"input":1000765,"output":222,"dollars":1,"amount":"11713416962009","fair":"999999999999934432","kind":"HydraAugustus.sell","outputAmount":"1001799813493273752","oracleLossBps":-17.99,"minOut100bps":"989999999999935087","strict100bps":true}
+ROUTE_QUOTE {"input":1000765,"output":222,"dollars":10,"amount":"117134169620097","fair":"9999999999999941928","kind":"HydraAugustus.sell","outputAmount":"10017848211237921021","oracleLossBps":-17.84,"minOut100bps":"9899999999999942508","strict100bps":true}
+ROUTE_QUOTE {"input":1000765,"output":222,"dollars":25,"amount":"292835424050244","fair":"24999999999999982878","kind":"HydraAugustus.sell","outputAmount":"25043995868271789314","oracleLossBps":-17.59,"minOut100bps":"24749999999999983049","strict100bps":true}
+ROUTE_QUOTE {"input":1000765,"output":222,"dollars":100,"amount":"1171341696200976","fair":"99999999999999931515","kind":"HydraAugustus.sell","outputAmount":"100163491930631480514","oracleLossBps":-16.34,"minOut100bps":"98999999999999932199","strict100bps":true}
+ROUTE_QUOTE {"input":1000765,"output":222,"dollars":250,"amount":"2928354240502442","fair":"249999999999999999532","kind":"HydraAugustus.sell","outputAmount":"250346292778278504559","oracleLossBps":-13.85,"minOut100bps":"247499999999999999536","strict100bps":true}
+ROUTE_QUOTE {"input":1000765,"output":222,"dollars":500,"amount":"5856708481004884","fair":"499999999999999999064","kind":"HydraAugustus.sell","outputAmount":"500484584428268747344","oracleLossBps":-9.69,"minOut100bps":"494999999999999999073","strict100bps":true}
+ROUTE_QUOTE {"input":1000765,"output":222,"dollars":1000,"amount":"11713416962009768","fair":"999999999999999998128","kind":"HydraAugustus.sell","outputAmount":"1000138080852988561413","oracleLossBps":-1.38,"minOut100bps":"989999999999999998146","strict100bps":true}
+ROUTE_QUOTE {"input":1000765,"output":222,"dollars":2500,"amount":"29283542405024420","fair":"2499999999999999995320","kind":"HydraAugustus.sell","outputAmount":"2494130310743101839157","oracleLossBps":23.47,"minOut100bps":"2474999999999999995366","strict100bps":true}
+ROUTE_QUOTE {"input":1000765,"output":222,"dollars":5000,"amount":"58567084810048840","fair":"4999999999999999990641","kind":"HydraAugustus.sell","outputAmount":"4967665292815488904682","oracleLossBps":64.66,"minOut100bps":"4949999999999999990734","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":43,"dollars":1,"amount":"1000000000000000000","fair":"941228","kind":"HydraAugustus.sell","outputAmount":"940862","oracleLossBps":3.88,"minOut100bps":"931815","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":43,"dollars":10,"amount":"10000000000000000000","fair":"9412288","kind":"HydraAugustus.sell","outputAmount":"9408628","oracleLossBps":3.88,"minOut100bps":"9318165","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":43,"dollars":25,"amount":"25000000000000000000","fair":"23530720","kind":"HydraAugustus.sell","outputAmount":"23521563","oracleLossBps":3.89,"minOut100bps":"23295412","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":43,"dollars":100,"amount":"100000000000000000000","fair":"94122881","kind":"HydraAugustus.sell","outputAmount":"94086125","oracleLossBps":3.9,"minOut100bps":"93181652","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":43,"dollars":250,"amount":"250000000000000000000","fair":"235307204","kind":"HydraAugustus.sell","outputAmount":"235214661","oracleLossBps":3.93,"minOut100bps":"232954131","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":43,"dollars":500,"amount":"500000000000000000000","fair":"470614408","kind":"HydraAugustus.sell","outputAmount":"470427146","oracleLossBps":3.97,"minOut100bps":"465908263","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":43,"dollars":1000,"amount":"1000000000000000000000","fair":"941228816","kind":"HydraAugustus.sell","outputAmount":"940845590","oracleLossBps":4.07,"minOut100bps":"931816527","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":43,"dollars":2500,"amount":"2500000000000000000000","fair":"2353072040","kind":"HydraAugustus.sell","outputAmount":"2352048691","oracleLossBps":4.34,"minOut100bps":"2329541319","strict100bps":true}
+ROUTE_QUOTE {"input":222,"output":43,"dollars":5000,"amount":"5000000000000000000000","fair":"4706144080","kind":"HydraAugustus.sell","outputAmount":"4703879763","oracleLossBps":4.81,"minOut100bps":"4659082639","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":222,"dollars":1,"amount":"941228","fair":"999999132837480000","kind":"HydraAugustus.sell","outputAmount":"999587772771003831","oracleLossBps":4.11,"minOut100bps":"989999141509105200","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":222,"dollars":10,"amount":"9412288","fair":"9999999827902080000","kind":"HydraAugustus.sell","outputAmount":"9995884559062022386","oracleLossBps":4.11,"minOut100bps":"9899999829623059200","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":222,"dollars":25,"amount":"23530720","fair":"24999999569755200000","kind":"HydraAugustus.sell","outputAmount":"24989704461495876719","oracleLossBps":4.11,"minOut100bps":"24749999574057648000","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":222,"dollars":100,"amount":"94122881","fair":"99999999341461710000","kind":"HydraAugustus.sell","outputAmount":"99958680184972702096","oracleLossBps":4.13,"minOut100bps":"98999999348047092900","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":222,"dollars":250,"amount":"235307204","fair":"249999999947315640000","kind":"HydraAugustus.sell","outputAmount":"249896008442386400923","oracleLossBps":4.15,"minOut100bps":"247499999947842483600","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":222,"dollars":500,"amount":"470614408","fair":"499999999894631280000","kind":"HydraAugustus.sell","outputAmount":"499789704851826391372","oracleLossBps":4.2,"minOut100bps":"494999999895684967200","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":222,"dollars":1000,"amount":"941228816","fair":"999999999789262560000","kind":"HydraAugustus.sell","outputAmount":"999570161629527578924","oracleLossBps":4.29,"minOut100bps":"989999999791369934400","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":222,"dollars":2500,"amount":"2353072040","fair":"2499999999473156400000","kind":"HydraAugustus.sell","outputAmount":"2498856043602497845217","oracleLossBps":4.57,"minOut100bps":"2474999999478424836000","strict100bps":true}
+ROUTE_QUOTE {"input":43,"output":222,"dollars":5000,"amount":"4706144080","fair":"4999999998946312800000","kind":"HydraAugustus.sell","error":"ContractFunctionExecutionError: Execution reverted with reason: 0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000145452414e534645525f46524f4d5f4641494c4544000000000000000000000000.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000000000000000000000000000000000010000002b000000000000000000000000"}
+campaign.probe.execute43to34 PASS 2268542
+campaign.probe.execute43to1000765 PASS 616073
+campaign.probe.execute34to222 PASS 2012138
+campaign.probe.execute1000765to222 PASS 359657
+campaign.probe.execute222to43 PASS 383157
+campaign.probe.execute43to222 PASS 329700
+campaign.34.seedApprove PASS 24364
+campaign.34.seed PASS 2276813
+campaign.1000765.seedApprove PASS 24376
+campaign.seedRecovery PASS 51263
+campaign.1000765.seed PASS 2193439
+campaign.entrySourceFunding PASS 34175
+campaign.user0.approve PASS 24388
+campaign.user0.deposit PASS 2724452
+campaign.user1.approve PASS 24388
+campaign.user1.deposit PASS 2660745
+campaign.user2.approve PASS 24400
+campaign.user2.deposit PASS 2726952
+campaign.user3.approve PASS 24400
+campaign.user3.deposit PASS 2667432
+campaign.ramp0 PASS 1422946
+campaign.ramp1 PASS 1447436
+campaign.ramp2 PASS 1430336
+campaign.yieldApprove PASS 24352
+campaign.yieldFixture PASS 149798
+campaign.harvest PASS 8220835
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 333799714271602n
+- 0n
+
+    at file:///tmp/propeller-pr62-20261002/scripts/propeller/native-campaign.mjs:838:14
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 333799714271602n,
+  expected: 0n,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

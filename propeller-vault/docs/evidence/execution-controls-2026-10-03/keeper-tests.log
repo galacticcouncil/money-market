@@ -1,0 +1,142 @@
+
+> propeller-looper@1.0.0 test
+> node --import tsx --test test/*.test.ts
+
+✔ small harvests batch until costs fit; debt urgency and delay never wait for profitability (0.699893ms)
+✔ quotes cap input, preserve a positive floor and reject ambiguous repeated routes (0.941478ms)
+✔ redundant operators rotate optional work and do not depend on a leader heartbeat (0.155632ms)
+✔ interest-inclusion headroom preserves the unit price and never expands the primary slice (0.154793ms)
+✔ rounding policy uses exact base units and covers every vault (1.665651ms)
+✔ rounding policy rejects ambiguous or unsafe thresholds (0.483049ms)
+✔ monitor distinguishes low reserve from missing custody (0.292575ms)
+
+[2026-10-02T21:56:32.668Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.670Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.670Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.671Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T21:56:32.671Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.672Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T21:56:32.672Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+[ALERT] 0x0000000000000000000000000000000000000002: Main debt backing or source allocation incomplete; new ramp disabled
+[ALERT] 0x0000000000000000000000000000000000000002: Main debt backing or source allocation incomplete; new ramp disabled
+
+[2026-10-02T21:56:32.672Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.672Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.673Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T21:56:32.673Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T21:56:32.673Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.673Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T21:56:32.674Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.674Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.674Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.674Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.677Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T21:56:32.678Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.678Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.678Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.678Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-02T21:56:32.678Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.678Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-02T21:56:32.678Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+[ALERT] 0x0000000000000000000000000000000000000002: queue monitor failed; optional risk disabled: monitor unavailable
+[ALERT] 0x0000000000000000000000000000000000000002: queue monitor failed; optional risk disabled: monitor unavailable
+✔ low HF schedules and services safety repayment without user redemptions (2.649849ms)
+✔ an existing safety target is serviced even if HF recovered (0.321926ms)
+✔ Main down-rebalance is settled with an empty redemption queue (0.266105ms)
+✔ active exits prevent ramping and share a single source repayment (0.319846ms)
+✔ source pause stops swaps but not settlement of already freed funds (0.508329ms)
+✔ idle healthy loop ramps normally (0.272095ms)
+✔ unfunded operating buffer blocks ramp but not repayment (0.414208ms)
+✔ late source recoveries are pulled even after collateral exits completed (0.205204ms)
+✔ idle recovery surplus is not a repayment obligation (0.282405ms)
+✔ cooldown-only requests do not start source repayment or ramping (0.291086ms)
+✔ eligible requests start before a single source repayment and settlement (0.247805ms)
+✔ local vault freeze prevents starts, FIFO settlement and new ramping (0.178874ms)
+✔ emergency freeze stops existing exit servicing without a safety target (0.182903ms)
+✔ source emergency preserves safety repayment and Main committed repayment (0.241214ms)
+✔ source swap pause postpones starting otherwise eligible unwinds (0.146732ms)
+✔ rounding monitor read failure alerts without blocking debt service (2.961254ms)
+✔ harvest precedes optional ramp and reinvests in the same maintenance cycle (0.231704ms)
+✔ empty harvests do not submit transactions or trigger extra maintenance (0.147762ms)
+✔ harvest availability never bypasses emergency or local pause (0.254754ms)
+✔ a standby operator still acts on safety repayment while postponing optional ramp (0.223074ms)
+✔ a broken vault queue monitor cannot prevent source safety repayment (0.321466ms)
+  settle → 0x123
+  settle → 0x123
+[ALERT] settle: gas estimate 16777216 plus 20% margin exceeds budget 16777216
+[ALERT] settle: gas estimate 7372545 plus 20% margin exceeds budget 8000000
+[ALERT] settle: gas estimate 14344272 plus 20% margin exceeds budget 16777216
+  settle: skipped (estimation unavailable)
+  settle → 0x123
+[ALERT] settle: transaction reverted (0x123)
+  settle: no useful work
+  ramp → 0xabababababababababababababababababababababababababababababababab
+  settle → 0xabababababababababababababababababababababababababababababababab
+  settle: skipped (RPC disconnected)
+✔ large settlement uses estimated gas and the live fee quote (1.567109ms)
+✔ small operations only reserve their estimated gas plus margin (0.207204ms)
+✔ an operator budget cannot be silently exceeded (0.188193ms)
+✔ the live chain limit also bounds the submission budget (0.167463ms)
+✔ a larger operator budget cannot bypass the native per-transaction cap (0.192903ms)
+✔ estimation failure never falls back to a fixed gas limit (0.270745ms)
+✔ a reverted receipt is not treated as successful maintenance (0.196873ms)
+✔ a successful no-op simulation never becomes a paid transaction (0.183023ms)
+✔ guarded writes use a pinned preview, bounded input and positive quote floor (3.082127ms)
+✔ a receipt RPC failure retains the signer lock instead of blindly sending another transaction (0.412937ms)
+✔ a rejected large quote is retried at a smaller input while RPC errors are not resized (0.699943ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 490.787691

@@ -37,6 +37,8 @@ const RPC = process.env.RPC_URL || "https://hdx.tarn.hydration.cloud";
 const SYNTH = req("PROPELLER_SYNTH");
 const SUBLOOP = req("PROPELLER_SUBLOOP");
 const HARVESTER = req("PROPELLER_HARVESTER");
+const EXECUTION = req("PROPELLER_EXECUTION_CONTROLLER");
+const EXECUTION_POLICY = JSON.parse(req("PROPELLER_EXECUTION_POLICY"));
 const VAULTS = req("PROPELLER_VAULTS").split(",").map((v) => v.trim()).filter(Boolean);
 const SWAPPER = process.env.PROPELLER_SWAPPER;
 const GUARDIAN = process.env.PROPELLER_GUARDIAN;
@@ -53,7 +55,7 @@ const POOL = process.env.POOL || "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38";
 const GOV = "0xaa7e0000000000000000000000000000000aa7e0";
 const ROUNDING = parseRoundingPolicies(req("PROPELLER_ROUNDING_RESERVES"), VAULTS);
 
-for (const address of [SYNTH, SUBLOOP, HARVESTER, FEES, FEE_RECIPIENT, DISCOUNT, COMMITTEE, POOL, ...VAULTS]) {
+for (const address of [SYNTH, SUBLOOP, HARVESTER, EXECUTION, FEES, FEE_RECIPIENT, DISCOUNT, COMMITTEE, POOL, ...VAULTS]) {
   if (!ethers.utils.isAddress(address) || eq(address, ethers.constants.AddressZero)) {
     throw new Error(`invalid or zero deployment address: ${address}`);
   }
@@ -137,6 +139,106 @@ async function main() {
 
   const api = await ApiPromise.create({ provider: new WsProvider(WS), noInitWarn: true });
 
+  await section("E. Execution budgets and quotes", async () => {
+    const group = "E. Execution budgets and quotes";
+    const controller = new ethers.Contract(EXECUTION, [
+      ...ACCESS_ABI,
+      "function maxQuoteAge() view returns (uint64)", "function maxQuoteBlocks() view returns (uint64)",
+      "function lane(address,address,address) pure returns (bytes32)",
+      "function limits(bytes32) view returns (bytes32 group,uint128 minimum,uint128 maximum)",
+      "function budgets(bytes32) view returns (address token,uint128 capacity,uint128 refillPerSecond,uint128 credit,uint64 updatedAt,uint64 expiresAt)",
+      "function pacing(bytes32) view returns (uint64 interval,uint64 nextAt,uint256 lastBlock)",
+      "function maxShortfallBps(bytes32) view returns (uint16)",
+      "function safetyLanes(bytes32) view returns (bool)",
+      "function actions(address,bytes4) view returns (bool)",
+    ], provider);
+    const getters = ["executionController", "hollar", "prime", "primeAToken", "collateral", "mainDebt"]
+      .map(name => `function ${name}() view returns (address)`);
+    for (const target of [SUBLOOP, HARVESTER, ...VAULTS]) {
+      const bound = await new ethers.Contract(target, getters, provider).executionController();
+      add(group, `${target}: shared controller`, eq(bound, EXECUTION));
+    }
+    add(group, "governance administrator", await controller.hasRole(ethers.constants.HashZero, GOV));
+    add(group, "approved quote age", String(await controller.maxQuoteAge()) === String(EXECUTION_POLICY.maxQuoteAge));
+    add(group, "approved quote blocks", String(await controller.maxQuoteBlocks()) === String(EXECUTION_POLICY.maxQuoteBlocks));
+    const source = new ethers.Contract(SUBLOOP, getters, provider);
+    const hollar = await source.hollar(), prime = await source.prime();
+    const aPrime = await source.primeAToken();
+    const routes = [[SUBLOOP, hollar, aPrime], [SUBLOOP, aPrime, hollar]];
+    const requiredActions = [[SUBLOOP, "pokeBorrow()"], [SUBLOOP, "pokeRepay()"], [HARVESTER, "harvest(uint256[])"]];
+    for (const vault of VAULTS) {
+      const v = new ethers.Contract(vault, getters, provider);
+      const collateral = await v.collateral();
+      add(group, `${vault}: deposit defers all deployment`, await new ethers.Contract(vault,
+        ["function deferredDeployment() pure returns (bool)"], provider).deferredDeployment() === true);
+      routes.push([vault, prime, collateral], [await v.mainDebt(), collateral, hollar]);
+      requiredActions.push([vault, "rebalance()"]);
+    }
+    const now = (await provider.getBlock("latest")).timestamp;
+    const harvestGroups = new Set<string>();
+    for (const [consumer, input, output] of routes) {
+      const lane = await controller.lane(consumer, input, output);
+      const approved = EXECUTION_POLICY.limits.find((p: any) => eq(p.lane, lane));
+      const limit = await controller.limits(lane);
+      const budget = await controller.budgets(limit.group);
+      const policy = EXECUTION_POLICY.budgets.find((p: any) => eq(p.group, limit.group));
+      const pacing = await controller.pacing(limit.group);
+      const safety = eq(consumer, SUBLOOP) && eq(input, aPrime) && eq(output, hollar);
+      add(group, `${lane}: approved size`, !!approved && eq(approved.group, limit.group)
+        && limit.minimum.gt(0) && limit.maximum.gte(limit.minimum)
+        && limit.minimum.eq(approved.minimum) && limit.maximum.eq(approved.maximum));
+      add(group, `${lane}: approved active budget`, !!policy && eq(budget.token, input)
+        && budget.capacity.gte(limit.maximum) && budget.capacity.eq(policy.capacity)
+        && budget.refillPerSecond.eq(policy.refillPerSecond)
+        && budget.expiresAt.eq(policy.expiresAt) && budget.expiresAt.gt(now));
+      add(group, `${lane}: approved total MM-oracle shortfall`, !!approved
+        && Number.isInteger(approved.maxShortfallBps) && approved.maxShortfallBps >= 0
+        && approved.maxShortfallBps < 10000
+        && Number(await controller.maxShortfallBps(lane)) === approved.maxShortfallBps);
+      add(group, `${lane}: approved minimum spacing`, !!policy
+        && String(pacing.interval) === String(policy.minIntervalSeconds));
+      add(group, `${lane}: safety only for source repayment`, !!approved && approved.safety === safety
+        && await controller.safetyLanes(lane) === safety);
+      if (eq(input, prime)) harvestGroups.add(limit.group.toLowerCase());
+    }
+    add(group, "harvests share the PRIME route budget", harvestGroups.size === 1);
+    for (const [target, signature] of requiredActions) {
+      add(group, `${target}: ${signature} quote entrypoint`, await controller.actions(target, ethers.utils.id(signature).slice(0, 10)));
+    }
+  });
+
+  await section("O. Main debt settlement", async () => {
+    for (const vault of VAULTS) {
+      const v = new ethers.Contract(vault, ["function mainDebt() view returns (address)",
+        "function compoundLogic() view returns (address)",
+        "function yieldAccounting() view returns (address)"], provider);
+      const address = await v.mainDebt();
+      const buffer = new ethers.Contract(address, [
+        "function vault() view returns (address)", "function hollar() view returns (address)",
+        "function ownedCash() view returns (uint256)", "function sourceOutstanding() view returns (uint256)",
+        "function ready() view returns (bool)",
+        "function yieldAccounting() view returns (address)",
+      ], provider);
+      add("O. Main debt settlement", `${vault}: bound ledger`, eq(await buffer.vault(), vault), address);
+      const owned = await buffer.ownedCash();
+      const token = new ethers.Contract(await buffer.hollar(), ["function balanceOf(address) view returns (uint256)"], provider);
+      add("O. Main debt settlement", `${vault}: ledger backed`, (await token.balanceOf(address)).gte(owned));
+      add("O. Main debt settlement", `${vault}: active debt backed`, await buffer.ready(), `pending source=${await buffer.sourceOutstanding()}`);
+      const account = await nativeAccount(api, address);
+      add("O. Main debt settlement", `${vault}: dust protected`,
+        (await api.call.dusterApi.isWhitelisted(account) as any).isTrue, account);
+      const rewards = await v.yieldAccounting();
+      const rewardLedger = new ethers.Contract(rewards, ["function vault() view returns (address)"], provider);
+      add("O. Main debt settlement", `${vault}: bound yield ownership`,
+        eq(rewards, await buffer.yieldAccounting()) && eq(await rewardLedger.vault(), vault), rewards);
+      for (const target of [address, rewards, await v.compoundLogic()]) {
+        const code = await provider.getCode(target);
+        const size = (code.length - 2) / 2;
+        add("O. Main debt settlement", `${target}: deployed size`, size > 0 && size <= 24576, `${size} bytes`);
+      }
+    }
+  });
+
   await section("R. Custody dust protection", async () => {
     for (const address of [SUBLOOP, HARVESTER, FEES, ...VAULTS, ...(SWAPPER ? [SWAPPER] : [])]) {
       const account = await nativeAccount(api, address);
@@ -206,6 +308,7 @@ async function main() {
     SyntheticToken: SYNTH,
     SubLoop: SUBLOOP,
     Harvester: HARVESTER,
+    ExecutionController: EXECUTION,
     FeeController: FEES,
     DiscountController: DISCOUNT,
     Pool: POOL,
@@ -349,7 +452,7 @@ async function main() {
     const wiredHarvester = await sread(() => loopC.harvester());
     add(
       "F. Wiring",
-      "subLoop.harvester is set (harvest reverts HarvesterUnset otherwise)",
+      "subLoop.harvester is set (only the configured Harvester can pull yield)",
       eq(wiredHarvester, HARVESTER),
       `got ${wiredHarvester ?? "read reverted"}, expected ${HARVESTER}`
     );
@@ -461,9 +564,15 @@ async function main() {
       );
 
       const csbRaw = await sread(() => c.compoundSlippageBps());
-      const csb = Number(csbRaw ?? 0);
-      add(g, "compoundSlippageBps != 0 (0 => every compound reverts)", csb > 0, `${csb} bps`);
-      add(g, "compoundSlippageBps <= 500 (sanity)", csb > 0 && csb <= 500, `${csb} bps`);
+      const csb = Number(csbRaw ?? -1);
+      // Zero is an oracle-or-better floor. The shared controller still bounds
+      // every fill; a stricter legacy floor can make an approved lane unusable.
+      const compoundLane = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+        ["address", "address", "address"], [v, await loopC.prime(), await c.asset()]));
+      const approvedCompound = EXECUTION_POLICY.limits.find((p: any) => eq(p.lane, compoundLane));
+      add(g, "compound oracle floor permits approved lane limit", !!approvedCompound
+        && Number.isInteger(csb) && csb >= approvedCompound.maxShortfallBps, `${csb} bps`);
+      add(g, "compoundSlippageBps between 0 and 500", csb >= 0 && csb <= 500, `${csb} bps`);
 
       const sw = await sread(() => c.swapper());
       add(

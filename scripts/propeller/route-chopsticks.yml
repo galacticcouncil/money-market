@@ -1,0 +1,11 @@
+endpoint: wss://hdx.tarn.hydration.cloud
+block: '0xfa8eb3c9631c556b63ba14391d22eb228a3e288ee805fbaa91ce005103d2458f'
+host: 127.0.0.1
+port: 8145
+db: /tmp/propeller-routes-20260923.sqlite
+build-block-mode: Manual
+runtime-log-level: 2
+runtime-call-cache-mb: 512
+import-storage:
+  Parameters:
+    RelayParentOffsetOverride: true

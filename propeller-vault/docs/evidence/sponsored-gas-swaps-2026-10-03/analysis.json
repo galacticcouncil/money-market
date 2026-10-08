@@ -1,0 +1,1282 @@
+{
+  "objective": "User funded crypto after debt, protocol fees and trading losses; operator-funded gas and the shared monthly infrastructure budget are tracked separately.",
+  "monthlyBudgetUsd": 10,
+  "block": "15318402",
+  "ranking": [
+    {
+      "round": 1,
+      "originalWinner": "threshold-25",
+      "candidates": [
+        {
+          "round": 1,
+          "candidate": "threshold-1",
+          "meanUserReturnPct": 3.4911970092374713,
+          "cases": [
+            {
+              "id": "r1-threshold-1-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5700074625758917,
+              "fundedCryptoUsd": 357.0007462575891,
+              "unconvertedUserUsd": 48.0652071821758,
+              "tradingLossUsd": 35.3607216290169,
+              "estimatedEntryLossUsd": 24.304606219196668,
+              "remainingTradingLossUsd": 11.056115409820233,
+              "externalCostsUsd": 201.90254230412566,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 1.5509820395346345,
+              "harvests": 348,
+              "gasGateSkips": 3872,
+              "firstCryptoDay": 96.75
+            },
+            {
+              "id": "r1-threshold-1-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.412386555899051,
+              "fundedCryptoUsd": 341.2386555899051,
+              "unconvertedUserUsd": 45.73474352588585,
+              "tradingLossUsd": 29.024217143976678,
+              "estimatedEntryLossUsd": 22.791274212856667,
+              "remainingTradingLossUsd": 6.232942931120011,
+              "externalCostsUsd": 196.47956072261914,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 1.4475909486728593,
+              "harvests": 342,
+              "gasGateSkips": 3634,
+              "firstCryptoDay": 94.25
+            }
+          ]
+        },
+        {
+          "round": 1,
+          "candidate": "threshold-5",
+          "meanUserReturnPct": 3.4909344525774313,
+          "cases": [
+            {
+              "id": "r1-threshold-5-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.579242419799961,
+              "fundedCryptoUsd": 357.92424197999605,
+              "unconvertedUserUsd": 47.99585662045796,
+              "tradingLossUsd": 35.396585359042135,
+              "estimatedEntryLossUsd": 24.326164643365,
+              "remainingTradingLossUsd": 11.070420715677134,
+              "externalCostsUsd": 172.5496092125671,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 1.8537463276742896,
+              "harvests": 185,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 96.5
+            },
+            {
+              "id": "r1-threshold-5-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.4026264853549018,
+              "fundedCryptoUsd": 340.26264853549014,
+              "unconvertedUserUsd": 46.81803687338069,
+              "tradingLossUsd": 29.010829744788495,
+              "estimatedEntryLossUsd": 22.793470234536667,
+              "remainingTradingLossUsd": 6.217359510251828,
+              "externalCostsUsd": 168.15468067589708,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 1.7210796785959306,
+              "harvests": 185,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 93.41666666666667
+            }
+          ]
+        },
+        {
+          "round": 1,
+          "candidate": "threshold-25",
+          "meanUserReturnPct": 3.4894994418533267,
+          "cases": [
+            {
+              "id": "r1-threshold-25-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5823848772426468,
+              "fundedCryptoUsd": 358.2384877242647,
+              "unconvertedUserUsd": 51.861409485574626,
+              "tradingLossUsd": 35.450580248934116,
+              "estimatedEntryLossUsd": 24.418196609118336,
+              "remainingTradingLossUsd": 11.03238363981578,
+              "externalCostsUsd": 144.860660853452,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.133778268708127,
+              "harvests": 37,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 98.58333333333333
+            },
+            {
+              "id": "r1-threshold-25-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.396614006464007,
+              "fundedCryptoUsd": 339.6614006464007,
+              "unconvertedUserUsd": 50.54796935448897,
+              "tradingLossUsd": 29.066865997924495,
+              "estimatedEntryLossUsd": 22.879438368355,
+              "remainingTradingLossUsd": 6.187427629569495,
+              "externalCostsUsd": 140.5473672608944,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 1.991140333855063,
+              "harvests": 37,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 97.375
+            }
+          ]
+        },
+        {
+          "round": 1,
+          "candidate": "threshold-10",
+          "meanUserReturnPct": 3.4823904774581123,
+          "cases": [
+            {
+              "id": "r1-threshold-10-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5593083556225755,
+              "fundedCryptoUsd": 355.9308355622576,
+              "unconvertedUserUsd": 50.37191421483862,
+              "tradingLossUsd": 35.34448288688676,
+              "estimatedEntryLossUsd": 24.326269240055,
+              "remainingTradingLossUsd": 11.018213646831757,
+              "externalCostsUsd": 155.53349507603977,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.0039734048621782,
+              "harvests": 92,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 96.91666666666667
+            },
+            {
+              "id": "r1-threshold-10-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.405472599293649,
+              "fundedCryptoUsd": 340.5472599293649,
+              "unconvertedUserUsd": 47.9447328991235,
+              "tradingLossUsd": 29.074254491395685,
+              "estimatedEntryLossUsd": 22.862187624436668,
+              "remainingTradingLossUsd": 6.212066866959017,
+              "externalCostsUsd": 151.0449662130716,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 1.8950229371629328,
+              "harvests": 93,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 95.20833333333333
+            }
+          ]
+        },
+        {
+          "round": 1,
+          "candidate": "threshold-50",
+          "meanUserReturnPct": 3.3759741549276523,
+          "cases": [
+            {
+              "id": "r1-threshold-50-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.4649199977158847,
+              "fundedCryptoUsd": 346.49199977158844,
+              "unconvertedUserUsd": 64.16983020406342,
+              "tradingLossUsd": 35.14522202318682,
+              "estimatedEntryLossUsd": 24.417973996823335,
+              "remainingTradingLossUsd": 10.727248026363483,
+              "externalCostsUsd": 141.3506069463435,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.0514139282524493,
+              "harvests": 18,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 106.66666666666667
+            },
+            {
+              "id": "r1-threshold-50-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.28702831213942,
+              "fundedCryptoUsd": 328.702831213942,
+              "unconvertedUserUsd": 61.92422138535211,
+              "tradingLossUsd": 28.898307684521622,
+              "estimatedEntryLossUsd": 22.879300779534997,
+              "remainingTradingLossUsd": 6.019006904986625,
+              "externalCostsUsd": 137.36979021708007,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 1.913330409968619,
+              "harvests": 18,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 105.45833333333333
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "originalWinner": "trade-8000-daily-5000",
+      "candidates": [
+        {
+          "round": 2,
+          "candidate": "trade-8000-daily-5000",
+          "meanUserReturnPct": 3.6065416026095067,
+          "cases": [
+            {
+              "id": "r2-trade-8000-daily-5000-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.7019861708304007,
+              "fundedCryptoUsd": 370.19861708304006,
+              "unconvertedUserUsd": 52.11240180549604,
+              "tradingLossUsd": 35.70865285654325,
+              "estimatedEntryLossUsd": 24.388661617005,
+              "remainingTradingLossUsd": 11.319991239538254,
+              "externalCostsUsd": 131.2087009508813,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.3898991613215874,
+              "harvests": 38,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 89.75
+            },
+            {
+              "id": "r2-trade-8000-daily-5000-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5110970343886128,
+              "fundedCryptoUsd": 351.1097034388613,
+              "unconvertedUserUsd": 48.88584377744215,
+              "tradingLossUsd": 29.21342646066413,
+              "estimatedEntryLossUsd": 22.857211923315,
+              "remainingTradingLossUsd": 6.356214537349132,
+              "externalCostsUsd": 131.2294807548372,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.198802226840241,
+              "harvests": 38,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 89.75
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "candidate": "trade-8000-daily-1000",
+          "meanUserReturnPct": 3.6041109206553523,
+          "cases": [
+            {
+              "id": "r2-trade-8000-daily-1000-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.699232567439491,
+              "fundedCryptoUsd": 369.9232567439491,
+              "unconvertedUserUsd": 51.954484823895186,
+              "tradingLossUsd": 35.74612923101156,
+              "estimatedEntryLossUsd": 24.425496563276667,
+              "remainingTradingLossUsd": 11.320632667734891,
+              "externalCostsUsd": 145.45770937777502,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.2446554736617403,
+              "harvests": 38,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 90.25
+            },
+            {
+              "id": "r2-trade-8000-daily-1000-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.508989273871214,
+              "fundedCryptoUsd": 350.8989273871214,
+              "unconvertedUserUsd": 48.61134286259223,
+              "tradingLossUsd": 29.214883036225004,
+              "estimatedEntryLossUsd": 22.857420431033333,
+              "remainingTradingLossUsd": 6.357462605191671,
+              "externalCostsUsd": 140.78819057454507,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.101107368125763,
+              "harvests": 38,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 89.95833333333333
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "candidate": "trade-5000-daily-5000",
+          "meanUserReturnPct": 3.4924404778796885,
+          "cases": [
+            {
+              "id": "r2-trade-5000-daily-5000-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5867550768254834,
+              "fundedCryptoUsd": 358.67550768254836,
+              "unconvertedUserUsd": 52.38422537758917,
+              "tradingLossUsd": 35.445506067279254,
+              "estimatedEntryLossUsd": 24.416279176725002,
+              "remainingTradingLossUsd": 11.029226890554252,
+              "externalCostsUsd": 131.08661937412143,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.2758888830842694,
+              "harvests": 37,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 98.16666666666667
+            },
+            {
+              "id": "r2-trade-5000-daily-5000-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.3981258789338935,
+              "fundedCryptoUsd": 339.8125878933894,
+              "unconvertedUserUsd": 50.00168756190807,
+              "tradingLossUsd": 29.01998585352915,
+              "estimatedEntryLossUsd": 22.82800745931,
+              "remainingTradingLossUsd": 6.191978394219149,
+              "externalCostsUsd": 131.04802830963192,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.0876455958375746,
+              "harvests": 37,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 97.08333333333333
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "candidate": "trade-5000-daily-1000",
+          "meanUserReturnPct": 3.4894994418533267,
+          "cases": [
+            {
+              "id": "r2-trade-5000-daily-1000-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5823848772426468,
+              "fundedCryptoUsd": 358.2384877242647,
+              "unconvertedUserUsd": 51.861409485574626,
+              "tradingLossUsd": 35.450580248934116,
+              "estimatedEntryLossUsd": 24.418196609118336,
+              "remainingTradingLossUsd": 11.03238363981578,
+              "externalCostsUsd": 144.860660853452,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.133778268708127,
+              "harvests": 37,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 98.58333333333333
+            },
+            {
+              "id": "r2-trade-5000-daily-1000-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.396614006464007,
+              "fundedCryptoUsd": 339.6614006464007,
+              "unconvertedUserUsd": 50.54796935448897,
+              "tradingLossUsd": 29.066865997924495,
+              "estimatedEntryLossUsd": 22.879438368355,
+              "remainingTradingLossUsd": 6.187427629569495,
+              "externalCostsUsd": 140.5473672608944,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 1.991140333855063,
+              "harvests": 37,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 97.375
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "candidate": "trade-2500-daily-5000",
+          "meanUserReturnPct": 3.3180263706314435,
+          "cases": [
+            {
+              "id": "r2-trade-2500-daily-5000-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.351990204249062,
+              "fundedCryptoUsd": 335.19902042490617,
+              "unconvertedUserUsd": 58.04037742035165,
+              "tradingLossUsd": 34.848410030961524,
+              "estimatedEntryLossUsd": 24.384744775255,
+              "remainingTradingLossUsd": 10.463665255706523,
+              "externalCostsUsd": 131.0042418371153,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.041947785877909,
+              "harvests": 35,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 110.20833333333333
+            },
+            {
+              "id": "r2-trade-2500-daily-5000-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.284062537013825,
+              "fundedCryptoUsd": 328.4062537013825,
+              "unconvertedUserUsd": 45.435131089468406,
+              "tradingLossUsd": 28.877275491296977,
+              "estimatedEntryLossUsd": 22.840557703789997,
+              "remainingTradingLossUsd": 6.03671778750698,
+              "externalCostsUsd": 131.15897739152018,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 1.9724727630986236,
+              "harvests": 36,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 108.79166666666667
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "candidate": "trade-2500-daily-1000",
+          "meanUserReturnPct": 3.31300695095349,
+          "cases": [
+            {
+              "id": "r2-trade-2500-daily-1000-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.345093823237027,
+              "fundedCryptoUsd": 334.50938232370265,
+              "unconvertedUserUsd": 57.45235016252797,
+              "tradingLossUsd": 34.82259794465021,
+              "estimatedEntryLossUsd": 24.358513537621665,
+              "remainingTradingLossUsd": 10.464084407028547,
+              "externalCostsUsd": 143.70960768442887,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 1.9079977463927373,
+              "harvests": 35,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 110.54166666666667
+            },
+            {
+              "id": "r2-trade-2500-daily-1000-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.2809200786699524,
+              "fundedCryptoUsd": 328.09200786699523,
+              "unconvertedUserUsd": 45.197590283175366,
+              "tradingLossUsd": 28.868175910667112,
+              "estimatedEntryLossUsd": 22.83136783620833,
+              "remainingTradingLossUsd": 6.036808074458783,
+              "externalCostsUsd": 139.88649505299256,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 1.8820551281400268,
+              "harvests": 36,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 108.95833333333333
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "candidate": "trade-8000-daily-250",
+          "meanUserReturnPct": 3.1164838188372403,
+          "cases": [
+            {
+              "id": "r2-trade-8000-daily-250-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.1267677673501795,
+              "fundedCryptoUsd": 312.676776735018,
+              "unconvertedUserUsd": 54.48259850089667,
+              "tradingLossUsd": 34.948727834009105,
+              "estimatedEntryLossUsd": 24.302925452676664,
+              "remainingTradingLossUsd": 10.645802381332441,
+              "externalCostsUsd": 313.7209612643461,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": -0.010441845293280785,
+              "harvests": 35,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 95.54166666666667
+            },
+            {
+              "id": "r2-trade-8000-daily-250-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.106199870324301,
+              "fundedCryptoUsd": 310.61998703243006,
+              "unconvertedUserUsd": 44.69720928793843,
+              "tradingLossUsd": 28.90529074357406,
+              "estimatedEntryLossUsd": 22.77920590560333,
+              "remainingTradingLossUsd": 6.12608483797073,
+              "externalCostsUsd": 295.48807635627,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 0.1513191067616006,
+              "harvests": 36,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 95.54166666666667
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "candidate": "trade-5000-daily-250",
+          "meanUserReturnPct": 3.0329466155023086,
+          "cases": [
+            {
+              "id": "r2-trade-5000-daily-250-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.04377686637634,
+              "fundedCryptoUsd": 304.377686637634,
+              "unconvertedUserUsd": 58.75192961244644,
+              "tradingLossUsd": 34.644241408510844,
+              "estimatedEntryLossUsd": 24.31185094984666,
+              "remainingTradingLossUsd": 10.332390458664182,
+              "externalCostsUsd": 300.66345172504674,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 0.037142349125872436,
+              "harvests": 34,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 103
+            },
+            {
+              "id": "r2-trade-5000-daily-250-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.022116364628278,
+              "fundedCryptoUsd": 302.2116364628278,
+              "unconvertedUserUsd": 49.231058132559035,
+              "tradingLossUsd": 28.735087068615808,
+              "estimatedEntryLossUsd": 22.78332177593833,
+              "remainingTradingLossUsd": 5.951765292677479,
+              "externalCostsUsd": 283.7753169872588,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 0.18436319475569038,
+              "harvests": 35,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 102.125
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "candidate": "trade-2500-daily-250",
+          "meanUserReturnPct": 2.9233398456123263,
+          "cases": [
+            {
+              "id": "r2-trade-2500-daily-250-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 2.932184819600638,
+              "fundedCryptoUsd": 293.2184819600638,
+              "unconvertedUserUsd": 54.74763506217032,
+              "tradingLossUsd": 34.35694754861631,
+              "estimatedEntryLossUsd": 24.311869416561663,
+              "remainingTradingLossUsd": 10.045078132054648,
+              "externalCostsUsd": 297.628766546097,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": -0.04410284586033158,
+              "harvests": 33,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 114.33333333333333
+            },
+            {
+              "id": "r2-trade-2500-daily-250-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 2.914494871624014,
+              "fundedCryptoUsd": 291.44948716240145,
+              "unconvertedUserUsd": 45.75348204448132,
+              "tradingLossUsd": 28.57503858358336,
+              "estimatedEntryLossUsd": 22.78342348531333,
+              "remainingTradingLossUsd": 5.791615098270029,
+              "externalCostsUsd": 281.2145769891045,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 0.10234910173296981,
+              "harvests": 34,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 113.125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "originalWinner": "threshold-30-ramp-1h",
+      "candidates": [
+        {
+          "round": 3,
+          "candidate": "threshold-30-ramp-1h",
+          "meanUserReturnPct": 3.6415159153150123,
+          "cases": [
+            {
+              "id": "r3-threshold-30-ramp-1h-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.7387923268524856,
+              "fundedCryptoUsd": 373.8792326852486,
+              "unconvertedUserUsd": 48.414400340860205,
+              "tradingLossUsd": 35.80797448257652,
+              "estimatedEntryLossUsd": 24.390133863205,
+              "remainingTradingLossUsd": 11.417840619371518,
+              "externalCostsUsd": 130.84263308921092,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.430365995960377,
+              "harvests": 32,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.04166666666667
+            },
+            {
+              "id": "r3-threshold-30-ramp-1h-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.544239503777539,
+              "fundedCryptoUsd": 354.4239503777539,
+              "unconvertedUserUsd": 45.57130414065649,
+              "tradingLossUsd": 29.260482063241646,
+              "estimatedEntryLossUsd": 22.853700154475,
+              "remainingTradingLossUsd": 6.406781908766646,
+              "externalCostsUsd": 129.9283217151519,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.24495628662602,
+              "harvests": 32,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.04166666666667
+            }
+          ]
+        },
+        {
+          "round": 3,
+          "candidate": "threshold-30-ramp-6h",
+          "meanUserReturnPct": 3.640223538741597,
+          "cases": [
+            {
+              "id": "r3-threshold-30-ramp-6h-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.73745759098161,
+              "fundedCryptoUsd": 373.745759098161,
+              "unconvertedUserUsd": 48.29760010497025,
+              "tradingLossUsd": 35.80820077300085,
+              "estimatedEntryLossUsd": 24.390283164470002,
+              "remainingTradingLossUsd": 11.417917608530846,
+              "externalCostsUsd": 130.84263308921092,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.4290312600895003,
+              "harvests": 32,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.125
+            },
+            {
+              "id": "r3-threshold-30-ramp-6h-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5429894865015834,
+              "fundedCryptoUsd": 354.29894865015837,
+              "unconvertedUserUsd": 45.46146142603518,
+              "tradingLossUsd": 29.26077031261098,
+              "estimatedEntryLossUsd": 22.853889664925,
+              "remainingTradingLossUsd": 6.4068806476859805,
+              "externalCostsUsd": 129.9283217151519,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.2437062693500645,
+              "harvests": 32,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.125
+            }
+          ]
+        },
+        {
+          "round": 3,
+          "candidate": "inherited",
+          "meanUserReturnPct": 3.6065416026095067,
+          "cases": [
+            {
+              "id": "r3-inherited-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.7019861708304007,
+              "fundedCryptoUsd": 370.19861708304006,
+              "unconvertedUserUsd": 52.11240180549604,
+              "tradingLossUsd": 35.70865285654325,
+              "estimatedEntryLossUsd": 24.388661617005,
+              "remainingTradingLossUsd": 11.319991239538254,
+              "externalCostsUsd": 131.2087009508813,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.3898991613215874,
+              "harvests": 38,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 89.75
+            },
+            {
+              "id": "r3-inherited-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5110970343886128,
+              "fundedCryptoUsd": 351.1097034388613,
+              "unconvertedUserUsd": 48.88584377744215,
+              "tradingLossUsd": 29.21342646066413,
+              "estimatedEntryLossUsd": 22.857211923315,
+              "remainingTradingLossUsd": 6.356214537349132,
+              "externalCostsUsd": 131.2294807548372,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.198802226840241,
+              "harvests": 38,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 89.75
+            }
+          ]
+        },
+        {
+          "round": 3,
+          "candidate": "threshold-25-ramp-6h",
+          "meanUserReturnPct": 3.605791408170548,
+          "cases": [
+            {
+              "id": "r3-threshold-25-ramp-6h-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.701213639346886,
+              "fundedCryptoUsd": 370.12136393468865,
+              "unconvertedUserUsd": 51.93752142444636,
+              "tradingLossUsd": 35.71034684842337,
+              "estimatedEntryLossUsd": 24.388854197095,
+              "remainingTradingLossUsd": 11.32149265132837,
+              "externalCostsUsd": 131.2087009508813,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.3891266298380733,
+              "harvests": 38,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 89.875
+            },
+            {
+              "id": "r3-threshold-25-ramp-6h-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5103691769942102,
+              "fundedCryptoUsd": 351.03691769942105,
+              "unconvertedUserUsd": 48.721572049768156,
+              "tradingLossUsd": 29.214397097793665,
+              "estimatedEntryLossUsd": 22.857359649665003,
+              "remainingTradingLossUsd": 6.357037448128661,
+              "externalCostsUsd": 131.2294807548372,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.198074369445839,
+              "harvests": 38,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 89.875
+            }
+          ]
+        },
+        {
+          "round": 3,
+          "candidate": "threshold-20-ramp-1h",
+          "meanUserReturnPct": 3.6022146766576744,
+          "cases": [
+            {
+              "id": "r3-threshold-20-ramp-1h-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.656281609181258,
+              "fundedCryptoUsd": 365.62816091812584,
+              "unconvertedUserUsd": 56.75419366500755,
+              "tradingLossUsd": 35.58923557208873,
+              "estimatedEntryLossUsd": 24.386833434525002,
+              "remainingTradingLossUsd": 11.20240213756373,
+              "externalCostsUsd": 133.13743329888666,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.324907276192392,
+              "harvests": 47,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.08333333333333
+            },
+            {
+              "id": "r3-threshold-20-ramp-1h-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5481477441340905,
+              "fundedCryptoUsd": 354.81477441340905,
+              "unconvertedUserUsd": 45.08049065804863,
+              "tradingLossUsd": 29.27237725430735,
+              "estimatedEntryLossUsd": 22.85860132493,
+              "remainingTradingLossUsd": 6.413775929377351,
+              "externalCostsUsd": 133.32436032599298,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.2149041408741605,
+              "harvests": 48,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.08333333333333
+            }
+          ]
+        },
+        {
+          "round": 3,
+          "candidate": "threshold-20-ramp-6h",
+          "meanUserReturnPct": 3.6011828174977514,
+          "cases": [
+            {
+              "id": "r3-threshold-20-ramp-6h-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.654942694750068,
+              "fundedCryptoUsd": 365.4942694750068,
+              "unconvertedUserUsd": 56.63719581229326,
+              "tradingLossUsd": 35.58937003396206,
+              "estimatedEntryLossUsd": 24.386961945564998,
+              "remainingTradingLossUsd": 11.202408088397064,
+              "externalCostsUsd": 133.13743329888666,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.3235683617612013,
+              "harvests": 47,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.16666666666667
+            },
+            {
+              "id": "r3-threshold-20-ramp-6h-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.547422940245435,
+              "fundedCryptoUsd": 354.7422940245435,
+              "unconvertedUserUsd": 44.914876917549364,
+              "tradingLossUsd": 29.273325865402832,
+              "estimatedEntryLossUsd": 22.858726639835,
+              "remainingTradingLossUsd": 6.41459922556783,
+              "externalCostsUsd": 133.32436032599298,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.2141793369855054,
+              "harvests": 48,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.16666666666667
+            }
+          ]
+        },
+        {
+          "round": 3,
+          "candidate": "threshold-25-ramp-24h",
+          "meanUserReturnPct": 3.5994844070165146,
+          "cases": [
+            {
+              "id": "r3-threshold-25-ramp-24h-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.69476164412621,
+              "fundedCryptoUsd": 369.476164412621,
+              "unconvertedUserUsd": 51.17592809723827,
+              "tradingLossUsd": 35.71295570484018,
+              "estimatedEntryLossUsd": 24.388396047195,
+              "remainingTradingLossUsd": 11.324559657645178,
+              "externalCostsUsd": 131.2087009508813,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.382674634617397,
+              "harvests": 38,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 90.41666666666667
+            },
+            {
+              "id": "r3-threshold-25-ramp-24h-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5042071699068194,
+              "fundedCryptoUsd": 350.4207169906819,
+              "unconvertedUserUsd": 48.00340651320445,
+              "tradingLossUsd": 29.214603278392044,
+              "estimatedEntryLossUsd": 22.855914849125,
+              "remainingTradingLossUsd": 6.358688429267044,
+              "externalCostsUsd": 131.2294807548372,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.1919123623584476,
+              "harvests": 38,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 90.41666666666667
+            }
+          ]
+        },
+        {
+          "round": 3,
+          "candidate": "threshold-20-ramp-24h",
+          "meanUserReturnPct": 3.552186123607444,
+          "cases": [
+            {
+              "id": "r3-threshold-20-ramp-24h-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.64788709755067,
+              "fundedCryptoUsd": 364.78870975506703,
+              "unconvertedUserUsd": 55.47636012025677,
+              "tradingLossUsd": 35.5912563556558,
+              "estimatedEntryLossUsd": 24.381566182180002,
+              "remainingTradingLossUsd": 11.2096901734758,
+              "externalCostsUsd": 133.0706410718856,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.317180686831814,
+              "harvests": 47,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.91666666666667
+            },
+            {
+              "id": "r3-threshold-20-ramp-24h-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.4564851496642177,
+              "fundedCryptoUsd": 345.64851496642177,
+              "unconvertedUserUsd": 52.57665812858031,
+              "tradingLossUsd": 29.136673151533536,
+              "estimatedEntryLossUsd": 22.849439635435,
+              "remainingTradingLossUsd": 6.287233516098535,
+              "externalCostsUsd": 133.09142087584146,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.1255709409058032,
+              "harvests": 47,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.83333333333333
+            }
+          ]
+        },
+        {
+          "round": 3,
+          "candidate": "threshold-30-ramp-24h",
+          "meanUserReturnPct": 3.503478535684393,
+          "cases": [
+            {
+              "id": "r3-threshold-30-ramp-24h-BTC",
+              "asset": "BTC",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.5963819231148455,
+              "fundedCryptoUsd": 359.63819231148454,
+              "unconvertedUserUsd": 61.34046099196208,
+              "tradingLossUsd": 35.455583007050706,
+              "estimatedEntryLossUsd": 24.384421948590003,
+              "remainingTradingLossUsd": 11.071161058460703,
+              "externalCostsUsd": 130.5889138351035,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.2904927847638104,
+              "harvests": 31,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.70833333333333
+            },
+            {
+              "id": "r3-threshold-30-ramp-24h-ETH",
+              "asset": "ETH",
+              "tvlUsd": 10000,
+              "userReturnPct": 3.410575148253941,
+              "fundedCryptoUsd": 341.0575148253941,
+              "unconvertedUserUsd": 57.55495103667554,
+              "tradingLossUsd": 29.06623064433844,
+              "estimatedEntryLossUsd": 22.8523706817,
+              "remainingTradingLossUsd": 6.213859962638441,
+              "externalCostsUsd": 129.74139468804557,
+              "monthlyBudgetUsd": 10,
+              "strategyReturnAfterExternalCostsPct": 2.1131612013734853,
+              "harvests": 31,
+              "gasGateSkips": 0,
+              "firstCryptoDay": 88.70833333333333
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "bestPreviouslyTested": {
+    "round": 3,
+    "candidate": "threshold-30-ramp-1h",
+    "meanUserReturnPct": 3.6415159153150123,
+    "cases": [
+      {
+        "id": "r3-threshold-30-ramp-1h-BTC",
+        "asset": "BTC",
+        "tvlUsd": 10000,
+        "userReturnPct": 3.7387923268524856,
+        "fundedCryptoUsd": 373.8792326852486,
+        "unconvertedUserUsd": 48.414400340860205,
+        "tradingLossUsd": 35.80797448257652,
+        "estimatedEntryLossUsd": 24.390133863205,
+        "remainingTradingLossUsd": 11.417840619371518,
+        "externalCostsUsd": 130.84263308921092,
+        "monthlyBudgetUsd": 10,
+        "strategyReturnAfterExternalCostsPct": 2.430365995960377,
+        "harvests": 32,
+        "gasGateSkips": 0,
+        "firstCryptoDay": 88.04166666666667
+      },
+      {
+        "id": "r3-threshold-30-ramp-1h-ETH",
+        "asset": "ETH",
+        "tvlUsd": 10000,
+        "userReturnPct": 3.544239503777539,
+        "fundedCryptoUsd": 354.4239503777539,
+        "unconvertedUserUsd": 45.57130414065649,
+        "tradingLossUsd": 29.260482063241646,
+        "estimatedEntryLossUsd": 22.853700154475,
+        "remainingTradingLossUsd": 6.406781908766646,
+        "externalCostsUsd": 129.9283217151519,
+        "monthlyBudgetUsd": 10,
+        "strategyReturnAfterExternalCostsPct": 2.24495628662602,
+        "harvests": 32,
+        "gasGateSkips": 0,
+        "firstCryptoDay": 88.04166666666667
+      }
+    ]
+  },
+  "sourcePool": {
+    "poolId": 143,
+    "feePpm": 400,
+    "nominalFeeBps": 4,
+    "hundredDollarOutputWithFeeUsd": 99.9669668948274,
+    "hundredDollarOutputWithoutFeeUsd": 100.00696931238392
+  },
+  "slices": [
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 100,
+      "calls": 80,
+      "refillBetweenSlices": false,
+      "lossUsd": 3.8113798697704624,
+      "averageLossBps": 4.764224837213078,
+      "maximumSliceLossBps": 6.225240092879725,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 100,
+      "calls": 80,
+      "refillBetweenSlices": true,
+      "lossUsd": 2.6426484138073647,
+      "averageLossBps": 3.303310517259206,
+      "maximumSliceLossBps": 3.303310517260849,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 1000,
+      "calls": 8,
+      "refillBetweenSlices": false,
+      "lossUsd": 3.8113309956343073,
+      "averageLossBps": 4.764163744542884,
+      "maximumSliceLossBps": 6.0587174128368115,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 1000,
+      "calls": 8,
+      "refillBetweenSlices": true,
+      "lossUsd": 2.775747559946467,
+      "averageLossBps": 3.4696844499330837,
+      "maximumSliceLossBps": 3.469684449932675,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 2500,
+      "calls": 4,
+      "refillBetweenSlices": false,
+      "lossUsd": 3.811366057514533,
+      "averageLossBps": 4.7642075718931665,
+      "maximumSliceLossBps": 6.151206402166265,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 2500,
+      "calls": 4,
+      "refillBetweenSlices": true,
+      "lossUsd": 2.9792042118115205,
+      "averageLossBps": 3.7240052647644006,
+      "maximumSliceLossBps": 3.747125918375227,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 8000,
+      "calls": 1,
+      "refillBetweenSlices": false,
+      "lossUsd": 3.81153074210215,
+      "averageLossBps": 4.764413427627687,
+      "maximumSliceLossBps": 4.7644134276281225,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 8000,
+      "calls": 1,
+      "refillBetweenSlices": true,
+      "lossUsd": 3.81153074210215,
+      "averageLossBps": 4.764413427627687,
+      "maximumSliceLossBps": 4.7644134276281225,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 10000,
+      "chunkUsd": 100,
+      "calls": 100,
+      "refillBetweenSlices": false,
+      "lossUsd": 5.1341420139706315,
+      "averageLossBps": 5.134142013970631,
+      "maximumSliceLossBps": 6.965364503765947,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 10000,
+      "chunkUsd": 100,
+      "calls": 100,
+      "refillBetweenSlices": true,
+      "lossUsd": 3.303310517259888,
+      "averageLossBps": 3.303310517259888,
+      "maximumSliceLossBps": 3.303310517260849,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 10000,
+      "chunkUsd": 1000,
+      "calls": 10,
+      "refillBetweenSlices": false,
+      "lossUsd": 5.134081452541068,
+      "averageLossBps": 5.134081452541067,
+      "maximumSliceLossBps": 6.798788699662328,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 10000,
+      "chunkUsd": 1000,
+      "calls": 10,
+      "refillBetweenSlices": true,
+      "lossUsd": 3.469684449932174,
+      "averageLossBps": 3.469684449932174,
+      "maximumSliceLossBps": 3.469684449932675,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 10000,
+      "chunkUsd": 2500,
+      "calls": 4,
+      "refillBetweenSlices": false,
+      "lossUsd": 5.134129264195508,
+      "averageLossBps": 5.134129264195508,
+      "maximumSliceLossBps": 6.52129410715907,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 10000,
+      "chunkUsd": 2500,
+      "calls": 4,
+      "refillBetweenSlices": true,
+      "lossUsd": 3.747125918374877,
+      "averageLossBps": 3.7471259183748766,
+      "maximumSliceLossBps": 3.747125918375227,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 10000,
+      "chunkUsd": 10000,
+      "calls": 1,
+      "refillBetweenSlices": false,
+      "lossUsd": 5.1344076342720655,
+      "averageLossBps": 5.1344076342720655,
+      "maximumSliceLossBps": 5.134407634271865,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 10000,
+      "chunkUsd": 10000,
+      "calls": 1,
+      "refillBetweenSlices": true,
+      "lossUsd": 5.1344076342720655,
+      "averageLossBps": 5.1344076342720655,
+      "maximumSliceLossBps": 5.134407634271865,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 40000,
+      "chunkUsd": 100,
+      "calls": 400,
+      "refillBetweenSlices": false,
+      "lossUsd": 42.840882291166054,
+      "averageLossBps": 10.710220572791513,
+      "maximumSliceLossBps": 18.18474108888246,
+      "withinTenBpWithTwoBpMargin": false
+    },
+    {
+      "totalUsd": 40000,
+      "chunkUsd": 100,
+      "calls": 400,
+      "refillBetweenSlices": true,
+      "lossUsd": 13.213242069039552,
+      "averageLossBps": 3.303310517259888,
+      "maximumSliceLossBps": 3.303310517260849,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 40000,
+      "chunkUsd": 1000,
+      "calls": 40,
+      "refillBetweenSlices": false,
+      "lossUsd": 42.84064323289931,
+      "averageLossBps": 10.710160808224828,
+      "maximumSliceLossBps": 18.013713488509442,
+      "withinTenBpWithTwoBpMargin": false
+    },
+    {
+      "totalUsd": 40000,
+      "chunkUsd": 1000,
+      "calls": 40,
+      "refillBetweenSlices": true,
+      "lossUsd": 13.878737799728697,
+      "averageLossBps": 3.469684449932174,
+      "maximumSliceLossBps": 3.469684449932675,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 40000,
+      "chunkUsd": 2500,
+      "calls": 16,
+      "refillBetweenSlices": false,
+      "lossUsd": 42.840848291765724,
+      "averageLossBps": 10.710212072941431,
+      "maximumSliceLossBps": 17.729140646184362,
+      "withinTenBpWithTwoBpMargin": false
+    },
+    {
+      "totalUsd": 40000,
+      "chunkUsd": 2500,
+      "calls": 16,
+      "refillBetweenSlices": true,
+      "lossUsd": 14.988503673499508,
+      "averageLossBps": 3.7471259183748766,
+      "maximumSliceLossBps": 3.747125918375227,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 40000,
+      "chunkUsd": 40000,
+      "calls": 1,
+      "refillBetweenSlices": false,
+      "lossUsd": 42.84671637549036,
+      "averageLossBps": 10.711679093872588,
+      "maximumSliceLossBps": 10.711679093872162,
+      "withinTenBpWithTwoBpMargin": false
+    },
+    {
+      "totalUsd": 40000,
+      "chunkUsd": 40000,
+      "calls": 1,
+      "refillBetweenSlices": true,
+      "lossUsd": 42.84671637549036,
+      "averageLossBps": 10.711679093872588,
+      "maximumSliceLossBps": 10.711679093872162,
+      "withinTenBpWithTwoBpMargin": false
+    }
+  ],
+  "dependencies": {
+    "stableswap": {
+      "version": "2.5.0",
+      "wasmSha256": "a3cb6c3ea278d231cf6af1e75dbeabe465a24825b379f27c008f030d43234c93"
+    },
+    "hsm": {
+      "version": "1.2.0",
+      "wasmSha256": "b98b025623d907590d055bcfe6e03a24406379638a1af7c40e4b79cd7f8205eb"
+    }
+  },
+  "inputs": {
+    "market.json": "babbc5c4d9de05c7465ef81668195837bff78718a9b2020c2171c353b596de67",
+    "round-1.json": "9b43402b85df8fa48317d0a14a6d8c6cc07982743e57477103301cfd988f2af9",
+    "round-2.json": "e2f385f9ede680588f4309ad0687343999fceb024ce621d78e4a013543c91173",
+    "round-3.json": "d1cc846437863efee1dab9d62c422a00d7aaf2b586082f4dfecd5443e1c50dba"
+  },
+  "limitations": [
+    "Existing annual scenarios retain their original gas-batching policy. Re-ranking them does not simulate disabling that policy or rerun three sequential gas-sponsored optimization rounds.",
+    "The first-round winner changes when gas is excluded; subsequent archived rounds inherited the original cost-weighted winner. Their best result is only the best already tested, not a new sponsored-gas optimum.",
+    "Annual source entry/exit and crypto/servicing fills are fixed all-in loss assumptions; they cannot separately identify fees, price impact and quote-to-inclusion slippage.",
+    "The slicing comparison uses official source-pool math at a pinned state. Sequential trades update reserves and retain fees; ideal refill restores the original pool between every slice and is conditional on outside trading/liquidity.",
+    "Pool-math quotes exclude concurrent trading, time-varying pegs/oracles and native circuit breakers. They do not establish future execution or multi-vault throughput.",
+    "The operator-funded budget is not a new deduction from user collateral; strategy net-of-all-costs figures remain a separate accounting sensitivity."
+  ]
+}

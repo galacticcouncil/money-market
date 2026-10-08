@@ -1,0 +1,70 @@
+{
+  "deployments": [
+    {
+      "label": "LarkOracle.ETH",
+      "address": "0x13ad8e687f7d9aab96025497ba5a96968175cc22",
+      "codeHash": "0x1a266b5717480c8e2b4bdd3289bbef5454628c22ffed1b43d0c98b03a0519bb2",
+      "block": "129"
+    },
+    {
+      "label": "LarkOracle.tBTC",
+      "address": "0x5bb401114feb59200e4e3ceace6fc5a7dea998fa",
+      "codeHash": "0x1a266b5717480c8e2b4bdd3289bbef5454628c22ffed1b43d0c98b03a0519bb2",
+      "block": "130"
+    },
+    {
+      "label": "LarkOracle.PRIME",
+      "address": "0xa5856f72103d42a904c3ff1361013e524743852e",
+      "codeHash": "0x1a266b5717480c8e2b4bdd3289bbef5454628c22ffed1b43d0c98b03a0519bb2",
+      "block": "131"
+    },
+    {
+      "label": "PropellerDiscount",
+      "address": "0x423e733c04e94f689f2dcbad88c3b71db44aad70",
+      "codeHash": "0x53b04f30757d6a4be0a7d3080a7d7f1fa721359824efb3500149a4696736dcee",
+      "block": "132"
+    }
+  ],
+  "oracles": [
+    {
+      "assetId": 34,
+      "asset": "0x0000000000000000000000000000000100000022",
+      "name": "ETH",
+      "address": "0x13ad8e687f7d9aab96025497ba5a96968175cc22",
+      "sourceFeed": "0x1AF549Fe19A9B73D094173C41e18BF7F357F594b",
+      "sourcePrice": "269592741953",
+      "sourceUpdatedAt": "1791306023",
+      "sourceBlock": "15484834",
+      "sourceBlockHash": "0x49e77fa7587de2ea3433f29343bd826deb93f95d0d4526110eb9cc3c2f3eb0c7"
+    },
+    {
+      "assetId": 1000765,
+      "asset": "0x00000000000000000000000000000001000f453d",
+      "name": "tBTC",
+      "address": "0x5bb401114feb59200e4e3ceace6fc5a7dea998fa",
+      "sourceFeed": "0xe5AcDfB0d5EC5cE34F7448B41ef4a97c4e83D9c1",
+      "sourcePrice": "8566461161558",
+      "sourceUpdatedAt": "1791305783",
+      "sourceBlock": "15484834",
+      "sourceBlockHash": "0x49e77fa7587de2ea3433f29343bd826deb93f95d0d4526110eb9cc3c2f3eb0c7"
+    },
+    {
+      "assetId": 43,
+      "asset": "0x000000000000000000000000000000010000002b",
+      "name": "PRIME",
+      "address": "0xa5856f72103d42a904c3ff1361013e524743852e",
+      "sourceFeed": "0x09221057Cf7E75953D199FB319E606972A6A82Cd",
+      "sourcePrice": "106316094",
+      "sourceUpdatedAt": "1791316212",
+      "sourceBlock": "15484834",
+      "sourceBlockHash": "0x49e77fa7587de2ea3433f29343bd826deb93f95d0d4526110eb9cc3c2f3eb0c7"
+    }
+  ],
+  "previousDiscount": {
+    "token": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+    "strategy": "0x33A7C640140FEBafEcC9801AF723A0C14420eEd7"
+  },
+  "addresses": {
+    "discount": "0x423e733c04e94f689f2dcbad88c3b71db44aad70"
+  }
+}

@@ -1,0 +1,52 @@
+Missing dependencies found. Installing now...
+
+Cloning into '/tmp/propeller-adapter-20260923/lib/aave-address-book'...
+fatal: unable to access 'https://github.com/bgd-labs/aave-address-book/': Could not resolve host: github.com
+fatal: clone of 'https://github.com/bgd-labs/aave-address-book' into submodule path '/tmp/propeller-adapter-20260923/lib/aave-address-book' failed
+Failed to clone 'lib/aave-address-book'. Retry scheduled
+Cloning into '/tmp/propeller-adapter-20260923/lib/aave-helpers'...
+fatal: unable to access 'https://github.com/bgd-labs/aave-helpers/': Could not resolve host: github.com
+fatal: clone of 'https://github.com/bgd-labs/aave-helpers' into submodule path '/tmp/propeller-adapter-20260923/lib/aave-helpers' failed
+Failed to clone 'lib/aave-helpers'. Retry scheduled
+Cloning into '/tmp/propeller-adapter-20260923/lib/aave-v3-core'...
+fatal: unable to access 'https://github.com/aave/aave-v3-core/': Could not resolve host: github.com
+fatal: clone of 'https://github.com/aave/aave-v3-core' into submodule path '/tmp/propeller-adapter-20260923/lib/aave-v3-core' failed
+Failed to clone 'lib/aave-v3-core'. Retry scheduled
+Cloning into '/tmp/propeller-adapter-20260923/lib/aave-v3-periphery'...
+fatal: unable to access 'https://github.com/aave/aave-v3-periphery/': Could not resolve host: github.com
+fatal: clone of 'https://github.com/aave/aave-v3-periphery' into submodule path '/tmp/propeller-adapter-20260923/lib/aave-v3-periphery' failed
+Failed to clone 'lib/aave-v3-periphery'. Retry scheduled
+Cloning into '/tmp/propeller-adapter-20260923/lib/forge-std'...
+fatal: unable to access 'https://github.com/foundry-rs/forge-std/': Could not resolve host: github.com
+fatal: clone of 'https://github.com/foundry-rs/forge-std' into submodule path '/tmp/propeller-adapter-20260923/lib/forge-std' failed
+Failed to clone 'lib/forge-std'. Retry scheduled
+Cloning into '/tmp/propeller-adapter-20260923/lib/solidity-utils'...
+fatal: unable to access 'https://github.com/bgd-labs/solidity-utils/': Could not resolve host: github.com
+fatal: clone of 'https://github.com/bgd-labs/solidity-utils' into submodule path '/tmp/propeller-adapter-20260923/lib/solidity-utils' failed
+Failed to clone 'lib/solidity-utils'. Retry scheduled
+Cloning into '/tmp/propeller-adapter-20260923/lib/aave-address-book'...
+fatal: unable to access 'https://github.com/bgd-labs/aave-address-book/': Could not resolve host: github.com
+fatal: clone of 'https://github.com/bgd-labs/aave-address-book' into submodule path '/tmp/propeller-adapter-20260923/lib/aave-address-book' failed
+Failed to clone 'lib/aave-address-book' a second time, aborting
+Warning: Your project has missing dependencies that could not be installed.
+Compiling 26 files with Solc 0.8.22
+Solc 0.8.22 finished in 959.30ms
+Compiler run successful with warnings:
+Warning (2018): Function state mutability can be restricted to view
+  --> src/tests/HydraAugustusConfig.t.sol:24:5:
+   |
+24 |     function test_constructor_setsDeployerAsOwner() public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Ran 7 tests for src/tests/HydraAugustusConfig.t.sol:HydraAugustusConfigTest
+[PASS] test_constructor_setsDeployerAsOwner() (gas: 7776)
+[PASS] test_revert_setAssetId_notOwner() (gas: 13451)
+[PASS] test_revert_setAssetId_zeroToken() (gas: 11051)
+[PASS] test_revert_transferOwnership_notOwner() (gas: 13582)
+[PASS] test_revert_transferOwnership_zero() (gas: 11019)
+[PASS] test_setAssetId() (gas: 37125)
+[PASS] test_transferOwnership() (gas: 22083)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 477.30µs (827.60µs CPU time)
+
+Ran 1 test suite in 2.40ms (477.30µs CPU time): 7 tests passed, 0 failed, 0 skipped (7 total tests)
