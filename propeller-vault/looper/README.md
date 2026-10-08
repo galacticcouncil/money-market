@@ -54,14 +54,14 @@ read source HF, repayment targets, route pause and emergency freeze
 read each vault's pause, queue cursors and Main repayment target
   waiting request eligible by chain timestamp -> startUnwinds(8)
   source safety target or active unwind       -> pokeRepay()
-  active vault settlement or Main repayment   -> pokeSettle()
+  active vault settlement, Main repayment target
+    or unallocated source proceeds            -> pokeSettle()
   healthy, worthwhile harvest, duty slot      -> quoted bounded harvest()
   pending collateral, eligible vault, duty slot -> quoted bounded rebalance(), also while exits wait
   healthy, no pending work, duty slot         -> quoted bounded pokeBorrow()
   synthetic buffer below 25bp                 -> top up to 50bp
   no pending deployment, periodic duty slot    -> quoted rebalance when allowed
-after a successful harvest, or periodically otherwise:
-  pokeSettle()
+then, for each vault:
   settled request below the queue head      -> claim(id, owner)
   exit surplus >= CLAIM_MIN_SURPLUS         -> claimSurplus(id)
 independent read loop, including during slow writes/receipt waits:
@@ -72,9 +72,10 @@ No on-chain readiness flag gates the keeper: Main debt ledgers no longer expose
 `ready()`. An unreadable vault queue still blocks new source ramping without
 disabling safety repayments. Settlement also runs for
 late source claims after collateral settlement. Every cycle can realize eligible yield before optional source ramping and then
-reinvest the resulting collateral. The periodic fallback also services Main
-interest from available proceeds; the keeper never obtains treasury money or widens
-slippage. See [yield funding and recovery](../docs/main-debt-servicing.md).
+reinvest the resulting collateral. `pokeSettle` is only sent for redeem-queue
+work. Main interest is paid from harvest servicing and at exits; the keeper never
+settles an idle vault just to service interest, never obtains treasury money and
+never widens slippage. See [yield funding and recovery](../docs/main-debt-servicing.md).
 
 Delivery means a user signs only `requestRedeem`: settled collateral and exit
 surplus are pushed to the request owner. The scan resumes at the first request

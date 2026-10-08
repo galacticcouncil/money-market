@@ -10,17 +10,18 @@ const TARGET = 1050000000000000000n;
 
 let reads: string[] = [];
 
-async function cycle(overrides: Record<string, bigint | boolean | string> = {}, multiple = false, harvest = false) {
+async function cycle(overrides: Record<string, bigint | boolean | string> = {}, multiple = false, harvest = false, previousCycle = 0) {
   const calls: string[] = [];
   reads = [];
   // Replace IO on the real scheduler; no RPC, wallets or transaction simulation.
   const keeper = Object.create(PropellerLooper.prototype) as any;
-  Object.assign(keeper, { cycle: 0, subLoop: LOOP, vaults: multiple ? [VAULT, OTHER] : [VAULT], harvester: harvest ? OTHER : '', pool: '' });
+  Object.assign(keeper, { cycle: previousCycle, subLoop: LOOP, vaults: multiple ? [VAULT, OTHER] : [VAULT], harvester: harvest ? OTHER : '', pool: '' });
   const state: Record<string, bigint | boolean | string> = {
     healthFactor: TARGET, targetHf: TARGET, unwindTargetEquity: 0n,
     deleverDebtTarget: 0n, paused: false, emergencyPaused: false, vaultPaused: false,
     queueHead: 0n, queueTail: 0n, queueUnwind: 0n, unwindEligibleAt: 100n,
-    deleverTarget: 0n, reinvestAssets: 0n, availableHollar: 0n, mainDebt: OTHER, pendingUnwindOf: 0n, harvestable: false, ...overrides,
+    deleverTarget: 0n, reinvestAssets: 0n, availableHollar: 0n, mainDebt: OTHER, pendingSourceAccounting: false,
+    pendingUnwindOf: 0n, harvestable: false, ...overrides,
   };
   keeper.read = async (_abi: unknown, _address: string, fn: string) => {
     reads.push(fn);
@@ -110,8 +111,22 @@ test('rounding monitor read failure alerts without blocking debt service', async
 
 test('harvest precedes optional ramp and reinvests in the same maintenance cycle', async () => {
   assert.deepEqual(await cycle({ harvestable: true, healthFactor: 2n * TARGET }, false, true), [
-    `${OTHER}:harvest`, `${VAULT}:rebalance`, `${VAULT}:pokeSettle`,
+    `${OTHER}:harvest`, `${VAULT}:rebalance`,
   ]);
+});
+test('no standalone Main interest servicing: idle vaults are not settled after a harvest or on slow cycles', async () => {
+  const slow = CONFIG.SLOW_EVERY - 1;
+  // a harvest services interest itself; the keeper adds no settlement for it
+  assert.ok(!(await cycle({ harvestable: true }, true, true)).some(c => c.endsWith(':pokeSettle')));
+  // slow cycles may rebalance idle vaults but never settle them just for interest
+  assert.ok(!(await cycle({}, true, false, slow)).some(c => c.endsWith(':pokeSettle')));
+  assert.ok(!(await cycle({ harvestable: true }, true, true, slow)).some(c => c.endsWith(':pokeSettle')));
+});
+test('unallocated source proceeds are queue work and still settle, but not while frozen', async () => {
+  assert.deepEqual(await cycle({ pendingSourceAccounting: true, healthFactor: 2n * TARGET }), [
+    `${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`,
+  ]);
+  assert.deepEqual(await cycle({ pendingSourceAccounting: true, vaultPaused: true }), []);
 });
 test('empty harvests do not submit transactions or trigger extra maintenance', async () => {
   assert.deepEqual(await cycle({ harvestable: false }, false, true), []);

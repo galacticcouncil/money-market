@@ -69,6 +69,7 @@ const VAULT_ABI = [
 ] as const;
 
 const LEDGER_ABI = parseAbi([
+  'function pendingSourceAccounting() view returns (bool)',
   'function surplusOf(uint256 id) view returns (uint256)',
   'function claimSurplus(uint256 id) returns (uint256)',
 ]);
@@ -206,6 +207,9 @@ export class PropellerLooper {
           this.read(SUBLOOP_ABI, this.subLoop, 'pendingUnwindOf', [vault]),
           this.read(VAULT_ABI, vault, 'reinvestAssets'),
         ])) as [bigint, bigint, bigint, bigint, boolean, bigint, bigint];
+        // unallocated source proceeds or costs only advance through pokeSettle
+        const ledger = await this.read(VAULT_ABI, vault, 'mainDebt') as Address;
+        const unallocated = await this.read(LEDGER_ABI, ledger, 'pendingSourceAccounting') as boolean;
         if (undeployed > 0n) deployment.add(vault);
         if (vaultPaused || emergency) frozen.add(vault);
         waiting ||= tail > next;
@@ -219,7 +223,9 @@ export class PropellerLooper {
             started ||= starting;
           }
         }
-        if (delever > 0n || (!frozen.has(vault) && (next > head || starting || sourcePending > 0n))) pending.push(vault);
+        if (delever > 0n || (!frozen.has(vault) && (next > head || starting || sourcePending > 0n || unallocated))) {
+          pending.push(vault);
+        }
       } catch (error) {
         funded = false;
         waiting = true;
@@ -262,15 +268,6 @@ export class PropellerLooper {
     // Applying already freed funds is safe even while source swaps are paused.
     for (const vault of pending) {
       await this.poke(VAULT_ABI, vault, 'pokeSettle', `pokeSettle ${short(vault)}`);
-    }
-
-    // periodically settle the remaining vaults too, to service Main interest
-    if (harvested || this.cycle % CONFIG.SLOW_EVERY === 0) {
-      for (const vault of this.vaults) {
-        if (!pending.includes(vault)) {
-          await this.poke(VAULT_ABI, vault, 'pokeSettle', `service Main interest ${short(vault)}`);
-        }
-      }
     }
     // users only send withdraw: settled collateral and exit surplus are pushed to their owners
     for (const vault of this.vaults) await this.deliver(vault);
