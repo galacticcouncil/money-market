@@ -180,17 +180,6 @@ export class PropellerLooper {
     let started = false;
     let now: bigint | undefined;
     for (const vault of this.vaults) {
-      try {
-        const buffer = await this.read(VAULT_ABI, vault, 'mainDebt') as Address;
-        const ready = await this.read([view('ready', 'bool')], buffer, 'ready') as boolean;
-        if (!ready) {
-          funded = false;
-          console.error(`[ALERT] ${vault}: Main debt backing or source allocation incomplete; new ramp disabled`);
-        }
-      } catch (error) {
-        funded = false;
-        console.error(`[ALERT] ${vault}: Main debt monitor failed: ${shortErr(error)}`);
-      }
       const policy = ROUNDING_POLICIES.get(vault.toLowerCase());
       if (policy) {
         // Monitoring failure must not prevent Main debt or synthetic maintenance.
@@ -247,18 +236,6 @@ export class PropellerLooper {
         }
       } catch (error) {
         console.error(`[ALERT] harvest preview failed: ${shortErr(error)}`);
-      }
-    }
-    if (harvested) {
-      // harvest servicing can change Main readiness; don't ramp from the pre-harvest snapshot
-      for (const vault of this.vaults) {
-        try {
-          const ledger = await this.read(VAULT_ABI, vault, 'mainDebt') as Address;
-          funded &&= await this.read([view('ready', 'bool')], ledger, 'ready') as boolean;
-        } catch (error) {
-          funded = false;
-          console.error(`[ALERT] ${vault}: post-harvest backing read failed: ${shortErr(error)}`);
-        }
       }
     }
     // deposits and earned collateral deploy before more source leverage; rotate so vaults share the entry budget
@@ -351,11 +328,7 @@ export class PropellerLooper {
         ]) as [bigint, bigint, Address, Address];
         const debt = await this.read(parseAbi(['function balanceOf(address) view returns (uint256)']), debtToken, 'balanceOf', [vault]) as bigint;
         if (supplied * lt < debt * 10025n) console.error(`[ALERT] ${vault}: synthetic buffer needs replenishing`);
-        const [ready, interest] = await Promise.all([
-          this.read([view('ready', 'bool')], ledger, 'ready'),
-          this.read(parseAbi(['function interestOf(uint256) view returns (uint256)']), ledger, 'interestOf', [0n]),
-        ]) as [boolean, bigint];
-        if (!ready) console.error(`[ALERT] ${vault}: Main backing/accounting incomplete`);
+        const interest = await this.read(parseAbi(['function interestOf(uint256) view returns (uint256)']), ledger, 'interestOf', [0n]) as bigint;
         if (interest / 10n ** 10n >= CONFIG.MAIN_INTEREST_URGENT_USD8) console.error(`[ALERT] ${vault}: Main interest needs urgent harvest/service`);
       } catch (error) { console.error(`[ALERT] ${vault}: safety monitor failed: ${shortErr(error)}`); }
     }

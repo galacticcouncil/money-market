@@ -8,8 +8,11 @@ const VAULT = '0x0000000000000000000000000000000000000002';
 const OTHER = '0x0000000000000000000000000000000000000003';
 const TARGET = 1050000000000000000n;
 
+let reads: string[] = [];
+
 async function cycle(overrides: Record<string, bigint | boolean | string> = {}, multiple = false, harvest = false) {
   const calls: string[] = [];
+  reads = [];
   // Replace IO on the real scheduler; no RPC, wallets or transaction simulation.
   const keeper = Object.create(PropellerLooper.prototype) as any;
   Object.assign(keeper, { cycle: 0, subLoop: LOOP, vaults: multiple ? [VAULT, OTHER] : [VAULT], harvester: harvest ? OTHER : '', pool: '' });
@@ -17,9 +20,10 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
     healthFactor: TARGET, targetHf: TARGET, unwindTargetEquity: 0n,
     deleverDebtTarget: 0n, paused: false, emergencyPaused: false, vaultPaused: false,
     queueHead: 0n, queueTail: 0n, queueUnwind: 0n, unwindEligibleAt: 100n,
-    deleverTarget: 0n, reinvestAssets: 0n, availableHollar: 0n, mainDebt: OTHER, ready: true, pendingUnwindOf: 0n, harvestable: false, ...overrides,
+    deleverTarget: 0n, reinvestAssets: 0n, availableHollar: 0n, mainDebt: OTHER, pendingUnwindOf: 0n, harvestable: false, ...overrides,
   };
   keeper.read = async (_abi: unknown, _address: string, fn: string) => {
+    reads.push(fn);
     if (state.failRead === fn) throw new Error('monitor unavailable');
     assert.ok(fn in state, `unexpected read ${fn}`);
     if (fn === 'paused' && _address !== LOOP) return state.vaultPaused || state.emergencyPaused;
@@ -56,9 +60,11 @@ test('source pause stops swaps but not settlement of already freed funds', async
 test('idle healthy loop ramps normally', async () => {
   assert.deepEqual(await cycle({ healthFactor: 2n * TARGET }), [`${LOOP}:pokeBorrow`]);
 });
-test('unfunded operating buffer blocks ramp but not repayment', async () => {
-  assert.deepEqual(await cycle({ healthFactor: 2n * TARGET, ready: false }), []);
-  assert.deepEqual(await cycle({ ready: false, deleverTarget: 1n }), [`${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`]);
+test('Main debt readiness is no longer read or required for ramp and repayment', async () => {
+  assert.deepEqual(await cycle({ healthFactor: 2n * TARGET }), [`${LOOP}:pokeBorrow`]);
+  assert.ok(!reads.includes('ready'));
+  assert.deepEqual(await cycle({ deleverTarget: 1n }), [`${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`]);
+  assert.ok(!reads.includes('ready'));
 });
 test('late source recoveries are pulled even after collateral exits completed', async () => {
   assert.deepEqual(await cycle({ pendingUnwindOf: 1n }), [`${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`]);
@@ -142,4 +148,27 @@ test('a standby operator still acts on safety repayment while postponing optiona
 test('a broken vault queue monitor cannot prevent source safety repayment', async () => {
   assert.deepEqual(await cycle({healthFactor: TARGET - 1n, failRead: 'queueHead'}), [`${LOOP}:deLever`, `${LOOP}:pokeRepay`]);
   assert.deepEqual(await cycle({healthFactor: TARGET * 2n, failRead: 'queueHead'}), []);
+});
+
+
+test('the safety monitor alerts on urgent Main interest without a readiness read', async () => {
+  const keeper = Object.create(PropellerLooper.prototype) as any;
+  Object.assign(keeper, { subLoop: LOOP, vaults: [VAULT] });
+  const seen: string[] = [];
+  keeper.publicClient = { getBlock: async () => ({ timestamp: BigInt(Math.floor(Date.now() / 1000)) }) };
+  keeper.read = async (_abi: unknown, _address: string, fn: string) => {
+    seen.push(fn);
+    const values: Record<string, unknown> = {
+      healthFactor: TARGET, targetHf: TARGET, syntheticSupplied: 10n ** 30n, synthLtBps: 9000n,
+      hollarDebtToken: OTHER, mainDebt: OTHER, balanceOf: 1n, interestOf: CONFIG.MAIN_INTEREST_URGENT_USD8 * 10n ** 10n,
+    };
+    assert.ok(fn in values, `unexpected read ${fn}`);
+    return values[fn];
+  };
+  const errors: string[] = [];
+  const previous = console.error;
+  console.error = (...args) => { errors.push(args.join(' ')); };
+  try { await keeper.monitorSafety(); } finally { console.error = previous; }
+  assert.ok(!seen.includes('ready'));
+  assert.deepEqual(errors, [`[ALERT] ${VAULT}: Main interest needs urgent harvest/service`]);
 });

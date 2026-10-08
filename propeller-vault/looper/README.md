@@ -65,12 +65,12 @@ after a successful harvest, or periodically otherwise:
   settled request below the queue head      -> claim(id, owner)
   exit surplus >= CLAIM_MIN_SURPLUS         -> claimSurplus(id)
 independent read loop, including during slow writes/receipt waits:
-  source HF, synthetic coverage, Main backing/interest, stale RPC, stuck receipts
+  source HF, synthetic coverage, Main interest, stale RPC, stuck receipts
 ```
 
-The keeper checks each Main debt ledger's `ready()` state. Missing/unreadable
-accounting, insufficient backing or incomplete source allocation blocks new
-source ramping without disabling safety repayments. Settlement also runs for
+No on-chain readiness flag gates the keeper: Main debt ledgers no longer expose
+`ready()`. An unreadable vault queue still blocks new source ramping without
+disabling safety repayments. Settlement also runs for
 late source claims after collateral settlement. Every cycle can realize eligible yield before optional source ramping and then
 reinvest the resulting collateral. The periodic fallback also services Main
 interest from available proceeds; the keeper never obtains treasury money or widens
