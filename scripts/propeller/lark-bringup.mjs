@@ -1,12 +1,12 @@
 // Bring up the next version on a new Lark from zero: chain-level setup, contracts, governance
 // wiring and parameters, one existing step script at a time. A dry run (the default) shows
 // the plan and dry-runs the next pending step; --live runs every pending step in order and
-// stops at the first that fails, waits or is a placeholder. Every step lands in the
+// stops at the first that fails or waits on chain state. Every step lands in the
 // bring-up log next to the deployment journal; a rerun resumes from the journals.
 //   --plan        status only, nothing runs
 //   --only=<id>   just that step, even if done
 //   --from=<id>   start the scan at that step
-//   --skip=<a,b>  go past these (placeholders), recorded as skipped
+//   --skip=<a,b>  go past these, recorded as skipped
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync,writeFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
@@ -34,7 +34,7 @@ const s0=state();
 console.log(`bring-up ${profile.name}: deployment ${profile.deployment}, chain ${profile.chainName??'unpinned'}, genesis ${profile.genesis??'unpinned'}`);
 console.log(`journal ${CORE_FILE}${s0.core?'':' (none yet)'}; prices ${PRICES_FILE}; log ${profile.bringUp}`);
 STEPS.forEach((step,i)=>{
- const status=stepStatus(step,s0),note=step.placeholder?` [placeholder: ${step.placeholder}]`:step.live?' [live only]':'';
+ const status=stepStatus(step,s0),note=step.live?' [live only]':'';
  console.log(`${String(i+1).padStart(2)} ${step.id.padEnd(15)}${(skip.has(step.id)&&status!=='done'?'skip':status).padEnd(12)}${step.what}${note}`);
 });
 console.log(`stack ${profile.stack.name}: ${profile.stack.file}, manifest ${profile.manifest} as config ${profile.stack.manifestConfig}`);

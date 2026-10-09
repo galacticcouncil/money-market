@@ -37,12 +37,12 @@ node scripts/propeller/lark-bringup.mjs --live    # runs pending steps in order
 
 - A dry run validates only the next pending step, since later steps build on its
   live effects. `deploy`, `prices` and `discount` have no dry run.
-- `--live` stops at the first step that fails, has not completed (for example
-  `prime-cap` waiting for the pool 143 peg to converge) or is a placeholder.
+- `--live` stops at the first step that fails or has not completed (for
+  example `prime-cap` waiting for the pool 143 peg to converge).
   Rerun it to resume: each step's completion is read back from the deployment
   journals, and every step script is itself resumable.
 - `--only=<step>` reruns one step, `--from=<step>` starts the scan later, and
-  `--skip=guardian,ice` passes the placeholders for a rehearsal only.
+  `--skip=<step,…>` goes past steps for a rehearsal only.
 - Every run, skip and stop goes to `propeller-lark-bringup-<deployment>.json`.
   The `lark4` profile is refused except with `--plan`.
 
@@ -58,7 +58,7 @@ node scripts/propeller/lark-bringup.mjs --live    # runs pending steps in order
 | `sync` … `release` | `lark-mainnet-sync-*.mjs`, `lark-wrap-inventory.mjs`, `lark-stable-inventory.mjs`, `lark-release-deposits.mjs` | feeds, pools and replay inventory |
 | `seed` | `lark-seed-bots.mjs --round=baseline` | everything the Lark 4 bots reported missing (rounds 463 and 464) |
 | `params` | `lark-next-params.mjs` (new) | `harvestThreshold` 2e14, `fundReserve` 1,000 HOLLAR per vault from governance |
-| `guardian` | `lark-deposit-guardian.mjs` | placeholder, track A |
+| `guardian` | `lark-deposit-guardian.mjs` (new) | `DEPOSIT_GUARDIAN_ROLE` on both vaults for both keepers and nothing else; it gates only `setDeficitStop`, while `pauseDeposits` and `pause` stay with governance |
 | `ice` | `lark-ice-wiring.mjs` (new) | ICE for entries and routine exits: `configureIntents(300, 2)`, SubLoop `KEEPER_ROLE` for both keepers, `configureAsync` on the loop's entry and unwind lanes, and WETH on the loop's mapped account for the callback fee |
 | `manifest`, `stack` | `lark-manifest.mjs`, `lark-stack.mjs --keepers` | rerun on every live pass; the stack needs `KEEPER_IMAGE` and `BOT_IMAGE` by digest |
 
@@ -70,12 +70,10 @@ There is no nurse and no Main cushion on the new chain: `lark-nurse.mjs`,
 `lark-fund-main.mjs`, `lark-recap-source.mjs` and `lark-fund-exit.mjs` refuse
 any profile but Lark 4.
 
-## Still placeholders
+## Tracks A and B
 
-- **Track A:** `lark-deposit-guardian.mjs` grants `DEPOSIT_GUARDIAN_ROLE` on both
-  vaults to both keepers and nothing else. The role gates only `setDeficitStop`;
-  `pauseDeposits` stays with governance. It matches A's surface (juicer-core
-  `885f3d3`) and refuses to run until the artifacts come from the merged build.
+- **Deposit guardian:** `lark-deposit-guardian.mjs` refuses artifacts without
+  `DEPOSIT_GUARDIAN_ROLE`, so `PROPELLER_ARTIFACT_DIR` must be the merged build.
 - **ICE wiring** follows B's interfaces (checked against the sources by its
   test). `configureIntents` takes seconds (each deadline is
   `(block.timestamp + ttl) * 1000` ms, under a day), so five minutes is `300`.

@@ -24,15 +24,14 @@ export const STEPS=[
  {id:'release',script:'lark-release-deposits.mjs',what:'test mints the deposit fuse parked, released; GSOL for pools',done:s=>check(s,'depositRelease')},
  {id:'seed',script:'lark-seed-bots.mjs',args:['--round=baseline'],what:'what the Lark 4 bots reported missing, minted up front',done:s=>gov(s,'bots-seed-baseline')},
  {id:'params',script:'lark-next-params.mjs',what:'harvest threshold 2e14, 1,000 HOLLAR protocol reserve per vault',done:s=>check(s,'nextParameters')},
- {id:'guardian',script:'lark-deposit-guardian.mjs',placeholder:'track A',what:'DEPOSIT_GUARDIAN_ROLE for both keepers on both vaults',done:s=>check(s,'depositGuardian')},
+ {id:'guardian',script:'lark-deposit-guardian.mjs',what:'DEPOSIT_GUARDIAN_ROLE (setDeficitStop only) for both keepers on both vaults',done:s=>check(s,'depositGuardian')},
  {id:'ice',script:'lark-ice-wiring.mjs',what:'ICE: 300 s intents with 2 bps drift, KEEPER_ROLE for both keepers, async entry and unwind lanes, WETH for the callback fee',done:s=>check(s,'iceWiring')},
  {id:'manifest',script:'lark-manifest.mjs',output:true,what:'bot manifest for the swarm config'},
  {id:'stack',script:'lark-stack.mjs',args:['--keepers'],output:true,needs:['images'],what:'swarm stack, keepers on'},
 ];
 export function stepStatus(step,state){
  if(step.output)return 'output';
- if(step.done(state))return 'done';
- return step.placeholder?'placeholder':'pending';
+ return step.done(state)?'done':'pending';
 }
 // what a run does next: the first step to run, skip or stop at
 export function schedule(steps,state,{live=false,only,from,skip=new Set(),ran=new Set()}={}){
@@ -45,7 +44,6 @@ export function schedule(steps,state,{live=false,only,from,skip=new Set(),ran=ne
   if(status==='done'&&!only)continue;
   if(step.output){if(live)return {run:step};continue;}
   if(skip.has(step.id))return {skip:step};
-  if(status==='placeholder'&&!only)return {stop:step,reason:`placeholder until ${step.placeholder} lands; --skip=${step.id} to go past it`};
   if(!live&&step.live)return {stop:step,reason:'has no dry run; it runs with --live'};
   return {run:step};
  }

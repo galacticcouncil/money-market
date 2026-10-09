@@ -44,14 +44,12 @@ test('the bring-up runs the existing step scripts in the deployment order', () =
  assert.deepEqual(step('seed').args,['--round=baseline']);
 });
 
-test('no nurse or Main cushions; only track A\'s grant waits', () => {
+test('no nurse or Main cushions, and no placeholders left', () => {
  for(const script of ['lark-nurse.mjs','lark-fund-main.mjs','lark-recap-source.mjs','lark-fund-exit.mjs']){
   assert.ok(!STEPS.some(s=>s.script===script),script);
   assert.match(readFileSync(join(here,script),'utf8'),/assert\.ok\(profile\.legacy,/,`${script} refuses the next version`);
  }
- assert.deepEqual(STEPS.filter(s=>s.placeholder).map(s=>[s.id,s.placeholder]),[['guardian','track A']]);
- for(const s of STEPS.filter(s=>s.placeholder))assert.match(readFileSync(join(here,s.script),'utf8'),/^\/\/ PLACEHOLDER\(track A/);
- assert.doesNotMatch(readFileSync(join(here,'lark-ice-wiring.mjs'),'utf8'),/PLACEHOLDER|assert\.fail/);
+ for(const s of STEPS)assert.doesNotMatch(readFileSync(join(here,s.script),'utf8'),/PLACEHOLDER|assert\.fail\(/,s.script);
 });
 
 test('steps whose script demands --live are never dry-run', () => {
@@ -63,20 +61,20 @@ test('steps whose script demands --live are never dry-run', () => {
 
 test('journal markers complete each step', () => {
  const empty=complete([]);
- for(const s of STEPS)assert.equal(stepStatus(s,empty),s.output?'output':s.placeholder?'placeholder':'pending',s.id);
+ for(const s of STEPS)assert.equal(stepStatus(s,empty),s.output?'output':'pending',s.id);
  const all=complete(STEPS.filter(s=>!s.output).map(s=>s.id));
  for(const s of STEPS.filter(s=>!s.output))assert.equal(stepStatus(s,all),'done',s.id);
  assert.equal(stepStatus(step('deploy'),{core:{vaults:[{name:'ETH',rounding:{}}]}}),'pending','one vault is not a deployment');
 });
 
-test('a dry run validates only the next step; a live run walks on and stops at placeholders', () => {
+test('a dry run validates only the next step; a live run walks on, skipping only on request', () => {
  assert.equal(schedule(STEPS,complete([])).run.id,'chain');
  assert.equal(schedule(STEPS,complete(before('wire'))).run.id,'wire');
  const dry=schedule(STEPS,complete(before('deploy')));
  assert.equal(dry.stop.id,'deploy');assert.match(dry.reason,/--live/);
  assert.equal(schedule(STEPS,complete(before('deploy')),{live:true}).run.id,'deploy');
  const atGuardian=complete(before('guardian'));
- for(const live of [false,true])assert.equal(schedule(STEPS,atGuardian,{live}).stop.id,'guardian');
+ for(const live of [false,true])assert.equal(schedule(STEPS,atGuardian,{live}).run.id,'guardian');
  assert.equal(schedule(STEPS,atGuardian,{live:true,skip:new Set(['guardian'])}).skip.id,'guardian');
  assert.equal(schedule(STEPS,atGuardian,{live:true,skip:new Set(['guardian']),ran:new Set(['guardian'])}).run.id,'ice');
  const past=complete(before('manifest'));
@@ -103,7 +101,7 @@ test('--plan shows the next lark from zero and writes nothing', () => {
  assert.equal(out.status,0,out.stderr);
  assert.match(out.stdout,/bring-up next: deployment next, chain unpinned/);
  assert.match(out.stdout,/ 1 chain +pending/);
- assert.match(out.stdout,/22 guardian +placeholder .*track A/);
+ assert.match(out.stdout,/22 guardian +pending +DEPOSIT_GUARDIAN_ROLE \(setDeficitStop only\)/);
  assert.match(out.stdout,/25 stack +output/);
  assert.match(out.stdout,/unset: LARK_CHAIN_NAME, LARK_GENESIS, LARK_RPC, LARK_COMMIT, PROPELLER_ARTIFACT_DIR, PROPELLER_ADAPTER_ARTIFACT, KEEPER_IMAGE, BOT_IMAGE/);
  assert.ok(!existsSync(join(dir,'propeller-lark-bringup-next.json')));

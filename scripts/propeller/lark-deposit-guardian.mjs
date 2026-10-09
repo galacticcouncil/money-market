@@ -1,12 +1,10 @@
-// PLACEHOLDER(track A, plan step 1) until the merged build lands: the vault's
-// DEPOSIT_GUARDIAN_ROLE for both keeper signers and nothing else. It gates only
+// The vault's DEPOSIT_GUARDIAN_ROLE for both keeper signers and nothing else. It gates only
 // setDeficitStop, so a keeper can stop deposits on a deficit and lift its own stop;
-// pauseDeposits stays with governance. Matches juicer-core 885f3d3; it refuses to run
-// until the artifacts have the role.
+// pauseDeposits and pause stay with governance.
 import assert from 'node:assert/strict';
 import {context,artifact,live} from './lark-context.mjs';
 const vaultAbi=artifact('CollateralVault').abi;
-assert.ok(vaultAbi.some(x=>x.name==='DEPOSIT_GUARDIAN_ROLE'),'placeholder: DEPOSIT_GUARDIAN_ROLE arrives with track A; point PROPELLER_ARTIFACT_DIR at the merged build');
+assert.ok(vaultAbi.some(x=>x.name==='DEPOSIT_GUARDIAN_ROLE'),'no DEPOSIT_GUARDIAN_ROLE in these artifacts: point PROPELLER_ARTIFACT_DIR at the next-version build');
 const c=await context();
 try{
  const {r,read,govEvm,enact,save}=c;
