@@ -68,6 +68,12 @@ and cost totals and per-cohort reduction caps. The repayment model uses observed
 debt reduced separately; `payValid` states the external observation checks. The actual retry,
 source batching cursor and external calls remain Solidity orchestration exercised by regressions.
 
+- `RescaleAmplification.t.sol` / `RescaleReachability.t.sol` / `RescaleEconomics.t.sol` /
+  `RescaleFeasibility.t.sol` investigate the seeded lazy-rescale unit excess from
+  `LeanLazyHistoryParityTest`: per-rescale envelope, public-call approach, asset-level impact
+  and storage preconditions. they seed accounting storage or drive public vault calls and are
+  not included in the comparison-vector counts.
+
 `LeanCoverageParity.t.sol` calls actual Main/controller/claim implementations. Main sequences
 enter through vault-authorized public methods; claim and availability cases use inherited
 harnesses to seed their state. Pool, source and fee-sink behavior is supplied by fixtures.
@@ -102,11 +108,12 @@ Lean. Private seed slots are checked against the compiler's storage layout befor
 
 425 source theorem/lemma declarations compile. The axiom audit checks all 830 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
-`Quot.sound`. The targeted Foundry suites pass 187 distinct tests, with zero failures and skips,
-including 826 comparison vectors, 512 transfer rounding fuzz cases, eight public-call allowance
-regressions, the seeded lazy-rescale fixture and the existing Main, fee, controller, ICE, yield
-and invariant suites. Both generated datasets reproduce exactly; the formal suites contain
-31 tests. The London production build passes all size checks: CollateralVault remains 24,480
+`Quot.sound`. the targeted Foundry suites pass 187 distinct comparison/regression tests, with zero failures
+and skips, including 826 comparison vectors, 512 transfer rounding fuzz cases, eight
+public-call allowance regressions, the seeded lazy-rescale fixture and the existing Main, fee,
+controller, ICE, yield and invariant suites. the rescale investigation adds 17 further
+exploratory tests across the four `Rescale*` suites (one of them a 256-case fuzz). Both
+generated datasets reproduce exactly; the formal suites contain 31 tests. The London production build passes all size checks: CollateralVault remains 24,480
 bytes, and JuicerYieldAccounting is 12,513 bytes (117 bytes larger).
 
 ## reproduce
