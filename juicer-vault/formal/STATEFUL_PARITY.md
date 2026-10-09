@@ -32,10 +32,12 @@ traces, and `coverage.json` records successful actions, revert classes and exerc
 queue/batch/claim boundaries. Required boundary cases must actually execute.
 `check-runtime.py` includes the default campaigns and their Lean replay.
 
-The default seeds 1–8 pass 2,419 calls and 596 expected reverts. Seeds 9–16 with
-`--depth 512` pass another 5,005 calls and 1,640 expected reverts, with sequences up
-to 696 calls. Both runs pass their coverage gates and 48 corrupted-output checks
-each. An incomplete trace is also rejected. Longer standalone campaigns use a
+The default seeds 1–8 pass 2,419 recorded steps and 596 expected reverts. Seeds 9–16 with
+`--depth 512` pass another 5,005 recorded steps and 1,640 expected reverts, with sequences up
+to 696 steps. Both runs pass their coverage gates and 48 corrupted-output checks
+each. The combined 7,424 steps include 5,745 vault calls and 1,679 environment
+actions (clock advances, funded recovery and mock controls). An incomplete trace
+is also rejected. Longer standalone campaigns use a
 higher test gas budget for snapshot instrumentation; this is not a gas estimate
 for the public vault calls.
 

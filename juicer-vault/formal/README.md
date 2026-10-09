@@ -159,7 +159,7 @@ The old Verity bridge remains a separate simplified reference model; see [bridge
 
 `python3 check-stateful.py` runs long public vault/Main call campaigns and replays them in Lean
 from fixture genesis. The checker compares state and outcomes after every call, enforces accounting
-partitions and rejects incomplete traces. The default eight seeds cover 2,419 calls, including
+partitions and rejects incomplete traces. The default eight seeds cover 2,419 recorded steps, including
 596 expected reverts; larger campaigns are configurable. See [stateful parity](STATEFUL_PARITY.md)
 for the covered control flow and the explicit mock-environment boundary. `check-runtime.py`
 also runs the default stateful comparisons.

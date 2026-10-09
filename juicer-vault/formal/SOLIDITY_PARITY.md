@@ -136,11 +136,11 @@ Main and delegatecall logic, using the existing deterministic pool/token/source 
 `StatefulReplay.lean` keeps its own predicted state from fixture genesis; it never resets from
 a Solidity snapshot. Each call checks its outcome, all tracked holder/allowance/request/Main
 fields, and share, cash, collateral and lazy-liability partitions. The default eight seeds cover
-2,419 calls, including 596 expected reverts and 48 deliberately corrupted outputs rejected by
+2,419 recorded steps, including 596 expected reverts and 48 deliberately corrupted outputs rejected by
 the checker. Coverage gates require partial/final claims, keeper receiver protection, 71-request
 starts, resumed 64-cohort batches with late receipts and the 32-request settlement limit.
-Eight additional seeds with 512 pseudorandom actions pass 5,005 calls and 1,640 expected reverts;
-the longest complete sequence has 696 calls. Together the 16 campaigns check 7,424 calls,
+Eight additional seeds with 512 pseudorandom actions pass 5,005 recorded steps and 1,640 expected reverts;
+the longest complete sequence has 696 steps. Together the 16 campaigns check 7,424 recorded steps,
 2,236 expected reverts and 96 corrupted-output checks. A truncated-trace rejection also passes.
 See [stateful scope and reproduction](STATEFUL_PARITY.md). These tests exercise control-flow
 correspondence for a bounded fixture environment, not every Solidity trace.
