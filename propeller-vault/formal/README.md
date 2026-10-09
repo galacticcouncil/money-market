@@ -21,7 +21,8 @@ PropellerLean/
 │  ├─ Redemption.lean     Phase 2: escrow / shareConservation / freedBacked → collateral_out_ge_in;
 │  │                      next version: the exit fold (burned units' funded slice → escrow)
 │  ├─ SubLoop.lean        single-vault loop model: deLever, accrueLoop (yield), the full Op
-│  │                      trace semantics (LoopSafe/Safe/SafeBacked closed under any op list)
+│  │                      trace semantics (LoopSafe/Safe/SafeBacked closed under any op list);
+│  │                      next version: ICE intents in flight (IceLoop)
 │  ├─ SubLoopShares.lean  multi-vault shared-loop share model: deposit/unwind conservation +
 │  │                      per-vault isolation (one vault's ops can't move another's equity)
 │  ├─ RedeemCredit.lean   `_creditFreed` redemption-credit model: the shipped (floored,
@@ -91,6 +92,12 @@ parallel; the bridge/parity tests follow once it merges. Same integrity bar: 0 `
 | `ShareBook.startExit_slice_other` / `ShareBook.startExit_unitPrice` | an exit moves nobody else's slice or unit price |
 | `State.startExit_requestRedeem` / `State.startExit_escrowOk` | seen by the redemption state the fold is `requestRedeem fold`, so `escrowOk` survives it |
 | `ShareBook.startExit_quote` / `ShareBook.runExit_totalBalance_add` | quoting after the fold pays the folded shares at the same per-share value and keeps the remaining holders'; the balance identity holds through any trace with exits |
+| `IceLoop.submit_equity` / `IceLoop.run_equity_noFill` | in-flight input counts in equity at oracle value; submit, expiry, callback and reconcile keep equity — only a fill moves it, by exactly the execution difference (`fill_equity`; no worse than the slippage floor, `fill_equity_ge`) |
+| `IceLoop.submit_effHF` / `IceLoop.ramp_fill_effHF` / `IceLoop.ramp_aaveHF_lt` | HF math counts idle and in-flight HOLLAR as debt-backed cash: a ramp step's HF in flight is its HF after an oracle-fair fill, while Aave's own HF dips |
+| `IceLoop.submit_deLeverOk_iff` / `IceLoop.deLever_raises_effHF` | the de-lever precondition counts in-flight cash, so submitting, expiring, recording or a fair fill never changes it; de-lever raises the loop's HF |
+| `IceLoop.submit_busy` / `IceLoop.late_callback` / `IceLoop.reconcile_eq_callback` | one intent per lane, never overwritten; once reconciled, a late callback changes nothing after any further trace; callback and reconcile record the same thing |
+| `IceLoop.naiveEquity_sub_equity` | an equity view that keeps counting a pending record after its outcome landed overstates by exactly that input |
+| `IceLoop.deLeverOk_iff_valid` / `IceLoop.onto_subHF` | a quiescent loop (no idle cash, nothing in flight) is the original `State` loop |
 
 ## Build & verify
 
