@@ -35,7 +35,7 @@ console.log(`bring-up ${profile.name}: deployment ${profile.deployment}, chain $
 console.log(`journal ${CORE_FILE}${s0.core?'':' (none yet)'}; prices ${PRICES_FILE}; log ${profile.bringUp}`);
 STEPS.forEach((step,i)=>{
  const status=stepStatus(step,s0),note=step.live?' [live only]':'';
- console.log(`${String(i+1).padStart(2)} ${step.id.padEnd(15)}${(skip.has(step.id)&&status!=='done'?'skip':status).padEnd(12)}${step.what}${note}`);
+ console.log(`${String(i+1).padStart(2)} ${step.id.padEnd(18)}${(skip.has(step.id)&&status!=='done'?'skip':status).padEnd(12)}${step.what}${note}`);
 });
 console.log(`stack ${profile.stack.name}: ${profile.stack.file}, manifest ${profile.manifest} as config ${profile.stack.manifestConfig}`);
 const unset=[...new Set(STEPS.flatMap(step=>missing(step,profile,process.env)))];
