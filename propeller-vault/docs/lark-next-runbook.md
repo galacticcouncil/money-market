@@ -1,8 +1,8 @@
 # New Lark bring-up for the next version
 
-The next version deploys to a different Lark chain, not chosen yet; it needs a
-runtime with ICE (447 or later). [Lark 4](lark-deployment-2026-10-07.md) keeps
-running from the same scripts. Every Lark script and bot takes its chain from a
+The next version deploys to **Lark 0** ("Lark 0 Hydration"), reforked from
+mainnet after the rename; it needs a runtime with ICE (447 or later).
+[Lark 4](lark-deployment-2026-10-07.md) keeps running from the same scripts. Every Lark script and bot takes its chain from a
 profile in `scripts/propeller/lark-pins.mjs`. **This is a testnet procedure: no
 step targets mainnet, and nothing here has been run with `--live` yet.**
 
@@ -11,25 +11,29 @@ step targets mainnet, and nothing here has been run with `--live` yet.**
 | Profile | Chain | Files (`LARK_STATE_DIR`, default `/tmp`) |
 | --- | --- | --- |
 | `lark4` (default) | Lark 4, pinned genesis, scripts on `node4.lark`; the `4.lark` gateway stays the journal's identity, the keepers' fallback and the readiness WS, as before | `propeller-lark-20261007.json`, `propeller-lark-stack.json` |
-| `next` | open until chosen: `LARK_CHAIN_NAME`, `LARK_GENESIS`, `LARK_RPC` (`LARK_WS`), `LARK_COMMIT` | `propeller-lark-next.json`, `propeller-lark-stack-next.json` |
+| `lark0` | Lark 0 on `node0.lark`, for scripts, the journal and the bots; keepers fall back to the `0.lark` subway gateway as on Lark 4. Genesis and commit open until the refork (`LARK_GENESIS`, `LARK_COMMIT`) | `propeller-lark-lark0-20261009.json`, `propeller-lark-stack-lark0-20261009.json` |
 
-- Select with `--profile=next` or `LARK_PROFILE=next`. The environment only fills
-  a profile's open pins; it never overrides a pinned one, and a chain whose name
-  is not a Lark is refused.
-- Once the chain is chosen, pin its name, genesis, RPC and commit in the `next`
-  profile, and rename the deployment id there if wanted, before the first
-  `--live` run: the journal, manifest, stack and bring-up log are named after it.
+- Select with `--profile=lark0` or `LARK_PROFILE=lark0`. The environment only
+  fills a profile's open pins; it never overrides a pinned one, and a chain whose
+  name is not a Lark is refused.
+- After the refork, pin the genesis and the contracts commit in the `lark0`
+  profile before the first `--live` run. Everything else is pinned, including
+  the deployment id `lark0-20261009` that names the journal, manifest, stack and
+  bring-up log.
+- The shares are "Juicer ETH" `jETH` and "Juicer tBTC" `jtBTC`, the synthetic
+  "Juicer Synthetic HOLLAR" `jsHOLLAR` with reserve tokens `aJSYNTH`,
+  `vdJSYNTH` and `sdJSYNTH`: the names the rename gives mainnet.
 - `PROPELLER_ARTIFACT_DIR` must point at the London build of the merged next
   version ([build commands](deferred-deployment-validation-2026-10-04.md#reproduce)),
   `PROPELLER_ADAPTER_ARTIFACT` at the pinned HydraAugustus build.
 - The bots read the chain name and signers from the manifest (a manifest without
   them means Lark 4) and their endpoints from `LARK_RPC`/`LARK_WS`, which the
-  `next` stack sets.
+  Lark 0 stack sets.
 
 ## Bring-up from zero
 
 ```sh
-export LARK_PROFILE=next PROPELLER_ARTIFACT_DIR=… PROPELLER_ADAPTER_ARTIFACT=…
+export LARK_PROFILE=lark0 PROPELLER_ARTIFACT_DIR=… PROPELLER_ADAPTER_ARTIFACT=…
 node scripts/propeller/lark-bringup.mjs --plan    # status from the journals, runs nothing
 node scripts/propeller/lark-bringup.mjs           # dry-runs the next pending step
 node scripts/propeller/lark-bringup.mjs --live    # runs pending steps in order
@@ -62,7 +66,8 @@ node scripts/propeller/lark-bringup.mjs --live    # runs pending steps in order
 | `ice` | `lark-ice-wiring.mjs` (new) | ICE for entries and routine exits: `configureIntents(300, 2)`, SubLoop `KEEPER_ROLE` for both keepers, `configureAsync` on the loop's entry and unwind lanes, and WETH on the loop's mapped account for the callback fee |
 | `manifest`, `stack` | `lark-manifest.mjs`, `lark-stack.mjs --keepers` | rerun on every live pass; the stack needs `KEEPER_IMAGE` and `BOT_IMAGE` by digest |
 
-The outputs are config `propeller-next-manifest-v1` and stack `propeller-next`.
+The outputs are config `propeller-lark0-20261009-manifest-v1` and stack
+`propeller-lark0-20261009`.
 Keepers get `QUOTE_DEPTH_BLOCKS` 3 and markets `PEG_BAND_BPS` 0.5. Creating the
 Swarm config and stack stays a manual, stop-first step.
 

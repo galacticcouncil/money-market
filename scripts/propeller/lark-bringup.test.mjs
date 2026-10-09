@@ -87,33 +87,33 @@ test('a dry run validates only the next step; a live run walks on, skipping only
 });
 
 test('a step names what it still needs before it starts', () => {
- const next=resolveProfile('next',{}),pinned=resolveProfile('next',{LARK_CHAIN_NAME:'Lark 9',LARK_GENESIS:'0x09',LARK_RPC:'https://node9.lark',LARK_COMMIT:'abc'});
- assert.deepEqual(missing(step('chain'),next,{}),['LARK_CHAIN_NAME','LARK_GENESIS','LARK_RPC','LARK_COMMIT','PROPELLER_ARTIFACT_DIR']);
+ const lark0=resolveProfile('lark0',{}),pinned=resolveProfile('lark0',{LARK_GENESIS:'0x09',LARK_COMMIT:'abc'});
+ assert.deepEqual(missing(step('chain'),lark0,{}),['LARK_GENESIS','LARK_COMMIT','PROPELLER_ARTIFACT_DIR']);
  assert.deepEqual(missing(step('deploy'),pinned,{PROPELLER_ARTIFACT_DIR:'/x'}),['PROPELLER_ADAPTER_ARTIFACT']);
  assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:'galacticcouncil/propeller-lark-keeper:latest'}),['KEEPER_IMAGE','BOT_IMAGE']);
  assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:`galacticcouncil/propeller-lark-keeper@sha256:${'1'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/propeller-lark-bots@sha256:${'2'.repeat(64)}`}),[]);
  assert.deepEqual(missing(step('wire'),resolveProfile('lark4',{}),{}),[]);
 });
 
-test('--plan shows the next lark from zero and writes nothing', () => {
+test('--plan shows lark 0 from zero and writes nothing', () => {
  const dir=scratch();
- const out=run(['--profile=next','--plan'],{LARK_STATE_DIR:dir});
+ const out=run(['--profile=lark0','--plan'],{LARK_STATE_DIR:dir});
  assert.equal(out.status,0,out.stderr);
- assert.match(out.stdout,/bring-up next: deployment next, chain unpinned/);
+ assert.match(out.stdout,/bring-up lark0: deployment lark0-20261009, chain Lark 0 Hydration, genesis unpinned/);
  assert.match(out.stdout,/ 1 chain +pending/);
  assert.match(out.stdout,/22 guardian +pending +DEPOSIT_GUARDIAN_ROLE \(setDeficitStop only\)/);
  assert.match(out.stdout,/25 stack +output/);
- assert.match(out.stdout,/unset: LARK_CHAIN_NAME, LARK_GENESIS, LARK_RPC, LARK_COMMIT, PROPELLER_ARTIFACT_DIR, PROPELLER_ADAPTER_ARTIFACT, KEEPER_IMAGE, BOT_IMAGE/);
- assert.ok(!existsSync(join(dir,'propeller-lark-bringup-next.json')));
+ assert.match(out.stdout,/unset: LARK_GENESIS, LARK_COMMIT, PROPELLER_ARTIFACT_DIR, PROPELLER_ADAPTER_ARTIFACT, KEEPER_IMAGE, BOT_IMAGE/);
+ assert.ok(!existsSync(join(dir,'propeller-lark-bringup-lark0-20261009.json')));
 });
 
 test('an unpinned chain stops before any step script runs, and the stop is logged', () => {
  const dir=scratch();
- const out=run(['--profile=next'],{LARK_STATE_DIR:dir});
+ const out=run(['--profile=lark0'],{LARK_STATE_DIR:dir});
  assert.equal(out.status,1);
- assert.match(out.stdout,/STOP chain needs LARK_CHAIN_NAME, LARK_GENESIS, LARK_RPC, LARK_COMMIT/);
+ assert.match(out.stdout,/STOP chain needs LARK_GENESIS, LARK_COMMIT/);
  assert.doesNotMatch(out.stdout,/RUN /);
- const log=JSON.parse(readFileSync(join(dir,'propeller-lark-bringup-next.json'),'utf8'));
+ const log=JSON.parse(readFileSync(join(dir,'propeller-lark-bringup-lark0-20261009.json'),'utf8'));
  assert.equal(log.events.length,1);
  assert.equal(log.events[0].step,'chain');assert.equal(log.events[0].mode,'dry-run');assert.match(log.events[0].stopped,/unset/);
 });

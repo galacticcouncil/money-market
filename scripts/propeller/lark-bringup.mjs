@@ -20,7 +20,7 @@ const only=arg('only'),from=arg('from'),skip=new Set(arg('skip')?.split(',').fil
 for(const id of [only,from,...skip])if(id)assert.ok(STEPS.some(s=>s.id===id),`unknown step ${id}`);
 assert.ok(!(live&&planOnly),'--plan never runs anything');
 // lark 4 runs the #62 contracts and is already up; --plan still shows its journal
-if(!planOnly)assert.ok(!profile.legacy,`profile ${profile.name} is already up; the bring-up targets a new lark (--profile=next)`);
+if(!planOnly)assert.ok(!profile.legacy,`profile ${profile.name} is already up; the bring-up targets a new lark (--profile=lark0)`);
 const here=fileURLToPath(new URL('.',import.meta.url)),root=join(here,'..','..');
 const readJson=file=>existsSync(file)?JSON.parse(readFileSync(file,'utf8')):null;
 const state=()=>({core:readJson(CORE_FILE),prices:readJson(PRICES_FILE)});

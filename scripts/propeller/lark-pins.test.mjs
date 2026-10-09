@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
-import {resolveProfile,requirePins} from './lark-pins.mjs';
+import {PROFILES,resolveProfile,requirePins} from './lark-pins.mjs';
 const here=fileURLToPath(new URL('.',import.meta.url)),fixture=name=>join(here,'fixtures',name);
 const {mnemonicToAccount}=createRequire(import.meta.url)('viem/accounts'),{toHex}=createRequire(import.meta.url)('viem');
 const key=index=>toHex(mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:index}).getHdKey().privateKey);
@@ -47,32 +47,38 @@ test('pins are pins: the environment fills only open fields, the state dir moves
  assert.equal(p.artifactDir,'/tmp/propeller-london-db0799c');
 });
 
-test('the next lark stays unpinned until its chain is chosen', () => {
- const p=resolveProfile('next',{});
+test('lark 0 is pinned but for the genesis and commit its refork brings', () => {
+ const p=resolveProfile('lark0',{});
  assert.equal(p.legacy,false);
- assert.deepEqual([p.chainName,p.genesis,p.rpc,p.ws,p.commit],[null,null,null,null,null]);
- assert.throws(()=>requirePins(p),/LARK_CHAIN_NAME, LARK_GENESIS, LARK_RPC/);
- assert.equal(p.journal,'/tmp/propeller-lark-next.json');
+ assert.deepEqual([p.chainName,p.rpc,p.ws],['Lark 0 Hydration','https://node0.lark.hydration.cloud','wss://node0.lark.hydration.cloud']);
+ assert.deepEqual(p.gateway,{rpc:p.rpc,ws:p.ws},'scripts and the journal stay on node0, off subway');
+ assert.deepEqual([p.genesis,p.commit],[null,null]);
+ assert.throws(()=>requirePins(p),/not pinned: set LARK_GENESIS or/);
+ assert.equal(p.journal,'/tmp/propeller-lark-lark0-20261009.json');
  assert.notEqual(p.stack.file,resolveProfile('lark4',{}).stack.file,'never overwrites the lark 4 stack');
- assert.deepEqual([p.stack.file,p.stack.name,p.stack.manifestConfig],['/tmp/propeller-lark-stack-next.json','propeller-next','propeller-next-manifest-v1']);
- assert.deepEqual(p.names.vaults,{ETH:['Propeller ETH','pETH'],TBTC:['Propeller tBTC','ptBTC']});
+ assert.deepEqual([p.stack.file,p.stack.name,p.stack.manifestConfig],['/tmp/propeller-lark-stack-lark0-20261009.json','propeller-lark0-20261009','propeller-lark0-20261009-manifest-v1']);
+ assert.deepEqual(p.stack.keeperRpcUrls,['https://node0.lark.hydration.cloud','https://0.lark.hydration.cloud']);
+ assert.deepEqual(p.stack.botEnv,{LARK_RPC:'https://node0.lark.hydration.cloud',LARK_WS:'wss://node0.lark.hydration.cloud'});
+ assert.deepEqual(p.names.vaults,{ETH:['Juicer ETH','jETH'],TBTC:['Juicer tBTC','jtBTC']});
+ assert.deepEqual(p.names.synth,['Juicer Synthetic HOLLAR','jsHOLLAR']);
  assert.ok(Buffer.byteLength(p.names.asset)<=32,'asset registry string limit');
  assert.equal(p.hollarBucket,5000000n*10n**18n);
 });
 
-test('the next lark takes its endpoints from the environment', () => {
- const p=resolveProfile('next',{LARK_CHAIN_NAME:'Lark 7 Hydration',LARK_GENESIS:'0x07',LARK_RPC:'https://node7.lark.hydration.cloud',LARK_COMMIT:'abc'});
+test('the refork\'s genesis and commit come from the environment, nothing else does', () => {
+ const p=resolveProfile('lark0',{LARK_GENESIS:'0x07',LARK_COMMIT:'abc',LARK_RPC:'https://node9.lark.hydration.cloud',LARK_CHAIN_NAME:'Lark 9'});
  assert.equal(requirePins(p),p);
- assert.equal(p.ws,'wss://node7.lark.hydration.cloud');
- assert.deepEqual(p.gateway,{rpc:p.rpc,ws:p.ws});
- assert.deepEqual(p.stack.keeperRpcUrls,['https://node7.lark.hydration.cloud']);
- assert.deepEqual(p.stack.botEnv,{LARK_RPC:'https://node7.lark.hydration.cloud',LARK_WS:'wss://node7.lark.hydration.cloud'});
- assert.equal(resolveProfile('next',{LARK_RPC:'https://a.lark',LARK_WS:'wss://b.lark'}).ws,'wss://b.lark');
+ assert.deepEqual([p.genesis,p.commit,p.rpc,p.chainName],['0x07','abc','https://node0.lark.hydration.cloud','Lark 0 Hydration']);
 });
 
 test('lark tooling refuses unknown profiles and non-lark chains', () => {
  assert.throws(()=>resolveProfile('mainnet',{}),/unknown lark profile/);
- assert.throws(()=>resolveProfile('next',{LARK_CHAIN_NAME:'Hydration'}),/non-lark/);
+ PROFILES.open={...PROFILES.lark0,chainName:null,rpc:null,ws:null,gateway:undefined};
+ try{
+  assert.throws(()=>resolveProfile('open',{LARK_CHAIN_NAME:'Hydration'}),/non-lark/);
+  const p=resolveProfile('open',{LARK_CHAIN_NAME:'Lark 7 Hydration',LARK_RPC:'https://node7.lark.hydration.cloud'});
+  assert.deepEqual([p.chainName,p.ws],['Lark 7 Hydration','wss://node7.lark.hydration.cloud'],'an open endpoint takes the environment, ws derived');
+ }finally{delete PROFILES.open;}
 });
 
 test('scripts resolve the profile from --profile or LARK_PROFILE, lark4 by default', () => {
@@ -81,8 +87,8 @@ test('scripts resolve the profile from --profile or LARK_PROFILE, lark4 by defau
  assert.deepEqual(exec([],{}),['lark4','0x0a1fba23f7897cb5cbb3289db93ab605774565149b0c87033b4f2af817c9f96c','20261007','/tmp/propeller-lark-20261007.json','/tmp/propeller-lark-20261007.json','/tmp/propeller-lark-prices-20261007.json','propeller-lark4-20261007-manifest-v3','/tmp/propeller-london-db0799c']);
  assert.equal(exec([],{PROPELLER_LARK_RESULT:'/x/prices.json',PROPELLER_ARTIFACT_DIR:'/x/out'})[4],'/x/prices.json');
  assert.equal(exec([],{PROPELLER_ARTIFACT_DIR:'/x/out'})[7],'/x/out');
- assert.equal(exec(['--profile=next'],{})[0],'next');
- assert.equal(exec([],{LARK_PROFILE:'next'})[0],'next');
+ assert.equal(exec(['--profile=lark0'],{})[0],'lark0');
+ assert.equal(exec([],{LARK_PROFILE:'lark0'})[0],'lark0');
 });
 
 test('the lark 4 manifest and stack come out exactly as before profiles', () => {

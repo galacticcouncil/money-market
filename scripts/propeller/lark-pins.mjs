@@ -29,23 +29,25 @@ export const PROFILES={
   hollarBucket:1000000,
   stack:{file:'propeller-lark-stack.json',name:'propeller-oct2026',manifestConfig:'propeller-lark4-20261007-manifest-v3',keeperRpcUrls:['https://node4.lark.hydration.cloud','https://4.lark.hydration.cloud'],keeperEnv:{},bots:BOTS},
  },
- // the next version on a new lark, not chosen yet (it needs ICE: runtime 447 or later).
- // pin chainName, genesis, rpc and commit once it is; until then LARK_CHAIN_NAME,
- // LARK_GENESIS, LARK_RPC (LARK_WS) and LARK_COMMIT fill them
- next:{
-  chainName:null,genesis:null,rpc:null,ws:null,commit:null,
-  deployment:'next',
+ // the next version on Lark 0, reforked from mainnet after the rename; pin its genesis and
+ // the contracts commit then (LARK_GENESIS and LARK_COMMIT fill them until that edit)
+ lark0:{
+  chainName:'Lark 0 Hydration',genesis:null,commit:null,
+  deployment:'lark0-20261009',
+  // 0.lark goes through subway: scripts stay on node0, keepers fall back to it as on lark 4
+  rpc:'https://node0.lark.hydration.cloud',ws:'wss://node0.lark.hydration.cloud',
   // the merged next-version london build: PROPELLER_ARTIFACT_DIR, PROPELLER_ADAPTER_ARTIFACT
   artifactDir:null,adapterArtifact:null,
   // the same public dev derivations; separate chains share no state
   signers:SIGNERS,
+  // the final names, as the rename gives mainnet
   names:{
-   synth:['Propeller Synthetic HOLLAR','psHOL'],asset:'Propeller Synthetic HOLLAR',
-   aToken:['Propeller Synthetic aToken','aPS'],variableDebt:['Propeller Synthetic Variable Debt','vdPS'],stableDebt:['Propeller Synthetic Stable Debt','sdPS'],
-   vaults:{ETH:['Propeller ETH','pETH'],TBTC:['Propeller tBTC','ptBTC']},
+   synth:['Juicer Synthetic HOLLAR','jsHOLLAR'],asset:'Juicer Synthetic HOLLAR',
+   aToken:['Juicer aSynth','aJSYNTH'],variableDebt:['Juicer Variable Debt Synth','vdJSYNTH'],stableDebt:['Juicer Stable Debt Synth','sdJSYNTH'],
+   vaults:{ETH:['Juicer ETH','jETH'],TBTC:['Juicer tBTC','jtBTC']},
   },
   hollarBucket:5000000,
-  stack:{keeperEnv:{QUOTE_DEPTH_BLOCKS:'3'},bots:BOTS},
+  stack:{keeperRpcUrls:['https://node0.lark.hydration.cloud','https://0.lark.hydration.cloud'],keeperEnv:{QUOTE_DEPTH_BLOCKS:'3'},bots:BOTS},
  },
 };
 export function resolveProfile(name='lark4',env={}){
