@@ -22,13 +22,18 @@ import {ILeveragedLoop} from "./IYieldSource.sol";
 ///         vault requests an unwind, the deleveraging spiral frees equity HOLLAR
 ///         over blocks, and the vault pulls it as it accrues.
 ///
-///         With intents configured, entries go out as ICE intents that settle a block or two
-///         later: the lazy executor calls `execute`, or anyone calls `reconcile`.
+///         With intents configured, entries and routine unwind slices go out as ICE intents that
+///         settle a block or two later: the lazy executor calls `execute`, or anyone calls
+///         `reconcile`. Safety de-levers stay on the synchronous router.
 interface ISubLoop is ILeveragedLoop {
     /// @notice `pokeBorrow` with the keeper's router dry-run rate: output units per 1e18 input
     ///         units. Less the solver's 1 bp haircut and the drift allowance it may only raise
     ///         the oracle floor. Returns the HOLLAR sent in an intent (router mode: borrowed).
     function pokeBorrowQuoted(uint256 keeperQuote) external returns (uint256);
+
+    /// @notice `pokeRepay` with the keeper's rate for the aPRIME→HOLLAR leg (see pokeBorrowQuoted).
+    ///         Routine unwind slices go out as intents; a safety de-lever keeps the router.
+    function pokeRepayQuoted(uint256 keeperQuote) external returns (uint256);
 
     /// @notice Settle the in-flight intent from balance deltas.
     /// @return outcome 0 nothing in flight, 1 waiting, 2 filled, 3 input returned

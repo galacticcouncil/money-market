@@ -28,7 +28,10 @@ contract IceIntentsTest is Test {
     uint256 constant TARGET_HF = 1.05e18;
     /// router dry run at $1/$1: 1e6 aPRIME units per 1e18 HOLLAR
     uint256 constant ENTRY_RATE = 1e6;
+    /// and 1e30 HOLLAR wei per 1e18 aPRIME units
+    uint256 constant EXIT_RATE = 1e30;
     uint8 constant ENTRY = 1;
+    uint8 constant EXIT = 2;
     uint8 constant WAITING = 1;
     uint8 constant FILLED = 2;
     uint8 constant RETURNED = 3;
@@ -350,6 +353,189 @@ contract IceIntentsTest is Test {
         assertGt(loop.pokeBorrowQuoted(ENTRY_RATE), 0);
         assertEq(dispatch.routerSells(), 2);
         assertEq(dispatch.counter(), 0, "no intents");
+    }
+
+    // ── exits ──
+
+    function _rampToTarget() internal {
+        _deposit(SEED);
+        _rampSteps(40);
+    }
+
+    /// unwind steps by intent until the request is freed; returns the intents used
+    function _unwindByIntent() internal returns (uint256 intents) {
+        for (uint256 i; i < 200 && loop.unwindTargetEquity() != 0; ++i) {
+            loop.pokeRepayQuoted(EXIT_RATE);
+            (,, uint8 kind,,) = _pending();
+            if (kind == 0) continue;
+            assertEq(kind, EXIT);
+            ++intents;
+            _resolve();
+        }
+    }
+
+    function test_unwindByIntentFreesTheRequest() public {
+        _rampToTarget();
+        loop.requestUnwind(loop.sharesOf(address(this)) / 2);
+        uint256 requested = loop.pendingUnwindOf(address(this));
+        uint256 sells = dispatch.routerSells();
+
+        uint256 equity = loop.totalEquity();
+        uint256 collateral = aPrime.balanceOf(address(loop));
+        loop.pokeRepayQuoted(EXIT_RATE);
+        (, , uint8 kind, uint256 amountIn, uint256 minOut) = _pending();
+        assertEq(kind, EXIT);
+        assertEq(collateral - aPrime.balanceOf(address(loop)), amountIn, "the pallet holds the aPRIME");
+        assertApproxEqAbs(loop.totalEquity(), equity, 1, "in flight at the PRIME oracle price");
+        assertEq(minOut, amountIn * 1e12 * 9_994 / 10_000, "keeper floor less 1 bp and drift");
+        assertGe(loop.healthFactor(), 1.02e18, "sized to the per-step HF floor");
+        assertEq(loop.pokeRepayQuoted(EXIT_RATE), 0, "the next slice waits");
+        _resolve();
+
+        assertGt(_unwindByIntent(), 0);
+        assertEq(dispatch.routerSells(), sells, "routine unwinds never touch the router");
+        uint256 freed = loop.freedOf(address(this));
+        assertApproxEqRel(freed, requested, 0.002e18, "freed ~ requested");
+        assertEq(loop.pullFreed(), freed);
+    }
+
+    function test_exitMissedCallbackThenReconcileAndLateCallback() public {
+        _rampToTarget();
+        loop.requestUnwind(loop.sharesOf(address(this)) / 2);
+        loop.pokeRepayQuoted(EXIT_RATE);
+        uint128 id = dispatch.lastId();
+        (uint64 nonce,,, uint256 amountIn,) = _pending();
+        uint256 equity = loop.totalEquity();
+        uint256 out = dispatch.quote(id, 1);
+        dispatch.fill(id, out);
+        assertApproxEqAbs(loop.totalEquity(), equity - amountIn * 1e2 + out / 1e10, 1, "the fill counts once, as cash");
+
+        vm.expectEmit(true, true, false, true, address(loop));
+        emit IntentSettled(EXIT, nonce, out);
+        assertEq(loop.reconcile(), FILLED);
+        uint256 cash = hollar.balanceOf(address(loop));
+        assertEq(_callback(id, out), SubLoop.execute.selector);
+        assertEq(hollar.balanceOf(address(loop)), cash, "late callback is a no-op");
+
+        // the next poke applies the fill: repay its share of debt and free the rest
+        uint256 debt = hollarDebt.balanceOf(address(loop));
+        loop.pokeRepayQuoted(EXIT_RATE);
+        assertLt(hollarDebt.balanceOf(address(loop)), debt);
+        assertGt(loop.freedOf(address(this)), 0);
+    }
+
+    function test_exitExpiryReturnsTheCollateral() public {
+        _rampToTarget();
+        loop.requestUnwind(loop.sharesOf(address(this)) / 2);
+        uint256 collateral = aPrime.balanceOf(address(loop));
+        uint256 equity = loop.totalEquity();
+        loop.pokeRepayQuoted(EXIT_RATE);
+        uint128 id = dispatch.lastId();
+        (, uint64 deadline,,,) = _pending();
+        assertEq(loop.reconcile(), WAITING);
+        vm.warp(deadline / 1000);
+        dispatch.cleanup(id);
+        assertEq(aPrime.balanceOf(address(loop)), collateral, "refund is collateral again");
+        assertApproxEqAbs(loop.totalEquity(), equity, 1);
+        assertEq(loop.reconcile(), RETURNED);
+        assertTrue(pool.usingAsCollateral(address(loop), address(prime)));
+        loop.pokeRepayQuoted(EXIT_RATE);
+        (,, uint8 kind,,) = _pending();
+        assertEq(kind, EXIT, "the slice goes out again");
+    }
+
+    function test_entryInFlightHoldsBackTheUnwind() public {
+        _deposit(SEED);
+        _rampSteps(2);
+        loop.pokeBorrowQuoted(ENTRY_RATE);
+        loop.requestUnwind(loop.sharesOf(address(this)) / 2);
+        uint256 submitted = dispatch.counter();
+        assertEq(loop.pokeRepayQuoted(EXIT_RATE), 0);
+        assertEq(dispatch.counter(), submitted, "one intent at a time");
+        _resolve();
+        loop.pokeRepayQuoted(EXIT_RATE);
+        (,, uint8 kind,,) = _pending();
+        assertEq(kind, EXIT);
+    }
+
+    function test_safetyDeleverStaysSynchronous() public {
+        _rampToTarget();
+        pool.setPrice(address(prime), 0.98e18);
+        loop.deLever();
+        assertGt(loop.deleverDebtTarget(), 0);
+        uint256 submitted = dispatch.counter();
+        uint256 sells = dispatch.routerSells();
+        // the keeper's dry run at the new price
+        for (uint256 i; i < 100 && loop.deleverDebtTarget() != 0; ++i) loop.pokeRepayQuoted(EXIT_RATE * 98 / 100);
+        assertEq(loop.deleverDebtTarget(), 0);
+        assertGt(dispatch.routerSells(), sells, "safety sells through the router");
+        assertEq(dispatch.counter(), submitted, "and never by intent");
+        assertApproxEqRel(loop.healthFactor(), TARGET_HF, 0.02e18);
+    }
+
+    function test_safetyDeleverDoesNotWaitForAnExitInFlight() public {
+        _rampToTarget();
+        // a small slice leaves HF headroom above the step floor while it is in flight
+        loop.setTranches(10_000_000e18, 20e6);
+        loop.requestUnwind(loop.sharesOf(address(this)) / 2);
+        loop.pokeRepayQuoted(EXIT_RATE);
+        (uint64 nonce,,,,) = _pending();
+        // the in-flight aPRIME still backs the debt for the de-lever precondition
+        pool.setPrice(address(prime), 0.98e18);
+        loop.deLever();
+        uint256 debt = hollarDebt.balanceOf(address(loop));
+        uint256 sells = dispatch.routerSells();
+        loop.pokeRepayQuoted(EXIT_RATE * 98 / 100);
+        assertEq(dispatch.routerSells(), sells + 1, "safety slice sold at once");
+        assertLt(hollarDebt.balanceOf(address(loop)), debt);
+        (uint64 still,,,,) = _pending();
+        assertEq(still, nonce, "the exit stays in flight");
+        // the exit still settles normally once the solver can meet its limit
+        pool.setPrice(address(prime), 1e18);
+        _resolve();
+        (,, uint8 kind,,) = _pending();
+        assertEq(kind, 0);
+    }
+
+    function test_exitCostChargedToUnwinderYieldAtSettle() public {
+        _rampToTarget();
+        // carry: the unwinding slice owns some yield that execution cost may consume
+        aPrime.mint(address(loop), 30e6);
+        prime.mint(address(pool), 30e6);
+        loop.requestUnwind(loop.sharesOf(address(this)) / 2);
+        assertGt(loop.unwindYieldAllowance(address(this)), 0);
+        loop.pokeRepay(); // unquoted: 1% oracle floor
+        uint128 id = dispatch.lastId();
+        (,,,,, uint128 minOut, uint128 fairOut,,) = loop.pendingIntent();
+        uint256 out = dispatch.quote(id, 30); // 30 bp worse than the oracle
+        assertGe(out, minOut);
+        dispatch.fill(id, out);
+        assertEq(_callback(id, out), SubLoop.execute.selector);
+        assertEq(loop.unwindExecutionCost(address(this)), fairOut - out, "realized loss charged to its yield");
+    }
+
+    function test_controllerExitLaneUsesItsAsyncPrepare() public {
+        _rampToTarget();
+        ExecutionController control = new ExecutionController(address(this), 60, 5);
+        bytes32 group = keccak256("unwind");
+        control.configureBudget(group, address(aPrime), 5_000e6, 1e6, uint64(block.timestamp + 30 days));
+        control.configureLimit(address(loop), address(aPrime), address(hollar), group, 1e6, 100e6);
+        bytes32 lane = control.lane(address(loop), address(aPrime), address(hollar));
+        control.configurePrice(lane, 10, true);
+        control.configureAsync(lane, true);
+        loop.setExecutionController(address(control));
+        loop.requestUnwind(loop.sharesOf(address(this)) / 2);
+
+        loop.pokeRepay();
+        (address consumer, uint64 nonce, uint256 minimum) = control.pendingAsync(lane);
+        assertEq(consumer, address(loop));
+        assertEq(nonce, loop.intentNonce());
+        (,,, uint256 amountIn, uint256 minOut) = _pending();
+        assertEq(amountIn, 100e6, "fitted to the lane maximum");
+        assertGe(minOut, minimum);
+        _resolve();
+        (, nonce,) = control.pendingAsync(lane);
+        assertEq(nonce, 0);
     }
 
     function test_configureIntentsBounds() public {

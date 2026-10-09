@@ -245,7 +245,12 @@ contract SubLoop is ISubLoop, SubLoopStorage {
 
     /// @inheritdoc ILeveragedLoop
     function pokeRepay() external override nonReentrant whenNotPaused returns (uint256) {
-        return abi.decode(_delegate(abi.encodeCall(SubLoopLogic.pokeRepay, ())), (uint256));
+        return abi.decode(_delegate(abi.encodeCall(SubLoopLogic.pokeRepayQuoted, (0))), (uint256));
+    }
+
+    /// @inheritdoc ISubLoop
+    function pokeRepayQuoted(uint256) external override onlyRole(KEEPER_ROLE) nonReentrant whenNotPaused returns (uint256) {
+        return abi.decode(_delegate(msg.data), (uint256));
     }
 
     /// @inheritdoc IYieldSource

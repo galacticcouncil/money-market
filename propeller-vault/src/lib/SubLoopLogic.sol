@@ -372,6 +372,8 @@ contract SubLoopLogic is SubLoopStorage {
         }
         // the aave hop mints aPRIME without enabling it, and a returned exit input may come back unflagged
         if (primeAToken.balanceOf(address(this)) != 0) pool.setUserUseReserveAsCollateral(address(prime), true);
+        // a routine exit's realized loss against the oracle at submit, as for a router sale
+        if (p.kind == EXIT && output != 0 && output < p.fairOut) _chargeExecutionCost(p.fairOut - output);
         emit IntentSettled(p.kind, p.nonce, output);
     }
 
@@ -389,12 +391,12 @@ contract SubLoopLogic is SubLoopStorage {
         r[1] = DcaDispatch.Hop(DcaDispatch.POOL_STABLESWAP, true, primePoolId, primeAssetId, hollarAssetId);
     }
 
-    function pokeRepay() external returns (uint256 work) {
-        work = _pokeRepay();
+    function pokeRepayQuoted(uint256 keeperQuote) external returns (uint256 work) {
+        work = _pokeRepay(keeperQuote);
         _rebase();
     }
 
-    function _pokeRepay() internal returns (uint256 work) {
+    function _pokeRepay(uint256 keeperQuote) internal returns (uint256 work) {
         bool idle = _settleArrived();
         uint256 previousTarget = deleverDebtTarget;
         _dropMetDelever();
@@ -428,7 +430,7 @@ contract SubLoopLogic is SubLoopStorage {
                         // min-out off the AaveOracle fair rate (aPRIME 1:1 PRIME).
                         // fair HOLLAR (18dp) = sellAmt aPRIME (6dp) · pPrime/pHollar · 1e12.
                         uint256 fairOut = (sellAmt * pPrime * 1e12) / pHollar;
-                        _sellForUnwind(sellAmt, fairOut);
+                        _sellForUnwind(sellAmt, fairOut, keeperQuote);
                     }
                 }
             } else if (debt8 == 0) {
@@ -441,7 +443,7 @@ contract SubLoopLogic is SubLoopStorage {
                 if (unwindTranche > 0 && sellAmt > unwindTranche) sellAmt = unwindTranche;
                 if (sellAmt > 0) {
                     uint256 fairOut = (sellAmt * pPrime * 1e12) / pHollar;
-                    _sellForUnwind(sellAmt, fairOut);
+                    _sellForUnwind(sellAmt, fairOut, keeperQuote);
                 }
             }
         }
@@ -477,10 +479,12 @@ contract SubLoopLogic is SubLoopStorage {
         }
 
         // repay the sold slice's debt portion so the position shrinks proportionally; free the rest
-        //   preColl = currentColl + avail ; repay = avail · debt/preColl
+        //   preColl = currentColl + inFlight + avail ; repay = avail · debt/preColl
+        // (with intents avail is the previous slice's fill, and this call's slice is still in flight)
         (uint256 collBase8, uint256 debtBase8, , , , ) = pool.getUserAccountData(address(this));
+        (, uint256 inFlight8) = _inFlight8();
         uint256 avail8 = avail / 1e10;
-        uint256 preColl8 = collBase8 + avail8;
+        uint256 preColl8 = collBase8 + inFlight8 + avail8;
         uint256 repay8 = preColl8 == 0 ? 0 : (avail8 * debtBase8) / preColl8;
         uint256 repayHollar = repay8 * 1e10;
         if (repayHollar > avail) repayHollar = avail;
@@ -498,25 +502,45 @@ contract SubLoopLogic is SubLoopStorage {
         return deleverRepaid + repayHollar + freed;
     }
 
-    function _sellForUnwind(uint256 amount, uint256 fairOut) internal {
+    /// @dev routine slices go out as ICE intents when configured; a safety de-lever (deLever's
+    /// target) always sells through the synchronous router
+    function _sellForUnwind(uint256 amount, uint256 fairOut, uint256 keeperQuote) internal {
+        bool safety = deleverDebtTarget != 0;
+        if (intentTtl != 0 && !safety) return _exitByIntent(amount, fairOut, keeperQuote);
         ExecutionController control = executionController;
         uint256 minimum;
         if (address(control) != address(0)) {
             uint256 wanted = amount;
-            (amount, minimum) = control.prepare(address(primeAToken), address(hollar), amount, fairOut,
-                deleverDebtTarget != 0);
+            (amount, minimum) = control.prepare(address(primeAToken), address(hollar), amount, fairOut, safety);
             if (amount == 0) return;
             fairOut = Math.mulDiv(fairOut, amount, wanted);
         }
         if (amount > type(uint128).max) revert InvalidParameters();
-        minimum = Math.max(minimum, _minimumOut(fairOut));
+        minimum = Math.max(minimum, _floor(amount, fairOut, keeperQuote));
         if (minimum > type(uint128).max) revert InvalidParameters();
         uint256 before_ = hollar.balanceOf(address(this));
         DcaDispatch.routerSell(aPrimeAssetId, hollarAssetId, uint128(amount), uint128(minimum), _unwindRoute());
         uint256 received = hollar.balanceOf(address(this)) - before_;
         if (address(control) != address(0)) control.record(address(primeAToken), address(hollar), received);
-        if (received >= fairOut || deleverDebtTarget != 0) return;
-        uint256 cost = fairOut - received;
+        if (received < fairOut && !safety) _chargeExecutionCost(fairOut - received);
+    }
+
+    function _exitByIntent(uint256 amount, uint256 fairOut, uint256 keeperQuote) internal {
+        ExecutionController control = executionController;
+        uint64 nonce = intentNonce + 1;
+        uint256 minimum;
+        if (address(control) != address(0)) {
+            uint256 wanted = amount;
+            (amount, minimum) = control.prepareAsync(address(primeAToken), address(hollar), amount, fairOut, nonce);
+            if (amount == 0) return;
+            fairOut = Math.mulDiv(fairOut, amount, wanted);
+        }
+        intentNonce = nonce;
+        minimum = Math.max(minimum, _floor(amount, fairOut, keeperQuote));
+        _dispatchIntent(EXIT, nonce, amount, minimum, fairOut, address(control) != address(0));
+    }
+
+    function _chargeExecutionCost(uint256 cost) internal {
         uint256 target = unwindTargetEquity;
         uint256 weight;
         uint256 charged;
