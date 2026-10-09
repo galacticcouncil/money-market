@@ -64,11 +64,9 @@ export const CONFIG = {
   // and the smallest exit surplus worth a transaction (HOLLAR wei)
   CLAIM_LOOKBACK: BigInt(integer('CLAIM_LOOKBACK', 256, 1)),
   CLAIM_MIN_SURPLUS: BigInt(process.env.CLAIM_MIN_SURPLUS || '10000000000000000'),
-  // off-chain deficit stop: above it the ramp halts and deposits pause; a keeper's pause lifts below resume
+  // off-chain deficit stop: above it the ramp halts and the vault's deficitStop is set; it clears below resume
   DEFICIT_STOP_BPS: deficitStop,
   DEFICIT_RESUME_BPS: integer('DEFICIT_RESUME_BPS', 25, 0, deficitStop - 1),
-  // how far back a restarted keeper looks for the deposit pause it may have made
-  DEFICIT_PAUSE_LOOKBACK_BLOCKS: BigInt(integer('DEFICIT_PAUSE_LOOKBACK_BLOCKS', 500000)),
   // seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner
   SYNC_EVERY: integer('SYNC_EVERY', 3600),
   ALERT_WEBHOOK: process.env.ALERT_WEBHOOK,

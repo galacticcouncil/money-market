@@ -10,10 +10,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { CONFIG, ROUNDING_POLICIES } from './config.js';
 import { EXECUTION_ABI, executionQuotes, worthwhileHarvest, operatorTurn, efficientCandidate, type Fill } from './execution-policy.js';
 import { roundingAlert } from './rounding-policy.js';
-import {
-  DEPOSIT_GUARDIAN_ROLE, DEPOSITS_PAUSED, DEPOSITS_UNPAUSED, GOVERNANCE_ROLES,
-  deficitLevel, deficitState, eventAccount, vaultDeficitBps, type DeficitState,
-} from './deficit-policy.js';
+import { deficitLevel, deficitStopped, vaultDeficitBps } from './deficit-policy.js';
 import { LatestLog, newestInChunks, type EvidenceLog } from './log-evidence.js';
 import { SYNC_EVIDENCE, feedUpdate, syncDue, type FeedSeen } from './sync-policy.js';
 
@@ -51,14 +48,10 @@ const VAULT_ABI = [
   view('queueTail', 'uint256'),
   view('queueUnwind', 'uint256'),
   view('paused', 'bool'),
-  view('depositsPaused', 'bool'),
+  view('deficitStop', 'bool'),
   view('yieldAccounting', 'address'),
   view('deleverTarget', 'uint256'),
   view('reinvestAssets', 'uint256'),
-  {
-    name: 'hasRole', type: 'function', stateMutability: 'view',
-    inputs: [{ name: 'role', type: 'bytes32' }, { name: 'account', type: 'address' }], outputs: [{ name: '', type: 'bool' }],
-  },
   {
     name: 'unwindEligibleAt', type: 'function', stateMutability: 'view',
     inputs: [{ name: 'requestId', type: 'uint256' }], outputs: [{ name: '', type: 'uint256' }],
@@ -93,9 +86,10 @@ const LEDGER_ABI = parseAbi([
 
 const ACCOUNTING_ABI = parseAbi(['function sourceValue() view returns (uint256)']);
 
-// granted to keepers through DEPOSIT_GUARDIAN_ROLE
-const DEPOSIT_PAUSE_ABI = parseAbi(['function pauseDeposits()', 'function unpauseDeposits()']);
+// keepers hold DEPOSIT_GUARDIAN_ROLE for it; deposits revert while it is set
+const DEFICIT_STOP_ABI = parseAbi(['function setDeficitStop(bool stopped)']);
 
+// declared void: the harvestable shares sync() returns say nothing about whether allocation ran
 const SYNC_ABI = parseAbi(['function sync()']);
 const ORACLE_ABI = parseAbi([
   'function getSourceOfAsset(address asset) view returns (address)',
@@ -159,8 +153,7 @@ export class PropellerLooper {
   private nextNonce = 0;
   private stopping = false;
   private quoteBlocks?: bigint;
-  private deficits?: Map<Address, DeficitState>;
-  private pauseNotes?: Map<Address, string>;
+  private deficitNotes?: Map<Address, string>;
   private evidence?: Map<string, LatestLog>;
   private feeds?: Map<string, FeedSeen>;
   private synced?: Map<Address, bigint>;
@@ -269,8 +262,8 @@ export class PropellerLooper {
         console.error(`[ALERT] ${vault}: queue monitor failed; optional risk disabled: ${shortErr(error)}`);
       }
     }
-    // pausing runs on every operator; reopening deposits waits for the duty slot
-    const deficit = await this.deficitStop(frozen, turn);
+    // any operator sets a vault's deficit stop; clearing it waits for the duty slot and an unfrozen vault
+    const deficit = await this.checkDeficits(frozen, turn);
     const servicing = unwind > 0n || safetyDebt > 0n || pending.length > 0 || waiting;
     let harvested = false;
     if (turn && this.harvester && !paused && !emergency && frozen.size === 0) {
@@ -373,15 +366,15 @@ export class PropellerLooper {
     let tracker = trackers.get(key);
     // at least a second per block, so SYNC_EVERY blocks cover SYNC_EVERY seconds
     if (!tracker) trackers.set(key, tracker = new LatestLog(BigInt(CONFIG.SYNC_EVERY)));
-    const log = await tracker.find((from, to) => this.newestLog([vault, accounting], SYNC_EVIDENCE, from, to),
+    const log = await tracker.find((from, to) => this.newestLog(accounting, SYNC_EVIDENCE, from, to),
       await this.publicClient.getBlockNumber());
     return log ? (await this.publicClient.getBlock({blockNumber: log.block})).timestamp : 0n;
   }
 
-  // true while any vault is stopped or unreadable: the ramp then waits
-  private async deficitStop(frozen: ReadonlySet<Address>, turn: boolean): Promise<boolean> {
+  // the vault's deficitStop flag is the hysteresis state both operators share. true while any
+  // vault is stopped or unreadable: the ramp then waits
+  private async checkDeficits(frozen: ReadonlySet<Address>, turn: boolean): Promise<boolean> {
     const stop = BigInt(CONFIG.DEFICIT_STOP_BPS), resume = BigInt(CONFIG.DEFICIT_RESUME_BPS);
-    const states = (this.deficits ??= new Map<Address, DeficitState>());
     let source: bigint | undefined;
     try {
       source = await this.read(SUBLOOP_ABI, this.subLoop, 'negativeCarryBps') as bigint;
@@ -390,20 +383,20 @@ export class PropellerLooper {
     }
     let blocked = source === undefined;
     for (const vault of this.vaults) {
-      let paused: boolean, vaultBps: bigint | undefined;
+      let stopped: boolean, vaultBps: bigint | undefined;
       try {
         const [ledger, accounting] = await Promise.all([
           this.read(VAULT_ABI, vault, 'mainDebt'), this.read(VAULT_ABI, vault, 'yieldAccounting'),
         ]) as [Address, Address];
-        const [depositsPaused, position, funds, unallocated, equity, sourceValue] = await Promise.all([
-          this.read(VAULT_ABI, vault, 'depositsPaused'),
+        const [flag, position, funds, unallocated, equity, sourceValue] = await Promise.all([
+          this.read(VAULT_ABI, vault, 'deficitStop'),
           this.read(LEDGER_ABI, ledger, 'activePosition'),
           this.read(LEDGER_ABI, ledger, 'activeFunds'),
           this.read(LEDGER_ABI, ledger, 'pendingSourceAccounting'),
           this.read(SUBLOOP_ABI, this.subLoop, 'equityOf', [vault]),
           this.read(ACCOUNTING_ABI, accounting, 'sourceValue'),
         ]) as [boolean, readonly bigint[], bigint, boolean, bigint, bigint];
-        paused = depositsPaused;
+        stopped = flag;
         // unallocated source cash leaves activeFunds stale until pokeSettle
         if (!unallocated) vaultBps = vaultDeficitBps(position[0], equity, sourceValue, funds);
       } catch (error) {
@@ -412,80 +405,30 @@ export class PropellerLooper {
         continue;
       }
       const level = deficitLevel([source, vaultBps], stop);
-      const known = states.get(vault);
-      // after a restart the band keeps an existing pause in force
-      const previous = known ?? (paused ? 'stopped' : 'ok');
-      const state = level === undefined ? previous : deficitState(level, previous, stop, resume);
-      states.set(vault, state);
-      blocked ||= level === undefined || state === 'stopped';
+      const want = level === undefined ? stopped : deficitStopped(level, stopped, stop, resume);
+      blocked ||= level === undefined || want;
       const view = `source ${source ?? '?'} bps, vault ${vaultBps ?? '?'} bps`;
-      console.log(`  deficit ${short(vault)}: ${view} (${state})`);
-      if (known === undefined ? state === 'stopped' : state !== known) {
-        console.error(state === 'stopped'
-          ? `[ALERT] deficit stop ${vault}: ${view}, above ${stop}; ramp stopped`
-          : `[ALERT] deficit resume ${vault}: ${view}, below ${resume}; ramp allowed`);
+      console.log(`  deficit ${short(vault)}: ${view}${want ? ', stopped' : ''}`);
+      if (want === stopped || (!want && (!turn || frozen.has(vault)))) continue;
+      const done = await this.poke(DEFICIT_STOP_ABI, vault, 'setDeficitStop', `setDeficitStop(${want}) ${short(vault)}`, [want])
+        || await this.read(VAULT_ABI, vault, 'deficitStop').catch(() => stopped) === want;
+      if (!done) {
+        this.deficitNote(vault, `[ALERT] deficit ${want ? 'stop' : 'resume'} ${vault}: setDeficitStop(${want}) not confirmed; retrying every cycle`);
+        continue;
       }
-      if (level !== undefined && level > stop && !paused) {
-        const done = await this.poke(DEPOSIT_PAUSE_ABI, vault, 'pauseDeposits', `pauseDeposits ${short(vault)}`)
-          || await this.read(VAULT_ABI, vault, 'depositsPaused').catch(() => false) === true;
-        this.pauseNote(vault, done ? undefined : 'deficit stop', 'pauseDeposits not confirmed; retrying every cycle');
-        if (done) console.error(`[ALERT] deficit stop ${vault}: deposits paused`);
-      } else if (state === 'ok' && paused && turn && !frozen.has(vault)) {
-        await this.reopenDeposits(vault);
-      }
+      this.deficitNote(vault);
+      console.error(want ? `[ALERT] deficit stop ${vault}: ${view}, above ${stop}; ramp stopped, deficitStop set`
+        : `[ALERT] deficit resume ${vault}: ${view}, below ${resume}; ramp allowed, deficitStop cleared`);
     }
     return blocked;
   }
 
-  // never undoes a pause made by governance or a guardian
-  private async reopenDeposits(vault: Address): Promise<void> {
-    let note: string;
-    try {
-      const pauser = await this.depositPauser(vault);
-      if (pauser.keeper) {
-        const done = await this.poke(DEPOSIT_PAUSE_ABI, vault, 'unpauseDeposits', `unpauseDeposits ${short(vault)}`)
-          || await this.read(VAULT_ABI, vault, 'depositsPaused').catch(() => true) === false;
-        if (done) {
-          this.pauseNote(vault);
-          console.error(`[ALERT] deficit resume ${vault}: deposits reopened, paused by keeper ${pauser.account}`);
-          return;
-        }
-        note = 'unpauseDeposits not confirmed; retrying every cycle';
-      } else {
-        note = `deposits stay paused: ${pauser.reason}`;
-      }
-    } catch (error) {
-      note = `deposits stay paused: pause evidence unavailable (${shortErr(error)})`;
-    }
-    this.pauseNote(vault, 'deficit resume', note);
-  }
-
-  // alerts when a vault's pause situation changes, not on every cycle it persists
-  private pauseNote(vault: Address, kind?: string, note?: string): void {
-    const notes = (this.pauseNotes ??= new Map<Address, string>());
-    if (!kind || !note) return void notes.delete(vault);
-    if (notes.get(vault) !== note) console.error(`[ALERT] ${kind} ${vault}: ${note}`);
-    notes.set(vault, note);
-  }
-
-  // the newest deposit pause event decides: a keeper holds DEPOSIT_GUARDIAN_ROLE and no governance role
-  private async depositPauser(vault: Address): Promise<{keeper: boolean; account?: Address; reason: string}> {
-    const trackers = (this.evidence ??= new Map<string, LatestLog>());
-    const key = `pause:${vault.toLowerCase()}`;
-    let tracker = trackers.get(key);
-    if (!tracker) trackers.set(key, tracker = new LatestLog(CONFIG.DEFICIT_PAUSE_LOOKBACK_BLOCKS));
-    const topics = [...DEPOSITS_PAUSED, ...DEPOSITS_UNPAUSED];
-    const log = await tracker.find((from, to) => this.newestLog(vault, topics, from, to),
-      await this.publicClient.getBlockNumber());
-    if (!log) return {keeper: false, reason: `no deposit pause event in the last ${CONFIG.DEFICIT_PAUSE_LOOKBACK_BLOCKS} blocks`};
-    if (!DEPOSITS_PAUSED.includes(log.topics[0].toLowerCase() as Hex)) {
-      return {keeper: false, reason: 'the newest deposit pause event is an unpause'};
-    }
-    const account = eventAccount(log) ?? (await this.publicClient.getTransaction({hash: log.tx})).from;
-    const roles = await Promise.all([DEPOSIT_GUARDIAN_ROLE, ...GOVERNANCE_ROLES].map(role =>
-      this.read(VAULT_ABI, vault, 'hasRole', [role, account]))) as boolean[];
-    const keeper = roles[0] && !roles.slice(1).some(Boolean);
-    return {keeper, account, reason: keeper ? 'paused by a keeper' : `paused by ${account}, not a keeper`};
+  // a failure alerts when it changes, not on every cycle it persists
+  private deficitNote(vault: Address, alert?: string): void {
+    const notes = (this.deficitNotes ??= new Map<Address, string>());
+    if (!alert) return void notes.delete(vault);
+    if (notes.get(vault) !== alert) console.error(alert);
+    notes.set(vault, alert);
   }
 
   private newestLog(address: Address | Address[], topics: Hex[], from: bigint, to: bigint) {

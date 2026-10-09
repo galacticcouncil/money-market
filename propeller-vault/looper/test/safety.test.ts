@@ -21,7 +21,7 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
     deleverDebtTarget: 0n, paused: false, emergencyPaused: false, vaultPaused: false,
     queueHead: 0n, queueTail: 0n, queueUnwind: 0n, unwindEligibleAt: 100n,
     deleverTarget: 0n, reinvestAssets: 0n, availableHollar: 0n, mainDebt: OTHER, pendingSourceAccounting: false,
-    pendingUnwindOf: 0n, harvestable: false, negativeCarryBps: 0n, depositsPaused: false, yieldAccounting: OTHER,
+    pendingUnwindOf: 0n, harvestable: false, negativeCarryBps: 0n, deficitStop: false, yieldAccounting: OTHER,
     activePosition: [0n, 0n, 0n] as any, activeFunds: 0n, equityOf: 0n, sourceValue: 0n, ...overrides,
   };
   keeper.read = async (_abi: unknown, _address: string, fn: string) => {

@@ -17,7 +17,7 @@
 #   PROPELLER_ROUNDING_RESERVES - per-vault JSON base-unit minimum/target policy
 #   HARVESTER_ADDRESS     — Harvester; harvest is skipped when unset
 #   LOOPER_PRIVATE_KEY    — signer key. Maintenance is PERMISSIONLESS (gas only);
-#                           DEPOSIT_GUARDIAN_ROLE lets it pause/reopen deposits on a deficit.
+#                           DEPOSIT_GUARDIAN_ROLE lets it set the vaults' deficitStop.
 #   RPC_URL               — Hydration RPC (defaults below)
 #   POOL_ADDRESS          — aave main-market pool (for leverage logging)
 #   POLL_INTERVAL_MS      — cycle interval, default 30s
@@ -67,7 +67,6 @@ services:
       SLOW_EVERY: ${SLOW_EVERY:-10}
       DEFICIT_STOP_BPS: ${DEFICIT_STOP_BPS:-50}
       DEFICIT_RESUME_BPS: ${DEFICIT_RESUME_BPS:-25}
-      DEFICIT_PAUSE_LOOKBACK_BLOCKS: ${DEFICIT_PAUSE_LOOKBACK_BLOCKS:-500000}
       SYNC_EVERY: ${SYNC_EVERY:-3600}
       ALERT_WEBHOOK: ${ALERT_WEBHOOK:-}
     deploy:

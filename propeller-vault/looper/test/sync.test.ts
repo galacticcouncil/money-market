@@ -4,6 +4,7 @@ import { toEventSelector, toHex, type Address } from 'viem';
 import { PropellerLooper } from '../src/looper.js';
 import { CONFIG } from '../src/config.js';
 import { feedUpdate, syncDue } from '../src/sync-policy.js';
+import { LatestLog, REORG_MARGIN_BLOCKS, newestInChunks, type EvidenceLog } from '../src/log-evidence.js';
 
 const LOOP = '0x0000000000000000000000000000000000000001';
 const ETH = '0x00000000000000000000000000000000000000e7';
@@ -16,14 +17,14 @@ const FEED: Record<string, Address> = {
   [PRIME]: '0x00000000000000000000000000000000000000f1', [WETH]: '0x00000000000000000000000000000000000000f2',
   [TBTC]: '0x00000000000000000000000000000000000000f3',
 };
-const SYNCED = toEventSelector('Synced()');
+const ALLOCATED = toEventSelector('Allocated()');
 const CHECKPOINT = toEventSelector('YieldCheckpoint(uint256,uint256)');
 // each vault's yield accounting contract
 const books = (vault: Address) => (vault === ETH ? '0x00000000000000000000000000000000000000e8'
   : '0x00000000000000000000000000000000000000b8') as Address;
 const EVERY = BigInt(CONFIG.SYNC_EVERY);
 
-function chain(syncEvent = true) {
+function chain(allocationEvents = true) {
   const c = {
     block: 1_000n,
     time: 1_000_000n,
@@ -41,7 +42,7 @@ function chain(syncEvent = true) {
       c.logs.push({address, topics: [topic], data: '0x', blockNumber: toHex(c.block), logIndex: '0x0',
         transactionHash: toHex(c.block, {size: 32}), removed: false});
     },
-    syncEvent,
+    allocationEvents,
   };
   return c;
 }
@@ -76,7 +77,8 @@ function keeper(c: Chain, name = 'k0') {
   };
   k.poke = async (_abi: unknown, address: Address, fn: string) => {
     c.calls.push(`${name}:${fn}:${address === ETH ? 'eth' : 'btc'}`);
-    if (c.syncEvent) c.log(address, SYNCED);
+    // sync() allocates, and the accounting records that
+    if (c.allocationEvents) c.log(books(address), ALLOCATED);
     else c.mine();
     return true;
   };
@@ -119,16 +121,20 @@ test('oracle updates sync only the vaults whose prices moved, once each', async 
   assert.deepEqual(await sync(c, k), []);
 });
 
-test('a sync that already followed the update is not repeated, whoever made it', async () => {
+test('an allocation that already followed the update is not repeated, whoever ran it', async () => {
   const c = chain();
   const k = keeper(c);
   await sync(c, k);
   c.update(PRIME);
-  c.log(ETH, SYNCED);
-  c.log(books(BTC), CHECKPOINT);
-  assert.deepEqual(await sync(c, k), [], 'another operator\'s sync and an allocating checkpoint both count');
+  // another operator's sync and a deposit both allocate
+  c.log(books(ETH), ALLOCATED);
+  c.log(books(BTC), ALLOCATED);
+  assert.deepEqual(await sync(c, k), []);
   c.update(PRIME);
-  c.log(books(ETH), CHECKPOINT);
+  c.log(books(ETH), ALLOCATED);
+  // minting events and anything the vault itself emits are not the allocation record
+  c.log(books(BTC), CHECKPOINT);
+  c.log(BTC, ALLOCATED);
   assert.deepEqual(await sync(c, k), ['k0:sync:btc']);
 });
 
@@ -157,7 +163,7 @@ test('two operators sync each update once between them', async () => {
   assert.deepEqual(await sync(c, k1), [], 'the timer counts from the newest sync by either');
 });
 
-test('a restarted keeper finds the last sync on-chain; without sync events it syncs once per update', async () => {
+test('a restarted keeper finds the last allocation on-chain; without its events it syncs once per update', async () => {
   const c = chain();
   await sync(c, keeper(c));
   assert.deepEqual(await sync(c, keeper(c)), []);
@@ -165,6 +171,20 @@ test('a restarted keeper finds the last sync on-chain; without sync events it sy
   const k = keeper(quiet);
   assert.deepEqual(await sync(quiet, k), ['k0:sync:eth', 'k0:sync:btc']);
   assert.deepEqual(await sync(quiet, k), [], 'its own memory covers what no event shows');
+});
+
+test('allocation evidence survives a reorg of its newest blocks by searching again', async () => {
+  const at = (block: bigint): EvidenceLog => ({block, index: 0, topics: [], data: '0x', tx: '0x'});
+  let logs = [at(10n), at(95n)];
+  const newest = (from: bigint, to: bigint) =>
+    newestInChunks(async (lo, hi) => logs.filter(l => l.block >= lo && l.block <= hi), from, to);
+  const tracker = new LatestLog(1_000n);
+  assert.equal((await tracker.find(newest, 100n))?.block, 95n);
+  logs = [at(10n)];
+  assert.equal((await tracker.find(newest, 101n))?.block, 10n, 'a vanished recent log is not trusted');
+  logs.push(at(99n + REORG_MARGIN_BLOCKS));
+  assert.equal((await tracker.find(newest, 200n))?.block, 99n + REORG_MARGIN_BLOCKS);
+  assert.equal((await new LatestLog(50n).find(newest, 1_000n)), undefined, 'the lookback bounds the search');
 });
 
 test('a composite feed moving without a newer updatedAt still triggers one sync', async () => {

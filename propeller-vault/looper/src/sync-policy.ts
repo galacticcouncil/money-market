@@ -13,5 +13,5 @@ export function syncDue(lastSync: bigint, lastUpdate: bigint | undefined, now: b
   return (lastUpdate !== undefined && lastSync <= lastUpdate) || now - lastSync >= every;
 }
 
-// vault `Synced()` from track A's sync(), or any allocation the accounting already recorded
-export const SYNC_EVIDENCE = ['Synced()', 'YieldCheckpoint(uint256,uint256)'].map(e => toEventSelector(e));
+// the yield accounting emits it whenever allocation runs: deposit, requestRedeem, startUnwinds, rebalance and sync
+export const SYNC_EVIDENCE = [toEventSelector('Allocated()')];

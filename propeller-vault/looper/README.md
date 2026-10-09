@@ -16,8 +16,8 @@ from calling `pokeBorrow()` repeatedly off-chain. That's this bot.
 - HOLLAR→aPRIME swap uses an Aave-oracle `minOut` to bound execution slippage.
 
 Maintenance needs **no role**, only target-chain transaction funding (WETH for
-Hydration's EVM gas); `DEPOSIT_GUARDIAN_ROLE` additionally lets the keeper pause
-and reopen deposits on a deficit (see below). A successful
+Hydration's EVM gas); `DEPOSIT_GUARDIAN_ROLE` additionally lets the keeper set a
+vault's `deficitStop` (see below). A successful
 call changes leverage and incurs execution costs. The shared [execution controller](../docs/execution-controls-implementation.md) additionally
 bounds deployment of deposits, upward rebalances, harvests and source unwinds. Deposits
 themselves supply collateral without borrowing or swapping. Controlled trades
@@ -54,8 +54,8 @@ read source HF, repayment targets, route pause and emergency freeze
   low HF                                  -> schedule safety repayment first
 read each vault's pause, queue cursors and Main repayment target
   waiting request eligible by chain timestamp -> startUnwinds(8)
-  source or vault deficit above DEFICIT_STOP_BPS -> no pokeBorrow; pauseDeposits() on any operator
-  below DEFICIT_RESUME_BPS, paused by a keeper, duty slot -> unpauseDeposits()
+  source or vault deficit above DEFICIT_STOP_BPS -> no pokeBorrow; setDeficitStop(true), any operator
+  below DEFICIT_RESUME_BPS, flag set, duty slot   -> setDeficitStop(false)
   source safety target or active unwind       -> pokeRepay()
   active vault settlement, Main repayment target
     or unallocated source proceeds            -> pokeSettle()
@@ -108,8 +108,8 @@ Monitor `queueTail - queueUnwind` and `pendingWithdrawalShares` for waiting
 requests, `queueUnwind - queueHead` for active unwinds, and the scheduled/start
 events. Request counts alone are susceptible to tiny-request spam; monitor
 requested collateral value and its fraction of vault assets too. The keeper
-does not automatically decide when to freeze or reopen; deposit pauses on a
-deficit are the only exception.
+does not automatically decide when to freeze or reopen; the deficit stop is the
+only exception.
 
 Monitor each vault's `roundingReserve()` and `RoundingReserveUsed` events too.
 Both proposal generation/readiness and the keeper use the same required
@@ -156,35 +156,34 @@ two deficits, both in bps:
   proceeds are unallocated (`pendingSourceAccounting`) `activeFunds` is stale,
   so that view is skipped until `pokeSettle` has run.
 
-A vault's level is the larger of the two. Above `DEFICIT_STOP_BPS` the ramp
-stops and the vault's deposits are paused by whichever operator sees it first.
-Between the thresholds the previous state holds. Below `DEFICIT_RESUME_BPS` the
-ramp resumes, and the operator on duty reopens deposits, but only when the newest
-`DepositsPaused`/`DepositsUnpaused` event of that vault is a pause by a keeper: an
-account holding `DEPOSIT_GUARDIAN_ROLE` and none of `DEFAULT_ADMIN_ROLE`,
-`ADMIN_ROLE`, `GUARDIAN_ROLE` or `UPGRADER_ROLE`. The account is the one the event
-names, or else the sender of its transaction. A pause by governance or a guardian,
-a pause with no event within `DEFICIT_PAUSE_LOOKBACK_BLOCKS`, or an unreadable
-event leaves deposits paused and is reported once. Because the evidence is
-on-chain, a restarted keeper and the second operator reach the same decision; after
-a restart, a vault whose deposits are paused stays stopped until the deficit
-falls below `DEFICIT_RESUME_BPS`. An unreadable deficit holds the ramp but
-neither pauses nor reopens. Every stop, resume, pause and reopen is an `[ALERT]`
-line. Above the stop the keeper re-pauses deposits that someone reopened.
+A vault's level is the larger of the two. Each vault has a `deficitStop` flag
+that only `DEPOSIT_GUARDIAN_ROLE`, held by the keepers, can set; deposits revert
+while it or governance's `depositsPaused` is set. The flag is the hysteresis
+state: above `DEFICIT_STOP_BPS` any operator sets it and the ramp stops, below
+`DEFICIT_RESUME_BPS` the operator on duty clears it once the vault is not frozen
+and the ramp resumes, and in between it stays as it is. No transaction is sent
+when the flag already has the wanted value. Because the state is on-chain, a
+restarted keeper and the second operator act on the same flag. The keeper never
+reads or changes `depositsPaused`; other deposit pauses stay with governance
+(`GUARDIAN_ROLE`). An unreadable deficit holds the ramp and leaves the flag as it
+is. Every set and clear is an `[ALERT]` line; a failed attempt alerts once and is
+retried every cycle.
 
 ### Sync cadence
 
-Yield is allocated to holders at events, so the keeper calls each vault's
-permissionless `sync()` after a price that changes the allocation moves: PRIME for
-every vault, and the vault's own collateral. It polls each asset's Aave oracle
-source (`getSourceOfAsset`, then `latestRoundData`); a newer `updatedAt`, or an
-answer that moved under an unchanged `updatedAt`, is an update. Without updates a
-vault is synced every `SYNC_EVERY` seconds. A vault's last sync is the newest of the
-keeper's own syncs, its `Synced()` events and its yield accounting's
-`YieldCheckpoint` events, since any allocating checkpoint counts. Only the
-operator on duty syncs; the other finds that event on its own slot and skips.
-Frozen vaults, and vaults with unallocated source proceeds, are not synced.
-Unreadable oracles leave only the timer.
+Transfers do not allocate yield, so after a price update `sync()` is what moves
+it to holders. The keeper calls each vault's permissionless `sync()` after a price
+that changes the allocation moves: PRIME for every vault, and the vault's own
+collateral. It polls each asset's Aave oracle source (`getSourceOfAsset`, then
+`latestRoundData`); a newer `updatedAt`, or an answer that moved under an
+unchanged `updatedAt`, is an update. Without updates a vault is synced every
+`SYNC_EVERY` seconds. A vault's last sync is the newest of the keeper's own syncs
+and the `Allocated()` events of its yield accounting, which every allocation
+emits: deposit, `requestRedeem`, `startUnwinds`, `rebalance` and `sync`, including
+the Harvester's. Only the operator on duty syncs; the other finds that event on
+its own slot and skips. Frozen vaults, and vaults with unallocated source
+proceeds, are not synced. Unreadable oracles leave only the timer. The harvestable
+shares `sync()` returns are ignored.
 
 ## Run
 
@@ -234,9 +233,8 @@ Default scheduling values (operator examples, not approved production policies):
 | `SAFETY_INTERVAL_MS` | `30000` | Independent read-loop interval |
 | `RPC_STALE_SECONDS` | `120` | Alert threshold for an old chain head |
 | `OPERATOR_SLOT_SECONDS` | `60` | Optional-work duty-slot duration |
-| `DEFICIT_STOP_BPS` | `50` | Above this source or vault deficit, stop the ramp and pause the vault's deposits |
-| `DEFICIT_RESUME_BPS` | `25` | Below this, resume the ramp and reopen deposits a keeper paused; must be below the stop, `0` never reopens |
-| `DEFICIT_PAUSE_LOOKBACK_BLOCKS` | `500000` | How far back a restarted keeper searches for the deposit pause event |
+| `DEFICIT_STOP_BPS` | `50` | Above this source or vault deficit, stop the ramp and set the vault's `deficitStop` |
+| `DEFICIT_RESUME_BPS` | `25` | Below this, resume the ramp and clear `deficitStop`; must be below the stop, `0` never clears |
 | `SYNC_EVERY` | `3600` | Seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner |
 
 A submitted transaction keeps its signer locked until its receipt is known.
