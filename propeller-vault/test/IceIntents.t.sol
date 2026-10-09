@@ -560,6 +560,92 @@ contract IceIntentsTest is Test {
         assertEq(nonce, 0);
     }
 
+    // ── emergency ──
+
+    function test_emergencyRemovesAnEntryInFlight() public {
+        _deposit(SEED);
+        _rampSteps(2);
+        loop.pokeBorrowQuoted(ENTRY_RATE);
+        uint128 id = dispatch.lastId();
+        (uint64 nonce,,, uint256 amountIn,) = _pending();
+        uint256 equity = loop.totalEquity();
+        vm.expectRevert(SubLoop.IntentRejected.selector);
+        loop.removeIntent(id);
+
+        loop.pauseEmergency();
+        vm.expectEmit(true, true, false, true, address(loop));
+        emit IntentSettled(ENTRY, nonce, 0);
+        vm.prank(address(0xBEEF));
+        loop.removeIntent(id);
+        (,, uint8 kind,,) = _pending();
+        assertEq(kind, 0, "refund settled in the same call");
+        assertEq(dispatch.intent(id).state, dispatch.RETURNED());
+        assertEq(hollar.balanceOf(address(loop)), amountIn);
+        assertEq(loop.totalEquity(), equity);
+        vm.expectRevert(SubLoop.EmergencyPaused.selector);
+        loop.pokeBorrow();
+        assertEq(loop.reconcile(), 0);
+    }
+
+    function test_emergencyRemovesAnExitInFlight() public {
+        _rampToTarget();
+        loop.requestUnwind(loop.sharesOf(address(this)) / 2);
+        uint256 collateral = aPrime.balanceOf(address(loop));
+        uint256 equity = loop.totalEquity();
+        loop.pokeRepayQuoted(EXIT_RATE);
+        uint128 id = dispatch.lastId();
+        loop.pauseEmergency();
+        loop.removeIntent(id);
+        assertEq(aPrime.balanceOf(address(loop)), collateral, "aPRIME back as collateral");
+        assertTrue(pool.usingAsCollateral(address(loop), address(prime)));
+        assertApproxEqAbs(loop.totalEquity(), equity, 1);
+        uint256 submitted = dispatch.counter();
+        loop.pokeRepay();
+        assertEq(dispatch.counter(), submitted, "no routine unwind under an emergency");
+    }
+
+    function test_removeIntentRejectsAForeignId() public {
+        _deposit(SEED);
+        loop.pokeBorrowQuoted(ENTRY_RATE);
+        loop.pauseEmergency();
+        vm.expectRevert(DcaDispatch.DispatchFailed.selector);
+        loop.removeIntent(42);
+        (uint64 nonce,,,,) = _pending();
+        assertEq(nonce, 1, "still in flight");
+    }
+
+    function test_removeIntentAfterTheFillSettlesTheFill() public {
+        _deposit(SEED);
+        _rampSteps(1);
+        loop.pokeBorrowQuoted(ENTRY_RATE);
+        uint128 id = dispatch.lastId();
+        uint256 out = dispatch.quote(id, 1);
+        dispatch.fill(id, out);
+        loop.pauseEmergency();
+        loop.removeIntent(id);
+        (,, uint8 kind,,) = _pending();
+        assertEq(kind, 0);
+        assertEq(dispatch.intent(id).state, dispatch.FILLED(), "nothing left to remove");
+    }
+
+    function test_pauseWithPendingStillSettles() public {
+        _deposit(SEED);
+        _rampSteps(1);
+        loop.pokeBorrowQuoted(ENTRY_RATE);
+        loop.pause();
+        _resolve();
+        (,, uint8 kind,,) = _pending();
+        assertEq(kind, 0, "the callback settles while paused");
+        loop.unpause();
+
+        loop.pokeBorrowQuoted(ENTRY_RATE);
+        uint128 id = dispatch.lastId();
+        loop.pauseEmergency();
+        dispatch.fill(id, dispatch.quote(id, 1));
+        vm.prank(address(0xBEEF));
+        assertEq(loop.reconcile(), FILLED, "and reconcile under an emergency");
+    }
+
     function test_configureIntentsBounds() public {
         vm.expectRevert(SubLoop.InvalidParameters.selector);
         loop.configureIntents(1 days, 5);

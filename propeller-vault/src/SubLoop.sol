@@ -237,6 +237,11 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     }
 
     /// @inheritdoc ISubLoop
+    function removeIntent(uint128) external override nonReentrant {
+        _delegate(msg.data);
+    }
+
+    /// @inheritdoc ISubLoop
     function execute(address, uint256, address, uint256, address, uint256, bytes calldata)
         external override nonReentrant returns (bytes4)
     {

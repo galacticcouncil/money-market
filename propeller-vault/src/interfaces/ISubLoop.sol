@@ -43,6 +43,10 @@ interface ISubLoop is ILeveragedLoop {
     /// @return outcome 0 nothing in flight, 1 waiting, 2 filled, 3 input returned
     function reconcile() external returns (uint8 outcome);
 
+    /// @notice Under an emergency pause anyone may pull the in-flight intent back by its pallet id
+    ///         (from the pallet's IntentSubmitted event); the input returns and settles as a refund.
+    function removeIntent(uint128 intentId) external;
+
     /// @notice ICE lazy-executor receiver. Accepts only the loop's own intents, called as the loop.
     function execute(
         address owner,

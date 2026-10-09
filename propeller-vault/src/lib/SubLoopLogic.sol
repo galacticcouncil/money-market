@@ -373,6 +373,16 @@ contract SubLoopLogic is SubLoopStorage {
         return this.execute.selector;
     }
 
+    /// @notice under an emergency pause anyone may pull the in-flight intent back by its pallet
+    /// id; the input returns within the call and settles as a refund
+    function removeIntent(uint128 intentId) external {
+        if (!_emergencyPaused) revert IntentRejected();
+        if (_settleArrived()) return;
+        DcaDispatch.removeIntent(intentId);
+        _settleArrived();
+        _rebase();
+    }
+
     /// @dev true when nothing is left in flight
     function _settleArrived() internal returns (bool idle) {
         PendingIntent memory p = pendingIntent;
