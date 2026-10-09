@@ -38,6 +38,7 @@ test('lark4 is today\'s pinned chain, files and stack settings', () => {
  assert.equal(p.artifactDir,'/tmp/propeller-london-db0799c');
  assert.deepEqual(p.primeLanes,{trade:1000,capacity:10000,refill:10,pegPrime:150000,approval:'make sure the lark4 prime loop leveraging continues'});
  assert.deepEqual(p.depositor,{durationS:259200,everyS:1800,delayS:null},'lark 4 always names its DEPOSIT_START');
+ assert.deepEqual(p.images,{keeper:'galacticcouncil/propeller-lark-keeper',bots:'galacticcouncil/propeller-lark-bots'});
 });
 
 test('pins are pins: the environment fills only open fields, the state dir moves only state files', () => {
@@ -70,6 +71,7 @@ test('lark 0 is pinned but for the genesis and commit its refork brings', () => 
  assert.ok(refill*60>=trade,'the budget refills a trade within the 60 s pacing');
  assert.ok(400000/trade<=3*60,'~400k of PRIME buys take under 3 h of one-a-minute trades');
  assert.deepEqual(p.depositor,{durationS:36000,everyS:600,delayS:3600});
+ assert.deepEqual(p.images,{keeper:'galacticcouncil/juicer-lark-keeper',bots:'galacticcouncil/juicer-lark-bots'});
  assert.ok(p.depositor.delayS+p.depositor.durationS<=12*3600,'the $100k plan lands within 12 h of the stack');
 });
 

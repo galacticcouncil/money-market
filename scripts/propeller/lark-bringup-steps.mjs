@@ -59,6 +59,6 @@ export function missing(step,profile,env){
  if(step.id==='chain'&&!profile.commit)out.push('LARK_COMMIT');
  if(!step.output&&!env.PROPELLER_ARTIFACT_DIR&&!profile.artifactDir)out.push('PROPELLER_ARTIFACT_DIR');
  if(step.needs?.includes('adapter')&&!env.PROPELLER_ADAPTER_ARTIFACT&&!profile.adapterArtifact)out.push('PROPELLER_ADAPTER_ARTIFACT');
- if(step.needs?.includes('images'))for(const [name,repo]of [['KEEPER_IMAGE','keeper'],['BOT_IMAGE','bots']])if(!new RegExp(`^galacticcouncil/propeller-lark-${repo}@sha256:[0-9a-f]{64}$`).test(env[name]??''))out.push(name);
+ if(step.needs?.includes('images'))for(const [name,repo]of [['KEEPER_IMAGE','keeper'],['BOT_IMAGE','bots']])if(!new RegExp(`^${profile.images[repo]}@sha256:[0-9a-f]{64}$`).test(env[name]??''))out.push(name);
  return out;
 }

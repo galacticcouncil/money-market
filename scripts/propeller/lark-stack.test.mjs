@@ -10,7 +10,7 @@ const here=fileURLToPath(new URL('.',import.meta.url));
 const {mnemonicToAccount}=createRequire(import.meta.url)('viem/accounts'),{toHex}=createRequire(import.meta.url)('viem');
 const key=index=>toHex(mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:index}).getHdKey().privateKey);
 const LARK0={LARK_PROFILE:'lark0',LARK_GENESIS:`0x${'77'.repeat(32)}`},NODE0='https://node0.lark.hydration.cloud',ID='lark0-20261009';
-const IMAGES={KEEPER_IMAGE:`galacticcouncil/propeller-lark-keeper@sha256:${'c'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/propeller-lark-bots@sha256:${'d'.repeat(64)}`};
+const IMAGES={KEEPER_IMAGE:`galacticcouncil/juicer-lark-keeper@sha256:${'c'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/juicer-lark-bots@sha256:${'d'.repeat(64)}`};
 const run=(script,args,env)=>spawnSync(process.execPath,[join(here,script),...args],{env:{PATH:process.env.PATH,...env},encoding:'utf8'});
 // the synthetic lark 4 journal, moved to the new chain
 const dirs=[];
@@ -54,7 +54,7 @@ test('the lark 0 stack names its own chain, stack and config, never lark 4', () 
 
 test('images go in by digest only, and keepers stay drained without --keepers', () => {
  const dir=lark0State();
- for(const tag of [{KEEPER_IMAGE:'galacticcouncil/propeller-lark-keeper:latest'},{BOT_IMAGE:`galacticcouncil/propeller-lark-bots:sha256-${'d'.repeat(64)}`}])
+ for(const tag of [{KEEPER_IMAGE:'galacticcouncil/juicer-lark-keeper:latest'},{BOT_IMAGE:`galacticcouncil/juicer-lark-bots:sha256-${'d'.repeat(64)}`},{KEEPER_IMAGE:`galacticcouncil/propeller-lark-keeper@sha256:${'c'.repeat(64)}`}])
   assert.notEqual(run('lark-stack.mjs',['--keepers'],{...LARK0,...IMAGES,...tag,LARK_STATE_DIR:dir}).status,0);
  const out=run('lark-stack.mjs',[],{...LARK0,...IMAGES,LARK_STATE_DIR:dir});
  assert.equal(out.status,0,out.stderr);

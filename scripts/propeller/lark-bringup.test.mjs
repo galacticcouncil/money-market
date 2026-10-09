@@ -97,8 +97,9 @@ test('a step names what it still needs before it starts', () => {
  const lark0=resolveProfile('lark0',{}),pinned=resolveProfile('lark0',{LARK_GENESIS:'0x09',LARK_COMMIT:'abc'});
  assert.deepEqual(missing(step('chain'),lark0,{}),['LARK_GENESIS','LARK_COMMIT','PROPELLER_ARTIFACT_DIR']);
  assert.deepEqual(missing(step('deploy'),pinned,{PROPELLER_ARTIFACT_DIR:'/x'}),['PROPELLER_ADAPTER_ARTIFACT']);
- assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:'galacticcouncil/propeller-lark-keeper:latest'}),['KEEPER_IMAGE','BOT_IMAGE']);
- assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:`galacticcouncil/propeller-lark-keeper@sha256:${'1'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/propeller-lark-bots@sha256:${'2'.repeat(64)}`}),[]);
+ assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:'galacticcouncil/juicer-lark-keeper:latest'}),['KEEPER_IMAGE','BOT_IMAGE']);
+ assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:`galacticcouncil/juicer-lark-keeper@sha256:${'1'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/juicer-lark-bots@sha256:${'2'.repeat(64)}`}),[]);
+ assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:`galacticcouncil/propeller-lark-keeper@sha256:${'1'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/juicer-lark-bots@sha256:${'2'.repeat(64)}`}),['KEEPER_IMAGE'],'lark 0 runs the renamed images');
  assert.deepEqual(missing(step('wire'),resolveProfile('lark4',{}),{}),[]);
 });
 
