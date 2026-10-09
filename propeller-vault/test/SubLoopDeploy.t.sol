@@ -92,4 +92,12 @@ contract SubLoopDeployTest is Test {
         (uint256 collBase8,,,,,) = pool.getUserAccountData(address(loop));
         assertApproxEqRel(collBase8, 6_177e8, 0.03e18, "collateral ~6.18x");
     }
+
+    /// the proxy's code says nothing about EIP-170; the implementation and its logic must fit
+    function test_implementationAndLogicFitEip170() public {
+        SubLoop impl = new SubLoop();
+        assertLe(address(impl).code.length, 24_576, "SubLoop implementation");
+        assertLe(impl.logic().code.length, 24_576, "SubLoop logic");
+        assertGt(impl.logic().code.length, 0);
+    }
 }

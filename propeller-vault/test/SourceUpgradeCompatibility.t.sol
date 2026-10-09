@@ -22,7 +22,7 @@ contract SubLoopUpgradeProbe is SubLoop {
 /// @dev deliberately unsafe test candidate; never deploy
 contract SubLoopBrokenCounterProbe is SubLoopUpgradeProbe {
     function overwriteCostForTest(address vault, uint256 value) external onlyRole(UPGRADER_ROLE) {
-        unwindExecutionCost[vault] = value;
+        _unwindExecutionCost[vault] = value;
     }
 }
 
