@@ -25,6 +25,7 @@ const FROZEN = [
   [new RegExp(`^${V}/formal/BRIDGE_SPIKE\\.md$`), 'dated spike report'],
   [new RegExp(`^${V}/docs/(?:coupled-liquidity-checkpoint|hollar-peg-liquidity|interest-policy-comparison|main-debt-verification|market-stress-90d|next-version-plan|operating-buffer|operating-buffer-verification|pr60-completion|prime-pricing-replenishment|principal-safety-history|release-candidate|route-execution-calibration)\\.md$`), 'historical report'],
   [/^PROPELLER-MAINNET-HANDOVER\.md$/, 'historical lark-4 handover'],
+  [/^scripts\/(?:propeller|juicer)\/lark4-identity\.mjs$/, 'lark 4 identity'],
 ];
 export const frozenReason = p => FROZEN.find(([re]) => re.test(p))?.[1];
 // only evidence keeps directory names; every other directory is renamed

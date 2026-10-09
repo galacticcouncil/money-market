@@ -1,7 +1,7 @@
 import { task } from "hardhat/config";
 
-// Deploys a fresh PRIME/USD ManagedOracle on lark-2, owned by the propeller
-// looper account so the propeller-prime-arb bot can push setPrice() updates
+// Deploys a fresh PRIME/USD ManagedOracle on lark-2, owned by the juicer
+// looper account so the juicer-prime-arb bot can push setPrice() updates
 // (mirroring the mainnet PRIMEoracleMRL at 0x82022F…6a07). The AaveOracle PRIME
 // source is repointed to this address via a separate Root referendum.
 //
