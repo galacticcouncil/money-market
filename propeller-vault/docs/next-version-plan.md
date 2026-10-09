@@ -93,7 +93,8 @@ Instead nobody materializes anything:
 - `CollateralVault.balanceOf(a)` = wallet shares + `yieldAccounting.fundedOf(a)`
   (= units(a)/T × F). The fund's own balance is its wallet minus the attributed
   F; `walletOf(a)` returns the raw shares (accounting weights use it).
-  Σ balanceOf = totalSupply up to lazy-unit rounding.
+  Σ balanceOf ≤ totalSupply, equal (up to rounding) when no redemption is
+  waiting: a waiting request's units show in nobody's balance until it starts.
 - A transfer up to the sender's wallet moves wallet shares only. A transfer
   beyond it also moves the units whose funded slice covers the rest, from sender
   to receiver (they carry their S claim too). No third party's balance changes,
@@ -104,7 +105,11 @@ Instead nobody materializes anything:
   their S slice follows the exit into the unwind as today. Nothing stays
   claimable after a full exit (the 0.22-share gap found 8 Oct).
 - `requestRedeem(x)` with x above the wallet escrows the wallet and commits the
-  units covering the rest to the request; `requestRedeem(max)` takes everything.
+  units covering the rest to the request; above the balance it reverts;
+  `requestRedeem(max)` takes everything.
+- A source emergency no longer freezes plain transfers, and the vault's own
+  `pause()` can't be added while the source emergency is on (OpenZeppelin's
+  `_pause` checks `paused()`). Runbook: pause the vaults before the source.
 - Removed: `claimYield`, `claim`, `claimableShares`, `vestedShares`. Kept:
   `earnedAssets` (funded + pending, for the UI).
 - Known effect: a holder's displayed funded slice can dip slightly at an
@@ -162,6 +167,25 @@ Contracts:
   (`deleverDebtTarget != 0`, `deLever`) keeps the synchronous router.
 - **Emergency:** on `pauseEmergency`, the keeper removes pending intents
   (`removeIntent`) and reconciles.
+
+As implemented (9 Oct):
+- SubLoop moved its ramp, unwind spiral, de-lever and all ICE code into a
+  delegatecall `SubLoopLogic` (same storage), from 42 B of headroom to 4.4 KB.
+- Intent mode is on when `intentTtl != 0` (`configureIntents(ttl, driftBps)`);
+  ttl 0 is the router fallback. One intent in flight per SubLoop: entries and
+  exits trade the same pair in opposite directions, so concurrent intents would
+  make balance deltas ambiguous. The safety de-lever never waits.
+- Quoted pokes (`pokeBorrowQuoted`, `pokeRepayQuoted`) need `KEEPER_ROLE`, since
+  an unfillable quote would hold the single slot until expiry. Plain
+  `pokeBorrow`/`pokeRepay` stay permissionless (quote 0).
+- Landed outcomes count once, in views too (Lean finding); de-lever uses the
+  in-flight-aware `effectiveHealthFactor()`.
+- **ICE harvest is deferred:** the vault has 96 B left, and an async harvest
+  would hold the accounting lock across blocks. Harvests stay on the router.
+- Open: which currency pays the lazy-executor callback fee for the SubLoop's
+  account (not HOLLAR reserved for vaults; keeper `reconcile` is the fallback),
+  and the HF headroom an exit holds while in flight (a smaller unwind tranche or
+  a stricter async floor if it's too much).
 
 Keeper:
 - For ICE actions, drop the blockhash/quote binding. Compute `keeperQuote`
