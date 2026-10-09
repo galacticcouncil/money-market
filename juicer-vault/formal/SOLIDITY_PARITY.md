@@ -1,16 +1,18 @@
 # current Solidity mapping
 
-Reviewed against `juicer-next` at `bbe541fcd6b12b955d539539c3462c700b246dbc`, 9 October 2026.
-Contract code is unchanged by this formal update. The expanded investigation found an open
-[funded-transfer allowance mismatch](ROUNDING.md). `solidity-manifest.json` pins the source
-and model inputs; the check fails if they change without a new comparison.
+reviewed against the allowance fix based on `juicer-next` at
+`ddf818666b471a8dfe788863d1522afe1c871651`, 9 october 2026.
+accounting now rejects unrepresentable funded debits and preserves the requested allowance
+bound; [rounding evidence](ROUNDING.md) records the remaining recipient display rounding.
+`solidity-manifest.json` pins the source and model inputs; the check fails if they change without
+a new comparison.
 
 | implementation | current Lean model | evidence |
 | --- | --- | --- |
 | `SyntheticFloor.buffered` | `Runtime.buffered`; `IState.repegSynth` | universal floor theorem, including one wei; 36 comparisons |
 | `CompoundLogic.rebalance` budget | `State.borrowCapacity` excludes synthetic; `aaveBorrowCapacity` includes it | algebraic independence proof; source subtracts synthetic from the collateral base |
 | `JuicerYieldAccounting.balanceOf`, `_settle` | `Runtime.accountUnits`, `settle` | 48 epoch, cap and shift cases |
-| `settle` / `_take` | `Runtime.take`, `fundedOf` | conservation/cap proofs and 80 success/revert cases |
+| `settle` / `_take` | `Runtime.take`, `fundedOf` | exact sender debit, full/fine-unit availability, conservation and 86 success/revert cases |
 | `_allocate` | `Runtime.allocate`, `rescale` | 48 cases: virtual +1, fees, capital gifts, self-compounding, write-off and rescale |
 | `startExit` | `Runtime.startExit` | 64 request epoch, committed unit, accrual, fee rounding and funded fold cases |
 | `requiredSourceBacking` | `Runtime.requiredBacking` | 48 cash, interest and fee cases, including 100% fee |
@@ -46,9 +48,9 @@ source batching cursor and external calls remain Solidity orchestration exercise
 `LeanCoverageParity.t.sol` calls actual Main/controller/claim implementations. Main sequences
 enter through vault-authorized public methods; claim and availability cases use inherited
 harnesses to seed their state. Pool, source and fee-sink behavior is supplied by fixtures.
-`LeanRoundingReachability.t.sol` separately reproduces the allowance mismatch through public
-vault operations, without seeding accounting storage. The model comparison cases are not
-reachability proofs for every seeded state.
+`LeanRoundingReachability.t.sol` checks the allowance fix, representable amounts, full exits
+and self-transfers through public vault operations, without seeding accounting storage. The model
+comparison cases are not reachability proofs for every seeded state.
 
 `LeanRuntimeParity.t.sol` executes the actual accounting contract and inherited SubLoop logic.
 External vault, price, token and pool dependencies are fixtures. Expectations come from executing
@@ -66,18 +68,22 @@ Lean. Private seed slots are checked against the compiler's storage layout befor
 - Runtime arrival detection uses balance deltas of at least half the expected amount. Authenticated
   callbacks instead check the output token and minimum. The ideal pallet-outcome book abstracts this.
 - Real-valued yield theorems omit rounding, virtual units, epochs and lazy shifts. The integer
-  layer includes them. A rounded unit transfer need not move exactly the requested displayed
-  base units; `take_rounding_example` is a checked counterexample to that stronger claim.
+  layer includes them. Successful funded transfers now debit exactly the requested displayed
+  amount or revert. With the recipient unit cap inactive, its credit can differ by one base unit.
+  `take_rounding_example` checks rejection of the old counterexample, and `take_fine_available`
+  proves fine-unit liveness.
 - `freedBacked` is a solvency hypothesis, not an on-chain deposit gate. `collSold` is a hypothetical
   shortfall diagnostic; current collateral claims remain owed during underfunding.
 
 ## verification
 
-377 source theorem/lemma declarations compile. The axiom audit checks all 742 kernel theorem
+386 source theorem/lemma declarations compile. The axiom audit checks all 766 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
-`Quot.sound`. The combined Foundry run passes 172 tests, with zero failures and skips, including
-820 comparison vectors, 512 transfer-bound fuzz cases and the existing Main, fee, controller,
-ICE, yield and invariant suites. Both generated datasets reproduce exactly.
+`Quot.sound`. The targeted Foundry suites pass 186 distinct tests, with zero failures and skips,
+including 826 comparison vectors, 512 transfer rounding fuzz cases, eight public-call allowance
+regressions and the existing Main, fee, controller, ICE, yield and invariant suites. Both generated
+datasets reproduce exactly. The London production build passes all size checks: CollateralVault
+remains 24,480 bytes, and JuicerYieldAccounting is 12,513 bytes (117 bytes larger).
 
 ## reproduce
 
@@ -87,9 +93,9 @@ From `juicer-vault/formal`, with the pinned Lean/Mathlib dependencies and Foundr
 python3 check-runtime.py
 ```
 
-This builds the proofs, regenerates and compares 820 cases across two datasets, checks source
-fingerprints and storage slots, then runs the comparison suites, 512 transfer-bound fuzz cases,
-and the public-call rounding reproduction. After a reviewed model change, regenerate with:
+This builds the proofs, regenerates and compares 826 cases across two datasets, checks source
+fingerprints and storage slots, then runs the comparison suites, 512 transfer rounding fuzz cases,
+and the public-call allowance regressions. After a reviewed model change, regenerate with:
 
 ```sh
 lake build
@@ -108,7 +114,7 @@ calls. Nonzero divisors and guarded subtraction match the successful Solidity pa
 corrupt storage and every overflow/revert are not modeled. Four 64-bit rescale steps suffice for
 an initial total below `2^256`, proved by `rescale_four_suffices`.
 
-The 820 cases are cross-language comparisons, not a proof of every Solidity trace. The real-valued
+The 826 cases are cross-language comparisons, not a proof of every Solidity trace. The real-valued
 index proofs do not yet refine arbitrary histories of lazy account settlement and rescaling.
 The new integer ownership trace theorem applies to the settled-cohort projection, with explicit
 weight/unit bounds, rather than asserting exact integer equivalence to the ideal real-valued model.

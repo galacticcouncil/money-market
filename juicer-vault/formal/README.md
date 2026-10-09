@@ -3,7 +3,7 @@
 Formal verification of **Juicer** — a protocol-managed leveraged-yield product on
 Hydration — in **Lean 4**. Contains conditional mathematical proofs and executable integer models checked against Solidity.
 [Current implementation mapping and limits](SOLIDITY_PARITY.md) is the coverage record.
-[Funded-transfer rounding](ROUNDING.md) records the open allowance mismatch and reproduction.
+[Funded-transfer rounding](ROUNDING.md) records the allowance fix, rounding limits and regression evidence.
 
 Lives beside the contracts it models: `juicer-vault/{src,test,formal}` (branch `juicer-next`).
 A self-contained Lake project; the Foundry build ignores it and vice-versa.

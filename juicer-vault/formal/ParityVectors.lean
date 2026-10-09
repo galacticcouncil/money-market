@@ -15,15 +15,21 @@ def pegRows : List (List ℕ) := do
   let lt ← [1, 7500, 9800, 10000]
   pure [debt, lt, buffered debt lt]
 
-def takeRows : List (List ℕ) := do
+def takeRow (f t u s : ℕ) : List ℕ :=
+  [f, t, u, s] ++ match take f t u s with | none => [0, 0, 0] | some (x, left) => [1, x, left]
+
+def takeRows : List (List ℕ) := (do
   let n ← List.range 80
-  let f := 1 + n * 17
+  let f := 1 + n * (if n % 2 == 0 then 7 else 17)
   let t := 1 + n * 11
   let u := 1 + n * 5
   let slice := fundedOf f t u
   let s := if n % 4 == 0 then slice else if n % 4 == 1 then 1 else if n % 4 == 2 then slice / 2 else slice + 1
-  let result := take f t u s
-  pure ([f, t, u, s] ++ match result with | none => [0, 0, 0] | some (x, left) => [1, x, left])
+  pure (takeRow f t u s)) ++
+  [takeRow 2 3 3 1, takeRow 10 3 2 1, takeRow 10 3 2 3,
+   takeRow (max256 - 1) max256 max256 1,
+   takeRow max256 (2 ^ 128) (2 ^ 128) 1,
+   takeRow max256 (2 ^ 128) (2 ^ 128) max256]
 
 def accountRows : List (List ℕ) := do
   let n ← List.range 48

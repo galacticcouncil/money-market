@@ -142,7 +142,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         assertEq(vault.balanceOf(NEWCOMER), newcomer, "no third party's balance moves");
         assertEq(y.balanceOf(NEWCOMER), newcomerUnits);
         assertApproxEqAbs(vault.balanceOf(address(0xCAFE)), wallet + funded / 2, 1);
-        assertApproxEqAbs(vault.balanceOf(address(this)), funded - funded / 2, 1);
+        assertEq(vault.balanceOf(address(this)), funded - funded / 2);
         assertEq(vault.walletOf(address(this)), 0);
         assertApproxEqAbs(_rewardValue(address(this)) + _rewardValue(address(0xCAFE)), value, 1e9,
             "the units carry their value, none is created");
@@ -560,7 +560,9 @@ contract YieldEntryFairnessTest is HarvestTest {
         uint256 before_ = _rewardValue(address(this));
         uint256 newcomer = vault.balanceOf(NEWCOMER);
         uint256 amount = vault.walletOf(address(this)) + y.fundedOf(address(this)) * bound(fraction, 1, 10_000) / 10_000;
+        uint256 senderBefore = vault.balanceOf(address(this));
         vault.transfer(address(0xBEEF), amount);
+        assertEq(senderBefore - vault.balanceOf(address(this)), amount);
         assertEq(vault.balanceOf(NEWCOMER), newcomer, "no third party moves");
         assertApproxEqAbs(_rewardValue(address(this)) + _rewardValue(address(0xBEEF)), before_, 1e9);
         assertLe(_rewardValue(NEWCOMER) + _rewardValue(address(0xCAFE)), 1e9);

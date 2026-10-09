@@ -1,72 +1,70 @@
 # funded-share transfer rounding
 
-reviewed against `juicer-next` at `bbe541f`, 9 october 2026. this is an open implementation
-finding; the Solidity contracts have not been changed by this formal work.
+this fixes the allowance mismatch found at `juicer-next` commit `ddf8186`. the implementation
+and executable Lean model now require the sender's displayed funded debit to equal the request.
 
-## bound
+## exact sender debit
 
 for funded vault shares `F`, total reward units `T > 0`, sender units `U`, and a requested
-funded transfer `s`, the contract computes:
+funded transfer `s`, accounting computes:
 
 ```
 S = floor(F * U / T)
-x = min(U, ceil(U * s / S))
+R = ceil((S - s) * T / F)
+x = min(U - R, ceil(U * s / S))
 D = S - floor(F * (U - x) / T)
 G = floor(F * (V + x) / T) - floor(F * V / T)
 ```
 
-`V` is the recipient's previous units. sender and recipient are distinct ordinary holders;
-self-transfers restore the same account's units and have zero net balance movement. successful positive transfers require `0 < s <= S`.
-`take_exact_units` proves the cap is redundant on that domain. the Lean proofs
-`take_displayed_bound`, `transfer_credit_refines`, and `transfer_discrepancy_at_most_one` establish:
+positive transfers require `0 < s <= S`. `R` is the minimum retained unit count that prevents
+an excessive debit. the proportional candidate still limits the source claim that moves.
+if the resulting sender balance is not exactly `S - s`, `_take` reverts `InexactShares`.
+`transferFrom` and delegated `requestRedeem` share this guard, measured after account settlement
+and any redemption checkpoint; a revert restores allowance,
+wallet shares, reward units and queue state.
+
+`take_displayed_exact` proves `D = s` for every successful modeled call.
+`take_full_slice` proves a full funded exit takes all the owner's units.
+`take_fine_available` proves every amount within the funded balance is representable when
+`0 < F <= T`. `take_representable` also covers coarse units when the target remainder is
+representable. `coarse_partial_rejected` proves a single coarse unit cannot be partially spent.
+self-transfers validate the balance without moving units, so they remain no-ops even when an
+ordinary transfer of that amount would be unrepresentable.
+
+`V` is the recipient's previous settled units. when `V + x <= T` (the recipient's
+`balanceOf` unit cap does not truncate the credit), the floor/ceiling proofs establish:
 
 ```
 floor(F * x / T) <= D, G <= ceil(F * x / T)
-abs(D - G) <= 1
+D = s
+abs(G - s) <= 1
 ```
 
-these are bounds on the sender's displayed debit and recipient's displayed credit, in vault
-share base units. they are not one-wei bounds on `D - s` or `G - s`. the same unit transfer
-also carries its pending source claim. `unit_granularity_unbounded` proves that with `T = U = 1`,
-a request for one funded share moves the whole funded slice for any positive `F`. that theorem
-alone does not establish that every such state is reachable in production.
+exact sender debit does not imply exact recipient credit: under that unit bound, rounding the
+recipient's separate unit balance can differ by one vault-share base unit. pending source ownership still travels
+with the units, and third-party units and balances do not change. total reward units are
+unchanged by a transfer. wallet-only transfers retain their existing behavior.
 
-there is no enforced constant funded-value-per-unit ratio: wallet shares can be donated to the
-accounting contract without issuing reward units. the exact state-dependent bound above applies
-regardless of how a successful state was reached. no small global production bound is claimed.
+## donation regression
 
-## public-call reproduction
+wallet shares can be donated to accounting without issuing units, so `F / T` has no enforced
+constant upper bound. under the previous implementation, a public-call fixture with one
+base-unit approval produced a sender debit of 1,074,114 and recipient credit of 1,074,113.
+that example showed an allowance mismatch; it did not establish a profitable exploit or a
+maximum production loss.
 
-`test_publicDonationMakesTransferRoundingExceedAllowance` uses the actual vault, accounting,
-SubLoop, and harvester fixtures, with mocked external tokens/pool. it creates a small allocation,
-transfers the wallet to a second actor, and that actor donates those wallet shares to the fund.
-there are no storage writes or impersonated vault calls in this reproduction. external balance
-minting represents the fixture's source income and repayment funding; it is not a live-chain test.
+`LeanRoundingReachabilityTest` uses the actual vault, accounting, SubLoop and harvester fixtures
+with mocked external tokens and pool. it creates a small allocation and donates wallet shares
+to the fund without seeding accounting storage or impersonating the vault. eight regressions
+check the rejected one-unit transfer and delegated redemption, direct transfer rejection,
+representable partial transfer and redemption, full transfer, full unwind and self-transfer.
+failed calls leave the approval and ownership intact.
 
-the original holder then approves one share base unit and the spender calls `transferFrom(..., 1)`:
-
-| quantity | observed base units |
-| --- | ---: |
-| allowance consumed | 1 |
-| sender displayed debit | 1,074,114 |
-| recipient displayed credit | 1,074,113 |
-| ceil(funded shares / total reward units) | 1,074,114 |
-
-this establishes a reachable allowance/displayed-balance mismatch in the integration fixture.
-the absolute movement in this example is small for an 18-decimal share. it does not establish
-an economically profitable exploit, a maximum production loss, or deployed-state exposure.
-512 additional fuzz cases check the proved display bounds against the actual accounting contract;
-those cases seed arithmetic states and are not separate reachability evidence.
-
-## disposition
-
-exact-amount ERC20 behavior and allowance protection need an implementation decision. rounding a
-unit count alone cannot guarantee exact displayed transfers when one unit represents multiple
-share base units. a fix must either support exact funded-share accounting or explicitly reject
-unrepresentable transfers; it must also preserve the pending source claim. merely charging the
-requested allowance while moving more displayed balance does not resolve the finding.
-
-reproduce with:
+512 arithmetic fuzz cases check exact sender debits, recipient bounds, representability and
+unit conservation against the accounting contract at both fine and coarse unit ratios.
+86 Lean-generated take vectors include full-precision mul-div inputs whose intermediate
+products exceed 256 bits. these seeded arithmetic comparisons are separate from reachability
+evidence and do not establish full Solidity equivalence.
 
 ```sh
 forge test --offline --match-contract LeanRoundingReachabilityTest --match-test test_publicDonation -vv
