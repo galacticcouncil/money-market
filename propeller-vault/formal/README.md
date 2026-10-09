@@ -18,7 +18,8 @@ PropellerLean/
 │  ├─ Floor.lean          Phase 1: the "never liquidated" theorems
 │  ├─ Ops.lean            transitions: mintSynthToPeg, maintainPeg, accrueInterest, tick, repay
 │  ├─ Preservation.lean   Phase 2: invariant preservation; tick_safe (HF≥1 after every tick)
-│  ├─ Redemption.lean     Phase 2: escrow / shareConservation / freedBacked → collateral_out_ge_in
+│  ├─ Redemption.lean     Phase 2: escrow / shareConservation / freedBacked → collateral_out_ge_in;
+│  │                      next version: the exit fold (burned units' funded slice → escrow)
 │  ├─ SubLoop.lean        single-vault loop model: deLever, accrueLoop (yield), the full Op
 │  │                      trace semantics (LoopSafe/Safe/SafeBacked closed under any op list)
 │  ├─ SubLoopShares.lean  multi-vault shared-loop share model: deposit/unwind conservation +
@@ -85,6 +86,11 @@ parallel; the bridge/parity tests follow once it merges. Same integrity bar: 0 `
 | `LazyBook.allocation_consistent` / `LazyBook.allocate_view_congr` | an event credits `m × weight/outside` on the balances standing at the event, however many transfers preceded it and whenever each holder last settled |
 | `ShareBook.eventVsTransfer` | against the old per-transfer allocation, only the interval's pre-transfer yield on the moved shares changes hands |
 | `ShareBook.deposit_newcomer` / `ShareBook.mintFirst_captures` | deposits allocate before they mint, so a newcomer captures no pre-entry yield (minting first would) |
+| `ShareBook.startExit_wallets` / `ShareBook.startExit_fold` | share conservation including the exit fold: supply and holders' wallets unchanged; exactly the burned units' funded slice moves from the fund into the escrow and joins the request's shares |
+| `ShareBook.startExit_fullExit` / `ShareBook.requestRedeem_max_then_startExit` | after a full exit the owner has no units, no slice of the fund and no balance |
+| `ShareBook.startExit_slice_other` / `ShareBook.startExit_unitPrice` | an exit moves nobody else's slice or unit price |
+| `State.startExit_requestRedeem` / `State.startExit_escrowOk` | seen by the redemption state the fold is `requestRedeem fold`, so `escrowOk` survives it |
+| `ShareBook.startExit_quote` / `ShareBook.runExit_totalBalance_add` | quoting after the fold pays the folded shares at the same per-share value and keeps the remaining holders'; the balance identity holds through any trace with exits |
 
 ## Build & verify
 
