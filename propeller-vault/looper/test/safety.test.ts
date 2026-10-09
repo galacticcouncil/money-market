@@ -23,6 +23,8 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
     deleverTarget: 0n, reinvestAssets: 0n, availableHollar: 0n, mainDebt: OTHER, pendingSourceAccounting: false,
     pendingUnwindOf: 0n, harvestable: false, negativeCarryBps: 0n, deficitStop: false, yieldAccounting: OTHER,
     activePosition: [0n, 0n, 0n] as any, activeFunds: 0n, equityOf: 0n, sourceValue: 0n, requiredSourceBacking: 0n,
+    // router mode, nothing in flight
+    intentTtl: 0 as any, pendingIntent: [0n, 0n, 0, false, 0n, 0n, 0n, 0n, 0n] as any,
     ...overrides,
   };
   keeper.read = async (_abi: unknown, _address: string, fn: string) => {

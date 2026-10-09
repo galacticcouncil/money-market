@@ -38,6 +38,7 @@ function keeper(c: Chain, name: 'k0' | 'k1', index: number) {
     const views: Record<string, () => unknown> = {
       effectiveHealthFactor: () => 2n * TARGET, targetHf: () => TARGET, unwindTargetEquity: () => 0n, deleverDebtTarget: () => 0n,
       emergencyPaused: () => false, pendingUnwindOf: () => 0n,
+      intentTtl: () => 0, pendingIntent: () => [0n, 0n, 0, false, 0n, 0n, 0n, 0n, 0n],
       negativeCarryBps: () => { if (c.carry instanceof Error) throw c.carry; return c.carry; },
       equityOf: () => (10_000n - c.vaults[args[0] as Address].deficit) * 10n ** 8n,
       paused: () => address === LOOP ? false : v.frozen,

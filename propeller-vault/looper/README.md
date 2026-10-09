@@ -17,7 +17,8 @@ from calling `pokeBorrow()` repeatedly off-chain. That's this bot.
 
 Maintenance needs **no role**, only target-chain transaction funding (WETH for
 Hydration's EVM gas); `DEPOSIT_GUARDIAN_ROLE` additionally lets the keeper set a
-vault's `deficitStop` (see below). A successful
+vault's `deficitStop`, and the loop's `KEEPER_ROLE` lets it pass a router-quoted
+floor with each intent (see below). A successful
 call changes leverage and incurs execution costs. The shared [execution controller](../docs/execution-controls-implementation.md) additionally
 bounds deployment of deposits, upward rebalances, harvests and source unwinds. Deposits
 themselves supply collateral without borrowing or swapping. Controlled trades
@@ -56,12 +57,19 @@ read each vault's pause, queue cursors and Main repayment target
   waiting request eligible by chain timestamp -> startUnwinds(8)
   source or vault deficit above DEFICIT_STOP_BPS -> no pokeBorrow; setDeficitStop(true), any operator
   below DEFICIT_RESUME_BPS, flag set, duty slot   -> setDeficitStop(false)
-  source safety target or active unwind       -> pokeRepay()
+  source safety target                        -> pokeRepay() on the router
+  active unwind                               -> pokeRepay(), or pokeRepayQuoted() with intents
   active vault settlement, Main repayment target
     or unallocated source proceeds            -> pokeSettle()
   healthy, worthwhile harvest, duty slot      -> quoted bounded harvest()
   pending collateral, eligible vault, duty slot -> quoted bounded rebalance(), also while exits wait
-  healthy, no pending work, duty slot         -> quoted bounded pokeBorrow()
+  healthy, no pending work, duty slot         -> quoted bounded pokeBorrow(), or with intents
+    (also for idle deposit cash) pokeBorrowQuoted(router dry-run rate)
+  intent in flight                            -> nothing new is submitted
+    fill or refund landed, duty slot          -> reconcile()
+    unfilled ICE_STALL_BLOCKS, or input still away
+    ICE_CLEANUP_BLOCKS past the deadline      -> alert; cleanup_intent with a dev signer
+    emergency pause, any operator             -> removeIntent(pallet intent id)
   synthetic buffer below 25bp                 -> top up to 50bp
   no pending deployment, periodic duty slot    -> quoted rebalance when allowed
 then, for each vault:
@@ -70,7 +78,7 @@ then, for each vault:
   PRIME or collateral oracle update since its last sync,
     or SYNC_EVERY elapsed, duty slot        -> sync()
 independent read loop, including during slow writes/receipt waits:
-  source HF, synthetic coverage, Main interest, stale RPC, stuck receipts
+  effective source HF, synthetic coverage, Main interest, stale RPC, stuck receipts
 ```
 
 Health-factor decisions (the de-lever trigger, the ramp floor and the HF alert)
@@ -194,6 +202,39 @@ its own slot and skips. Frozen vaults, and vaults with unallocated source
 proceeds, are not synced. Unreadable oracles leave only the timer. The harvestable
 shares `sync()` returns are ignored.
 
+### ICE intents
+
+With `intentTtl() != 0` the loop's entries and routine unwind slices go out as
+ICE intents, one in flight at a time. The keeper calls `pokeBorrowQuoted` and
+`pokeRepayQuoted` directly, not through the controller's `execute`, only on its
+duty slot and only while nothing is in flight. Safety repayments stay on the
+controller's router path.
+
+The quote comes from two dry runs. A substrate `DryRunApi` run of the keeper's own
+call (`evm.call`) shows the `IntentSubmitted` it would emit, which gives the
+intent's real size. A dry-run `router.sell` of that size over the loop's own route
+gives the output; keeperQuote is output units per 1e18 input units. Exits are dry-run
+from the loop's account, which holds the aPRIME. An entry borrows inside its own call,
+so unless the loop already holds the HOLLAR, `ICE_QUOTE_HOLDER` (the Omnipool account
+by default) stands in. The contract floors the quote with the oracle cap and its
+drift allowance. Without a router quote an entry waits and an exit goes out at the
+oracle floor (quote 0). Without `KEEPER_ROLE` the keeper sends the permissionless
+`pokeBorrow()`/`pokeRepay()` directly and alerts once. Deposits wait in the loop as
+cash, so idle HOLLAR triggers an entry even without ramp headroom.
+
+While an intent is in flight the keeper simulates `reconcile()` every cycle, and the
+operator on duty sends it once a fill or refund has landed without its callback.
+It alerts once when an intent stays unfilled for `ICE_STALL_BLOCKS` blocks (solver
+quiet, or the limit out of reach) and once when an expired intent's input is still
+away `ICE_CLEANUP_BLOCKS` blocks after its deadline; both count from the block the
+keeper first saw the condition. Expiry refunds come from the intent pallet's
+offchain worker. With `ICE_CLEANUP_SURI`, a dev derivation such as
+`//Alice//cleanup` (anything not starting with `//` is refused, so no real secret
+fits), the operator on duty calls `cleanup_intent` itself. Under `pauseEmergency()`
+any operator calls `removeIntent` with the pallet intent id, read from
+`intent.accountIntents`. The substrate side is reached at `SUBSTRATE_RPC_URL`,
+by default the first RPC URL; Hydration nodes serve both interfaces there.
+
 ## Run
 
 Local:
@@ -245,6 +286,11 @@ Default scheduling values (operator examples, not approved production policies):
 | `DEFICIT_STOP_BPS` | `50` | Above this source or vault deficit, stop the ramp and set the vault's `deficitStop` |
 | `DEFICIT_RESUME_BPS` | `25` | Below this, resume the ramp and clear `deficitStop`; must be below the stop, `0` never clears |
 | `SYNC_EVERY` | `3600` | Seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner |
+| `ICE_STALL_BLOCKS` | `10` | Blocks an intent may stay unfilled before the solver is reported quiet |
+| `ICE_CLEANUP_BLOCKS` | `10` | Blocks past an intent's deadline before its missing refund is cleaned up (with a signer) or alerted |
+| `ICE_QUOTE_HOLDER` | Omnipool account | 32-byte account whose HOLLAR stands in for an entry's router dry run |
+| `ICE_CLEANUP_SURI` | unset | Dev-derived (`//…`) signer for `cleanup_intent`; unset means expired intents only alert |
+| `SUBSTRATE_RPC_URL` | first of `RPC_URLS` | Substrate RPC for dry runs, pallet intent ids and cleanup |
 
 A submitted transaction keeps its signer locked until its receipt is known.
 The nonce is locked before broadcast, so a send error that still reached a node

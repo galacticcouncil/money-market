@@ -13,6 +13,10 @@ import { roundingAlert } from './rounding-policy.js';
 import { deficitLevel, deficitStopped, vaultDeficitBps } from './deficit-policy.js';
 import { LatestLog, newestInChunks, type EvidenceLog } from './log-evidence.js';
 import { SYNC_EVIDENCE, feedUpdate, syncDue, type FeedSeen } from './sync-policy.js';
+import { connectSubstrate, type Substrate } from './substrate.js';
+import {
+  ENTRY, EXIT, FILLED, RETURNED, WAITING, intentRoute, palletIntentId, quoteRate, submittedIntent,
+} from './intent-policy.js';
 
 const hydration: Chain = {
   id: 222222,
@@ -94,6 +98,28 @@ const DEFICIT_STOP_ABI = parseAbi(['function setDeficitStop(bool stopped)']);
 
 // declared void: the harvestable shares sync() returns say nothing about whether allocation ran
 const SYNC_ABI = parseAbi(['function sync()']);
+
+const ICE_ABI = parseAbi([
+  'function intentTtl() view returns (uint32)',
+  'function pendingIntent() view returns (uint64 nonce, uint64 deadline, uint8 kind, bool controlled, uint128 amountIn, uint128 minOut, uint128 fairOut, uint128 inBase, uint128 outBase)',
+  'function reconcile() returns (uint8)',
+  'function removeIntent(uint128 intentId)',
+  'function hasRole(bytes32 role, address account) view returns (bool)',
+  'function pokeBorrowQuoted(uint256 keeperQuote) returns (uint256)',
+  'function pokeRepayQuoted(uint256 keeperQuote) returns (uint256)',
+  'function hollar() view returns (address)',
+  'function reservedFreed() view returns (uint256)',
+  'function hollarAssetId() view returns (uint32)',
+  'function primeAssetId() view returns (uint32)',
+  'function aPrimeAssetId() view returns (uint32)',
+  'function primePoolId() view returns (uint32)',
+]);
+// declared void: an exit poke that only submits its intent reports zero work, which the dry run disproved
+const ICE_SEND_ABI = parseAbi([
+  'function pokeBorrowQuoted(uint256 keeperQuote)', 'function pokeRepayQuoted(uint256 keeperQuote)',
+  'function pokeBorrow()', 'function pokeRepay()',
+]);
+const KEEPER_ROLE = keccak256(toHex('KEEPER_ROLE'));
 const ORACLE_ABI = parseAbi([
   'function getSourceOfAsset(address asset) view returns (address)',
   'function latestRoundData() view returns (uint80, int256 answer, uint256, uint256 updatedAt, uint80)',
@@ -156,7 +182,10 @@ export class PropellerLooper {
   private nextNonce = 0;
   private stopping = false;
   private quoteBlocks?: bigint;
-  private deficitNotes?: Map<Address, string>;
+  private notes?: Map<string, string>;
+  private substrate?: Promise<Substrate>;
+  private inFlight?: { nonce: bigint; since: bigint; expired?: bigint };
+  private loopId?: Hex;
   private evidence?: Map<string, LatestLog>;
   private feeds?: Map<string, FeedSeen>;
   private synced?: Map<Address, bigint>;
@@ -180,14 +209,16 @@ export class PropellerLooper {
     this.cycle++;
     console.log(`\n[${new Date().toISOString()}] maintainer cycle #${this.cycle}`);
 
-    const [hf, target, unwind, safetyDebt, paused, emergency] = (await Promise.all([
+    const [hf, target, unwind, safetyDebt, paused, emergency, ttl, intent] = (await Promise.all([
       this.read(SUBLOOP_ABI, this.subLoop, 'effectiveHealthFactor'),
       this.read(SUBLOOP_ABI, this.subLoop, 'targetHf'),
       this.read(SUBLOOP_ABI, this.subLoop, 'unwindTargetEquity'),
       this.read(SUBLOOP_ABI, this.subLoop, 'deleverDebtTarget'),
       this.read(SUBLOOP_ABI, this.subLoop, 'paused'),
       this.read(SUBLOOP_ABI, this.subLoop, 'emergencyPaused'),
-    ])) as [bigint, bigint, bigint, bigint, boolean, boolean];
+      this.read(ICE_ABI, this.subLoop, 'intentTtl'),
+      this.read(ICE_ABI, this.subLoop, 'pendingIntent'),
+    ])) as [bigint, bigint, bigint, bigint, boolean, boolean, number, readonly unknown[]];
 
     // Safety actions precede optional trading, even on a standby operator.
     if (!paused && hf < target) await this.poke(SUBLOOP_ABI, this.subLoop, 'deLever', 'deLever (HF below floor)');
@@ -267,6 +298,8 @@ export class PropellerLooper {
     }
     // any operator sets a vault's deficit stop; clearing it waits for the duty slot and an unfrozen vault
     const deficit = await this.checkDeficits(frozen, turn);
+    // one intent in flight per loop, entries and exits alike: nothing new goes out while it is
+    const busy = await this.watchIntent(intent, emergency, turn);
     const servicing = unwind > 0n || safetyDebt > 0n || pending.length > 0 || waiting;
     let harvested = false;
     if (turn && this.harvester && !paused && !emergency && frozen.size === 0) {
@@ -292,11 +325,18 @@ export class PropellerLooper {
     }
     if (!paused) {
       // after a rebalance or harvest, re-read safety and deficit state next cycle before adding leverage
-      if (!rebalanced && !harvested && !deficit && turn && hf >= target && funded && !emergency && frozen.size === 0 && !servicing && hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n) {
-        await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeBorrow', 'pokeBorrow (ramp)');
+      const ramp = !rebalanced && !harvested && !deficit && turn && hf >= target && funded && !emergency
+        && frozen.size === 0 && !servicing;
+      const headroom = hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n;
+      if (ttl === 0) {
+        if (ramp && headroom) await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeBorrow', 'pokeBorrow (ramp)');
+      } else if (ramp && !busy && (headroom || await this.idleHollar() > 0n)) {
+        // deposits wait in the loop as cash until an entry carries them
+        await this.submitIntent(ENTRY);
       }
       if (!safetyAttempted && !emergency && (unwind > 0n || pending.length > 0 || started)) {
-        await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeRepay', 'pokeRepay (unwind/safety debt)');
+        if (ttl === 0) await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeRepay', 'pokeRepay (unwind/safety debt)');
+        else if (turn && !busy) await this.submitIntent(EXIT);
       }
     }
     // Applying already freed funds is safe even while source swaps are paused.
@@ -374,6 +414,138 @@ export class PropellerLooper {
     return log ? (await this.publicClient.getBlock({blockNumber: log.block})).timestamp : 0n;
   }
 
+  // settles a fill or refund that landed without its callback, reports a quiet solver or a slow
+  // expiry, and calls the intent home under an emergency pause. true while one is still in flight
+  private async watchIntent(intent: readonly unknown[], emergency: boolean, turn: boolean): Promise<boolean> {
+    const [nonce, deadline, kind, , amountIn] = intent as [bigint, bigint, number, boolean, bigint];
+    if (!kind) {
+      this.inFlight = undefined;
+      for (const key of ['ice:stall', 'ice:expiry', 'ice:watch', 'ice:remove']) this.note(key);
+      return false;
+    }
+    const name = `${kind === ENTRY ? 'entry' : 'exit'} intent #${nonce}`;
+    try {
+      const outcome = Number(await this.read(ICE_ABI, this.subLoop, 'reconcile'));
+      if (outcome === FILLED || outcome === RETURNED) {
+        if (!turn && !emergency) return true;
+        return !await this.poke(ICE_ABI, this.subLoop, 'reconcile', `reconcile ${name}`, [], true);
+      }
+      if (outcome !== WAITING) return false;
+      const head = await this.publicClient.getBlock({blockTag: 'latest'});
+      if (this.inFlight?.nonce !== nonce) this.inFlight = {nonce, since: head.number};
+      const track = this.inFlight;
+      if (head.number - track.since >= BigInt(CONFIG.ICE_STALL_BLOCKS)) {
+        this.note('ice:stall', `[ALERT] ${name} unfilled for ${CONFIG.ICE_STALL_BLOCKS} blocks: solver quiet or its limit out of reach`);
+      }
+      if (head.timestamp * 1000n > deadline) {
+        track.expired ??= head.number;
+        if (head.number - track.expired >= BigInt(CONFIG.ICE_CLEANUP_BLOCKS)) await this.cleanupExpired(name, amountIn, turn);
+      }
+      if (emergency) await this.removeInFlight(name, amountIn);
+      this.note('ice:watch');
+    } catch (error) {
+      this.note('ice:watch', `[ALERT] ${name}: intent watch failed: ${shortErr(error)}`);
+    }
+    return true;
+  }
+
+  // expiry refunds come from the pallet's offchain worker; an optional dev signer stands in when it lags
+  private async cleanupExpired(name: string, amountIn: bigint, turn: boolean): Promise<void> {
+    const sub = await this.chain();
+    if (!sub.cleanup) {
+      return this.note('ice:expiry',
+        `[ALERT] ${name} expired ${CONFIG.ICE_CLEANUP_BLOCKS} blocks ago and its input is still away; no cleanup signer`);
+    }
+    if (!turn) return;
+    const id = palletIntentId(await sub.intents(await this.loopAccount(sub)), amountIn);
+    if (id === undefined) return this.note('ice:expiry', `[ALERT] ${name} expired but its pallet intent id is ambiguous`);
+    console.log(`  cleanup_intent ${id} for ${name} → ${await sub.cleanup(id)}`);
+  }
+
+  // under an emergency pause anyone may call the intent home by its pallet id; it settles as a refund
+  private async removeInFlight(name: string, amountIn: bigint): Promise<void> {
+    const sub = await this.chain();
+    const id = palletIntentId(await sub.intents(await this.loopAccount(sub)), amountIn);
+    if (id === undefined) return this.note('ice:remove', `[ALERT] ${name}: no pallet intent id to remove under the emergency pause`);
+    if (await this.poke(ICE_ABI, this.subLoop, 'removeIntent', `removeIntent ${name}`, [id], true)) this.note('ice:remove');
+  }
+
+  // a dry run of the loop's own call gives the intent's real size, and a router dry run of that size the quote
+  private async submitIntent(kind: number): Promise<boolean> {
+    const name = kind === ENTRY ? 'entry' : 'exit';
+    try {
+      const quoted = await this.read(ICE_ABI, this.subLoop, 'hasRole', [KEEPER_ROLE, this.account.address]) as boolean;
+      this.note('ice:role', quoted ? undefined : '[ALERT] keeper lacks KEEPER_ROLE: intents carry only the oracle floor');
+      const fn = kind === ENTRY ? (quoted ? 'pokeBorrowQuoted' : 'pokeBorrow') : (quoted ? 'pokeRepayQuoted' : 'pokeRepay');
+      const args = quoted ? [0n] : [];
+      const label = `${fn} (${name} intent)`;
+      const sub = await this.chain();
+      const [block, price] = await Promise.all([this.publicClient.getBlock({blockTag: 'latest'}), this.publicClient.getGasPrice()]);
+      const gas = [block.gasLimit, MAX_NATIVE_TX_GAS, CONFIG.MAX_TX_GAS].reduce((a, b) => (a < b ? a : b));
+      const logs = await sub.dryRunEvm(this.account.address, this.subLoop,
+        encodeFunctionData({abi: ICE_SEND_ABI, functionName: fn, args} as any), gas, price * 2n);
+      this.note('ice:probe');
+      if (!logs) {
+        console.log(`  ${label}: dry run fails, skipped`);
+        return false;
+      }
+      const submitted = submittedIntent(logs, this.subLoop);
+      // no intent to send, but an exit poke may still repay and free what a fill brought back
+      if (!submitted) return kind === EXIT && await this.poke(quoted ? ICE_ABI : SUBLOOP_ABI, this.subLoop, fn, label, args, true);
+      let rate = 0n;
+      if (quoted) {
+        try {
+          rate = await this.routerQuote(sub, submitted.kind, submitted.amountIn);
+          this.note('ice:quote');
+        } catch (error) {
+          this.note('ice:quote', `[ALERT] router dry run for the ${name} quote failed: ${shortErr(error)}`);
+          // an entry can wait for a quote; an exit goes out on the oracle floor
+          if (kind === ENTRY) return false;
+        }
+        console.log(`  ${label}: ${submitted.amountIn} in, quote ${rate} per 1e18`);
+      }
+      return await this.poke(ICE_SEND_ABI, this.subLoop, fn, label, quoted ? [rate] : [], true);
+    } catch (error) {
+      this.note('ice:probe', `[ALERT] ${name} intent probe failed, nothing submitted: ${shortErr(error)}`);
+      this.substrate = undefined;
+      return false;
+    }
+  }
+
+  private async routerQuote(sub: Substrate, kind: number, amountIn: bigint): Promise<bigint> {
+    const [hollar, prime, aPrime, pool] = await Promise.all(['hollarAssetId', 'primeAssetId', 'aPrimeAssetId', 'primePoolId']
+      .map(fn => this.read(ICE_ABI, this.subLoop, fn))) as number[];
+    const loop = await this.loopAccount(sub);
+    // an entry borrows inside its own call, so until then any HOLLAR holder can stand in for the loop
+    const origin = kind === EXIT || await sub.free(hollar, loop) >= amountIn ? loop : CONFIG.ICE_QUOTE_HOLDER;
+    return quoteRate(amountIn, await sub.dryRunSell(origin, intentRoute(kind, {hollar, prime, aPrime, pool}), amountIn));
+  }
+
+  // HOLLAR deposited into the loop and owed to no exit; only an entry deploys it
+  private async idleHollar(): Promise<bigint> {
+    try {
+      const [hollar, reserved] = await Promise.all([
+        this.read(ICE_ABI, this.subLoop, 'hollar'), this.read(ICE_ABI, this.subLoop, 'reservedFreed'),
+      ]) as [Address, bigint];
+      const cash = await this.read(parseAbi(['function balanceOf(address) view returns (uint256)']), hollar,
+        'balanceOf', [this.subLoop]) as bigint;
+      return cash > reserved ? cash - reserved : 0n;
+    } catch {
+      return 0n;
+    }
+  }
+
+  private chain(): Promise<Substrate> {
+    return this.substrate ??= connectSubstrate(CONFIG.SUBSTRATE_RPC_URL, CONFIG.ICE_CLEANUP_SURI).catch(error => {
+      this.substrate = undefined;
+      throw error;
+    });
+  }
+
+  private async loopAccount(sub: Substrate): Promise<Hex> {
+    return this.loopId ??= await sub.accountOf(this.subLoop);
+  }
+
   // the vault's deficitStop flag is the hysteresis state both operators share. true while any
   // vault is stopped or unreadable: the ramp then waits
   private async checkDeficits(frozen: ReadonlySet<Address>, turn: boolean): Promise<boolean> {
@@ -417,22 +589,22 @@ export class PropellerLooper {
       const done = await this.poke(DEFICIT_STOP_ABI, vault, 'setDeficitStop', `setDeficitStop(${want}) ${short(vault)}`, [want])
         || await this.read(VAULT_ABI, vault, 'deficitStop').catch(() => stopped) === want;
       if (!done) {
-        this.deficitNote(vault, `[ALERT] deficit ${want ? 'stop' : 'resume'} ${vault}: setDeficitStop(${want}) not confirmed; retrying every cycle`);
+        this.note(`deficit:${vault}`, `[ALERT] deficit ${want ? 'stop' : 'resume'} ${vault}: setDeficitStop(${want}) not confirmed; retrying every cycle`);
         continue;
       }
-      this.deficitNote(vault);
+      this.note(`deficit:${vault}`);
       console.error(want ? `[ALERT] deficit stop ${vault}: ${view}, above ${stop}; ramp stopped, deficitStop set`
         : `[ALERT] deficit resume ${vault}: ${view}, below ${resume}; ramp allowed, deficitStop cleared`);
     }
     return blocked;
   }
 
-  // a failure alerts when it changes, not on every cycle it persists
-  private deficitNote(vault: Address, alert?: string): void {
-    const notes = (this.deficitNotes ??= new Map<Address, string>());
-    if (!alert) return void notes.delete(vault);
-    if (notes.get(vault) !== alert) console.error(alert);
-    notes.set(vault, alert);
+  // a lasting condition alerts when it changes, not on every cycle it persists
+  private note(key: string, alert?: string): void {
+    const notes = (this.notes ??= new Map<string, string>());
+    if (!alert) return void notes.delete(key);
+    if (notes.get(key) !== alert) console.error(alert);
+    notes.set(key, alert);
   }
 
   private newestLog(address: Address | Address[], topics: Hex[], from: bigint, to: bigint) {
@@ -642,6 +814,7 @@ export class PropellerLooper {
     functionName: string,
     label: string,
     args: readonly unknown[] = [],
+    direct = false,
   ): Promise<boolean> {
     if (this.stopping || this.receiptPending) return false;
     try {
@@ -661,7 +834,8 @@ export class PropellerLooper {
         gas: budget,
         gasPrice,
       };
-      const guarded = ['harvest', 'pokeBorrow', 'rebalance', 'pokeRepay'].includes(functionName);
+      // intents go to the loop directly: through execute nothing deploys without an entry-lane quote
+      const guarded = !direct && ['harvest', 'pokeBorrow', 'rebalance', 'pokeRepay'].includes(functionName);
       let quotedNumber = 0n;
       let fills: readonly Fill[] = [];
       const serviceLanes = new Set<string>();

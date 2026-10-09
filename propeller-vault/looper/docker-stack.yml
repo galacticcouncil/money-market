@@ -17,7 +17,8 @@
 #   PROPELLER_ROUNDING_RESERVES - per-vault JSON base-unit minimum/target policy
 #   HARVESTER_ADDRESS     — Harvester; harvest is skipped when unset
 #   LOOPER_PRIVATE_KEY    — signer key. Maintenance is PERMISSIONLESS (gas only);
-#                           DEPOSIT_GUARDIAN_ROLE lets it set the vaults' deficitStop.
+#                           DEPOSIT_GUARDIAN_ROLE lets it set the vaults' deficitStop,
+#                           the loop's KEEPER_ROLE lets it quote its intents.
 #   RPC_URL               — Hydration RPC (defaults below)
 #   POOL_ADDRESS          — aave main-market pool (for leverage logging)
 #   POLL_INTERVAL_MS      — cycle interval, default 30s
@@ -68,6 +69,12 @@ services:
       DEFICIT_STOP_BPS: ${DEFICIT_STOP_BPS:-50}
       DEFICIT_RESUME_BPS: ${DEFICIT_RESUME_BPS:-25}
       SYNC_EVERY: ${SYNC_EVERY:-3600}
+      ICE_STALL_BLOCKS: ${ICE_STALL_BLOCKS:-10}
+      ICE_CLEANUP_BLOCKS: ${ICE_CLEANUP_BLOCKS:-10}
+      ICE_QUOTE_HOLDER: ${ICE_QUOTE_HOLDER:-}
+      SUBSTRATE_RPC_URL: ${SUBSTRATE_RPC_URL:-}
+      # dev derivation only (//Name), never a real secret; empty means expired intents only alert
+      ICE_CLEANUP_SURI: ${ICE_CLEANUP_SURI:-}
       ALERT_WEBHOOK: ${ALERT_WEBHOOK:-}
     deploy:
       mode: replicated
@@ -88,7 +95,8 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 256M
+          # the substrate api for intent dry runs adds ~300M
+          memory: 768M
         reservations:
           cpus: "0.05"
           memory: 64M

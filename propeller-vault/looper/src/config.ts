@@ -11,12 +11,20 @@ function integer(name: string, fallback: number, min = 1, max = Number.MAX_SAFE_
 }
 const operatorCount = integer('OPERATOR_COUNT', 1);
 const deficitStop = integer('DEFICIT_STOP_BPS', 50, 1, 10_000);
+const cleanupSuri = process.env.ICE_CLEANUP_SURI || undefined;
+// dev-phrase derivations only (//Name), so a real seed can't end up in a keeper's environment
+if (cleanupSuri && !/^\/\/[^\s]+$/.test(cleanupSuri)) throw new Error('ICE_CLEANUP_SURI must be a dev derivation like //Name');
+const quoteHolder = process.env.ICE_QUOTE_HOLDER || `0x${'6d6f646c6f6d6e69706f6f6c'.padEnd(64, '0')}`;
+if (!/^0x[0-9a-fA-F]{64}$/.test(quoteHolder)) throw new Error('ICE_QUOTE_HOLDER must be a 32-byte account id');
+const rpcUrls = (process.env.RPC_URLS || process.env.RPC_URL || 'https://hdx.tarn.hydration.cloud').split(',').map(s => s.trim()).filter(Boolean);
 const sponsoredGas = process.env.SPONSORED_GAS ?? 'true';
 if (!['true', 'false'].includes(sponsoredGas)) throw new Error('SPONSORED_GAS must be true or false');
 
 export const CONFIG = {
   RPC_URL: process.env.RPC_URL || 'https://hdx.tarn.hydration.cloud',
-  RPC_URLS: (process.env.RPC_URLS || process.env.RPC_URL || 'https://hdx.tarn.hydration.cloud').split(',').map(s => s.trim()).filter(Boolean),
+  RPC_URLS: rpcUrls,
+  // substrate rpc for intent dry runs, pallet intent ids and cleanup; hydration nodes serve both on one url
+  SUBSTRATE_RPC_URL: process.env.SUBSTRATE_RPC_URL || rpcUrls[0],
   GAS_ASSET_ADDRESS: (process.env.GAS_ASSET_ADDRESS || '0x0000000000000000000000000000000000000000') as `0x${string}`,
   // signer only pays gas — pokeBorrow is permissionless, no role required.
   PRIVATE_KEY: process.env.LOOPER_PRIVATE_KEY as `0x${string}`,
@@ -69,6 +77,14 @@ export const CONFIG = {
   DEFICIT_RESUME_BPS: integer('DEFICIT_RESUME_BPS', 25, 0, deficitStop - 1),
   // seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner
   SYNC_EVERY: integer('SYNC_EVERY', 3600),
+  // blocks an intent may stay unfilled before the solver is reported quiet
+  ICE_STALL_BLOCKS: integer('ICE_STALL_BLOCKS', 10),
+  // blocks past an intent's deadline before a refund that hasn't come back is cleaned up or alerted
+  ICE_CLEANUP_BLOCKS: integer('ICE_CLEANUP_BLOCKS', 10),
+  // account whose HOLLAR stands in for an entry's router dry run (default: the omnipool account)
+  ICE_QUOTE_HOLDER: quoteHolder as `0x${string}`,
+  // optional cleanup_intent signer, a dev derivation; without it an expired intent only alerts
+  ICE_CLEANUP_SURI: cleanupSuri,
   ALERT_WEBHOOK: process.env.ALERT_WEBHOOK,
 };
 
