@@ -1,4 +1,5 @@
 import JuicerLean.Spec.Invariants
+import JuicerLean.FixedPoint.Runtime
 
 /-!
 # Juicer — on-chain fixed-point model (Phase 3)
@@ -37,7 +38,7 @@ def IState.principalFloored (s : IState) : Prop := s.mainDebtWad ≤ s.synthValu
 mul-div (`a·b/Wad`). The floor *underestimates* the collateral. -/
 def IState.loopCollWad (s : IState) : ℕ := s.primeAmtWad * s.primePriceWad / Wad
 
-/-- Integer `freedBacked`, as the on-chain guard checks it: floored loop collateral covers the Main
+/-- Integer backing predicate for the abstract solvency theorem (the on-chain deposit guard was removed): floored loop collateral covers the Main
 debt plus the loop debt (`mainDebt ≤ loopColl − subDebt ⟺ mainDebt + subDebt ≤ loopColl`). -/
 def IState.freedBacked (s : IState) : Prop := s.mainDebtWad + s.subDebtWad ≤ s.loopCollWad
 
@@ -51,12 +52,9 @@ def IState.subLoopHealthy (s : IState) (tBps : ℕ) : Prop :=
 def IState.accrueLoop (s : IState) (gWad : ℕ) : IState :=
   { s with primeAmtWad := s.primeAmtWad + gWad }
 
-/-- On-chain re-peg: mint the synthetic to the buffered target via a **flooring** mul-div,
-`synth := mainDebt · kBps / ltSynthBps`, where `kBps` is the mint buffer in bps
-(the spec's `1.005` ⇒ `kBps = 10050`). The mint floors *down*, and the floor guard
-(`synthValueWad`) floors *again* — so soundness is the double-flooring question. -/
-def IState.repegSynth (s : IState) (kBps : ℕ) : IState :=
-  { s with synthWad := s.mainDebtWad * kBps / s.ltSynthBps }
+/-- `SyntheticFloor.buffered`: ceil the debt coverage, then add a floored 0.5% buffer. -/
+def IState.repegSynth (s : IState) : IState :=
+  { s with synthWad := Juicer.Runtime.buffered s.mainDebtWad s.ltSynthBps }
 
 /-- Embed the integer state into the real spec state, dividing out the scales.
 Fields irrelevant to the modelled guards take harmless defaults. -/

@@ -68,7 +68,7 @@ theorem maintainPeg_wellFormed (s : State) (wf : WellFormed s) :
       ltSynth_pos    := wf.ltSynth_pos
       synth_nonneg   := ?_
       mainDebt_pos   := wf.mainDebt_pos
-      ltvSynth_zero  := wf.ltvSynth_zero }
+      ltvSynth_nonneg  := wf.ltvSynth_nonneg }
   -- new synth = mainDebt * 1.005 / ltSynth ≥ 0
   simp only [maintainPeg, mintSynthToPeg]
   exact div_nonneg (mul_nonneg wf.mainDebt_pos.le (by norm_num)) wf.ltSynth_pos.le
@@ -89,7 +89,7 @@ theorem tick_safe (s : State) (δ : ℝ)
         ltSynth_pos    := wf.ltSynth_pos
         synth_nonneg   := wf.synth_nonneg
         mainDebt_pos   := by simp only [accrueInterest]; linarith [wf.mainDebt_pos]
-        ltvSynth_zero  := wf.ltvSynth_zero }
+        ltvSynth_nonneg  := wf.ltvSynth_nonneg }
     exact maintainPeg_wellFormed _ wf'
   · exact tick_preserves_floor s δ hδ wf.mainDebt_pos wf.ltSynth_pos
 

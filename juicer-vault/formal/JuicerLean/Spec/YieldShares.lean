@@ -7,6 +7,11 @@ set_option linter.unusedSectionVars false
 /-!
 # Juicer — share balances that include funded earnings (next version, plan §3)
 
+This real-valued layer omits integer rounding, the virtual +1 in unit minting, write-off epochs,
+and lazy rescaling. `FixedPoint/Runtime.lean` models those operations as shipped. In particular,
+`transfer_balanceOf_*` is an ideal-arithmetic result: Solidity's rounded unit transfer can move
+more than the requested funded base units. Supply is conserved; exact displayed deltas need not be.
+
 The next version shows a holder's funded reward shares inside its share balance, Aave style, with
 no claims at all: reward units stay the only claim on the fund, pro rata on both of its parts —
 the funded vault shares `F` (held in the fund's wallet) and the reserved source value `S`.

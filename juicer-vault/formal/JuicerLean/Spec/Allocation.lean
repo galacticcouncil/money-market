@@ -30,6 +30,9 @@ The next version splits `checkpoint` into
   post-event index; `mintFirst_captures` — minting first would hand it `m·x/(outside + x)` units.
 -/
 
+/-! The lazy/eager equivalence below is over exact real arithmetic. It does not prove that
+per-touch rounding, epochs or 64-bit rescaling commute; see the executable runtime model. -/
+
 namespace Juicer
 
 namespace ShareBook

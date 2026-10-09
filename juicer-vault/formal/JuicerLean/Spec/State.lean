@@ -8,8 +8,8 @@ A protocol-managed leveraged-yield vault on Hydration. This file models the
 PRIME isolation loop) as a single real-valued balance sheet, plus the derived
 Aave quantities (health factor, borrow capacity).
 
-Source of truth: `garden/src/site/notes/wiki/note-propeller-impl.md` (§2 synthetic
-config, §3 loop, §8 invariants). All values are in a common HOLLAR/USD unit; `*Amt`
+Implementation: `src/CollateralVault.sol`, `src/lib/CompoundLogic.sol` and
+`src/lib/SubLoopLogic.sol`; see `formal/SOLIDITY_PARITY.md` for the abstraction boundary. All values are in a common HOLLAR/USD unit; `*Amt`
 are token amounts that prices multiply into value. Reals (ℝ) are the *spec* layer;
 a `Uint256`/WAD-RAY refinement is Phase 3.
 -/
@@ -31,7 +31,7 @@ structure State where
   synth : ℝ
   /-- Aave liquidation threshold of the synthetic reserve (≈ 0.98). -/
   ltSynth : ℝ
-  /-- Aave loan-to-value of the synthetic reserve (= 0 by design). -/
+  /-- Aave loan-to-value of the synthetic reserve (100 bps in the deployment configuration). -/
   ltvSynth : ℝ
   /-- HOLLAR debt of the Main position. -/
   mainDebt : ℝ
@@ -61,10 +61,11 @@ def mainCollateralValue (s : State) : ℝ :=
 noncomputable def mainHF (s : State) : ℝ :=
   s.mainCollateralValue / s.mainDebt
 
-/-- Aave borrow capacity = collateral value weighted by *LTV* (not LT).
-The synthetic has `ltvSynth = 0`, so it lifts `HF` but grants zero borrow power. -/
-def borrowCapacity (s : State) : ℝ :=
-  s.coll * s.price * s.ltvColl + s.synth * s.ltvSynth
+/-- the vault's borrowing budget excludes synthetic, as `CompoundLogic.rebalance` does. -/
+def borrowCapacity (s : State) : ℝ := s.coll * s.price * s.ltvColl
+
+/-- aave itself includes the synthetic's nonzero ltv; this is not the vault's budget. -/
+def aaveBorrowCapacity (s : State) : ℝ := s.borrowCapacity + s.synth * s.ltvSynth
 
 /-- Sub-loop (PRIME isolation) health factor. -/
 noncomputable def subHF (s : State) : ℝ :=
@@ -83,7 +84,7 @@ structure WellFormed (s : State) : Prop where
   ltSynth_pos    : 0 < s.ltSynth
   synth_nonneg   : 0 ≤ s.synth
   mainDebt_pos   : 0 < s.mainDebt
-  /-- the synthetic reserve is configured with LTV 0 (the no-money-printing guard). -/
-  ltvSynth_zero  : s.ltvSynth = 0
+  /-- the synthetic reserve ltv may be positive; the vault excludes it from its budget. -/
+  ltvSynth_nonneg  : 0 ≤ s.ltvSynth
 
 end Juicer

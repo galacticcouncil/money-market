@@ -26,7 +26,7 @@ noncomputable def ethPosition : State where
   ltvColl := 0.75
   synth := 1005
   ltSynth := 0.98
-  ltvSynth := 0
+  ltvSynth := 0.01
   mainDebt := 980
   primeAmt := 0
   primePrice := 0
@@ -43,7 +43,7 @@ theorem ethPosition_wf : WellFormed ethPosition where
   ltSynth_pos := by norm_num [ethPosition]
   synth_nonneg := by norm_num [ethPosition]
   mainDebt_pos := by norm_num [ethPosition]
-  ltvSynth_zero := by norm_num [ethPosition]
+  ltvSynth_nonneg := by norm_num [ethPosition]
 
 theorem ethPosition_floored : ethPosition.principalFloored :=
   peg_floored ethPosition 1.005 (by norm_num)
@@ -59,32 +59,19 @@ theorem ethPosition_safe_at_zero_price :
     1 ≤ ({ethPosition with price := 0} : State).mainHF :=
   never_liquidated_at_any_price ethPosition ethPosition_wf ethPosition_floored 0 (by norm_num)
 
-/-! ### Integer re-peg: the dust threshold is real
+/-! ### Integer re-peg: even one wei is covered -/
 
-With spec params (`kBps = 10050`, `Bps = 10000`, `ltSynthBps = 9800`), the re-peg soundness condition
-is `9800 ≤ 50·mainDebtWad + 1`, i.e. `mainDebtWad ≥ 196` wei. A real position (`1` token of debt =
-`10^18` wei) clears it by 16 orders of magnitude; the boundary sits at 196 vs 195 wei. -/
-
-/-- A realistic integer position with 1 token of Main debt. -/
 def dustyPosition : IState where
   synthWad := 0
   ltSynthBps := 9800
-  mainDebtWad := 10 ^ 18
+  mainDebtWad := 1
 
-/-- The on-chain re-peg satisfies the floor guard for a real position. -/
-theorem dustyPosition_repeg_floored : (dustyPosition.repegSynth 10050).principalFloored :=
-  repeg_principalFloored dustyPosition 10050
-    (by norm_num [dustyPosition, Bps]) (by norm_num [Bps])
-    (by norm_num [dustyPosition, Bps])
+theorem dustyPosition_repeg_floored : dustyPosition.repegSynth.principalFloored :=
+  repeg_principalFloored dustyPosition (by norm_num [dustyPosition])
 
-/-- The threshold is sharp: at exactly `196` wei of debt the soundness condition holds… -/
-theorem dust_threshold_holds_at_196 :
-    (9800 : ℕ) ≤ 196 * (10050 - Bps) + 1 := by norm_num [Bps]
-
-/-- …and at `195` wei it fails — the genuine (economically irrelevant) dust edge below which the
-double-flooring can undershoot the floor. -/
-theorem dust_threshold_fails_at_195 :
-    ¬ ((9800 : ℕ) ≤ 195 * (10050 - Bps) + 1) := by norm_num [Bps]
+theorem dustyPosition_mints_two : dustyPosition.repegSynth.synthWad = 2 := by
+  norm_num [dustyPosition, IState.repegSynth, Runtime.buffered, Runtime.ceilDiv,
+    Nat.ceilDiv_eq_add_pred_div]
 
 /-! ### Solidity test-suite scenarios (cross-check)
 
@@ -105,7 +92,7 @@ noncomputable def loopPosition : State where
   ltvColl := 0.75
   synth := 1005
   ltSynth := 0.98
-  ltvSynth := 0
+  ltvSynth := 0.01
   mainDebt := 500
   primeAmt := 1050
   primePrice := 1

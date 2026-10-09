@@ -1,10 +1,11 @@
 # juicer-vault — Lean 4 formal spec
 
 Formal verification of **Juicer** — a protocol-managed leveraged-yield product on
-Hydration — in **Lean 4**. Turns the invariants currently checked only by the Solidity fuzz
-tests (`../test/invariant/`) into machine-checked theorems over *all* inputs.
+Hydration — in **Lean 4**. Contains conditional mathematical proofs and executable integer models checked against Solidity.
+[Current implementation mapping and limits](SOLIDITY_PARITY.md) is the coverage record.
+[Funded-transfer rounding](ROUNDING.md) records the open allowance mismatch and reproduction.
 
-Lives beside the contracts it models: `juicer-vault/{src,test,formal}` (branch `propeller`).
+Lives beside the contracts it models: `juicer-vault/{src,test,formal}` (branch `juicer-next`).
 A self-contained Lake project; the Foundry build ignores it and vice-versa.
 Strategy: Path C.
 
@@ -34,10 +35,16 @@ JuicerLean/
 │  │                      claims — Σ balanceOf identity, exact local transfers, value conservation
 │  ├─ Allocation.lean     next version (plan §2): event-driven allocation on a lazy index —
 │  │                      refines YieldShares, transfers settle two holders, no pre-entry yield
-│  └─ Examples.lean       worked numeric instances (concrete ETH position, dust threshold,
+│  └─ Examples.lean       worked numeric instances (concrete ETH position, one-wei mint,
 │                          loop-at-HF-1.05, full-unwind) cross-checking the Solidity test suite
 └─ FixedPoint/
    ├─ Uint256.lean        WAD/bps integer model (what Solidity stores)
+   ├─ Runtime.lean        current integer accounting and single-slot ICE behavior
+   ├─ Rounding.lean       displayed-transfer bounds and integer/real mul-div refinement
+   ├─ YieldTransitions.lean reserve limits, exit/harvest conservation and settled ownership traces
+   ├─ MainDebt.lean       debt cohorts, source batches, vested fees and reserve limits
+   ├─ PolicyQueue.lean    controller budgets, quotes, FIFO starts and collateral claims
+   ├─ Environment.lean    external observation guards and ICE authentication limits
    └─ Refine.lean         Phase 3: integer floor guard conservatively refines the real floor,
                            incl. the loop-yield (accrueLoop) and re-peg fixed-point refinements
 ```
@@ -51,7 +58,7 @@ JuicerLean/
 | `floor_main_hf` | `principalFloored ⟹ mainHF ≥ 1` |
 | `never_liquidated_at_any_price` | the floor holds at **every** price `p ≥ 0`, incl. `p = 0` |
 | `peg_floored` | the spec mint rule (`synth·LT = mainDebt·k`, `k ≥ 1`) establishes the floor |
-| `synth_adds_no_borrow_power` | the synthetic (LTV 0) grants zero borrow power (`noSynthBorrow`) |
+| `synth_adds_no_borrow_power` | the vault borrowing budget excludes synthetic; Aave itself gives it 100 bps LTV |
 | `tick_safe` | a maintenance tick (accrue interest → re-peg) lands at `mainHF ≥ 1` |
 | `collateral_out_ge_in` | under `freedBacked`, settlement returns ≥ the deposited collateral |
 | `claimShares_escrowOk` | escrow stays a non-negative subset of shares (`escrow`) |
@@ -68,9 +75,10 @@ JuicerLean/
 
 ## Next version (`juicer-next`, plan §2–§4, §7)
 
-Modeled from `../docs/next-version-plan.md` and track A's 9 Oct design update (no claims: units
-are the only claim on the fund, transfers beyond the wallet move units) while the Solidity lands in
-parallel; the bridge/parity tests follow once it merges. Same integrity bar: 0 `sorry`, axioms
+Aligned with Solidity at `bbe541f` on 9 October. The real-number models prove ideal accounting
+properties; `FixedPoint/Runtime.lean` adds current integer arithmetic, epoch and rescale behavior.
+Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 500 Lean cases with the
+actual Solidity, and detect source or storage-layout drift. Same integrity bar: 0 `sorry`, axioms
 `propext`/`Classical.choice`/`Quot.sound` only.
 
 | Theorem | Claim |
@@ -93,11 +101,11 @@ parallel; the bridge/parity tests follow once it merges. Same integrity bar: 0 `
 | `State.startExit_requestRedeem` / `State.startExit_escrowOk` | seen by the redemption state the fold is `requestRedeem fold`, so `escrowOk` survives it |
 | `ShareBook.startExit_quote` / `ShareBook.runExit_totalBalance_add` | quoting after the fold pays the folded shares at the same per-share value and keeps the remaining holders'; the balance identity holds through any trace with exits |
 | `IceLoop.submit_equity` / `IceLoop.run_equity_noFill` | in-flight input counts in equity at oracle value; submit, expiry, callback and reconcile keep equity — only a fill moves it, by exactly the execution difference (`fill_equity`; no worse than the slippage floor, `fill_equity_ge`) |
-| `IceLoop.submit_effHF` / `IceLoop.ramp_fill_effHF` / `IceLoop.ramp_aaveHF_lt` | HF math counts idle and in-flight HOLLAR as debt-backed cash: a ramp step's HF in flight is its HF after an oracle-fair fill, while Aave's own HF dips |
-| `IceLoop.submit_deLeverOk_iff` / `IceLoop.deLever_raises_effHF` | the de-lever precondition counts in-flight cash, so submitting, expiring, recording or a fair fill never changes it; de-lever raises the loop's HF |
+| `IceLoop.submit_grossHF` / `IceLoop.ramp_fill_grossHF` / `IceLoop.ramp_aaveHF_lt` | abstract gross-asset ratio only; runtime HF instead nets ENTRY input against debt and restores EXIT input to collateral |
+| `IceLoop.submit_oracleSaleOk_iff` / `IceLoop.deLever_raises_grossHF` | the abstract oracle-fair sale preserves signed equity and raises its gross-asset ratio; the runtime trigger is modeled separately |
 | `IceLoop.submit_busy` / `IceLoop.late_callback` / `IceLoop.reconcile_eq_callback` | one intent per lane, never overwritten; once reconciled, a late callback changes nothing after any further trace; callback and reconcile record the same thing |
 | `IceLoop.naiveEquity_sub_equity` | an equity view that keeps counting a pending record after its outcome landed overstates by exactly that input |
-| `IceLoop.deLeverOk_iff_valid` / `IceLoop.onto_subHF` | a quiescent loop (no idle cash, nothing in flight) is the original `State` loop |
+| `IceLoop.oracleSaleOk_iff_valid` / `IceLoop.onto_subHF` | a quiescent loop (no idle cash, nothing in flight) is the original `State` loop |
 
 ## Build & verify
 
@@ -111,3 +119,14 @@ echo 'import JuicerLean
 ```
 
 Toolchain: Lean `v4.30.0` + Mathlib `v4.30.0` (pinned in `lean-toolchain` / `lakefile.toml`).
+
+## Current Solidity arithmetic
+
+`FixedPoint/Runtime.lean` covers ceil-first synthetic minting (including dust), account epochs and
+unit shifts, rounded unit transfers, allocation and write-offs, exit folds, backing gross-up,
+harvest splits, and single-slot ICE observation, HF, equity, de-lever target and callback guards.
+Its universal proofs include the synthetic floor for every debt, caps and unit conservation,
+four rescale steps for any uint256 total, and stale/unauthorized callback behavior.
+
+The checked-in vectors are generated by Lean, not copied from Solidity test expectations.
+The old Verity bridge remains a separate simplified reference model; see [bridge scope](bridge/PARITY.md).

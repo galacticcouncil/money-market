@@ -76,12 +76,12 @@ def loopEquity (s : State) : ℝ := s.primeAmt * s.primePrice - s.subDebt
 This is exactly the seed-equity identity (debt = equity) preserved as the loop runs. -/
 def freedBacked (s : State) : Prop := s.mainDebt ≤ s.loopEquity
 
-/-- Collateral that must be sold to cover any debt the freed loop equity can't:
+/-- abstract shortfall diagnostic, not a runtime sale: current Solidity retains unpaid collateral claims.
 `max(mainDebt − loopEquity, 0) / price`. -/
 noncomputable def collSold (s : State) : ℝ :=
   max (s.mainDebt - s.loopEquity) 0 / s.price
 
-/-- Collateral returned on a full unwind = deposited collateral minus what was sold. -/
+/-- hypothetical immediately recoverable collateral; the runtime can defer payment without reducing the claim. -/
 noncomputable def collateralReturned (s : State) : ℝ := s.coll - s.collSold
 
 /-- Under `freedBacked`, no collateral is sold — the loop repays the debt entirely. -/

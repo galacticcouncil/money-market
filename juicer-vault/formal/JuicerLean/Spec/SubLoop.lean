@@ -204,7 +204,7 @@ theorem deLever_wellFormed (s : State) (a : ℝ) (wf : WellFormed s) : WellForme
   { coll_nonneg   := wf.coll_nonneg,   price_nonneg  := wf.price_nonneg
     ltColl_nonneg := wf.ltColl_nonneg, ltColl_le_one := wf.ltColl_le_one
     ltSynth_pos   := wf.ltSynth_pos,   synth_nonneg  := wf.synth_nonneg
-    mainDebt_pos  := wf.mainDebt_pos,  ltvSynth_zero := wf.ltvSynth_zero }
+    mainDebt_pos  := wf.mainDebt_pos,  ltvSynth_nonneg := wf.ltvSynth_nonneg }
 
 /-- A full maintenance tick (accrue `δ ≥ 0`, then re-peg) preserves `WellFormed`. -/
 theorem tick_wellFormed (s : State) (δ : ℝ) (wf : WellFormed s) (hδ : 0 ≤ δ) :
@@ -216,7 +216,7 @@ theorem tick_wellFormed (s : State) (δ : ℝ) (wf : WellFormed s) (hδ : 0 ≤ 
       ltColl_nonneg := wf.ltColl_nonneg, ltColl_le_one := wf.ltColl_le_one
       ltSynth_pos   := wf.ltSynth_pos,   synth_nonneg  := wf.synth_nonneg
       mainDebt_pos  := by simp only [accrueInterest]; linarith [wf.mainDebt_pos]
-      ltvSynth_zero := wf.ltvSynth_zero }
+      ltvSynth_nonneg := wf.ltvSynth_nonneg }
 
 /-- A **partial** repay (`r < mainDebt`) then re-peg preserves `WellFormed`. -/
 theorem repay_wellFormed (s : State) (r : ℝ) (wf : WellFormed s) (hr : r < s.mainDebt) :
@@ -228,7 +228,7 @@ theorem repay_wellFormed (s : State) (r : ℝ) (wf : WellFormed s) (hr : r < s.m
       ltColl_nonneg := wf.ltColl_nonneg, ltColl_le_one := wf.ltColl_le_one
       ltSynth_pos   := wf.ltSynth_pos,   synth_nonneg  := wf.synth_nonneg
       mainDebt_pos  := by simp only; linarith
-      ltvSynth_zero := wf.ltvSynth_zero }
+      ltvSynth_nonneg := wf.ltvSynth_nonneg }
 
 /-! ### pegBand preservation
 
@@ -298,7 +298,7 @@ theorem LoopSafe_synthConserved (s : State) (t : ℝ) (h : s.LoopSafe t) :
     s.synth * s.ltSynth ≤ s.mainDebt * (1 + 0.005) :=
   h.2.1.2
 
-/-- **noSynthBorrow** follows from the bundle: the `WellFormed` conjunct carries `ltvSynth = 0`, so
+/-- the vault excludes synthetic from its own borrowing budget, so
 borrow capacity is exactly the real collateral's — the synthetic unlocks no borrowing. -/
 theorem LoopSafe_noSynthBorrow (s : State) (t : ℝ) (h : s.LoopSafe t) :
     s.borrowCapacity = s.coll * s.price * s.ltvColl :=
@@ -355,14 +355,14 @@ theorem requestRedeem_wellFormed (s : State) (x : ℝ) (wf : WellFormed s) :
   { coll_nonneg   := wf.coll_nonneg,   price_nonneg  := wf.price_nonneg
     ltColl_nonneg := wf.ltColl_nonneg, ltColl_le_one := wf.ltColl_le_one
     ltSynth_pos   := wf.ltSynth_pos,   synth_nonneg  := wf.synth_nonneg
-    mainDebt_pos  := wf.mainDebt_pos,  ltvSynth_zero := wf.ltvSynth_zero }
+    mainDebt_pos  := wf.mainDebt_pos,  ltvSynth_nonneg := wf.ltvSynth_nonneg }
 
 theorem claimShares_wellFormed (s : State) (x : ℝ) (wf : WellFormed s) :
     WellFormed (s.claimShares x) :=
   { coll_nonneg   := wf.coll_nonneg,   price_nonneg  := wf.price_nonneg
     ltColl_nonneg := wf.ltColl_nonneg, ltColl_le_one := wf.ltColl_le_one
     ltSynth_pos   := wf.ltSynth_pos,   synth_nonneg  := wf.synth_nonneg
-    mainDebt_pos  := wf.mainDebt_pos,  ltvSynth_zero := wf.ltvSynth_zero }
+    mainDebt_pos  := wf.mainDebt_pos,  ltvSynth_nonneg := wf.ltvSynth_nonneg }
 
 /-- Requesting a redemption (escrowing shares) preserves the loop safety bundle. -/
 theorem requestRedeem_LoopSafe (s : State) (t x : ℝ) (h : s.LoopSafe t) :
@@ -473,7 +473,7 @@ theorem accrueLoop_wellFormed (s : State) (g : ℝ) (wf : WellFormed s) :
   { coll_nonneg   := wf.coll_nonneg,   price_nonneg  := wf.price_nonneg
     ltColl_nonneg := wf.ltColl_nonneg, ltColl_le_one := wf.ltColl_le_one
     ltSynth_pos   := wf.ltSynth_pos,   synth_nonneg  := wf.synth_nonneg
-    mainDebt_pos  := wf.mainDebt_pos,  ltvSynth_zero := wf.ltvSynth_zero }
+    mainDebt_pos  := wf.mainDebt_pos,  ltvSynth_nonneg := wf.ltvSynth_nonneg }
 
 theorem accrueLoop_pegBand (s : State) (g ε : ℝ) (h : s.pegBand ε) : (s.accrueLoop g).pegBand ε := by
   simpa [pegBand, accrueLoop] using h
@@ -720,18 +720,17 @@ callback. `pending[lane]` holds at most one intent per lane, keyed by nonce; a p
 `reconcile` settles a lane whose outcome has landed (output arrived, or input back). The safety
 de-lever keeps the synchronous router (`State.deLever` above).
 
-`IceLoop` is the loop's own book. Each intent counts exactly once: as its input at oracle value while
-in flight, then as whatever landed. Idle and in-flight HOLLAR are debt-backed cash; HF math counts
-them beside the aPRIME collateral (`effColl`). Proven:
+`IceLoop` is an idealized equity book. Each input counts once while in flight, then as whatever
+landed. `grossHF` weights all gross assets by PRIME LT; it is not the runtime HF. Proven:
 * `submit_equity` / `expire_equity` / `callback_equity` / `reconcile_equity` — submitting, expiring
   and recording an outcome leave equity unchanged; `fill_equity` — a fill moves it by exactly the
   execution difference, `fill_equity_ge` bounded by the slippage allowance, `fill_equity_fair` zero
   at the oracle; `run_equity_noFill` — only fills ever move equity;
-* `submit_effHF` / `expire_effHF` / `fill_fair_effHF` / …, `ramp_fill_effHF` — HF math sees an
-  entry's HOLLAR in flight as what it buys at the oracle, while Aave's own HF dips
+* `submit_grossHF` / `expire_grossHF` / `fill_fair_grossHF` / …, `ramp_fill_grossHF` — the abstract gross ratio values
+  in-flight HOLLAR as its oracle-fair output, while Aave's own HF dips
   (`ramp_aaveHF_lt`);
-* `submit_deLeverOk_iff` / … — the de-lever precondition (solvent counting debt-backed cash) does
-  not change while an intent is in flight; `deLever_raises_effHF` / `deLever_equity`;
+* `submit_oracleSaleOk_iff` / … — the abstract oracle-fair sale condition does
+  not change while an intent is in flight; `deLever_raises_grossHF` / `deLever_equity`;
 * `submit_busy` / `ramp_busy` — a busy lane takes no second intent, so a pending record is never
   overwritten; at most one per lane by construction;
 * `callback_stale` / `late_callback` — once a lane's intent is reconciled, a late callback with its
@@ -739,8 +738,13 @@ them beside the aPRIME collateral (`effColl`). Proven:
   callback and reconcile record the same thing, so whichever lands second is a no-op;
 * `naiveEquity_sub_equity` — counting a pending record after its outcome has landed would
   overstate equity by exactly that intent's input until it is recorded;
-* `onto_loopEquity` / `onto_subHF` / `deLeverOk_iff_valid` — a quiescent loop is the `State` loop.
+* `onto_loopEquity` / `onto_subHF` / `oracleSaleOk_iff_valid` — a quiescent loop is the `State` loop.
 -/
+
+/-! This is an idealized multi-lane equity book. The deployed SubLoop has one pending slot,
+uses token-balance deltas to infer outcomes, nets ENTRY input against debt for HF, and restores
+EXIT input to collateral. `grossHF` and `oracleSaleOk` are algebraic helpers only. The executable
+single-slot runtime model and its Solidity checks live in `FixedPoint/Runtime.lean`. -/
 
 /-- An ICE intent as the SubLoop records it in `pending[lane]`. -/
 structure Intent where
@@ -804,14 +808,14 @@ def laneValue (L : IceLoop Lane) (l : Lane) : ℝ :=
 /-- every input in flight, at oracle value. -/
 def inFlight (L : IceLoop Lane) : ℝ := ∑ l, L.laneValue l
 
-/-- collateral plus debt-backed cash: what HF math and equity count. -/
+/-- gross assets for the signed equity model, including idle and in-flight cash. -/
 def effColl (L : IceLoop Lane) : ℝ := L.holdings + L.inFlight
 
-/-- the loop's equity (`totalEquity`): in-flight input included at oracle value. -/
+/-- signed equity before the runtime clamps at zero and subtracts reserved freed cash. -/
 def equity (L : IceLoop Lane) : ℝ := L.effColl - L.debt
 
-/-- the health factor the loop's own math uses. -/
-noncomputable def effHF (L : IceLoop Lane) : ℝ := L.effColl * L.lt / L.debt
+/-- a cash-weighted abstract ratio, not `SubLoop.effectiveHealthFactor`; see `Runtime.lean`. -/
+noncomputable def grossHF (L : IceLoop Lane) : ℝ := L.effColl * L.lt / L.debt
 
 /-- Aave's health factor: aPRIME collateral only. -/
 noncomputable def aaveHF (L : IceLoop Lane) : ℝ := L.coll * L.price * L.lt / L.debt
@@ -886,9 +890,9 @@ def reconcile (l : Lane) (L : IceLoop Lane) : IceLoop Lane :=
 def deLever (a : ℝ) (L : IceLoop Lane) : IceLoop Lane :=
   { L with coll := L.coll - a, debt := L.debt - a * L.price }
 
-/-- the de-lever precondition, counting debt-backed cash: a positive slice smaller than the debt on a
+/-- validity of an abstract oracle-fair sale, not the runtime de-lever trigger: a positive slice smaller than the debt on a
 loop solvent once in-flight and idle HOLLAR are counted. -/
-def deLeverOk (L : IceLoop Lane) (a : ℝ) : Prop :=
+def oracleSaleOk (L : IceLoop Lane) (a : ℝ) : Prop :=
   0 ≤ L.lt ∧ 0 < L.debt ∧ 0 < a * L.price ∧ a * L.price < L.debt ∧ L.debt ≤ L.effColl
 
 /-! ### Bookkeeping lemmas -/
@@ -1170,35 +1174,35 @@ theorem deLever_equity (a : ℝ) (L : IceLoop Lane) : (L.deLever a).equity = L.e
 
 /-! ### HF math: the in-flight HOLLAR is debt-backed cash -/
 
-theorem submit_effHF (l : Lane) (e : Bool) (a mo : ℝ) (L : IceLoop Lane) (hl : L.pending l = none) :
-    (L.submit l e a mo).effHF = L.effHF := by
+theorem submit_grossHF (l : Lane) (e : Bool) (a mo : ℝ) (L : IceLoop Lane) (hl : L.pending l = none) :
+    (L.submit l e a mo).grossHF = L.grossHF := by
   obtain ⟨hd, hlt, -⟩ := submit_frame l e a mo L
-  unfold effHF; rw [submit_effColl l e a mo L hl, hd, hlt]
+  unfold grossHF; rw [submit_effColl l e a mo L hl, hd, hlt]
 
-theorem expire_effHF (l : Lane) (L : IceLoop Lane) : (L.expire l).effHF = L.effHF := by
+theorem expire_grossHF (l : Lane) (L : IceLoop Lane) : (L.expire l).grossHF = L.grossHF := by
   obtain ⟨hd, hlt, -⟩ := expire_frame l L
-  unfold effHF; rw [expire_effColl, hd, hlt]
+  unfold grossHF; rw [expire_effColl, hd, hlt]
 
-theorem callback_effHF (l : Lane) (n : ℕ) (out : ℝ) (L : IceLoop Lane) :
-    (L.callback l n out).effHF = L.effHF := by
+theorem callback_grossHF (l : Lane) (n : ℕ) (out : ℝ) (L : IceLoop Lane) :
+    (L.callback l n out).grossHF = L.grossHF := by
   obtain ⟨hd, hlt, -⟩ := callback_frame l n out L
-  unfold effHF; rw [callback_effColl, hd, hlt]
+  unfold grossHF; rw [callback_effColl, hd, hlt]
 
-theorem reconcile_effHF (l : Lane) (L : IceLoop Lane) : (L.reconcile l).effHF = L.effHF := by
+theorem reconcile_grossHF (l : Lane) (L : IceLoop Lane) : (L.reconcile l).grossHF = L.grossHF := by
   obtain ⟨hd, hlt, -⟩ := reconcile_frame l L
-  unfold effHF; rw [reconcile_effColl, hd, hlt]
+  unfold grossHF; rw [reconcile_effColl, hd, hlt]
 
-theorem fill_fair_effHF (l : Lane) (out : ℝ) (L : IceLoop Lane) {i : Intent}
+theorem fill_fair_grossHF (l : Lane) (out : ℝ) (L : IceLoop Lane) {i : Intent}
     (hl : L.pending l = some i) (ho : L.outcome l = .inFlight) (hmin : i.minOut ≤ out)
-    (hfair : L.valueOut i out = L.valueIn i) : (L.fill l out).effHF = L.effHF := by
+    (hfair : L.valueOut i out = L.valueIn i) : (L.fill l out).grossHF = L.grossHF := by
   obtain ⟨hd, hlt, -⟩ := fill_frame l out L
-  unfold effHF
+  unfold grossHF
   rw [fill_effColl l out L hl ho hmin, hfair, hd, hlt, sub_add_cancel]
 
 /-- the HF the loop's math uses is never below Aave's: in-flight and idle HOLLAR only add. -/
-theorem aaveHF_le_effHF (L : IceLoop Lane) (hc : 0 ≤ L.cash) (hI : 0 ≤ L.inFlight)
-    (hlt : 0 ≤ L.lt) (hD : 0 < L.debt) : L.aaveHF ≤ L.effHF := by
-  unfold aaveHF effHF effColl holdings
+theorem aaveHF_le_grossHF (L : IceLoop Lane) (hc : 0 ≤ L.cash) (hI : 0 ≤ L.inFlight)
+    (hlt : 0 ≤ L.lt) (hD : 0 < L.debt) : L.aaveHF ≤ L.grossHF := by
+  unfold aaveHF grossHF effColl holdings
   apply div_le_div_of_nonneg_right _ hD.le
   apply mul_le_mul_of_nonneg_right _ hlt
   linarith
@@ -1230,9 +1234,9 @@ theorem ramp_equity (l : Lane) (a mo : ℝ) (L : IceLoop Lane) (hl : L.pending l
 
 /-- **The loop's HF in flight is the HF it gets on an oracle-fair fill**, so a de-lever decided while
 the entry is in flight matches the resolved position. -/
-theorem ramp_fill_effHF (l : Lane) (a mo out : ℝ) (L : IceLoop Lane) (hl : L.pending l = none)
+theorem ramp_fill_grossHF (l : Lane) (a mo out : ℝ) (L : IceLoop Lane) (hl : L.pending l = none)
     (hmin : mo ≤ out) (hfair : out * L.price = a) :
-    ((L.ramp l a mo).fill l out).effHF = (L.ramp l a mo).effHF := by
+    ((L.ramp l a mo).fill l out).grossHF = (L.ramp l a mo).grossHF := by
   have hl' : (L.borrow a).pending l = none := hl
   set i := (L.borrow a).nextIntent true a mo with hi
   have hR : L.ramp l a mo = (L.borrow a).submit l true a mo := ramp_idle l a mo L hl
@@ -1241,7 +1245,7 @@ theorem ramp_fill_effHF (l : Lane) (a mo out : ℝ) (L : IceLoop Lane) (hl : L.p
   have ho : (L.ramp l a mo).outcome l = .inFlight := by
     rw [hR, submit_idle l true a mo _ hl']; exact Function.update_self l _ _
   have hpr : (L.ramp l a mo).price = L.price := (ramp_book l a mo L hl).2.2.2.1
-  apply fill_fair_effHF l out _ hp ho hmin
+  apply fill_fair_grossHF l out _ hp ho hmin
   show (if true then out * (L.ramp l a mo).price else out) = (if true then a else a * (L.ramp l a mo).price)
   rw [if_pos rfl, if_pos rfl, hpr, hfair]
 
@@ -1258,41 +1262,41 @@ theorem ramp_aaveHF_lt (l : Lane) (a mo : ℝ) (L : IceLoop Lane) (hl : L.pendin
 /-! ### The de-lever precondition accounts for in-flight cash -/
 
 /-- **De-lever raises the loop's HF** when it is solvent counting debt-backed cash. -/
-theorem deLever_raises_effHF (a : ℝ) (L : IceLoop Lane) (h : L.deLeverOk a) :
-    L.effHF ≤ (L.deLever a).effHF := by
+theorem deLever_raises_grossHF (a : ℝ) (L : IceLoop Lane) (h : L.oracleSaleOk a) :
+    L.grossHF ≤ (L.deLever a).grossHF := by
   obtain ⟨hlt, hD, hδpos, hδlt, hsolvent⟩ := h
   have hDδ : 0 < L.debt - a * L.price := by linarith
-  unfold effHF
+  unfold grossHF
   rw [deLever_effColl, show (L.deLever a).lt = L.lt from rfl,
     show (L.deLever a).debt = L.debt - a * L.price from rfl]
   rw [le_div_iff₀ hDδ, div_mul_eq_mul_div, div_le_iff₀ hD]
   nlinarith [mul_nonneg (mul_nonneg hlt hδpos.le) (sub_nonneg.mpr hsolvent)]
 
-theorem submit_deLeverOk_iff (l : Lane) (e : Bool) (a mo d : ℝ) (L : IceLoop Lane)
-    (hl : L.pending l = none) : (L.submit l e a mo).deLeverOk d ↔ L.deLeverOk d := by
+theorem submit_oracleSaleOk_iff (l : Lane) (e : Bool) (a mo d : ℝ) (L : IceLoop Lane)
+    (hl : L.pending l = none) : (L.submit l e a mo).oracleSaleOk d ↔ L.oracleSaleOk d := by
   obtain ⟨hd, hlt, hpr⟩ := submit_frame l e a mo L
-  unfold deLeverOk; rw [submit_effColl l e a mo L hl, hd, hlt, hpr]
+  unfold oracleSaleOk; rw [submit_effColl l e a mo L hl, hd, hlt, hpr]
 
-theorem expire_deLeverOk_iff (l : Lane) (d : ℝ) (L : IceLoop Lane) :
-    (L.expire l).deLeverOk d ↔ L.deLeverOk d := by
+theorem expire_oracleSaleOk_iff (l : Lane) (d : ℝ) (L : IceLoop Lane) :
+    (L.expire l).oracleSaleOk d ↔ L.oracleSaleOk d := by
   obtain ⟨hd, hlt, hpr⟩ := expire_frame l L
-  unfold deLeverOk; rw [expire_effColl, hd, hlt, hpr]
+  unfold oracleSaleOk; rw [expire_effColl, hd, hlt, hpr]
 
-theorem callback_deLeverOk_iff (l : Lane) (n : ℕ) (out d : ℝ) (L : IceLoop Lane) :
-    (L.callback l n out).deLeverOk d ↔ L.deLeverOk d := by
+theorem callback_oracleSaleOk_iff (l : Lane) (n : ℕ) (out d : ℝ) (L : IceLoop Lane) :
+    (L.callback l n out).oracleSaleOk d ↔ L.oracleSaleOk d := by
   obtain ⟨hd, hlt, hpr⟩ := callback_frame l n out L
-  unfold deLeverOk; rw [callback_effColl, hd, hlt, hpr]
+  unfold oracleSaleOk; rw [callback_effColl, hd, hlt, hpr]
 
-theorem reconcile_deLeverOk_iff (l : Lane) (d : ℝ) (L : IceLoop Lane) :
-    (L.reconcile l).deLeverOk d ↔ L.deLeverOk d := by
+theorem reconcile_oracleSaleOk_iff (l : Lane) (d : ℝ) (L : IceLoop Lane) :
+    (L.reconcile l).oracleSaleOk d ↔ L.oracleSaleOk d := by
   obtain ⟨hd, hlt, hpr⟩ := reconcile_frame l L
-  unfold deLeverOk; rw [reconcile_effColl, hd, hlt, hpr]
+  unfold oracleSaleOk; rw [reconcile_effColl, hd, hlt, hpr]
 
-theorem fill_fair_deLeverOk_iff (l : Lane) (out d : ℝ) (L : IceLoop Lane) {i : Intent}
+theorem fill_fair_oracleSaleOk_iff (l : Lane) (out d : ℝ) (L : IceLoop Lane) {i : Intent}
     (hl : L.pending l = some i) (ho : L.outcome l = .inFlight) (hmin : i.minOut ≤ out)
-    (hfair : L.valueOut i out = L.valueIn i) : (L.fill l out).deLeverOk d ↔ L.deLeverOk d := by
+    (hfair : L.valueOut i out = L.valueIn i) : (L.fill l out).oracleSaleOk d ↔ L.oracleSaleOk d := by
   obtain ⟨hd, hlt, hpr⟩ := fill_frame l out L
-  unfold deLeverOk
+  unfold oracleSaleOk
   rw [fill_effColl l out L hl ho hmin, hfair, hd, hlt, hpr, sub_add_cancel]
 
 /-! ### Late callbacks -/
@@ -1587,17 +1591,17 @@ theorem onto_loopEquity (s : State) (L : IceLoop Lane) (hc : L.cash = 0) (hI : L
   ring
 
 theorem onto_subHF (s : State) (L : IceLoop Lane) (hc : L.cash = 0) (hI : L.inFlight = 0) :
-    (L.onto s).subHF = L.effHF := by
-  unfold effHF effColl holdings State.subHF onto
+    (L.onto s).subHF = L.grossHF := by
+  unfold grossHF effColl holdings State.subHF onto
   rw [hc, hI, add_zero, add_zero]
 
 theorem onto_deLever (s : State) (a : ℝ) (L : IceLoop Lane) :
     (L.deLever a).onto s = (L.onto s).deLever a := rfl
 
 /-- with nothing in flight and no idle cash the ICE-aware precondition is the original one. -/
-theorem deLeverOk_iff_valid (s : State) (a : ℝ) (L : IceLoop Lane) (hc : L.cash = 0)
-    (hI : L.inFlight = 0) : L.deLeverOk a ↔ (Op.deLever a).valid (L.onto s) := by
-  unfold deLeverOk effColl holdings
+theorem oracleSaleOk_iff_valid (s : State) (a : ℝ) (L : IceLoop Lane) (hc : L.cash = 0)
+    (hI : L.inFlight = 0) : L.oracleSaleOk a ↔ (Op.deLever a).valid (L.onto s) := by
+  unfold oracleSaleOk effColl holdings
   rw [hc, hI, add_zero, add_zero]
   rfl
 

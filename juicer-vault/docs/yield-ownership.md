@@ -121,7 +121,11 @@ shares `S` not yet harvested.
   wallet it also moves the units whose funded slice covers the rest, rounded up,
   together with their part of `S`, and emits a separate `Transfer` for that
   part. No third party's balance changes. More than `balanceOf` reverts
-  `ExceedsBalance`. Allowances apply to the full amount.
+  `ExceedsBalance`. Allowances are charged for the requested amount.
+  The [formal rounding investigation](../formal/ROUNDING.md) reproduces a transferFrom
+  allowance mismatch after a public fund donation: one requested base unit can debit more
+  displayed balance. Exact-amount behavior is an open implementation finding.
+
 - `earnedAssets(a)` values everything the holder's units own in collateral: the
   funded slice already in the balance plus the pending source part. The UI shows
   the pending part separately; it is an estimate that can still fall with source
@@ -234,7 +238,9 @@ source compatibility, settlement and invariant suites must also pass on the fina
 code. The removed underfunding views live on as the test helper
 `test/helpers/Deficit.sol`. The Lean `YieldShares`, `Allocation` and `Redemption`
 specs model the next version's balances, allocation and exit fold
-([formal](../formal/README.md)); bridge parity with the Solidity is still to run.
+([formal](../formal/README.md)). The 9 October [runtime comparison](../formal/SOLIDITY_PARITY.md)
+checks the current integer accounting and ICE calculations against Lean-generated cases;
+it does not prove full Solidity trace equivalence.
 
 The earlier exact-rational study and dated evidence below are historical design
 artifacts, not proof of this implementation:

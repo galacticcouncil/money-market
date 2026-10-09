@@ -1,0 +1,25 @@
+{
+  "revision": "bbe541fcd6b12b955d539539c3462c700b246dbc",
+  "reviewed": "2026-10-09",
+  "files": {
+    "src/CollateralVault.sol": "d6f6105ab443f6c8abedc0740ae10279b1e7d3781865ea8cbf236afe31efbe48",
+    "src/JuicerYieldAccounting.sol": "41736f584a1f11f47e4741fc0ab01004a998ac5663f1a8a8788ef776adcbe6bf",
+    "src/SubLoop.sol": "5c093e647931ba86fe52abec2186ca1bde61ea722fdc7495049c1f2fb8b7fa60",
+    "src/lib/SubLoopLogic.sol": "cdf07a56716c0a0bc1c512a342e0c8eba2fc4cbd3c3474b29dd9088ed910971d",
+    "src/lib/CompoundLogic.sol": "61f8adbe7418b176a93cc8cde8a9266f54de959a9d24c47a0dd9102b704d0d16",
+    "../tasks/proposals/juicer.ts": "58287705edd8c60a2a4903f85cb1d10cf8555ebb9d63c218ebf9b5bda9fcc5f1",
+    "formal/JuicerLean/FixedPoint/Runtime.lean": "a10a2fd192ebc79774a874600e0d729b25f42d53527c28d5f0dc1948d5031223",
+    "formal/ParityVectors.lean": "d05ad4c785e87a7f521963823d2404e5ae1ed7b1636fccd17712aee755246e5e",
+    "src/JuicerMainDebt.sol": "cb2f2871c88aa961d3aa58ad428f331fa371d9d9d1dfccbf27bf4aa08b3f0acd",
+    "src/ExecutionController.sol": "366f772053f3ca697c435f75cc3b9bcf1b9dd89002773d821f6783763d49238f",
+    "src/JuicerFeeController.sol": "4e8a224bf487db00cdd7e70f92e2552aed847b0bcfee885cc4ea282c3ba3f729",
+    "formal/CoverageVectors.lean": "b2e9074bc566d2c77737bee2e1f3697e9f1fb682587309053a776f84e97a8d9b",
+    "formal/JuicerLean/FixedPoint/Environment.lean": "f9c35979c615ca1d022b0057b0255be0c6e7d8595632c3e4127af920b4d86d26",
+    "formal/JuicerLean/FixedPoint/PolicyQueue.lean": "bea4695c06524545c7464c324fd90a2cde1a93852a35049ccf49127e036b7fae",
+    "formal/JuicerLean/FixedPoint/MainDebt.lean": "6ae916e511086e0101ab5a7538ce518852773da10ec7bbef571384271cf6c4c8",
+    "formal/JuicerLean/FixedPoint/YieldTransitions.lean": "129f00bf25088dbffda05caf3f8e89520e0155f02c09d1a847e5f6458202cb12",
+    "formal/JuicerLean/FixedPoint/Rounding.lean": "62ad34f6cce495fc71452aa0949fb5e08aafcb181835445f7480835bd14e8566",
+    "formal/JuicerLean/FixedPoint/Refine.lean": "44ec6af779aed000896b62187e2ead42c9771eed7b2ae225a83410e2ff18d315",
+    "formal/JuicerLean/FixedPoint/Uint256.lean": "9906627844c8e5ffbbaa521cf6f6c7a1f5eab7af798926025c4aa3711671c84a"
+  }
+}

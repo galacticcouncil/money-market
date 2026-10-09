@@ -10,8 +10,8 @@ The "never liquidated" guarantee, machine-checked:
   `p ≥ 0`, including `p = 0` (collateral crash to zero).
 * `peg_floored` — the spec's mint rule (`synth·LTsynth = mainDebt·k`, `k ≥ 1`)
   establishes `principalFloored`; `k = 1.005` is the spec's buffer.
-* `synth_adds_no_borrow_power` / `borrow_indep_of_synth` — the synthetic (LTV 0)
-  grants zero borrow capacity (`noSynthBorrow`, the no-money-printing guard).
+* `synth_adds_no_borrow_power` / `borrow_indep_of_synth` — the vault excludes synthetic
+  from its borrowing budget, even though Aave grants it nonzero borrow capacity.
 -/
 
 namespace Juicer
@@ -48,7 +48,7 @@ theorem never_liquidated_at_any_price
         ltSynth_pos    := wf.ltSynth_pos
         synth_nonneg   := wf.synth_nonneg
         mainDebt_pos   := wf.mainDebt_pos
-        ltvSynth_zero  := wf.ltvSynth_zero }
+        ltvSynth_nonneg  := wf.ltvSynth_nonneg }
   · -- principalFloored is unaffected by price
     simpa [principalFloored] using h
 
@@ -61,20 +61,16 @@ theorem peg_floored (s : State) (k : ℝ) (hk : 1 ≤ k)
   rw [hpeg]
   nlinarith [hd, hk]
 
-/-- **noSynthBorrow.** With the synthetic configured at LTV 0, borrow capacity is
-exactly the real collateral's — the synthetic adds none. -/
-theorem synth_adds_no_borrow_power (s : State) (wf : WellFormed s) :
-    s.borrowCapacity = s.coll * s.price * s.ltvColl := by
-  unfold borrowCapacity
-  rw [wf.ltvSynth_zero]
-  ring
+/-- the vault's budget excludes synthetic; `invariant_noSynthBorrow` separately checks zero synthetic debt. -/
+theorem synth_adds_no_borrow_power (s : State) (_wf : WellFormed s) :
+    s.borrowCapacity = s.coll * s.price * s.ltvColl := rfl
 
-/-- Stronger form: borrow capacity does not depend on the synthetic amount at all —
-minting more synthetic can never unlock more borrowing (kills the circular-mint exploit). -/
-theorem borrow_indep_of_synth (s : State) (wf : WellFormed s) (x : ℝ) :
-    ({s with synth := x} : State).borrowCapacity = s.borrowCapacity := by
-  unfold borrowCapacity
-  rw [wf.ltvSynth_zero]
+theorem borrow_indep_of_synth (s : State) (_wf : WellFormed s) (x : ℝ) :
+    ({s with synth := x} : State).borrowCapacity = s.borrowCapacity := rfl
+
+theorem aave_synthetic_borrow_power (s : State) :
+    s.aaveBorrowCapacity - s.borrowCapacity = s.synth * s.ltvSynth := by
+  unfold aaveBorrowCapacity
   ring
 
 end State
