@@ -5,6 +5,8 @@
 import assert from 'node:assert/strict';
 import {join} from 'node:path';
 const SIGNERS={markets:'//Alice//propeller-20261005-arb',pools:'//Alice//propeller-20261007-pools',replay:'//Alice//propeller-20261007-replay'};
+// the next version's parameters, as the mainnet proposal sets them (next-governance.ts)
+export const NEXT_PARAMS={harvestThreshold:2n*10n**14n,reserve:1000n*10n**18n};
 const BOTS={mirror:{BOT_INTERVAL_MS:'30000'},markets:{BOT_INTERVAL_MS:'5000',PEG_BAND_BPS:'0.5'},pools:{BOT_INTERVAL_MS:'30000'},replay:{BOT_INTERVAL_MS:'6000'}};
 export const PROFILES={
  // the 7 october mainnet fork, #62 contracts; its operations keep running from here

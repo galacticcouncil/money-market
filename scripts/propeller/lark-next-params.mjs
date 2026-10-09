@@ -3,8 +3,8 @@
 // PRIME lanes at 1,000 a trade come from lark-prime-throughput.mjs. Lark 4 keeps its own.
 import assert from 'node:assert/strict';
 import {context,artifact,v,GOV,HOLLAR,live} from './lark-context.mjs';
-import {profile} from './lark-pins.mjs';
-const THRESHOLD=2n*10n**14n,RESERVE=1000n*10n**18n,LABEL='next-version-parameters';
+import {profile,NEXT_PARAMS} from './lark-pins.mjs';
+const THRESHOLD=NEXT_PARAMS.harvestThreshold,RESERVE=NEXT_PARAMS.reserve,LABEL='next-version-parameters';
 assert.ok(!profile.legacy,`${profile.name} keeps the parameters of its #62 contracts`);
 const c=await context();
 try{

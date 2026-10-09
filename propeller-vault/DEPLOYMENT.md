@@ -96,7 +96,7 @@ revert. Verify all settings explicitly.
 ## 3. Generate and Rehearse Governance Wiring
 
 The [proposal task](../tasks/proposals/propeller.ts) generates preimages, not an
-automatic approved deployment. Its four ordered groups are:
+automatic approved deployment. Its ordered groups are:
 
 | Group                | Purpose                                                                                                                             |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -104,9 +104,14 @@ automatic approved deployment. Its four ordered groups are:
 | 1: list reserve      | Register the synthetic native asset before initializing its Aave reserve.                                                           |
 | 2: configure reserve | Apply approved synthetic collateral settings, disable borrowing and install the $1 source.                                          |
 | 3: wire              | Source/vault/harvester roles, tranches, route IDs, swapper, compound floor, withdrawal delay, guardians and funded rounding policy. |
+| 4: next version      | `PROPELLER_KEEPERS` get SubLoop `KEEPER_ROLE` (quoted pokes) and each vault's `DEPOSIT_GUARDIAN_ROLE` (`setDeficitStop` only; pause stays with governance and the committee); `setParams` with `PROPELLER_HARVEST_THRESHOLD` (default 2e14) keeping the other three; `configureIntents` (`PROPELLER_INTENT_TTL` seconds, default 300; `PROPELLER_INTENT_DRIFT_BPS`, default 2) and `configureAsync` on the loop's entry and unwind lanes of `PROPELLER_EXECUTION_CONTROLLER`, which must already carry their limits. |
+| 5: protocol reserve  | Optional: `fundReserve` of `PROPELLER_RESERVE_HOLLAR` on each Main ledger, from the governance caller's own HOLLAR (`PROPELLER_RESERVE_SOURCE=admin`, prefunded) or minted from its facilitator bucket (`mint`). |
 
-Main-ledger binding, fee installation and discount installation must also be
-verified; do not assume these four groups include every external prerequisite.
+Groups 4 and 5 read the deployed contracts and emit only missing calls; they
+refuse contracts without the next version's surface. Main-ledger binding, fee
+installation, discount installation and the execution controller's budgets and
+lanes must also be verified; do not assume these groups include every external
+prerequisite.
 Splitting the batches avoids the historically observed scheduler weight limit,
 but each final batch still needs current weight and execution checks.
 
@@ -159,7 +164,10 @@ Keep public deposits closed throughout rehearsal and bootstrap.
 Use the complete environment documented at the top of
 [verify-readiness.ts](../scripts/propeller/verify-readiness.ts). It includes fee
 and discount controllers/recipient/committee, explicit discount/slippage values
-and the rounding policy, not just vault addresses.
+and the rounding policy, not just vault addresses. The group 4 and 5 inputs
+(`PROPELLER_KEEPERS`, `PROPELLER_HARVEST_THRESHOLD`, `PROPELLER_INTENT_TTL`,
+`PROPELLER_INTENT_DRIFT_BPS`, `PROPELLER_RESERVE_HOLLAR`) add their checks,
+including that no keeper can pause or administer a vault.
 
 ```sh
 npx ts-node --transpile-only --compiler-options '{"module":"commonjs"}' scripts/propeller/verify-readiness.ts

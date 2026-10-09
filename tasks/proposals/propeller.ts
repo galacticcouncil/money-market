@@ -22,6 +22,7 @@ import {
 import ProposalDecoder from "../../helpers/proposal-decoder";
 import { parseRoundingPolicies } from "../../propeller-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "../../scripts/propeller/rounding-native";
+import { NEXT, readNextState, nextCalls, reserveCalls } from "../../scripts/propeller/next-governance";
 
 // Fixed $1 oracle (reused for the synthetic — it is pegged $1 by design, like HOLLAR).
 const GHO_ORACLE_ADDRESS = "0x6096C9D71F7c06024578a62F4B608a1Bb06834F8";
@@ -501,6 +502,71 @@ task(
   }
 
   // ═════════════════════════════════════════════════════════════════════════
+  // BATCH 4 — next version: keeper roles, harvest threshold, ICE
+  // ═════════════════════════════════════════════════════════════════════════
+  // Keepers get SubLoop KEEPER_ROLE (quoted pokes) and each vault's DEPOSIT_GUARDIAN_ROLE,
+  // which gates only setDeficitStop; pause stays with governance and the committee.
+  // configureAsync reverts on a lane without a limit, so the execution lanes come first.
+  const keepers = (process.env.PROPELLER_KEEPERS || "").split(",").map((k) => k.trim()).filter(Boolean);
+  const controller = await resolve("PROPELLER_EXECUTION_CONTROLLER", "ExecutionController-Propeller");
+  const nextState = subLoop && vaults.length
+    ? await readNextState(hre.ethers.provider, { subLoop, vaults, controller, keepers })
+    : undefined;
+  let batch4: any[] = [];
+  if (nextState && controller && keepers.length) {
+    const expected = {
+      keepers,
+      harvestThreshold: process.env.PROPELLER_HARVEST_THRESHOLD || NEXT.harvestThreshold,
+      intentTtl: Number(process.env.PROPELLER_INTENT_TTL ?? NEXT.intentTtl),
+      intentDriftBps: Number(process.env.PROPELLER_INTENT_DRIFT_BPS ?? NEXT.intentDriftBps),
+    };
+    for (const call of nextCalls(nextState, expected)) {
+      console.log(`[4] ${call.label}`);
+      evm(call.to, call.data);
+    }
+    batch4 = await Promise.all(getBatch().map((tx) => aaveManagerCall({ ...tx, from: admin })));
+    clearBatch();
+  } else {
+    console.log(
+      "[4] skipped — set PROPELLER_KEEPERS and PROPELLER_EXECUTION_CONTROLLER (with the loop and vaults) for keeper roles, the harvest threshold and ICE"
+    );
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // BATCH 5 — protocol reserve (optional)
+  // ═════════════════════════════════════════════════════════════════════════
+  // PROPELLER_RESERVE_HOLLAR per vault, paid by the governance EVM caller: from its own
+  // HOLLAR (PROPELLER_RESERVE_SOURCE=admin, prefunded) or minted from its facilitator (mint).
+  let batch5: any[] = [];
+  if (process.env.PROPELLER_RESERVE_HOLLAR) {
+    if (!nextState) throw new Error("the reserve batch needs PROPELLER_SUBLOOP and PROPELLER_VAULTS");
+    const source = process.env.PROPELLER_RESERVE_SOURCE || "admin";
+    if (!["admin", "mint"].includes(source)) throw new Error("PROPELLER_RESERVE_SOURCE is admin or mint");
+    if (nextState.vaults.some((v) => v.protocolReserve === undefined)) throw new Error("Main ledgers without protocolReserve: not the next version");
+    const hollar = await (await hre.ethers.getContractAt(["function hollar() view returns (address)"], subLoop)).hollar();
+    const token = await hre.ethers.getContractAt([
+      "function balanceOf(address) view returns (uint256)",
+      "function getFacilitator(address) view returns ((uint128,uint128,string))",
+    ], hollar);
+    const facilitator = source === "mint" ? await token.getFacilitator(admin) : undefined;
+    for (const call of reserveCalls({
+      hollar,
+      payer: admin,
+      ledgers: nextState.vaults.map((v) => ({ address: v.mainDebt, held: v.protocolReserve })),
+      amount: utils.parseUnits(process.env.PROPELLER_RESERVE_HOLLAR, 18),
+      payerBalance: await token.balanceOf(admin),
+      mint: facilitator && { capacity: facilitator[0], level: facilitator[1] },
+    })) {
+      console.log(`[5] ${call.label}`);
+      evm(call.to, call.data);
+    }
+    batch5 = await Promise.all(getBatch().map((tx) => aaveManagerCall({ ...tx, from: admin })));
+    clearBatch();
+  } else {
+    console.log("[5] skipped — set PROPELLER_RESERVE_HOLLAR to fund each Main ledger's protocol reserve");
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
   // Emit one preimage per batch
   // ═════════════════════════════════════════════════════════════════════════
   const decoder = new ProposalDecoder(hre);
@@ -522,6 +588,8 @@ task(
   await emit("BATCH 1 — list-reserve", batch1);
   await emit("BATCH 2 — configure", batch2);
   await emit("BATCH 3 — wire", batch3);
+  await emit("BATCH 4 — keepers, threshold, ICE", batch4);
+  await emit("BATCH 5 — protocol reserve", batch5);
 
   console.log(`
 Submit each batch as its own Root referendum, IN ORDER. They are split because
@@ -533,7 +601,12 @@ router falls back to Omnipool, which cannot service PRIME, and EVERY harvest
 reverts — Harvester.harvest calls compound(…, "") with an empty route, so the
 path is resolved on-chain, not by the caller.
 
-After enactment, run scripts/propeller/verify-readiness.ts before announcing —
+BATCH 4 needs the loop's execution lanes configured: configureAsync reverts on a lane
+without a limit. BATCH 5 is optional and needs its HOLLAR in place first.
+
+After enactment, run scripts/propeller/verify-readiness.ts before announcing (with
+PROPELLER_KEEPERS, PROPELLER_HARVEST_THRESHOLD, PROPELLER_INTENT_TTL and
+PROPELLER_RESERVE_HOLLAR it also checks batches 4 and 5) —
 dispatcher.dispatchAsAaveManager reports EVM reverts as ExecutedFailed EVENTS,
 not extrinsic failures, so a batch can "succeed" with calls silently reverted.
 `);

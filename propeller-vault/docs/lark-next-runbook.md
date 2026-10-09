@@ -135,5 +135,7 @@ signers and labels. Its manifest and stack regenerate byte for byte; the stack
 was checked against the deployed file. Lark 4 keeps its digest-pinned images,
 and a new bot image also runs on its v3 manifest.
 
-Tests: `node --test scripts/propeller/lark-*.test.mjs` and, in
-`propeller-vault/lark-bots`, `npm test`.
+Tests: `node --test scripts/propeller/lark-*.test.mjs`; in
+`propeller-vault/lark-bots`, `npm test`; and for the shared mainnet governance
+helper, `node --import ./propeller-vault/looper/node_modules/tsx/dist/loader.mjs
+--test scripts/propeller/next-governance.test.ts`.

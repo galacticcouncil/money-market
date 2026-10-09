@@ -25,11 +25,15 @@
 //
 // Optional: PROPELLER_SWAPPER, PROPELLER_GUARDIAN, PROPELLER_LOOPER,
 //           PROPELLER_SYNTH_ASSET_ID, PROPELLER_WITHDRAWAL_DELAY (seconds; default 43200), POOL.
+// Next version (each adds its checks only when set): PROPELLER_KEEPERS (comma list),
+//           PROPELLER_HARVEST_THRESHOLD (WAD), PROPELLER_INTENT_TTL (seconds),
+//           PROPELLER_INTENT_DRIFT_BPS, PROPELLER_RESERVE_HOLLAR (per vault).
 
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { ethers } from "ethers";
 import { parseRoundingPolicies } from "../../propeller-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "./rounding-native";
+import { readNextState, nextChecks } from "./next-governance";
 
 const WS = process.env.WS_URL || "wss://hdx.tarn.hydration.cloud";
 const RPC = process.env.RPC_URL || "https://hdx.tarn.hydration.cloud";
@@ -54,6 +58,14 @@ const SYNTH_ASSET_ID = Number(process.env.PROPELLER_SYNTH_ASSET_ID || 5550);
 const POOL = process.env.POOL || "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38";
 const GOV = "0xaa7e0000000000000000000000000000000aa7e0";
 const ROUNDING = parseRoundingPolicies(req("PROPELLER_ROUNDING_RESERVES"), VAULTS);
+const KEEPERS = (process.env.PROPELLER_KEEPERS || "").split(",").map((k) => k.trim()).filter(Boolean);
+const NEXT_EXPECTED = {
+  ...(KEEPERS.length ? { keepers: KEEPERS } : {}),
+  ...(process.env.PROPELLER_HARVEST_THRESHOLD ? { harvestThreshold: process.env.PROPELLER_HARVEST_THRESHOLD } : {}),
+  ...(process.env.PROPELLER_INTENT_TTL ? { intentTtl: Number(process.env.PROPELLER_INTENT_TTL) } : {}),
+  ...(process.env.PROPELLER_INTENT_DRIFT_BPS ? { intentDriftBps: Number(process.env.PROPELLER_INTENT_DRIFT_BPS) } : {}),
+  ...(process.env.PROPELLER_RESERVE_HOLLAR ? { reserve: ethers.utils.parseUnits(process.env.PROPELLER_RESERVE_HOLLAR, 18) } : {}),
+};
 
 for (const address of [SYNTH, SUBLOOP, HARVESTER, EXECUTION, FEES, FEE_RECIPIENT, DISCOUNT, COMMITTEE, POOL, ...VAULTS]) {
   if (!ethers.utils.isAddress(address) || eq(address, ethers.constants.AddressZero)) {
@@ -743,6 +755,14 @@ async function main() {
     }
   });
 
+  if (Object.keys(NEXT_EXPECTED).length) {
+    const group = "N. Next version: keepers, threshold, ICE, reserve";
+    await section(group, async () => {
+      const state = await readNextState(provider, { subLoop: SUBLOOP, vaults: VAULTS, controller: EXECUTION, keepers: KEEPERS });
+      for (const check of nextChecks(state, NEXT_EXPECTED)) add(group, check.name, check.ok, check.detail);
+    });
+  }
+
   // ===================================================================
   // I. Keeper
   // ===================================================================
@@ -750,7 +770,7 @@ async function main() {
     await section("I. Keeper", async () => {
       const bal = await sread(() => provider.getBalance(LOOPER));
       add("I. Keeper", "looper has gas", !!bal && bal.gt(ethers.utils.parseUnits("0.1", 18)), bal ? ethers.utils.formatUnits(bal, 18) : "read failed");
-      add("I. Keeper", "looper holds NO role (pokes are permissionless)", (await sread(() => loopC.hasRole(ROLE("ADMIN_ROLE"), LOOPER))) === false);
+      add("I. Keeper", "looper is no admin (only quoted pokes need a role)", (await sread(() => loopC.hasRole(ROLE("ADMIN_ROLE"), LOOPER))) === false);
     });
   }
 
