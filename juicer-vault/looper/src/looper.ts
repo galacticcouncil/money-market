@@ -319,7 +319,9 @@ export class JuicerLooper {
       const credit = (deployment.has(vault) || harvested) && safetyDebt === 0n;
       if ((credit || (this.cycle % CONFIG.SLOW_EVERY === 0 && !servicing))
           && turn && !paused && !emergency && !frozen.has(vault)) {
-        const changed = await this.poke(VAULT_ABI, vault, 'rebalance', `deploy/rebalance ${short(vault)}`);
+        // in intent mode the borrow waits in the loop as cash and no trade is quoted: through
+        // controller.execute an unquoted entry lane fits nothing, so rebalance goes direct
+        const changed = await this.poke(VAULT_ABI, vault, 'rebalance', `deploy/rebalance ${short(vault)}`, [], ttl !== 0);
         rebalanced ||= changed;
       }
     }
