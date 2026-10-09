@@ -23,17 +23,20 @@ try{
   r.depositor={users,plan};save();
  }
  const {users,plan}=r.depositor;
- // a mint above the fuse headroom is parked as reserved balance and locks the asset
+ // a mint above the fuse headroom is parked as reserved balance and locks the asset; a fresh
+ // fork's window can be fuller than the plan allows, so lark raises that fuse first
+ const raises=[];
  for(const [id,amount] of [...plan.map(p=>[p.assetId,BigInt(p.total)]),[20,BigInt(USERS)*2n*10n**17n]]){
   const limit=(await api.query.assetRegistry.assets(id)).unwrap().xcmRateLimit.unwrapOr(null)?.toBigInt();
   const state=(await api.query.circuitBreaker.assetLockdownState(id)).unwrapOr(null);
   if(limit===undefined||!state)continue;
   assert.ok(state.isUnlocked,`${id} is in lockdown`);
   const used=(await api.query.tokens.totalIssuance(id)).toBigInt()-state.asUnlocked[1].toBigInt();
-  assert.ok(amount<=limit-used,`${id}: ${amount} exceeds fuse headroom ${limit-used}`);
+  if(amount>limit-used)raises.push(api.tx.assetRegistry.update(id,null,null,null,(used+2n*amount).toString(),null,null,null,null));
  }
  const capAbi=v.parseAbi(['function setTvlCap(uint256)']);
  await enact('depositor-setup',[
+  ...raises,
   ...r.vaults.map(x=>govEvm(x.address,capAbi,'setTvlCap',[CAP[x.name]],500000)),
   ...users.flatMap((u,i)=>[api.tx.duster.whitelistAccount(u.who),
    api.tx.currencies.updateBalance(u.who,0,(10n*10n**12n).toString()),
