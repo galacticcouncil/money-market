@@ -11,13 +11,13 @@ const BTC = '0x00000000000000000000000000000000000000b7';
 const TARGET = 1050000000000000000n;
 const DEBT = 10_000n * 10n ** 18n;
 
-type VaultState = { deficit: bigint; unallocated: boolean; stop: boolean; frozen: boolean };
+type VaultState = { deficit: bigint; grossUp: bigint; unallocated: boolean; stop: boolean; frozen: boolean };
 
 // one chain shared by every keeper instance
 function chain(names: Address[] = [ETH, BTC]) {
   const c = {
     carry: 0n as bigint | Error,
-    vaults: Object.fromEntries(names.map(v => [v, {deficit: 0n, unallocated: false, stop: false, frozen: false}])) as
+    vaults: Object.fromEntries(names.map(v => [v, {deficit: 0n, grossUp: 0n, unallocated: false, stop: false, frozen: false}])) as
       Record<Address, VaultState>,
     calls: [] as string[],
     denied: new Set<string>(),
@@ -36,7 +36,7 @@ function keeper(c: Chain, name: 'k0' | 'k1', index: number) {
     const [tag, vault] = address.split(':') as [string, Address | undefined];
     const v = c.vaults[(vault ?? address) as Address];
     const views: Record<string, () => unknown> = {
-      healthFactor: () => 2n * TARGET, targetHf: () => TARGET, unwindTargetEquity: () => 0n, deleverDebtTarget: () => 0n,
+      effectiveHealthFactor: () => 2n * TARGET, targetHf: () => TARGET, unwindTargetEquity: () => 0n, deleverDebtTarget: () => 0n,
       emergencyPaused: () => false, pendingUnwindOf: () => 0n,
       negativeCarryBps: () => { if (c.carry instanceof Error) throw c.carry; return c.carry; },
       equityOf: () => (10_000n - c.vaults[args[0] as Address].deficit) * 10n ** 8n,
@@ -46,6 +46,8 @@ function keeper(c: Chain, name: 'k0' | 'k1', index: number) {
       activePosition: () => { assert.equal(tag, 'L'); return [DEBT, DEBT, 0n]; },
       activeFunds: () => 0n, pendingSourceAccounting: () => v.unallocated,
       sourceValue: () => { assert.equal(tag, 'A'); return 0n; },
+      // debt less active cash, plus the protocol fee on interest that only yield can still pay
+      requiredSourceBacking: () => { assert.equal(tag, 'A'); return DEBT + v.grossUp; },
       // governance's own pause; keepers must neither read nor touch it
       depositsPaused: () => assert.fail('the keeper read depositsPaused'),
     };
@@ -84,14 +86,18 @@ async function run(c: Chain, k: any, duty = true) {
   return {calls: c.calls, alerts};
 }
 
-test('deficit math: shortfall of active Main debt over its source backing, rounded up', () => {
-  assert.equal(vaultDeficitBps(0n, 0n, 0n, 0n), 0n);
-  assert.equal(vaultDeficitBps(DEBT, 9_950n * 10n ** 8n, 0n, 0n), 50n);
+test('deficit math: the larger of the uncovered debt and the grossed-up requirement, rounded up', () => {
+  const e18 = 10n ** 18n;
+  assert.equal(vaultDeficitBps(0n, 0n, 0n, 0n, 0n), 0n);
+  assert.equal(vaultDeficitBps(DEBT, 9_950n * 10n ** 8n, 0n, 0n, DEBT), 50n);
   // reward value is not backing; active cash is
-  assert.equal(vaultDeficitBps(DEBT, 10_000n * 10n ** 8n, 60n * 10n ** 18n, 10n * 10n ** 18n), 50n);
-  assert.equal(vaultDeficitBps(DEBT, 9_950n * 10n ** 8n, 0n, 1n), 50n, 'a wei short still counts');
-  assert.equal(vaultDeficitBps(DEBT, 0n, 1n, 0n), 10_000n);
-  assert.equal(vaultDeficitBps(DEBT, 20_000n * 10n ** 8n, 0n, 0n), 0n);
+  assert.equal(vaultDeficitBps(DEBT, 10_000n * 10n ** 8n, 60n * e18, 10n * e18, DEBT - 10n * e18), 50n);
+  assert.equal(vaultDeficitBps(DEBT, 9_950n * 10n ** 8n, 0n, 1n, DEBT - 1n), 50n, 'a wei short still counts');
+  // fully backed debt can still lack the fee its unpaid interest owes out of yield
+  assert.equal(vaultDeficitBps(DEBT, 10_000n * 10n ** 8n, 0n, 0n, DEBT + 30n * e18), 30n);
+  assert.equal(vaultDeficitBps(DEBT, 10_000n * 10n ** 8n, 0n, 0n, DEBT), 0n);
+  assert.ok(vaultDeficitBps(DEBT, 0n, 1n, 0n, DEBT) > 10_000n);
+  assert.equal(vaultDeficitBps(DEBT, 20_000n * 10n ** 8n, 0n, 0n, DEBT), 0n);
 });
 
 test('hysteresis: above 50 stops, below 25 resumes, the band keeps the current flag', () => {
@@ -118,6 +124,12 @@ test('a deficit above the stop halts the ramp and sets the flags on any operator
   const again = await run(c, k);
   assert.deepEqual(again.calls, [], 'no ramp, and no transaction for a flag that is already set');
   assert.deepEqual(again.alerts, []);
+});
+
+test('the fee gross-up alone can stop a vault whose debt is otherwise backed', async () => {
+  const c = chain([ETH]);
+  c.vaults[ETH].grossUp = 60n * 10n ** 18n;
+  assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, ['k0:setDeficitStop:eth(true)']);
 });
 
 test('a single vault deficit sets only that vault\'s flag but stops the shared ramp', async () => {

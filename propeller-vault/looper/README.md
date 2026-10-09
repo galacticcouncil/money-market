@@ -50,7 +50,7 @@ and records the exact artifact, receipt and remaining transaction headroom.
 Each cycle (`POLL_INTERVAL_MS`, default 30s):
 
 ```
-read source HF, repayment targets, route pause and emergency freeze
+read source HF (effectiveHealthFactor), repayment targets, route pause and emergency freeze
   low HF                                  -> schedule safety repayment first
 read each vault's pause, queue cursors and Main repayment target
   waiting request eligible by chain timestamp -> startUnwinds(8)
@@ -72,6 +72,10 @@ then, for each vault:
 independent read loop, including during slow writes/receipt waits:
   source HF, synthetic coverage, Main interest, stale RPC, stuck receipts
 ```
+
+Health-factor decisions (the de-lever trigger, the ramp floor and the HF alert)
+use `effectiveHealthFactor()`: Aave's own HF dips while an entry's HOLLAR is in
+flight as an intent, and the effective one nets that HOLLAR against the debt.
 
 No on-chain readiness flag gates the keeper: Main debt ledgers no longer expose
 `ready()`. An unreadable vault queue still blocks new source ramping without
@@ -154,10 +158,12 @@ Underfunding is checked by the keeper, not by the contracts. Each cycle it reads
 two deficits, both in bps:
 
 - source: `negativeCarryBps()`, principal equity against live equity;
-- vault: active Main debt (`activePosition`) not covered by
-  `equityOf(vault) − sourceValue() + activeFunds()`, rounded up. While source
-  proceeds are unallocated (`pendingSourceAccounting`) `activeFunds` is stale,
-  so that view is skipped until `pokeSettle` has run.
+- vault: with backing = `equityOf(vault) − sourceValue()`, the larger of the
+  active Main debt (`activePosition`) not covered by backing plus
+  `activeFunds()`, and `requiredSourceBacking()` (which grosses up the protocol
+  fee on unpaid interest) minus backing, in bps of the debt, rounded up. While
+  source proceeds are unallocated (`pendingSourceAccounting`) `activeFunds` is
+  stale, so that view is skipped until `pokeSettle` has run.
 
 A vault's level is the larger of the two. Each vault has a `deficitStop` flag
 that only `DEPOSIT_GUARDIAN_ROLE`, held by the keepers, can set; deposits revert

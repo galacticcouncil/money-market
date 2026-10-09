@@ -1,10 +1,12 @@
-// active Main debt not covered by equityOf − sourceValue + activeFunds, in bps of the debt, rounded up
-export function vaultDeficitBps(debt: bigint, equityUsd8: bigint, sourceValue: bigint, activeFunds: bigint): bigint {
+// backing = equityOf·1e10 − sourceValue; the shortfall is the larger of the debt left after active
+// funds and the fee-grossed-up requirement, in bps of the debt, rounded up
+export function vaultDeficitBps(debt: bigint, equityUsd8: bigint, sourceValue: bigint, activeFunds: bigint,
+  required: bigint): bigint {
   if (debt <= 0n) return 0n;
-  const backing = equityUsd8 * 10n ** 10n - sourceValue + activeFunds;
-  if (backing >= debt) return 0n;
-  const shortfall = debt - (backing > 0n ? backing : 0n);
-  return (shortfall * 10_000n + debt - 1n) / debt;
+  const backing = equityUsd8 * 10n ** 10n - sourceValue;
+  const uncovered = debt - backing - activeFunds, unbacked = required - backing;
+  const shortfall = uncovered > unbacked ? uncovered : unbacked;
+  return shortfall <= 0n ? 0n : (shortfall * 10_000n + debt - 1n) / debt;
 }
 
 // above stop stops, below resume resumes; the band in between keeps the current flag

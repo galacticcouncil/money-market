@@ -24,7 +24,7 @@ const hydration: Chain = {
 };
 
 const SUBLOOP_ABI = [
-  view('healthFactor', 'uint256'),
+  view('effectiveHealthFactor', 'uint256'), // aave's HF without the dip of an entry in flight
   view('targetHf', 'uint256'),
   view('deleverDebtTarget', 'uint256'),
   view('unwindTargetEquity', 'uint256'),
@@ -84,7 +84,10 @@ const LEDGER_ABI = parseAbi([
   'function claimSurplus(uint256 id) returns (uint256)',
 ]);
 
-const ACCOUNTING_ABI = parseAbi(['function sourceValue() view returns (uint256)']);
+const ACCOUNTING_ABI = parseAbi([
+  'function sourceValue() view returns (uint256)',
+  'function requiredSourceBacking() view returns (uint256)',
+]);
 
 // keepers hold DEPOSIT_GUARDIAN_ROLE for it; deposits revert while it is set
 const DEFICIT_STOP_ABI = parseAbi(['function setDeficitStop(bool stopped)']);
@@ -178,7 +181,7 @@ export class PropellerLooper {
     console.log(`\n[${new Date().toISOString()}] maintainer cycle #${this.cycle}`);
 
     const [hf, target, unwind, safetyDebt, paused, emergency] = (await Promise.all([
-      this.read(SUBLOOP_ABI, this.subLoop, 'healthFactor'),
+      this.read(SUBLOOP_ABI, this.subLoop, 'effectiveHealthFactor'),
       this.read(SUBLOOP_ABI, this.subLoop, 'targetHf'),
       this.read(SUBLOOP_ABI, this.subLoop, 'unwindTargetEquity'),
       this.read(SUBLOOP_ABI, this.subLoop, 'deleverDebtTarget'),
@@ -388,17 +391,18 @@ export class PropellerLooper {
         const [ledger, accounting] = await Promise.all([
           this.read(VAULT_ABI, vault, 'mainDebt'), this.read(VAULT_ABI, vault, 'yieldAccounting'),
         ]) as [Address, Address];
-        const [flag, position, funds, unallocated, equity, sourceValue] = await Promise.all([
+        const [flag, position, funds, unallocated, equity, sourceValue, required] = await Promise.all([
           this.read(VAULT_ABI, vault, 'deficitStop'),
           this.read(LEDGER_ABI, ledger, 'activePosition'),
           this.read(LEDGER_ABI, ledger, 'activeFunds'),
           this.read(LEDGER_ABI, ledger, 'pendingSourceAccounting'),
           this.read(SUBLOOP_ABI, this.subLoop, 'equityOf', [vault]),
           this.read(ACCOUNTING_ABI, accounting, 'sourceValue'),
-        ]) as [boolean, readonly bigint[], bigint, boolean, bigint, bigint];
+          this.read(ACCOUNTING_ABI, accounting, 'requiredSourceBacking'),
+        ]) as [boolean, readonly bigint[], bigint, boolean, bigint, bigint, bigint];
         stopped = flag;
         // unallocated source cash leaves activeFunds stale until pokeSettle
-        if (!unallocated) vaultBps = vaultDeficitBps(position[0], equity, sourceValue, funds);
+        if (!unallocated) vaultBps = vaultDeficitBps(position[0], equity, sourceValue, funds, required);
       } catch (error) {
         blocked = true;
         console.error(`[ALERT] ${vault}: deficit read failed; ramp held: ${shortErr(error)}`);
@@ -480,7 +484,7 @@ export class PropellerLooper {
       console.error('[ALERT] RPC head is stale; inspect independent operator/RPC health');
     }
     const [hf, target] = await Promise.all([
-      this.read(SUBLOOP_ABI, this.subLoop, 'healthFactor'), this.read(SUBLOOP_ABI, this.subLoop, 'targetHf'),
+      this.read(SUBLOOP_ABI, this.subLoop, 'effectiveHealthFactor'), this.read(SUBLOOP_ABI, this.subLoop, 'targetHf'),
     ]) as [bigint, bigint];
     if (hf < target) console.error(`[ALERT] source HF ${fmtHf(hf)} below target ${fmtHf(target)}`);
     for (const vault of this.vaults) {
