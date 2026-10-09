@@ -1,5 +1,6 @@
 // Third-pass local-only validation. Uses public development keys, explicit
 // donated income/recovery fixtures, the real keeper and native Aave execution.
+// Next version: sync() allocates, and funded earnings sit in balanceOf (no claims).
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -137,7 +138,7 @@ try {
     // Explicit source-income fixture, separate from organic yield/APY evidence.
     await send('incomeApprove', prime, tokenAbi, 'approve', [pool, 1000n * 10n ** 6n]);
     await send('incomeFixture', pool, poolAbi, 'supply', [prime, 1000n * 10n ** 6n, source, 0]);
-    await send('checkpoint', vault, artifact('CollateralVault').abi, 'prepareHarvest');
+    await send('checkpoint', vault, artifact('CollateralVault').abi, 'sync');
     const module = await vr('yieldAccounting');
     const earned = owner => read(module, artifact('PropellerYieldAccounting').abi, 'earnedAssets', [owner]);
     if (!r.ownership) {
@@ -154,9 +155,8 @@ try {
     r.ownership.recipientAfterHarvest = await earned(r.actor);
     assert.ok(r.ownership.recipientAfterHarvest <= BigInt(r.ownership.before) / 10000n + 1_000_000_000n,
       'recipient captured material earlier income');
-    await send('claimOwnedYield', vault, artifact('CollateralVault').abi, 'claimYield', [account.address]);
-    r.ownership.claimedShares = (await vr('balanceOf', [account.address])) - balanceBefore;
-    assert.ok(r.ownership.claimedShares > 0n);
+    r.ownership.creditedShares = (await vr('balanceOf', [account.address])) - balanceBefore;
+    assert.ok(r.ownership.creditedShares > 0n, 'the harvest did not credit the owner\'s balance');
     r.checks.yieldOwnership = true; save();
   }
   if (!r.checks.reinvestment) {
