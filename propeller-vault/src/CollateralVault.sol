@@ -150,6 +150,7 @@ contract CollateralVault is
     error DeleverPending();
     error NoActiveAssets();
     error ReentrantTransfer();
+    error VaultPaused();
     error BootstrapRequired();
     error InvalidDiscountController();
     error InvalidSlippage();
@@ -482,7 +483,9 @@ contract CollateralVault is
         reinvestAssets += reward + serviceRemainder;
     }
 
-    function prepareHarvest() external nonReentrant whenNotPaused returns (uint256) {
+    /// @notice allocate accrued yield to current holders and report the harvestable shares;
+    /// keepers call it after price updates, the harvester before each harvest
+    function sync() external nonReentrant whenNotPaused returns (uint256) {
         yieldAccounting.checkpoint(address(0), address(0));
         return yieldAccounting.harvestableShares();
     }
@@ -597,12 +600,15 @@ contract CollateralVault is
         emit WithdrawalDelayUpdated(delay);
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override whenNotPaused {
+    /// @dev only the vault's own pause: a plain transfer no longer reads the source, so a source
+    /// emergency doesn't need to freeze it
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
+        if (super.paused()) revert VaultPaused();
         super._beforeTokenTransfer(from, to, amount);
         if (from != address(0) && to != address(0) && from != address(this) && to != address(this)
             && from != address(yieldAccounting)) {
             if (_reentrancyGuardEntered()) revert ReentrantTransfer();
-            yieldAccounting.checkpoint(from, to);
+            yieldAccounting.settle(from, to);
         }
     }
 

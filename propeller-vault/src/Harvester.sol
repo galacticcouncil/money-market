@@ -14,7 +14,7 @@ import {IMainDebt} from "./interfaces/IMainDebt.sol";
 interface ICompoundable {
     function collateral() external view returns (address);
     function mainDebt() external view returns (IMainDebt);
-    function prepareHarvest() external returns (uint256);
+    function sync() external returns (uint256);
     function compound(address tokenIn, uint256 amountIn, uint256 minOut, bytes calldata route) external;
 }
 
@@ -122,7 +122,7 @@ contract Harvester is AccessControl, ReentrancyGuard {
             controller.validateVault(vaults[i], address(this));
             beforeShares[i] = subLoop.sharesOf(vaults[i]);
             registeredShares += beforeShares[i];
-            weights[i] = ICompoundable(vaults[i]).prepareHarvest();
+            weights[i] = ICompoundable(vaults[i]).sync();
             totalWeight += weights[i];
         }
         require(registeredShares == total, "vault set incomplete");

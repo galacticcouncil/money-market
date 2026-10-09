@@ -3,8 +3,9 @@
 Branch `juicer-next`, stacked on #62 (`prop_carry`). Decisions are recorded in
 the garden note (Propeller status, "next-version change list", 8–9 Oct). Nothing
 deploys until review. The rename (Juicer, jETH/jtBTC, wjETH) is a separate PR
-stacked on this one and lands before the Lark rollout (step 8 below). UI #4120
-follows it.
+stacked on this one and lands before the Lark rollout (step 8 below). The UI
+moves to a new PR on top of Jakub's rebrand branch (track G). The rollout target
+is Lark 0, reforked from mainnet on the latest runtime with ICE (step 9).
 
 ## Scope
 
@@ -27,7 +28,7 @@ Contracts:
 - `CollateralVault.deposit`:
   - Drop `isUnderfunded()`.
   - Keep the `deleverTarget != 0` guard, renamed `DeleverPending`.
-  - Keep `beforeDeposit` only for `_repay(0, 0)`.
+  - Keep `beforeDeposit` for the allocation-integrity guard and `_repay(0, 0)`.
 - `CollateralVault.isUnderfunded`, `CompoundLogic.isUnderfunded`: remove. Also
   remove the `Underfunded` revert in `CompoundLogic.rebalance`.
 - `PropellerMainDebt`:
@@ -38,72 +39,84 @@ Contracts:
     shortfalls.
   - Remove the reserve-as-backing lines added in `f0d3ebf` (the guards they fed
     are gone).
-- New `DEPOSIT_GUARDIAN_ROLE` on the vault, allowed only `pauseDeposits` and
-  `unpauseDeposits`. It is granted to the keepers. `pause()` stays with
-  `GUARDIAN_ROLE` and `unpause()` with admin.
+- New keeper flag (changed during implementation, 9 Oct): `deficitStop`, set
+  only through `setDeficitStop(bool)` by the new `DEPOSIT_GUARDIAN_ROLE`.
+  Deposits revert `DepositsArePaused` when `depositsPaused || deficitStop`.
+  `pauseDeposits`/`unpauseDeposits` stay with `GUARDIAN_ROLE`, so a keeper can
+  never lift a governance pause and needs no pause attribution.
 
 Keeper:
 - The deficit is computed off-chain each cycle:
   - source: `principalEquity` vs live equity (`negativeCarryBps`);
   - per vault: Main debt vs source backing (`equityOf − sourceValue + activeFunds`).
-- Above `DEFICIT_STOP_BPS` (default 50) the keeper stops `pokeBorrow` and
-  calls `pauseDeposits`. Below `DEFICIT_RESUME_BPS` (default 25, hysteresis)
-  it calls `unpauseDeposits`, but only if it was the keeper that paused.
+- Above `DEFICIT_STOP_BPS` (default 50) the keeper stops `pokeBorrow` and sets
+  `deficitStop`. Below `DEFICIT_RESUME_BPS` (default 25, hysteresis) it clears it.
 - Alert on every transition.
 
 Tests:
-- Deposits succeed during a sub-threshold deficit.
+- Deposits succeed during a sub-threshold deficit; the stop blocks them.
 - The synthetic floor (`PrincipalNotFloored`) still holds.
-- The deposit guardian cannot `pause()` or upgrade.
+- The deposit guardian can't pause, unpause governance's pause, configure or
+  upgrade.
+- The removed views live on as a test helper (`test/helpers/Deficit.sol`) that
+  mirrors the keeper's check, so the old economic assertions still run.
 - Keeper hysteresis unit tests.
 
 ## 2. Event-driven allocation
 
-- `PropellerYieldAccounting`: split `checkpoint(from, to)` into
-  - `settle(from, to)`: `_settle` only. Used by `_beforeTokenTransfer`.
-  - `checkpoint`: settle and `_allocate`. Used by deposit, `requestRedeem`,
-    `_startUnwind`, `rebalance`, `compound`, `prepareHarvest` and `pokeSettle`.
-- New permissionless `sync()` on the vault, calling `yieldAccounting.checkpoint(0, 0)`.
-  The keeper calls it after each PRIME, ETH or tBTC oracle update it observes,
-  and on a timer (`SYNC_EVERY`, default 1 h).
+- `PropellerYieldAccounting`: transfers call `settle(from, to)` (`_settle` only);
+  `checkpoint` (settle and `_allocate`) stays on deposit, `requestRedeem`,
+  `_startUnwind`, `rebalance` and `sync`. Every allocation emits `Allocated()`.
+- `prepareHarvest()` is renamed `sync()` (permissionless, returns the
+  harvestable shares; the Harvester calls it too). The keeper calls it after each
+  PRIME, ETH or tBTC oracle update it observes, and on a timer (`SYNC_EVERY`,
+  default 1 h).
+- Transfers check only the vault's own pause, so they no longer read the source
+  (`paused()` asks the source for its emergency flag, which loads SubLoop's code).
 - Fairness note: yield accrued between allocation events is credited to holders
   at the next event; transfers in between carry no allocation.
 - Tests:
-  - A transfer does not call the source or Aave (gas assertion).
-  - Allocation at events matches the old per-transfer allocation within one
-    event interval.
+  - A transfer calls neither the source, Aave nor the Main debt ledger.
+  - Allocation before vs after a transfer (documents the trade-off).
   - No newcomer captures pre-entry yield, since deposits still allocate first.
 - Measure on Lark: transfer gas (target ≈0.2–0.3M, from ~0.92M).
 
 ## 3. Aave-style jETH
 
-- **Claim semantics:** `claim` currently lets an early claimant take more than
-  a proportional funded slice. Change it to exactly the proportional funded
-  slice: `units/totalUnits × funded` plus `vested`. Burn units for that value.
-  This makes balances additive.
-- `CollateralVault.balanceOf(a)`:
-  - for holders: `super.balanceOf(a) + yieldAccounting.fundedSharesOf(a)`;
-  - for the reward fund itself: `super.balanceOf(fund) − yieldAccounting.heldForHolders()`.
-  - Invariant: Σ balanceOf = totalSupply.
-- **Claim-on-touch:** in `_beforeTokenTransfer` when `from` is a holder, and in
-  `requestRedeem` and `_startUnwind`, materialize `from`'s funded shares into its
-  wallet first (fund → holder `Transfer` event). `requestRedeem(max)` becomes
-  ordinary.
-- **Exit fold:** `startExit` returns the owner's newly vested funded shares.
-  `_startUnwind` moves them from the fund into the redemption escrow before
-  quoting the entitlement, so nothing is left claimable after a full exit (the
-  0.22-share gap found 8 Oct).
-- Remove the `claimYield` external (and the UI claim button). Keep a view
-  `earnedAssets` with pending/unconverted yield for the UI.
-- Size: CollateralVault has 432 B free today. Removing `isUnderfunded` and
-  `claimYield` frees some; move balance and materialize logic into
-  `CompoundLogic` or the accounting contract if needed.
+Changed during implementation (9 Oct): the plan's "claim the proportional funded
+slice and burn units for its value" shifts every other holder's displayed
+balance on someone else's transfer and needs equity/oracle reads in transfers.
+Instead nobody materializes anything:
+
+- Reward units stay the only claim on the fund, pro rata on both parts: funded
+  vault shares F and reserved source shares S.
+- `CollateralVault.balanceOf(a)` = wallet shares + `yieldAccounting.fundedOf(a)`
+  (= units(a)/T × F). The fund's own balance is its wallet minus the attributed
+  F; `walletOf(a)` returns the raw shares (accounting weights use it).
+  Σ balanceOf = totalSupply up to lazy-unit rounding.
+- A transfer up to the sender's wallet moves wallet shares only. A transfer
+  beyond it also moves the units whose funded slice covers the rest, from sender
+  to receiver (they carry their S claim too). No third party's balance changes,
+  and nothing reads the source.
+- **Exit fold:** `startExit` burns the exit's units (proportional to the
+  escrowed shares, plus units committed at request time); their F slice moves
+  from the fund into the redemption escrow before the entitlement is quoted, and
+  their S slice follows the exit into the unwind as today. Nothing stays
+  claimable after a full exit (the 0.22-share gap found 8 Oct).
+- `requestRedeem(x)` with x above the wallet escrows the wallet and commits the
+  units covering the rest to the request; `requestRedeem(max)` takes everything.
+- Removed: `claimYield`, `claim`, `claimableShares`, `vestedShares`. Kept:
+  `earnedAssets` (funded + pending, for the UI).
+- Known effect: a holder's displayed funded slice can dip slightly at an
+  allocation, because new units re-split F and S. The dip is bounded by the
+  unharvested S; total value never drops. Integrations use wjETH.
+- Size: CollateralVault headroom is the binding constraint; move logic into the
+  accounting contract or `CompoundLogic` where needed.
   `test_runtimeSizesRemainDeployable` gates this.
 - Tests:
   - Σ balanceOf = totalSupply (fuzz/invariant).
-  - A transfer carries the sender's funded earnings, and the receiver gets none
-    of the sender's pre-transfer yield.
-  - A full exit leaves `claimableShares == 0`, including cooldown earnings.
+  - A transfer beyond the wallet carries the funded slice; no third party moves.
+  - A full exit leaves the owner no units and nothing attributable in the fund.
   - A partial redeem of more than wallet shares works.
   - Protocol fee shares are unaffected.
 
@@ -184,11 +197,16 @@ Tests:
 
 ## 6. Deployment and parameters
 
-- **New Lark, not Lark 4 (changed 9 Oct):** the next version deploys to a
-  different Lark chain, so chain-level setup runs again there: price mirrors,
-  adapter, routes, market reserves, facilitator bucket, PRIME pool 143 and bot
-  inventory. The Lark scripts take the chain's RPC/WS instead of assuming
-  node4. The chain needs a runtime with ICE (447 or later, as on Lark 4).
+- **Lark 0 (decided 9 Oct):** after the implementation and the rename, Lark 0 is
+  reforked from mainnet and updated to the latest runtime (it must support ICE).
+  The full chain-level setup then runs there with the track D bring-up: price
+  mirrors, adapter, routes, market reserves, facilitator bucket, PRIME pool 143
+  and bot inventory. The Lark scripts take the chain's RPC/WS from a profile.
+- **Bots:** the same set as Lark 4 (replay, pools, markets/PRIME peg, depositor,
+  mirror) plus two keepers.
+- **Deposits:** the 100k depositor plan runs inside a 12-hour window. A loop
+  checks progress and fixes what blocks it; anything it can't fix goes into the
+  garden note.
 - **Lark 4 keeps running for a while** alongside, on its digest-pinned images,
   so new builds don't touch it.
 - **Parameters:**
@@ -229,8 +247,9 @@ Tests:
 8. Rename PR, stacked on this one: Propeller → Juicer everywhere, shares
    jETH/jtBTC. Rename only, no logic. It goes before the rollout because the
    deploy scripts set the share symbols (`pETH`/`ptBTC`) at initialization.
-9. Rollout on the new Lark after review, on the final names. Lark 4 stays up
-   meanwhile.
+9. Lark 0: refork from mainnet on the latest runtime (ICE), bring-up, bots,
+   then the 100k deposits within 12 hours with a monitoring loop. Lark 4 stays
+   up meanwhile.
 
 Each step is its own commit with tests and a size check.
 
@@ -254,8 +273,12 @@ now
 ├─ E Lean (step 7): Redemption (exit fold), SubLoop (in-flight intents), from
 │   this plan's semantics
 │   └─ parity tests ── once A and B are merged
-└─ F rename prep (step 8): name mapping, rename script, dry run
-    └─ applied once 7 is done
+├─ F rename prep (step 8): name mapping, rename script, dry run
+│   └─ applied once 7 is done
+├─ G UI: a new PR on Jakub's rebrand branch, against the planned ABI
+│   └─ final ABIs ── after the rename
+└─ H Lark 0 runbook: how to refork and upgrade it, researched in advance
+    └─ executed after 8
 then: merge A → B → C → D, parameters (6), docs + parity (7), rename (8), new Lark (9)
 ```
 

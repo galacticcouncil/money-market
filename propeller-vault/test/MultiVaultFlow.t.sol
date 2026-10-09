@@ -368,8 +368,8 @@ contract MultiVaultFlowTest is Test {
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) * 5 / 100);
         uint256 harvestable8 = loop.totalEquity() - loop.principalEquity() / 1e10
             - loop.executionCostReserve() / 1e10;
-        uint256 ethWeight = ethVault.prepareHarvest();
-        uint256 btcWeight = tbtcVault.prepareHarvest();
+        uint256 ethWeight = ethVault.sync();
+        uint256 btcWeight = tbtcVault.sync();
         uint256 expectedGrossEth = harvestable8 * ethWeight
             / (ethWeight + btcWeight) * 9950 / 10_000 * 1e10 / 3000;
         uint256[] memory minOuts = new uint256[](2);

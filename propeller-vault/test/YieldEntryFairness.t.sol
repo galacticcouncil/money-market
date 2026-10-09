@@ -92,9 +92,24 @@ contract YieldEntryFairnessTest is HarvestTest {
         return vault.yieldAccounting().earnedAssets(owner);
     }
 
-    function test_transferRetainsPreviouslyEarnedYieldWithSender() public {
+    function test_transferBetweenEventsLeavesYieldToTheNextAllocation() public {
         uint256 shares = _depositAndRamp();
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
+        uint256 snapshot = vm.snapshotState();
+        vault.sync();
+        vault.transfer(NEWCOMER, shares);
+        vault.sync();
+        assertEq(_rewardValue(NEWCOMER), 0, "an allocation before the transfer keeps the yield with the sender");
+        vm.revertToStateAndDelete(snapshot);
+        vault.transfer(NEWCOMER, shares);
+        vault.sync();
+        assertGt(_rewardValue(NEWCOMER), 0, "between events it follows the balances at the next one");
+    }
+
+    function test_transferRetainsAllocatedYieldWithSender() public {
+        uint256 shares = _depositAndRamp();
+        aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
+        vault.sync();
         vault.transfer(NEWCOMER, shares);
         assertGt(_rewardValue(address(this)), 0);
         assertEq(_rewardValue(NEWCOMER), 0);
@@ -118,7 +133,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         uint256 shares = _depositAndRamp();
         uint256 id = vault.requestRedeem(shares / 2, address(this));
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
-        vault.prepareHarvest();
+        vault.sync();
         uint256 firstHalf = _rewardValue(address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(1);
@@ -181,7 +196,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         _depositAndRamp();
         fees.setProtocolFeeBps(address(vault), 10_000);
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
-        vault.prepareHarvest();
+        vault.sync();
         assertEq(vault.yieldAccounting().sourceShares(), 0);
         assertGt(vault.yieldAccounting().protocolShares(), 0);
         fees.setProtocolFeeBps(address(vault), 0);
@@ -223,10 +238,10 @@ contract YieldEntryFairnessTest is HarvestTest {
         hollar.mint(address(loop), loop.principalEquity() - loop.totalEquity() * 1e10);
         uint256 income = aPrime.balanceOf(address(loop)) / 20;
         aPrime.mint(address(loop), income);
-        vault.prepareHarvest();
+        vault.sync();
         assertGt(_rewardValue(address(this)), 0);
         aPrime.burn(address(loop), income);
-        vault.prepareHarvest();
+        vault.sync();
         assertEq(_rewardValue(address(this)), 0);
         assertEq(vault.yieldAccounting().reservedShares(), 0);
         assertFalse(Deficit.underfunded(vault), "return to borrowed basis still backs Main");
@@ -238,11 +253,11 @@ contract YieldEntryFairnessTest is HarvestTest {
         PropellerYieldAccounting y = vault.yieldAccounting();
         for (uint256 i; i < 16; ++i) {
             aPrime.mint(address(loop), 100e6);
-            vault.prepareHarvest();
+            vault.sync();
             assertGt(y.balanceOf(address(this)), 0);
             assertLe(y.totalUnits(), 100e18);
             aPrime.burn(address(loop), 100e6);
-            vault.prepareHarvest();
+            vault.sync();
             assertEq(y.totalUnits(), 0);
             assertEq(y.balanceOf(address(this)), 0);
             assertEq(y.epoch(), i + 1);
@@ -256,7 +271,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         hollar.mint(address(this), debt);
         hollar.approve(address(ledger), debt);
         ledger.fundPosition(0, debt);
-        vault.prepareHarvest();
+        vault.sync();
         harvester.harvest(new uint256[](1));
         assertGe(loop.healthFactor(), loop.deployHfFloor());
         assertGt(_rewardValue(address(this)), 0.7e18,
@@ -270,13 +285,13 @@ contract YieldEntryFairnessTest is HarvestTest {
         PropellerYieldAccounting y = vault.yieldAccounting();
         for (uint256 i; i < 12; ++i) {
             aPrime.mint(address(loop), 1_000e6);
-            vault.prepareHarvest();
+            vault.sync();
             assertApproxEqAbs(_rewardValue(address(this)), _rewardValue(NEWCOMER), 1e9);
             assertLe(y.balanceOf(address(this)) + y.balanceOf(NEWCOMER), y.totalUnits());
             assertLe(y.totalUnits(), uint256(1) << 162);
             // leave one prime base unit per loss to hit normalization, not the full write-off reset
             aPrime.burn(address(loop), 1_000e6 - 1);
-            vault.prepareHarvest();
+            vault.sync();
             assertGt(y.totalUnits(), 0);
         }
         assertGt(y.unitScale(), 0);
@@ -445,7 +460,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         _depositAndRamp();
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
         pool.setPrice(address(eth), 2_400e18);
-        vault.prepareHarvest();
+        vault.sync();
         uint256 earned = _rewardValue(address(this));
         vault.rebalance();
         assertGt(vault.mainDebt().activeSourceRemaining(), 0);
@@ -457,7 +472,7 @@ contract YieldEntryFairnessTest is HarvestTest {
             vault.pokeSettle();
         }
         assertEq(vault.deleverTarget(), 0);
-        vault.prepareHarvest();
+        vault.sync();
         assertApproxEqAbs(_rewardValue(address(this)), earned, 1e9);
         assertLe(_rewardValue(NEWCOMER), 1e9);
     }

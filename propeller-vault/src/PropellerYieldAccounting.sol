@@ -48,6 +48,7 @@ contract PropellerYieldAccounting {
     event RewardClaimed(address indexed owner, uint256 units, uint256 collateralShares);
     event RewardsVested(address indexed owner, uint256 collateralShares);
     event YieldWrittenOff(uint256 indexed epoch);
+    event Allocated();
 
     constructor(address vault_) { vault = vault_; }
     modifier onlyVault() { if (msg.sender != vault) revert Unauthorized(); _; }
@@ -155,7 +156,17 @@ contract PropellerYieldAccounting {
         if (harvestUnits != 0 || s.accountingLocked()) revert InvalidHarvest();
         // unallocated source cash or costs leave active cash stale. accounts settle
         // at the current index; allocation waits for pokeSettle.
-        if (!v.mainDebt().pendingSourceAccounting()) _allocate(v, s);
+        if (!v.mainDebt().pendingSourceAccounting()) {
+            _allocate(v, s);
+            emit Allocated();
+        }
+        _settle(from);
+        if (to != from) _settle(to);
+    }
+
+    /// @dev a transfer settles its two holders at the stored index; yield accrued since the last
+    /// allocation follows the balances at the next one
+    function settle(address from, address to) external onlyVault {
         _settle(from);
         if (to != from) _settle(to);
     }

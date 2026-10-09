@@ -216,7 +216,7 @@ contract ReviewFindingsTest is HarvestTest {
     function test_reviewPendingSourceAccountingKeepsTransfersAndHarvestLive() public {
         _depositAndRamp();
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
-        vault.prepareHarvest();
+        vault.sync();
         PropellerYieldAccounting rewards = vault.yieldAccounting();
         uint256 earned = rewards.earnedAssets(address(this));
         assertGt(earned, 0);

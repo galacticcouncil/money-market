@@ -39,7 +39,7 @@ contract YieldValidationTest is HarvestTest {
                 assertApproxEqAbs(ledger.earnedAssets(owner) + vault.convertToAssets(claimed), earnedBefore, 1e9,
                     "claim conserves funded plus unconverted owner value");
             }
-            vault.prepareHarvest();
+            vault.sync();
             uint256 ownedUnits;
             uint256 earned;
             for (uint256 j; j < owners.length; ++j) {

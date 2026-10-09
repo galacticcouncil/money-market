@@ -169,7 +169,7 @@ contract MainnetTuningTest is HarvestTest {
             assertLe(vault.yieldAccounting().reservedShares(), vault.loopShares());
             assertEq(vault.loopShares(), loop.sharesOf(address(vault)));
         }
-        vault.prepareHarvest();
+        vault.sync();
         uint256 debt = hollarDebt.balanceOf(address(vault));
         uint256 equity = loop.equityOf(address(vault)) * 1e10;
         uint256 backing = equity + main.activeFunds();

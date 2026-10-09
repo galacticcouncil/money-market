@@ -151,9 +151,11 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         vm.prank(BTC_USER);
         vm.expectRevert("Pausable: paused");
         tbtcVault.requestRedeem(checkpoint.offlineShares, BTC_USER);
+        // a plain transfer no longer reads the source, so the emergency doesn't freeze it
         vm.prank(SECOND_ETH_USER);
-        vm.expectRevert("Pausable: paused");
         ethVault.transfer(ETH_USER, 1);
+        vm.prank(ETH_USER);
+        ethVault.transfer(SECOND_ETH_USER, 1);
 
         // top up main interest separately; recapitalizing the source doesn't cover new main debt
         uint256 ethInterest = hollarDebt.balanceOf(address(ethVault)) / 100;

@@ -22,7 +22,7 @@ contract HarvestMainDebtTest is HarvestTest {
         harvester.harvest(new uint256[](0));
         assertEq(buffer.interestOf(0), 0, "sufficient fresh yield pays interest after execution costs");
         assertGt(buffer.ownedCash(), 0, "the second swap can leave unused slippage allowance");
-        vault.prepareHarvest();
+        vault.sync();
         assertLe(vault.convertToAssets(shares) + vault.yieldAccounting().earnedAssets(newcomer), 1e18 + 1e9,
             "unused servicing allowance stays with earlier reward owners");
         assertGt(vault.yieldAccounting().earnedAssets(address(this)), 0);
