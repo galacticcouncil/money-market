@@ -159,10 +159,10 @@ contract WithdrawalCooldownTest is PluggableYieldSourceTest {
         vault.startUnwinds(1);
         vm.expectRevert("Pausable: paused");
         vault.requestRedeem(1, address(this));
-        vm.expectRevert("Pausable: paused");
+        vm.expectRevert(CollateralVault.VaultPaused.selector);
         vault.transfer(spender, 1);
         vm.prank(spender);
-        vm.expectRevert("Pausable: paused");
+        vm.expectRevert(CollateralVault.VaultPaused.selector);
         vault.transferFrom(address(this), spender, 1);
         vm.expectRevert("Pausable: paused");
         vault.deposit(1, address(this));

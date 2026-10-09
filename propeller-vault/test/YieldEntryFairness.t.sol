@@ -73,12 +73,19 @@ contract YieldEntryFairnessTest is HarvestTest {
         uint256 shares = _depositAndRamp();
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
         harvester.harvest(new uint256[](1));
-        assertGt(vault.yieldAccounting().claimableShares(address(this)), 0);
+        PropellerYieldAccounting y = vault.yieldAccounting();
+        uint256 funded = y.fundedOf(address(this));
+        assertGt(funded, 0);
+        assertEq(vault.balanceOf(address(this)), vault.walletOf(address(this)) + funded, "earnings are in the balance");
         uint256 id = vault.requestRedeem(type(uint256).max, address(this));
+        assertEq(vault.balanceOf(address(this)), 0);
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(1);
         (, uint256 escrowed,,,,,,,) = vault.redemptions(id);
         assertGt(escrowed, shares, "earned reward shares join the redemption");
+        assertApproxEqAbs(escrowed, shares + funded, 1);
+        assertEq(y.balanceOf(address(this)), 0, "no units left behind");
         assertEq(vault.balanceOf(address(this)), 0);
-        assertEq(vault.yieldAccounting().claimableShares(address(this)), 0);
     }
 
     function test_onlyTheOwnerRequestsAFullExit() public {
@@ -116,17 +123,32 @@ contract YieldEntryFairnessTest is HarvestTest {
         harvester.harvest(new uint256[](1));
         assertApproxEqAbs(vault.convertToAssets(vault.balanceOf(NEWCOMER)), 1e18, 1e9);
         assertLe(_rewardValue(NEWCOMER), 1e9);
-        assertGt(vault.claimYield(address(this)), 0, "sender can claim its earned BTC/ETH shares");
+        uint256 funded = vault.yieldAccounting().fundedOf(address(this));
+        assertGt(funded, 0, "the sender's earned shares stay in its balance");
+        assertEq(vault.balanceOf(address(this)), funded);
     }
 
-    function test_partialRewardClaimPreservesUnconvertedValue() public {
+    function test_transferBeyondTheWalletMovesOnlyTheSendersUnits() public {
         _enterAfterYield();
         harvester.harvest(new uint256[](1));
-        uint256 beforeValue = _rewardValue(address(this));
-        uint256 claimed = vault.claimYield(address(this));
-        assertGt(claimed, 0);
-        assertGt(_rewardValue(address(this)), 0, "retained source yield remains owned");
-        assertApproxEqAbs(vault.convertToAssets(claimed) + _rewardValue(address(this)), beforeValue, 1e9);
+        PropellerYieldAccounting y = vault.yieldAccounting();
+        uint256 wallet = vault.walletOf(address(this));
+        uint256 funded = y.fundedOf(address(this));
+        assertGt(funded, 1);
+        uint256 newcomer = vault.balanceOf(NEWCOMER);
+        uint256 newcomerUnits = y.balanceOf(NEWCOMER);
+        uint256 value = _rewardValue(address(this));
+        vault.transfer(address(0xCAFE), wallet + funded / 2);
+        assertEq(vault.balanceOf(NEWCOMER), newcomer, "no third party's balance moves");
+        assertEq(y.balanceOf(NEWCOMER), newcomerUnits);
+        assertApproxEqAbs(vault.balanceOf(address(0xCAFE)), wallet + funded / 2, 1);
+        assertApproxEqAbs(vault.balanceOf(address(this)), funded - funded / 2, 1);
+        assertEq(vault.walletOf(address(this)), 0);
+        assertApproxEqAbs(_rewardValue(address(this)) + _rewardValue(address(0xCAFE)), value, 1e9,
+            "the units carry their value, none is created");
+        uint256 tooMuch = vault.balanceOf(address(this)) + 2;
+        vm.expectRevert(PropellerYieldAccounting.ExceedsBalance.selector);
+        vault.transfer(address(0xCAFE), tooMuch);
     }
 
     function test_waitingWithdrawalKeepsEarningUntilUnwindStarts() public {
@@ -167,12 +189,12 @@ contract YieldEntryFairnessTest is HarvestTest {
         _enterAfterYield();
         harvester.harvest(new uint256[](1));
         PropellerYieldAccounting y = vault.yieldAccounting();
-        uint256 firstFunded = vault.balanceOf(address(y));
+        uint256 firstFunded = vault.walletOf(address(y));
         uint256 firstValue = _rewardValue(address(this));
         vault.rebalance();
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
         harvester.harvest(new uint256[](1));
-        assertGt(vault.balanceOf(address(y)), firstFunded);
+        assertGt(vault.walletOf(address(y)), firstFunded);
         assertGt(_rewardValue(address(this)), firstValue);
         assertGt(_rewardValue(NEWCOMER), 0, "new holders earn subsequent yield");
         assertEq(vault.loopShares(), loop.sharesOf(address(vault)));
@@ -228,8 +250,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         harvester.harvest(new uint256[](1));
         assertLe(fees.claimableProtocolFees(address(eth)), 1e9);
         assertLe(_rewardValue(NEWCOMER), 1e9);
-        assertApproxEqAbs(vault.convertToAssets(vault.claimYield(address(this)))
-            + _rewardValue(address(this)), expected, 1e9);
+        assertApproxEqAbs(_rewardValue(address(this)), expected, 1e9);
     }
 
     function test_unrealizedYieldAbsorbsLossBeforeMainRecovery() public {
@@ -299,35 +320,31 @@ contract YieldEntryFairnessTest is HarvestTest {
         prime.mint(address(pool), 1_000e6);
         harvester.harvest(new uint256[](1));
         uint256 earned = _rewardValue(NEWCOMER);
-        vm.prank(NEWCOMER);
-        uint256 claimed = vault.claimYield(NEWCOMER);
-        assertGt(claimed, 0);
-        assertApproxEqAbs(vault.convertToAssets(claimed) + _rewardValue(NEWCOMER), earned, 1e9);
+        assertGt(y.fundedOf(NEWCOMER), 0, "earnings are in the balance, nothing to claim");
         assertApproxEqAbs(_rewardValue(address(this)), earned, 1e9);
     }
 
-    function test_vestedExitRewardsKeepEarningAndRemainClaimable() public {
+    function test_exitFoldsFundedEarningsAndLeavesNothingBehind() public {
         _enterAfterYield();
         harvester.harvest(new uint256[](1));
+        PropellerYieldAccounting y = vault.yieldAccounting();
+        uint256 wallet = vault.walletOf(address(this));
+        uint256 funded = y.fundedOf(address(this));
+        assertGt(funded, 0);
         uint256 id = vault.requestRedeem(vault.balanceOf(address(this)), address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(1);
-        PropellerYieldAccounting y = vault.yieldAccounting();
-        uint256 vested = y.vestedShares(address(this));
-        assertGt(vested, 0);
+        (, uint256 escrowed,,,,,,,) = vault.redemptions(id);
+        assertApproxEqAbs(escrowed, wallet + funded, 1, "the funded slice joined the escrow");
+        assertEq(y.balanceOf(address(this)), 0, "no units left behind");
         for (uint256 i; i < 400 && loop.unwindTargetEquity() != 0; ++i) loop.pokeRepay();
         vault.pokeSettle();
         vault.claim(id, address(this));
         assertEq(vault.balanceOf(address(this)), 0);
-        uint256 before_ = _rewardValue(address(this));
+        assertEq(_rewardValue(address(this)), 0);
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
         harvester.harvest(new uint256[](1));
-        assertGt(_rewardValue(address(this)), before_, "escrowed funded rewards still earn");
-        uint256 claimable = y.claimableShares(address(this));
-        assertGe(claimable, vested);
-        assertEq(vault.claimYield(address(this)), claimable);
-        assertEq(y.vestedShares(address(this)), 0);
-        assertEq(y.totalVestedShares(), 0);
+        assertEq(vault.balanceOf(address(this)), 0, "a finished exit earns nothing afterwards");
     }
 
     function test_newcomerDoesNotReceiveOldMainInterestReserve() public {
@@ -408,7 +425,6 @@ contract YieldEntryFairnessTest is HarvestTest {
         aPrime.mint(address(loop), income);
         prime.mint(address(pool), income);
         harvester.harvest(new uint256[](1));
-        vault.claimYield(address(this));
         MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(10);
         uint256 id = vault.requestRedeem(vault.balanceOf(address(this)), address(this));
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
@@ -524,23 +540,32 @@ contract YieldEntryFairnessTest is HarvestTest {
         vm.stopPrank();
         harvester.harvest(new uint256[](2));
         assertLe(vault.convertToAssets(shares) + _rewardValue(NEWCOMER), 1e8 + 1);
-        assertGt(vault.convertToAssets(vault.claimYield(address(this))), 1e6);
+        assertGt(vault.convertToAssets(vault.yieldAccounting().fundedOf(address(this))), 1e6);
         assertLe(vault.yieldAccounting().reservedShares(), vault.loopShares());
     }
 
     /// forge-config: default.fuzz.runs = 64
-    function testFuzz_transferAndPartialClaimsConserveOwnership(uint16 fraction) public {
+    function testFuzz_transfersConserveOwnershipAndSupply(uint16 fraction) public {
         uint256 shares = _enterAfterYield();
         uint256 part = shares * bound(fraction, 1, 10_000) / 10_000;
         vm.prank(NEWCOMER);
         vault.transfer(address(0xCAFE), part);
         harvester.harvest(new uint256[](1));
-        uint256 before_ = _rewardValue(address(this));
-        uint256 claimed = vault.claimYield(address(this));
-        assertApproxEqAbs(vault.convertToAssets(claimed) + _rewardValue(address(this)), before_, 1e9);
-        assertLe(_rewardValue(NEWCOMER) + _rewardValue(address(0xCAFE)), 1e9);
         PropellerYieldAccounting y = vault.yieldAccounting();
-        assertLe(y.balanceOf(address(this)) + y.balanceOf(NEWCOMER) + y.balanceOf(address(0xCAFE)), y.totalUnits());
+        uint256 before_ = _rewardValue(address(this));
+        uint256 newcomer = vault.balanceOf(NEWCOMER);
+        uint256 amount = vault.walletOf(address(this)) + y.fundedOf(address(this)) * bound(fraction, 1, 10_000) / 10_000;
+        vault.transfer(address(0xBEEF), amount);
+        assertEq(vault.balanceOf(NEWCOMER), newcomer, "no third party moves");
+        assertApproxEqAbs(_rewardValue(address(this)) + _rewardValue(address(0xBEEF)), before_, 1e9);
+        assertLe(_rewardValue(NEWCOMER) + _rewardValue(address(0xCAFE)), 1e9);
+        assertLe(y.balanceOf(address(this)) + y.balanceOf(NEWCOMER) + y.balanceOf(address(0xCAFE))
+            + y.balanceOf(address(0xBEEF)), y.totalUnits());
         assertEq(loop.sharesOf(address(vault)), vault.loopShares());
+        uint256 sum = vault.balanceOf(address(this)) + vault.balanceOf(NEWCOMER) + vault.balanceOf(address(0xCAFE))
+            + vault.balanceOf(address(0xBEEF)) + vault.balanceOf(address(0xdead)) + vault.balanceOf(address(vault))
+            + vault.balanceOf(address(y));
+        assertLe(sum, vault.totalSupply(), "balances never exceed the supply");
+        assertGe(sum + 4, vault.totalSupply(), "and miss it only by rounding");
     }
 }

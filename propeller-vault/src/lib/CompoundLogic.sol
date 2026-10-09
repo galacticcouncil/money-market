@@ -100,15 +100,15 @@ contract CompoundLogic {
         pool.supply(address(collateral), assets, address(this), 0);
     }
 
-    function startExit(uint256 id, address owner, uint256 shares, uint256 supply)
+    /// @dev the yield accounting already released the exit's reward and fee slices from its reserve
+    function startExit(uint256 id, address owner, uint256 shares, uint256 supply, uint256 rewardSlice, uint256 feeSlice)
         external returns (uint256 remainingShares, uint256 debt)
     {
         ICompoundVault v = ICompoundVault(address(this));
         IYieldSource source = v.yieldSource();
-        PropellerYieldAccounting rewards = v.yieldAccounting();
         uint256 held = v.loopShares();
-        uint256 activeSlice = Math.mulDiv(held - rewards.reservedShares(), shares, supply);
-        (uint256 rewardSlice, uint256 feeSlice) = rewards.startExit(id, owner, shares);
+        uint256 activeSlice = Math.mulDiv(held - v.yieldAccounting().reservedShares() - rewardSlice - feeSlice,
+            shares, supply);
         uint256 slice = activeSlice + rewardSlice + feeSlice;
         uint256 basis = Math.mulDiv(source.principalOf(address(this)), shares, supply);
         uint256 before_ = source.pendingUnwindOf(address(this));

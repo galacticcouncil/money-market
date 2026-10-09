@@ -154,6 +154,16 @@ contract PropellerInvariantTest is Test {
         assertLe(vault.queueUnwind(), vault.queueTail());
     }
 
+    /// jETH balances (wallets plus funded slices, the escrow, the fund) never exceed the supply,
+    /// and with no unwind waiting to fold they miss it only by rounding.
+    function invariant_balancesAddUp() public view {
+        uint256 sum = vault.balanceOf(address(handler)) + vault.balanceOf(address(this))
+            + vault.balanceOf(address(0xdead)) + vault.balanceOf(address(vault))
+            + vault.balanceOf(address(vault.yieldAccounting()));
+        assertLe(sum, vault.totalSupply(), "balances exceed the supply");
+        if (vault.queueUnwind() == vault.queueTail()) assertGe(sum + 2, vault.totalSupply(), "balances lose shares");
+    }
+
     /// INV-7: the synthetic is never borrowed (no synth debt exists).
     function invariant_noSynthBorrow() public view {
         assertEq(synthDebt.totalSupply(), 0, "INV-7 synthetic not borrowable");

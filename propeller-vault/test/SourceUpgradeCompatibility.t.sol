@@ -148,8 +148,8 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
             y.totalUnits(), y.totalAssets(), y.rewardIndex(), y.requestIndex(0)));
         bytes32 owners = keccak256(abi.encode(y.balanceOf(ETH_USER), y.balanceOf(BTC_USER),
             vault.balanceOf(address(y)), vault.reinvestAssets()));
-        bytes32 vested = keccak256(abi.encode(y.totalVestedShares(), y.vestedShares(ETH_USER),
-            y.vestedShares(BTC_USER), y.epoch(), y.unitScale()));
+        bytes32 vested = keccak256(abi.encode(y.requestUnits(0), y.fundedOf(ETH_USER), y.fundedOf(BTC_USER),
+            y.epoch(), y.unitScale()));
         return keccak256(abi.encode(address(y), totals, owners, vested));
     }
 

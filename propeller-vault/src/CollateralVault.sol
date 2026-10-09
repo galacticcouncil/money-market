@@ -289,24 +289,25 @@ contract CollateralVault is
         whenNotPaused
         returns (uint256 requestId)
     {
-        // max is a full exit in one transaction: earned reward shares join the redemption
+        yieldAccounting.checkpoint(owner, address(0));
+        // max is a full exit: the wallet plus the funded earnings
         if (shares == type(uint256).max) {
             if (msg.sender != owner) revert NotRequestOwner();
-            _claimYield(owner, owner);
             shares = balanceOf(owner);
         }
         if (shares == 0 || convertToAssets(shares) == 0) revert ZeroAmount();
         if (msg.sender != owner) _spendAllowance(owner, msg.sender, shares);
 
-        yieldAccounting.checkpoint(owner, address(0));
-        _transfer(owner, address(this), shares);
+        // beyond the wallet, the owner's funded slice is folded in when the unwind starts
+        uint256 escrowed = Math.min(shares, super.balanceOf(owner));
+        _transfer(owner, address(this), escrowed);
         requestId = queueTail++;
-        yieldAccounting.escrow(requestId);
+        yieldAccounting.escrow(requestId, owner, shares - escrowed);
         Redemption storage r = redemptions[requestId];
         r.owner = owner;
-        r.shares = shares;
+        r.shares = escrowed;
         r.active = true;
-        pendingWithdrawalShares += shares;
+        pendingWithdrawalShares += escrowed;
         uint256 eligibleAt = block.timestamp + withdrawalDelay;
         unwindEligibleAt[requestId] = eligibleAt;
         emit RedeemRequested(requestId, owner, shares);
@@ -331,8 +332,13 @@ contract CollateralVault is
     function _startUnwind(uint256 requestId) internal {
         yieldAccounting.checkpoint(address(0), address(0));
         Redemption storage r = redemptions[requestId];
-        uint256 shares = r.shares;
+        uint256 escrowed = r.shares;
         uint256 supply = totalSupply() - totalQueuedShares;
+        // the exit's units leave with it; their funded shares join the escrow before the quote
+        (uint256 rewardSlice, uint256 feeSlice, uint256 folded) =
+            yieldAccounting.startExit(requestId, r.owner, escrowed);
+        uint256 shares = escrowed + folded;
+        r.shares = shares;
 
         // Undeployed borrowing capacity follows the exiting funded shares too.
         reinvestAssets -= Math.mulDiv(reinvestAssets, shares, supply);
@@ -346,7 +352,8 @@ contract CollateralVault is
         uint256 debt = hollarDebtToken.balanceOf(address(this));
         uint256 debtShare;
         (loopShares, debtShare) = abi.decode(Address.functionDelegateCall(compoundLogic,
-            abi.encodeCall(CompoundLogic.startExit, (requestId, r.owner, shares, supply))), (uint256, uint256));
+            abi.encodeCall(CompoundLogic.startExit, (requestId, r.owner, shares, supply, rewardSlice, feeSlice))),
+            (uint256, uint256));
         uint256 synthShare = debt == 0 ? 0 : (syntheticSupplied * debtShare) / debt;
 
         // A split exit must not lose a base unit or charge it to remaining holders.
@@ -354,7 +361,7 @@ contract CollateralVault is
         r.collateralOwed = collateralOwed;
         r.debtShare = debtShare;
         r.synthShare = synthShare;
-        pendingWithdrawalShares -= shares;
+        pendingWithdrawalShares -= escrowed;
         totalQueuedShares += shares;
         totalQueuedDebt += debtShare;
         totalQueuedCollateral += collateralOwed;
@@ -497,17 +504,6 @@ contract CollateralVault is
         loopShares -= shares;
     }
 
-    function claimYield(address receiver) external nonReentrant whenNotPaused returns (uint256 shares) {
-        if (receiver == address(0)) revert ZeroAddress();
-        shares = _claimYield(msg.sender, receiver);
-    }
-
-    function _claimYield(address owner, address receiver) private returns (uint256 shares) {
-        yieldAccounting.checkpoint(owner, receiver);
-        shares = yieldAccounting.claim(owner, receiver);
-        if (shares != 0) _transfer(address(yieldAccounting), receiver, shares);
-    }
-
     /// @notice resize the Main position to the reserve's max LTV after a price move,
     /// growing or shrinking the loop and the synthetic in lockstep.
     function rebalance() external nonReentrant whenNotPaused returns (uint256 work) {
@@ -600,16 +596,39 @@ contract CollateralVault is
         emit WithdrawalDelayUpdated(delay);
     }
 
+    /// @notice wallet shares plus the holder's funded earnings; nobody claims
+    function balanceOf(address account) public view override returns (uint256) {
+        uint256 wallet = super.balanceOf(account);
+        if (account == address(this) || address(yieldAccounting) == address(0)) return wallet;
+        if (account == address(yieldAccounting)) return wallet - yieldAccounting.attributed();
+        return wallet + yieldAccounting.fundedOf(account);
+    }
+
+    /// @notice shares held outright, without the funded earnings
+    function walletOf(address account) external view returns (uint256) {
+        return super.balanceOf(account);
+    }
+
+    /// @dev beyond the wallet, a transfer moves the reward units whose funded slice covers the rest
+    function _transfer(address from, address to, uint256 amount) internal override {
+        if (from != address(this) && to != address(this) && from != address(yieldAccounting)) {
+            if (_reentrancyGuardEntered()) revert ReentrantTransfer();
+            uint256 wallet = super.balanceOf(from);
+            uint256 excess = amount > wallet ? amount - wallet : 0;
+            yieldAccounting.settle(from, to, excess);
+            if (excess != 0) {
+                emit Transfer(from, to, excess);
+                amount = wallet;
+            }
+        }
+        super._transfer(from, to, amount);
+    }
+
     /// @dev only the vault's own pause: a plain transfer no longer reads the source, so a source
     /// emergency doesn't need to freeze it
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
         if (super.paused()) revert VaultPaused();
         super._beforeTokenTransfer(from, to, amount);
-        if (from != address(0) && to != address(0) && from != address(this) && to != address(this)
-            && from != address(yieldAccounting)) {
-            if (_reentrancyGuardEntered()) revert ReentrantTransfer();
-            yieldAccounting.settle(from, to);
-        }
     }
 
     /// @notice Opt into an approved adapter, or detach without leaving a cached

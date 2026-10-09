@@ -15,10 +15,12 @@ interface IYieldVault is IERC20 {
     function totalQueuedShares() external view returns (uint256);
     function convertToAssets(uint256) external view returns (uint256);
     function convertToShares(uint256) external view returns (uint256);
+    function walletOf(address) external view returns (uint256);
 }
 
-/// @notice separately owned source units and funded reward shares, allocated by a lazy index
-/// before collateral balances change; no operation scans holders.
+/// @notice reward units, allocated by a lazy index at equity events, own the fund pro rata: its
+/// funded vault shares and its reserved source shares. nobody claims; a holder's funded slice is
+/// part of their vault balance and exits fold it in. no operation scans holders.
 contract PropellerYieldAccounting {
     uint256 private constant RAY = 1e27;
     uint256 private constant BPS = 10_000;
@@ -33,20 +35,20 @@ contract PropellerYieldAccounting {
     uint256 public harvestUnits;
     uint256 public harvestRewardUnits;
     uint256 public harvestProtocolUnits;
-    uint256 public totalVestedShares;
-    mapping(address => uint256) public vestedShares;
     uint256 public epoch;
     mapping(address => uint256) public accountEpoch;
     mapping(uint256 => uint256) public requestEpoch;
     uint256 public unitScale;
     mapping(address => uint256) public accountScale;
     mapping(uint256 => uint256) public requestScale;
+    /// @notice units a redemption took beyond its escrowed shares, burned when it starts
+    mapping(uint256 => uint256) public requestUnits;
 
     error Unauthorized();
     error InvalidHarvest();
+    error ExceedsBalance();
     event YieldCheckpoint(uint256 sourceShares, uint256 rewardUnits);
-    event RewardClaimed(address indexed owner, uint256 units, uint256 collateralShares);
-    event RewardsVested(address indexed owner, uint256 collateralShares);
+    event RewardsFolded(address indexed owner, uint256 collateralShares);
     event YieldWrittenOff(uint256 indexed epoch);
     event Allocated();
 
@@ -125,11 +127,22 @@ contract PropellerYieldAccounting {
     }
 
     function _funded() private view returns (uint256) {
-        return IERC20(vault).balanceOf(address(this)) - totalVestedShares;
+        return IYieldVault(vault).walletOf(address(this));
     }
 
     function _weight(address owner) private view returns (uint256) {
-        return IERC20(vault).balanceOf(owner) + vestedShares[owner];
+        return IYieldVault(vault).walletOf(owner);
+    }
+
+    /// @notice the fund's vault shares attributable to `owner`; part of their vault balance
+    function fundedOf(address owner) public view returns (uint256) {
+        uint256 total = totalUnits;
+        return total == 0 ? 0 : Math.mulDiv(_funded(), balanceOf(owner), total);
+    }
+
+    /// @notice the fund's vault shares attributable to unit holders
+    function attributed() external view returns (uint256) {
+        return totalUnits == 0 ? 0 : _funded();
     }
 
     function balanceOf(address owner) public view returns (uint256) {
@@ -165,10 +178,27 @@ contract PropellerYieldAccounting {
     }
 
     /// @dev a transfer settles its two holders at the stored index; yield accrued since the last
-    /// allocation follows the balances at the next one
-    function settle(address from, address to) external onlyVault {
+    /// allocation follows the balances at the next one. a transfer beyond the sender's wallet
+    /// moves the units whose funded slice covers the rest, so no third party's balance changes
+    function settle(address from, address to, uint256 excess) external onlyVault {
         _settle(from);
         if (to != from) _settle(to);
+        if (excess != 0) {
+            if (to == address(this) || to == address(0)) revert Unauthorized();
+            units[to] += _take(from, excess, true);
+        }
+    }
+
+    /// @dev units whose funded slice covers `shares`; they keep their source claim. the owner is settled
+    function _take(address owner, uint256 shares, bool strict) private returns (uint256 taken) {
+        uint256 owned = units[owner];
+        uint256 slice = owned == 0 ? 0 : Math.mulDiv(_funded(), owned, totalUnits);
+        if (shares > slice) {
+            if (strict) revert ExceedsBalance();
+            shares = slice;
+        }
+        taken = slice == 0 ? 0 : Math.min(owned, Math.mulDiv(owned, shares, slice, Math.Rounding.Up));
+        units[owner] = owned - taken;
     }
 
     /// @dev reads equity, backing and fund value once; nothing below changes them
@@ -226,38 +256,45 @@ contract PropellerYieldAccounting {
         emit YieldCheckpoint(rewardShares, minted);
     }
 
-    function escrow(uint256 id) external onlyVault {
+    /// @dev `excess` is what the request takes beyond the escrowed wallet shares, out of the
+    /// owner's funded slice; the owner is settled
+    function escrow(uint256 id, address owner, uint256 excess) external onlyVault {
         requestIndex[id] = rewardIndex;
         requestEpoch[id] = epoch;
         requestScale[id] = unitScale;
+        if (excess != 0) requestUnits[id] = _take(owner, excess, false);
     }
 
     function startExit(uint256 id, address owner, uint256 shares) external onlyVault
-        returns (uint256 rewardShares, uint256 feeShares)
+        returns (uint256 rewardShares, uint256 feeShares, uint256 folded)
     {
         _settle(owner);
-        uint256 previous = requestEpoch[id] == epoch ? requestIndex[id] >> (unitScale - requestScale[id]) : 0;
+        bool current = requestEpoch[id] == epoch;
+        uint256 shift = current ? unitScale - requestScale[id] : 0;
+        uint256 previous = current ? requestIndex[id] >> shift : 0;
+        uint256 burned = current ? requestUnits[id] >> shift : 0;
         units[owner] = Math.min(totalUnits, units[owner] + Math.mulDiv(shares, rewardIndex - previous, RAY));
         delete requestIndex[id];
         delete requestEpoch[id];
         delete requestScale[id];
-        // the owner's unharvested portion follows the exit and funds its own execution
-        // allowance; funded reward shares stay independently claimable
-        if (totalUnits != 0 && units[owner] != 0) {
-            uint256 burned = Math.mulDiv(units[owner], shares, _weight(owner) + shares);
-            rewardShares = Math.mulDiv(sourceShares, burned, totalUnits);
-            feeShares = sourceShares == 0 ? 0 : Math.mulDiv(protocolShares, rewardShares, sourceShares);
-            uint256 funded = Math.mulDiv(_funded(), burned, totalUnits);
-            // Split both assets pro rata. Removing only source units from a
-            // mixed fund would change the next holder's execution allowance.
-            vestedShares[owner] += funded;
-            totalVestedShares += funded;
-            units[owner] -= burned;
-            totalUnits -= burned;
-            sourceShares -= rewardShares;
-            protocolShares -= feeShares;
-            emit RewardsVested(owner, funded);
-        }
+        delete requestUnits[id];
+        if (totalUnits == 0) return (0, 0, 0);
+        // the exiting share of the owner's weight takes its units along
+        uint256 owned = units[owner];
+        uint256 exiting = owned == 0 || shares == 0 ? 0 : Math.mulDiv(owned, shares, _weight(owner) + shares);
+        units[owner] = owned - exiting;
+        burned = Math.min(totalUnits, burned + exiting);
+        if (burned == 0) return (0, 0, 0);
+        // split both assets pro rata: the source part funds the exit's own unwind, the funded
+        // shares join its escrow before the vault quotes it
+        rewardShares = Math.mulDiv(sourceShares, burned, totalUnits);
+        feeShares = sourceShares == 0 ? 0 : Math.mulDiv(protocolShares, rewardShares, sourceShares);
+        folded = Math.mulDiv(_funded(), burned, totalUnits);
+        totalUnits -= burned;
+        sourceShares -= rewardShares;
+        protocolShares -= feeShares;
+        if (folded != 0) IERC20(vault).transfer(vault, folded);
+        emit RewardsFolded(owner, folded);
     }
 
     function harvestableShares() public view returns (uint256) {
@@ -324,42 +361,10 @@ contract PropellerYieldAccounting {
         if (released != 0) s.releasePrincipal(vault, released);
     }
 
-    /// @notice Materialize funded collateral shares only. Unconverted reward
-    /// units remain owned; a partial claim cannot erase them.
-    function claim(address owner, address receiver) external onlyVault returns (uint256 shares) {
-        // fund NAV needs allocated source accounting; pokeSettle first
-        if (IYieldVault(vault).mainDebt().pendingSourceAccounting()) revert InvalidHarvest();
-        _settle(owner);
-        _settle(receiver);
-        shares = vestedShares[owner];
-        uint256 extra = _claimable(owner);
-        uint256 assets = _assets();
-        uint256 owned = units[owner];
-        IYieldVault v = IYieldVault(vault);
-        uint256 burned = extra == 0 ? 0 : Math.min(owned,
-            Math.mulDiv(v.mainDebt().quoteHollar(v.convertToAssets(extra)), totalUnits, assets, Math.Rounding.Up));
-        units[owner] -= burned;
-        totalUnits -= burned;
-        totalVestedShares -= shares;
-        vestedShares[owner] = 0;
-        shares += extra;
-        emit RewardClaimed(owner, burned, shares);
-    }
-
-    function _claimable(address owner) private view returns (uint256) {
-        uint256 owned = balanceOf(owner);
-        if (owned == 0 || totalUnits == 0) return 0;
-        IYieldVault v = IYieldVault(vault);
-        return Math.min(_funded(), v.convertToShares(v.mainDebt().quoteCollateral(Math.mulDiv(_assets(), owned, totalUnits))));
-    }
-
-    function claimableShares(address owner) external view returns (uint256) {
-        return vestedShares[owner] + _claimable(owner);
-    }
-
+    /// @notice collateral value of everything `owner`'s units own: the funded slice already in
+    /// their balance plus the pending source part
     function earnedAssets(address owner) external view returns (uint256) {
-        IYieldVault v = IYieldVault(vault);
-        return v.convertToAssets(vestedShares[owner]) + (totalUnits == 0 ? 0
-            : v.mainDebt().quoteCollateral(Math.mulDiv(_assets(), balanceOf(owner), totalUnits)));
+        return totalUnits == 0 ? 0
+            : IYieldVault(vault).mainDebt().quoteCollateral(Math.mulDiv(_assets(), balanceOf(owner), totalUnits));
     }
 }

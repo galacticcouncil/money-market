@@ -62,15 +62,19 @@ contract Handler is Test {
         uint256 bal = vault.balanceOf(address(this));
         if (bal == 0) return;
         uint256 shares = bound(seed, 1, bal);
+        uint256 escrowBefore = vault.balanceOf(address(vault));
         uint256 id = vault.requestRedeem(shares, address(this));
         reqIds.push(id);
-        ghostEscrowed += shares;
+        // beyond the wallet the funded slice is folded in at the start, not now
+        ghostEscrowed += vault.balanceOf(address(vault)) - escrowBefore;
     }
 
     function advanceAndStart(uint256 secondsForward, uint256 count) external {
         vm.warp(block.timestamp + bound(secondsForward, 0, 24 hours));
         uint256 before = vault.queueUnwind();
+        uint256 escrowBefore = vault.balanceOf(address(vault));
         vault.startUnwinds(bound(count, 1, 8));
+        ghostEscrowed += vault.balanceOf(address(vault)) - escrowBefore;
         for (uint256 id = before; id < vault.queueUnwind(); ++id) {
             (, , uint256 owed, , , , , , ) = vault.redemptions(id);
             ghostRequested += owed;

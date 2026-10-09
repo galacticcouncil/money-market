@@ -223,10 +223,8 @@ contract MultiVaultFlowTest is Test {
 
         // yield tracks each vault's max ltv: tbtc (80%) beats eth (75%)
         assertGt(tbtcGain * 10, ethGain, "tBTC %-yield > ETH %-yield (higher LTV)");
-        vm.prank(ETH_USER);
-        ethShares += ethVault.claimYield(ETH_USER);
-        vm.prank(BTC_USER);
-        assertGt(tbtcVault.claimYield(BTC_USER), 0, "BTC earnings become funded receipt shares");
+        ethShares += ethVault.yieldAccounting().fundedOf(ETH_USER);
+        assertGt(tbtcVault.yieldAccounting().fundedOf(BTC_USER), 0, "BTC earnings become funded receipt shares");
 
         // eth user redeems everything
         uint256 tbtcVaultCollBefore = aTbtc.balanceOf(address(tbtcVault));
@@ -386,8 +384,7 @@ contract MultiVaultFlowTest is Test {
             "five-percent fee, allowing one unit of source/receipt rounding");
 
         // an incomplete exit is a partial payment, never a finalized haircut
-        vm.prank(ETH_USER);
-        ethShares += ethVault.claimYield(ETH_USER);
+        ethShares = ethVault.balanceOf(ETH_USER);
         vm.prank(ETH_USER);
         uint256 reqId = ethVault.requestRedeem(ethShares, ETH_USER);
         vm.warp(vm.getBlockTimestamp() + ethVault.withdrawalDelay());

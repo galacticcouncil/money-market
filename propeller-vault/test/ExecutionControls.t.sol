@@ -162,7 +162,7 @@ contract ExecutionControlsTest is HarvestTest {
         assertGt(second, 49e6);
         assertLe(first + second, 150e6);
         assertEq(abi.decode(_execute(address(harvester), data), (uint256)), 0);
-        assertGt(vault.claimYield(address(this)), 0);
+        assertGt(vault.yieldAccounting().fundedOf(address(this)), 0);
         assertGt(vault.yieldAccounting().earnedAssets(address(this)), 0);
     }
 

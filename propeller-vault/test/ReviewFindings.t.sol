@@ -225,13 +225,11 @@ contract ReviewFindingsTest is HarvestTest {
         assertTrue(vault.mainDebt().pendingSourceAccounting());
         vault.transfer(NEWCOMER, vault.balanceOf(address(this)) / 2);
         assertEq(harvester.harvest(new uint256[](1)), 0, "the pending vault waits; the batch does not revert");
-        vm.expectRevert(PropellerYieldAccounting.InvalidHarvest.selector);
-        vault.claimYield(address(this));
         vm.clearMockedCalls();
         assertApproxEqAbs(rewards.earnedAssets(address(this)), earned, 1e9, "earlier yield stays with the sender");
         assertEq(rewards.earnedAssets(NEWCOMER), 0);
         assertGt(harvester.harvest(new uint256[](1)), 0, "harvest resumes once accounting settles");
-        assertGt(vault.claimYield(address(this)), 0);
+        assertGt(rewards.fundedOf(address(this)), 0);
     }
 
     // new borrowing re-checks the synthetic floor

@@ -33,11 +33,14 @@ contract YieldValidationTest is HarvestTest {
             } else if (action == 3) {
                 harvester.harvest(new uint256[](0));
             } else {
-                uint256 earnedBefore = ledger.earnedAssets(owner);
+                // a transfer of the whole balance carries the funded slice as units
+                address to = owners[(seed >> 16) % owners.length];
+                uint256 earnedBefore = ledger.earnedAssets(owner) + (to == owner ? 0 : ledger.earnedAssets(to));
+                uint256 amount = vault.balanceOf(owner);
                 vm.prank(owner);
-                uint256 claimed = vault.claimYield(owner);
-                assertApproxEqAbs(ledger.earnedAssets(owner) + vault.convertToAssets(claimed), earnedBefore, 1e9,
-                    "claim conserves funded plus unconverted owner value");
+                vault.transfer(to, amount);
+                assertApproxEqAbs(ledger.earnedAssets(owner) + (to == owner ? 0 : ledger.earnedAssets(to)),
+                    earnedBefore, 1e9, "units move with their value");
             }
             vault.sync();
             uint256 ownedUnits;
