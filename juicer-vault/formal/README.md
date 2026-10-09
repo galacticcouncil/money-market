@@ -3,7 +3,8 @@
 Formal verification of **Juicer** — a protocol-managed leveraged-yield product on
 Hydration — in **Lean 4**. Contains conditional mathematical proofs and executable integer models checked against Solidity.
 [Current implementation mapping and limits](SOLIDITY_PARITY.md) is the coverage record.
-[Funded-transfer rounding](ROUNDING.md) records the allowance fix, rounding limits and regression evidence.
+[Funded-transfer rounding](ROUNDING.md) records the allowance fix and a separate seeded
+counterexample to exact aggregate unit conservation across lazy rescales.
 
 Lives beside the contracts it models: `juicer-vault/{src,test,formal}` (branch `juicer-next`).
 A self-contained Lake project; the Foundry build ignores it and vice-versa.
@@ -42,6 +43,8 @@ JuicerLean/
    ├─ Runtime.lean        current integer accounting and single-slot ICE behavior
    ├─ Rounding.lean       displayed-transfer bounds and integer/real mul-div refinement
    ├─ YieldTransitions.lean reserve limits, exit/harvest conservation and settled ownership traces
+   ├─ LazyOwnership.lean  lazy holder traces with an explicit rescale rounding budget
+   ├─ LazyRefinement.lean epoch/scale normalization, runtime bounds and a rescale counterexample
    ├─ MainDebt.lean       debt cohorts, source batches, vested fees and reserve limits
    ├─ PolicyQueue.lean    controller budgets, quotes, FIFO starts and collateral claims
    ├─ Environment.lean    external observation guards and ICE authentication limits
@@ -77,9 +80,15 @@ JuicerLean/
 
 Aligned with Solidity at `bbe541f` on 9 October. The real-number models prove ideal accounting
 properties; `FixedPoint/Runtime.lean` adds current integer arithmetic, epoch and rescale behavior.
-Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 500 Lean cases with the
+Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 820 Lean cases with the
 actual Solidity, and detect source or storage-layout drift. Same integrity bar: 0 `sorry`, axioms
 `propext`/`Classical.choice`/`Quot.sound` only.
+
+The integer lazy-account model proves aggregate bounds through settlement, wallet-weight changes,
+allocation, unit movement, burns, rescaling and write-off. Rescaling needs an explicit rounding
+budget; exact aggregate unit conservation is false for the seeded state in `ROUNDING.md`.
+These are conditional integer trace bounds, not full Solidity trace equivalence. The table below
+describes the separate ideal-arithmetic models.
 
 | Theorem | Claim |
 |---|---|

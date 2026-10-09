@@ -69,3 +69,22 @@ evidence and do not establish full Solidity equivalence.
 ```sh
 forge test --offline --match-contract LeanRoundingReachabilityTest --match-test test_publicDonation -vv
 ```
+
+## separate lazy-rescale limitation
+
+`test_rescaleCanLeaveOneExcessLazyUnit` in `LeanLazyHistoryParity.t.sol` reproduces a different
+rounding boundary in the actual accounting contract. the fixture seeds a valid aggregate unit
+balance before allocation: total units are `2^64 + 1`, the current index is `2^64`, an old holder
+owns `2^64 - 1` units with no wallet weight, and two holders each have wallet weight `RAY` and
+previous index `2^64 - 1`. their two pending units complete the initial total.
+
+an allocation with source shares `2`, source holdings/equity `2 * 10^38`, zero fee/backing/funded
+shares and outside supply `2 * RAY` triggers one 64-bit rescale. the old holder's units round to
+zero; the two previous indices also round to zero. the resulting sum of unit balances is
+`totalUnits + 1`, including after both holders settle. `runtime_rescale_unit_excess` checks the
+same initial state and executable allocation in Lean.
+
+this is a seeded arithmetic counterexample, not a public-call reachability proof or a production
+loss estimate. the excess is one **reward unit**, not one vault share. it invalidates an exact
+aggregate unit-conservation claim across every lazy rescale; displayed funded claims also depend
+on the fund's shares-per-unit ratio. it is separate from the allowance mismatch fixed above.
