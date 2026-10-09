@@ -29,6 +29,8 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
     /// @notice Registered CollateralVaults — the only callers of deposit/unwind.
     bytes32 public constant VAULT_ROLE = keccak256("VAULT_ROLE");
+    /// @notice may pass a keeper quote: an unfillable quote would park an intent until it expires
+    bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
     /// @notice delegatecall target for the execution paths, deployed with this implementation
     address public immutable logic;
@@ -38,6 +40,13 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     modifier whenNotEmergencyPaused() {
         if (_emergencyPaused) revert EmergencyPaused();
         _;
+    }
+
+    /// @dev settle a fill or refund that already arrived, then re-measure after the loop's own transfers
+    modifier settlesIntents() {
+        if (pendingIntent.kind != 0) _delegate(abi.encodeCall(SubLoopLogic.settleArrived, ()));
+        _;
+        _rebase();
     }
 
     event LoopDeposited(address indexed vault, uint256 hollarIn, uint256 shares);
@@ -53,6 +62,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     error Underfunded();
     error InvalidParameters();
     error EmergencyPaused();
+    error IntentRejected();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -99,6 +109,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         nonReentrant
         whenNotPaused
         whenNotEmergencyPaused
+        settlesIntents
         returns (uint256 shares)
     {
         if (hollarAmount == 0) revert ZeroAmount();
@@ -120,7 +131,8 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         _principalOf[msg.sender] += hollarAmount;
 
         // future: match against open unwinds before selling (README, future improvements)
-        _delegate(abi.encodeCall(SubLoopLogic.fundDeploy, (hollarAmount)));
+        // with intents the HOLLAR waits as cash for the next ramp step's entry
+        if (intentTtl == 0) _delegate(abi.encodeCall(SubLoopLogic.fundDeploy, (hollarAmount)));
         emit LoopDeposited(msg.sender, hollarAmount, shares);
     }
 
@@ -131,13 +143,14 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         onlyRole(VAULT_ROLE)
         nonReentrant
         whenNotEmergencyPaused
+        settlesIntents
         returns (uint256 unwindId)
     {
         return _requestUnwind(shares, Math.mulDiv(_principalOf[msg.sender], shares, _sharesOf[msg.sender]));
     }
 
     function requestUnwindProtected(uint256 shares, uint256 basis)
-        external override onlyRole(VAULT_ROLE) nonReentrant whenNotEmergencyPaused returns (uint256)
+        external override onlyRole(VAULT_ROLE) nonReentrant whenNotEmergencyPaused settlesIntents returns (uint256)
     {
         return _requestUnwind(shares, basis);
     }
@@ -172,7 +185,9 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     }
 
     /// @inheritdoc IYieldSource
-    function pullFreed() external override onlyRole(VAULT_ROLE) nonReentrant returns (uint256 hollarSent) {
+    function pullFreed()
+        external override onlyRole(VAULT_ROLE) nonReentrant settlesIntents returns (uint256 hollarSent)
+    {
         hollarSent = freedHollar[msg.sender];
         if (hollarSent == 0) return 0;
         freedHollar[msg.sender] = 0;
@@ -206,7 +221,26 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     /// @inheritdoc ILeveragedLoop
     /// @dev permissionless: bounded by deployHfFloor, deployTranche and an oracle-fair minOut
     function pokeBorrow() external override nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256) {
-        return abi.decode(_delegate(abi.encodeCall(SubLoopLogic.pokeBorrow, ())), (uint256));
+        return abi.decode(_delegate(abi.encodeCall(SubLoopLogic.pokeBorrowQuoted, (0))), (uint256));
+    }
+
+    /// @inheritdoc ISubLoop
+    function pokeBorrowQuoted(uint256)
+        external override onlyRole(KEEPER_ROLE) nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256)
+    {
+        return abi.decode(_delegate(msg.data), (uint256));
+    }
+
+    /// @inheritdoc ISubLoop
+    function reconcile() external override nonReentrant returns (uint8) {
+        return abi.decode(_delegate(msg.data), (uint8));
+    }
+
+    /// @inheritdoc ISubLoop
+    function execute(address, uint256, address, uint256, address, uint256, bytes calldata)
+        external override nonReentrant returns (bytes4)
+    {
+        return abi.decode(_delegate(msg.data), (bytes4));
     }
 
     /// @inheritdoc ILeveragedLoop
@@ -254,7 +288,8 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     /// @notice Burn only the realized owner's units at the pre-withdrawal NAV.
     /// The Harvester caps and distributes the batch before the first withdrawal.
     function harvestFor(address vault, uint256 shares)
-        external override nonReentrant whenNotPaused whenNotEmergencyPaused returns (uint256 amount, uint256 burned)
+        external override nonReentrant whenNotPaused whenNotEmergencyPaused settlesIntents
+        returns (uint256 amount, uint256 burned)
     {
         if (msg.sender != harvester) revert NotHarvester();
         if (shares == 0) return (0, 0);
@@ -376,6 +411,14 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         aPrimeAssetId = _aPrimeAssetId;
         primePoolId = _primePoolId;
         dcaSlippagePpm = _slippagePpm;
+    }
+
+    /// @notice ICE for entries and routine unwinds: `ttl` seconds per intent (0 keeps the router),
+    /// `driftBps` of keeper-quote tolerance on top of the solver's 1 bp haircut
+    function configureIntents(uint32 ttl, uint16 driftBps) external onlyRole(ADMIN_ROLE) {
+        if (ttl >= 1 days || driftBps >= 9_999) revert InvalidParameters();
+        intentTtl = ttl;
+        intentDriftBps = driftBps;
     }
 
     function setParams(

@@ -16,6 +16,7 @@ import {DcaDispatch} from "./DcaDispatch.sol";
 // same selectors as SubLoop's own declarations, which tests and integrators reference
 error InvalidParameters();
 error HealthyEnough();
+error IntentRejected();
 
 /// @dev SubLoop's storage layout, events and shared views. The loop and its delegate logic both
 /// inherit it, so the logic reads and writes the loop's storage under delegatecall.
@@ -29,6 +30,24 @@ abstract contract SubLoopStorage is
     uint256 internal constant VARIABLE_RATE = 2;
     /// @dev per-step HF floor for the in-route unwind withdraw, just above aave's 1.0 limit
     uint256 internal constant STEP_HF_FLOOR = 1.02e18;
+    // intent kinds, and reconcile outcomes (0 = nothing in flight)
+    uint8 internal constant ENTRY = 1; // HOLLAR → aPRIME
+    uint8 internal constant EXIT = 2; // aPRIME → HOLLAR
+    uint8 internal constant WAITING = 1;
+    uint8 internal constant FILLED = 2;
+    uint8 internal constant RETURNED = 3;
+
+    struct PendingIntent {
+        uint64 nonce;
+        uint64 deadline; // unix ms
+        uint8 kind;
+        bool controlled; // opened on the execution controller's async lane
+        uint128 amountIn;
+        uint128 minOut;
+        uint128 fairOut; // oracle-fair output at submit
+        uint128 inBase; // input balance after the loop's last transaction
+        uint128 outBase; // output balance after the loop's last transaction
+    }
 
     // config
     IAavePool public pool;
@@ -77,11 +96,21 @@ abstract contract SubLoopStorage is
     uint256[37] private __gap;
     mapping(address => uint256) internal _principalOf;
     ExecutionController public executionController;
+    /// @notice intent lifetime in seconds; zero keeps entries and routine unwinds on the router
+    uint32 public intentTtl;
+    /// @notice keeper-quote tolerance (bps) below its router dry run, beyond the solver's 1 bp haircut
+    uint16 public intentDriftBps;
+    uint64 public intentNonce;
+    /// @notice the in-flight ICE intent; one at a time keeps both directions' balance deltas apart
+    PendingIntent public pendingIntent;
 
     event Borrowed(uint256 amount, uint256 hfAfter);
     event Repaid(uint256 amount, uint256 hfAfter);
     event DeLevered(uint256 hfBefore, uint256 hfAfter);
     event UnwindYieldSpent(address indexed vault, uint256 cost);
+    event IntentSubmitted(uint8 indexed kind, uint64 indexed nonce, uint256 amountIn, uint256 minOut, uint64 deadline);
+    /// @notice `amountOut` is zero when the input came back (expiry, removal)
+    event IntentSettled(uint8 indexed kind, uint64 indexed nonce, uint256 amountOut);
 
     function _healthFactor() internal view returns (uint256 hf) {
         (, , , , , hf) = pool.getUserAccountData(address(this));
@@ -91,7 +120,46 @@ abstract contract SubLoopStorage is
         (uint256 collBase, uint256 debtBase, , , , ) = pool.getUserAccountData(address(this));
         uint256 cash = hollar.balanceOf(address(this));
         if (cash > reservedFreed) collBase += (cash - reservedFreed) / 1e10;
+        (, uint256 inFlight8) = _inFlight8();
+        collBase += inFlight8;
         return collBase > debtBase ? collBase - debtBase : 0;
+    }
+
+    function _intentTokens(uint8 kind) internal view returns (IERC20 tokenIn, IERC20 tokenOut) {
+        return kind == ENTRY ? (hollar, primeAToken) : (primeAToken, hollar);
+    }
+
+    /// @dev deltas against balances at the end of the loop's last transaction count only outside
+    /// arrivals; half the expected amount absorbs fees and aToken rounding, not interest or dust
+    function _outcome(PendingIntent memory p) internal view returns (uint8 outcome, uint256 output) {
+        (IERC20 tokenIn, IERC20 tokenOut) = _intentTokens(p.kind);
+        uint256 balance = tokenOut.balanceOf(address(this));
+        if (balance > p.outBase && balance - p.outBase >= (uint256(p.minOut) + 1) / 2) {
+            return (FILLED, balance - p.outBase);
+        }
+        balance = tokenIn.balanceOf(address(this));
+        if (balance > p.inBase && balance - p.inBase >= (uint256(p.amountIn) + 1) / 2) return (RETURNED, 0);
+        return (WAITING, 0);
+    }
+
+    /// @dev oracle value (USD8) of the input while it is away: HOLLAR as cash, aPRIME at the PRIME price
+    function _inFlight8() internal view returns (uint8 kind, uint256 value8) {
+        PendingIntent memory p = pendingIntent;
+        if (p.kind == 0) return (0, 0);
+        (uint8 outcome, ) = _outcome(p);
+        if (outcome != WAITING) return (0, 0);
+        if (p.kind == ENTRY) return (ENTRY, p.amountIn / 1e10);
+        (, uint256 pPrime) = _oracleRate();
+        return (EXIT, uint256(p.amountIn) * pPrime / 1e6);
+    }
+
+    /// @dev after the loop's own transfers, so the next transaction measures only what arrived
+    function _rebase() internal {
+        uint8 kind = pendingIntent.kind;
+        if (kind == 0) return;
+        (IERC20 tokenIn, IERC20 tokenOut) = _intentTokens(kind);
+        pendingIntent.inBase = uint128(tokenIn.balanceOf(address(this)));
+        pendingIntent.outBase = uint128(tokenOut.balanceOf(address(this)));
     }
 
     function _liveEquity18() internal view returns (uint256) {
@@ -128,13 +196,24 @@ contract SubLoopLogic is SubLoopStorage {
     using SafeERC20 for IERC20;
 
     function fundDeploy(uint256 amount) external {
-        _fundDeploy(amount);
+        _fundDeploy(amount, 0);
     }
 
-    /// @dev permissionless: bounded by deployHfFloor, deployTranche and an oracle-fair minOut
-    function pokeBorrow() external returns (uint256 borrowed) {
+    function settleArrived() external {
+        _settleArrived();
+    }
+
+    /// @dev bounded by deployHfFloor, deployTranche, an oracle-fair minOut and the controller's caps
+    function pokeBorrowQuoted(uint256 keeperQuote) external returns (uint256 amount) {
+        amount = _pokeBorrow(keeperQuote);
+        _rebase();
+    }
+
+    function _pokeBorrow(uint256 keeperQuote) internal returns (uint256 borrowed) {
+        bool idle = _settleArrived();
         _dropMetDelever();
-        if (unwindTargetEquity != 0 || deleverDebtTarget != 0) return 0;
+        // the next ramp step waits for the in-flight intent
+        if (unwindTargetEquity != 0 || deleverDebtTarget != 0 || !idle) return 0;
         // the route's aave hop mints aPRIME without enabling it as collateral
         if (primeAToken.balanceOf(address(this)) > 0) {
             pool.setUserUseReserveAsCollateral(address(prime), true);
@@ -149,6 +228,7 @@ contract SubLoopLogic is SubLoopStorage {
         uint256 deployCollateral8 = collBase8 - Math.min(collBase8, earned8);
         uint256 collWithLt8 = (deployCollateral8 * wAvgLtBps) / 1e4;
         uint256 maxDebt8 = (collWithLt8 * WAD) / deployHfFloor; // 8dp USD
+        if (intentTtl != 0) return _enterByIntent(maxDebt8 > debtBase8 ? (maxDebt8 - debtBase8) * 1e10 : 0, keeperQuote);
         if (maxDebt8 <= debtBase8) {
             emit Borrowed(0, _healthFactor());
             return 0;
@@ -163,19 +243,48 @@ contract SubLoopLogic is SubLoopStorage {
             return 0;
         }
         pool.borrow(address(hollar), borrowHollar, VARIABLE_RATE, 0, address(this));
-        _fundDeploy(borrowHollar);
+        _fundDeploy(borrowHollar, keeperQuote);
         emit Borrowed(borrowHollar, _healthFactor());
         return borrowHollar;
     }
 
-    /// @dev synchronous HOLLAR→aPRIME router sale (stableswap + aave supply in one route)
-    function _fundDeploy(uint256 amount) internal {
-        if (amount == 0) return;
-        // fair aPRIME (6dp) = HOLLAR (18dp) · pHollar/pPrime / 1e12, off the aave oracle
+    /// @dev one ICE entry for idle HOLLAR (deposits wait as cash) plus the new borrow. While it is
+    /// in flight the HOLLAR counts as debt-backed cash, so HF stays above the deploy floor.
+    function _enterByIntent(uint256 borrowHollar, uint256 keeperQuote) internal returns (uint256 amount) {
+        uint256 cash = hollar.balanceOf(address(this));
+        uint256 idle = cash > reservedFreed ? cash - reservedFreed : 0;
+        amount = Math.min(idle + borrowHollar, _admissionCapacity());
+        ExecutionController control = executionController;
+        if (address(control) != address(0)) {
+            amount = control.fit(address(this), address(hollar), address(primeAToken), amount);
+        }
+        uint256 borrowed = amount > idle ? amount - idle : 0;
+        if (borrowed != 0) pool.borrow(address(hollar), borrowed, VARIABLE_RATE, 0, address(this));
+        if (amount != 0) _submit(ENTRY, amount, _entryFairOut(amount), keeperQuote);
+        emit Borrowed(borrowed, _healthFactor());
+    }
+
+    /// @dev fair aPRIME (6dp) = HOLLAR (18dp) · pHollar/pPrime / 1e12, off the aave oracle
+    function _entryFairOut(uint256 amount) internal view returns (uint256) {
         (uint256 pHollar, uint256 pPrime) = _oracleRate();
-        uint256 fairOut = (amount * pHollar) / pPrime / 1e12;
+        return (amount * pHollar) / pPrime / 1e12;
+    }
+
+    /// @dev keeperQuote is the router dry run's output per 1e18 input; less the solver's 1 bp
+    /// haircut and the drift allowance, it can only raise the oracle floor
+    function _floor(uint256 amount, uint256 fairOut, uint256 keeperQuote) internal view returns (uint256) {
+        uint256 quoted = Math.mulDiv(Math.mulDiv(amount, keeperQuote, WAD), 9_999 - intentDriftBps, 10_000);
+        return Math.max(_minimumOut(fairOut), quoted);
+    }
+
+    /// @dev synchronous HOLLAR→aPRIME router sale (stableswap + aave supply in one route)
+    function _fundDeploy(uint256 amount, uint256 keeperQuote) internal {
+        if (amount == 0) return;
+        uint256 fairOut = _entryFairOut(amount);
         if (amount > type(uint128).max) revert InvalidParameters();
-        uint128 minOut = _minimumOut(fairOut);
+        uint256 floor = _floor(amount, fairOut, keeperQuote);
+        if (floor > type(uint128).max) revert InvalidParameters();
+        uint128 minOut = uint128(floor);
         ExecutionController control = executionController;
         uint256 before_;
         if (address(control) != address(0)) {
@@ -187,6 +296,83 @@ contract SubLoopLogic is SubLoopStorage {
         DcaDispatch.routerSell(hollarAssetId, aPrimeAssetId, uint128(amount), minOut, _deployRoute());
         if (address(control) != address(0)) control.record(address(hollar), address(primeAToken), primeAToken.balanceOf(address(this)) - before_);
         pool.setUserUseReserveAsCollateral(address(prime), true);
+    }
+
+    function _submit(uint8 kind, uint256 amountIn, uint256 fairOut, uint256 keeperQuote) internal {
+        (IERC20 tokenIn, IERC20 tokenOut) = _intentTokens(kind);
+        uint64 nonce = ++intentNonce;
+        uint256 minOut = _floor(amountIn, fairOut, keeperQuote);
+        ExecutionController control = executionController;
+        if (address(control) != address(0)) {
+            minOut = Math.max(minOut, control.consumeAsync(address(tokenIn), address(tokenOut), amountIn, fairOut, nonce));
+        }
+        _dispatchIntent(kind, nonce, amountIn, minOut, fairOut, address(control) != address(0));
+    }
+
+    function _dispatchIntent(uint8 kind, uint64 nonce, uint256 amountIn, uint256 minOut, uint256 fairOut,
+        bool controlled) internal
+    {
+        if (amountIn > type(uint128).max || minOut > type(uint128).max) revert InvalidParameters();
+        (IERC20 tokenIn, IERC20 tokenOut) = _intentTokens(kind);
+        (uint32 assetIn, uint32 assetOut) = kind == ENTRY ? (hollarAssetId, aPrimeAssetId) : (aPrimeAssetId, hollarAssetId);
+        uint64 deadline = uint64((block.timestamp + intentTtl) * 1000);
+        DcaDispatch.submitIntent(assetIn, assetOut, uint128(amountIn), uint128(minOut), deadline, address(this),
+            abi.encode(kind, nonce));
+        pendingIntent = PendingIntent(nonce, deadline, kind, controlled, uint128(amountIn), uint128(minOut),
+            uint128(fairOut), uint128(tokenIn.balanceOf(address(this))), uint128(tokenOut.balanceOf(address(this))));
+        emit IntentSubmitted(kind, nonce, amountIn, minOut, deadline);
+    }
+
+    /// @notice permissionless: settle the in-flight intent once its fill or refund shows up in the
+    /// balances. 0 = nothing in flight, 1 = still waiting, 2 = filled, 3 = input returned
+    function reconcile() external returns (uint8 outcome) {
+        PendingIntent memory p = pendingIntent;
+        if (p.kind == 0) return 0;
+        uint256 output;
+        (outcome, output) = _outcome(p);
+        if (outcome == FILLED) _settle(p, Math.max(output, p.minOut));
+        else if (outcome == RETURNED) _settle(p, 0);
+    }
+
+    /// @notice lazy-executor receiver for the loop's own intents: it calls as the owner, which is
+    /// the loop. A callback for an intent already reconciled is acknowledged and ignored.
+    function execute(address owner, uint256, address, uint256, address assetOut, uint256 amountOut,
+        bytes calldata data) external returns (bytes4)
+    {
+        if (msg.sender != address(this) || owner != address(this)) revert IntentRejected();
+        (uint8 kind, uint64 nonce) = abi.decode(data, (uint8, uint64));
+        PendingIntent memory p = pendingIntent;
+        if (p.kind == 0 || p.nonce != nonce || p.kind != kind) {
+            if (nonce == 0 || nonce > intentNonce) revert IntentRejected();
+            return this.execute.selector;
+        }
+        (, IERC20 tokenOut) = _intentTokens(kind);
+        // the pallet fills at or above the limit; anything else is not our fill
+        if (assetOut != address(tokenOut) || amountOut < p.minOut) revert IntentRejected();
+        _settle(p, amountOut);
+        return this.execute.selector;
+    }
+
+    /// @dev true when nothing is left in flight
+    function _settleArrived() internal returns (bool idle) {
+        PendingIntent memory p = pendingIntent;
+        if (p.kind == 0) return true;
+        (uint8 outcome, uint256 output) = _outcome(p);
+        if (outcome == WAITING) return false;
+        // a measured fill below the limit is fee or rounding noise: the pallet never fills under it
+        _settle(p, outcome == FILLED ? Math.max(output, p.minOut) : 0);
+        return true;
+    }
+
+    function _settle(PendingIntent memory p, uint256 output) internal {
+        delete pendingIntent;
+        if (p.controlled) {
+            (IERC20 tokenIn, IERC20 tokenOut) = _intentTokens(p.kind);
+            executionController.recordAsync(keccak256(abi.encode(address(this), tokenIn, tokenOut)), p.nonce, output);
+        }
+        // the aave hop mints aPRIME without enabling it, and a returned exit input may come back unflagged
+        if (primeAToken.balanceOf(address(this)) != 0) pool.setUserUseReserveAsCollateral(address(prime), true);
+        emit IntentSettled(p.kind, p.nonce, output);
     }
 
     /// @dev HOLLAR →[stableswap primePoolId]→ PRIME →[Aave]→ aPRIME.
@@ -204,6 +390,12 @@ contract SubLoopLogic is SubLoopStorage {
     }
 
     function pokeRepay() external returns (uint256 work) {
+        work = _pokeRepay();
+        _rebase();
+    }
+
+    function _pokeRepay() internal returns (uint256 work) {
+        bool idle = _settleArrived();
         uint256 previousTarget = deleverDebtTarget;
         _dropMetDelever();
         // Clearing a completed safety commitment is useful work too: otherwise
@@ -211,6 +403,8 @@ contract SubLoopLogic is SubLoopStorage {
         work = previousTarget > deleverDebtTarget ? 1 : 0;
         if (unwindTargetEquity == 0 && deleverDebtTarget == 0) return work;
         if (_emergencyPaused && deleverDebtTarget == 0) return work;
+        // the next unwind step waits for the in-flight intent; a safety de-lever never does
+        if (!idle && deleverDebtTarget == 0) return work;
         // sell an HF-safe aPRIME sliver; capping at STEP_HF_FLOOR keeps the in-route withdraw from reverting
         if (unwindTargetEquity > 0 || deleverDebtTarget > 0) {
             (uint256 coll8, uint256 debt8, , uint256 lt, , ) = pool.getUserAccountData(address(this));
@@ -389,10 +583,14 @@ contract SubLoopLogic is SubLoopStorage {
 
     /// @dev sets repay target x solving (coll − x)·lt / (debt − x) = targetHf; pokeRepay executes it
     function deLever() external {
-        uint256 hf = _healthFactor();
-        if (hf > deLeverTrigger) revert HealthyEnough();
-        (uint256 coll8, uint256 debt8, , uint256 ltBps, , ) = pool.getUserAccountData(address(this));
+        (uint256 coll8, uint256 debt8, , uint256 ltBps, , uint256 hf) = pool.getUserAccountData(address(this));
         uint256 ltWad = ltBps * 1e14; // bps → WAD
+        // in-flight HOLLAR is debt-backed cash; aPRIME on its way to a sale still backs the debt
+        (uint8 kind, uint256 inFlight8) = _inFlight8();
+        if (kind == ENTRY) debt8 -= Math.min(debt8, inFlight8);
+        if (kind == EXIT) coll8 += inFlight8;
+        if (kind != 0) hf = debt8 == 0 ? type(uint256).max : coll8 * ltWad / debt8;
+        if (hf > deLeverTrigger) revert HealthyEnough();
         // degenerate (no debt / LT ≥ target HF) or already at/above target
         if (debt8 == 0 || targetHf <= ltWad) revert HealthyEnough();
         if (hf >= targetHf) revert HealthyEnough();
