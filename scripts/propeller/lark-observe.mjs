@@ -14,18 +14,23 @@ const blockNumber=await pub.getBlockNumber({cacheTime:0}),block=await pub.getBlo
 assert.ok(Math.abs(Date.now()/1000-Number(block.timestamp))<120,'stale head');
 const out={time:new Date().toISOString(),genesis:r.genesis,block:blockNumber,blockHash:block.hash,source:{},vaults:[],receipts:[]};
 const read=(name,address,functionName,args=[])=>pub.readContract({address,abi:artifact(name).abi,functionName,args,blockNumber});
+const readSig=(address,signature)=>{const abi=v.parseAbi([signature]);return pub.readContract({address,abi,functionName:abi[0].name,blockNumber});};
 for(const method of ['healthFactor','targetHf','totalEquity','principalEquity','totalShares','harvestThreshold','harvestCapacity','executionCostReserve','unwindTargetEquity','deleverDebtTarget','negativeCarryBps'])out.source[method]=await read('SubLoop',r.addresses.source,method);
 out.harvestable=await read('Harvester',r.addresses.harvester,'harvestable');
 for(const vault of r.vaults){
  const row={name:vault.name,address:vault.address};
  for(const method of ['totalAssets','reinvestAssets','loopShares','queueHead','queueTail','queueUnwind'])row[method]=await read('CollateralVault',vault.address,method);
  const ledger=await read('CollateralVault',vault.address,'mainDebt');
- row.mainReady=await read('PropellerMainDebt',ledger,'ready');
+ // track A's vaults answer deficitStop(), have no ready() and call prepareHarvest sync()
+ const deficitStop=await readSig(vault.address,'function deficitStop() view returns(bool)').catch(()=>undefined);
+ if(deficitStop===undefined)row.mainReady=await readSig(ledger,'function ready() view returns(bool)');
+ else Object.assign(row,{deficitStop,pendingSourceAccounting:await readSig(ledger,'function pendingSourceAccounting() view returns(bool)')});
  row.mainInterest=await read('PropellerMainDebt',ledger,'interestOf',[0n]);
  row.pendingUnwind=await read('SubLoop',r.addresses.source,'pendingUnwindOf',[vault.address]);
  row.redemptions=[];
  for(const request of r.checks.hostedExits??[])if(request.vault===vault.address)row.redemptions.push({id:request.id,state:await read('CollateralVault',vault.address,'redemptions',[BigInt(request.id)])});
- row.eligibleHarvest=await pub.simulateContract({address:vault.address,abi:artifact('CollateralVault').abi,functionName:'prepareHarvest',account:r.addresses.harvester,blockNumber}).then(x=>x.result).catch(e=>({error:e.shortMessage}));
+ const harvest=deficitStop===undefined?'prepareHarvest':'sync';
+ row.eligibleHarvest=await pub.simulateContract({address:vault.address,abi:v.parseAbi([`function ${harvest}() returns(uint256)`]),functionName:harvest,account:r.addresses.harvester,blockNumber}).then(x=>x.result).catch(e=>({error:e.shortMessage}));
  out.vaults.push(row);
 }
 try{
@@ -38,7 +43,7 @@ for(const hash of process.argv.slice(2)){
  assert.match(hash,/^0x[0-9a-f]{64}$/);
  const receipt=await pub.getTransactionReceipt({hash});
  out.receipts.push({hash,status:receipt.status,block:receipt.blockNumber,from:receipt.from,to:receipt.to,gasUsed:receipt.gasUsed,events:receipt.logs.map(log=>{
-  for(const name of ['ExecutionController','SubLoop','CollateralVault','Harvester'])try{const event=v.decodeEventLog({abi:artifact(name).abi,data:log.data,topics:log.topics});return {address:log.address,name:event.eventName,args:event.args};}catch{}
+  for(const name of ['ExecutionController','SubLoop','CollateralVault','Harvester','PropellerYieldAccounting'])try{const event=v.decodeEventLog({abi:artifact(name).abi,data:log.data,topics:log.topics});return {address:log.address,name:event.eventName,args:event.args};}catch{}
   return null;
  }).filter(Boolean)});
 }

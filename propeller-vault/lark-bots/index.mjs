@@ -8,7 +8,7 @@ import {cryptoWaitReady,blake2AsU8a} from '@polkadot/util-crypto';
 import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData} from 'viem';
 import {mnemonicToAccount} from 'viem/accounts';
 const stableMath=createRequire(import.meta.url)('@galacticcouncil/math-stableswap');
-import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit,botIdentity} from './policy.mjs';
+import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit,botIdentity,depositStop,depositBlock} from './policy.mjs';
 // node4 by default: the public 4.lark endpoint runs out of connections under outside load
 const RPC=process.env.LARK_RPC||'https://node4.lark.hydration.cloud',WS=process.env.LARK_WS||RPC.replace('https://','wss://');
 const SOURCE='https://hdx.tarn.hydration.cloud';
@@ -377,7 +377,8 @@ async function replay(){
  if(live&&calls.length)await submit(api.tx.utility.forceBatch(calls),'replay-mined',false);
  return true;
 }
-const vaultAbi=parseAbi(['function paused() view returns(bool)','function depositsPaused() view returns(bool)','function isUnderfunded() view returns(bool)','function tvlCap() view returns(uint256)','function totalAssets() view returns(uint256)','function deposit(uint256,address) returns(uint256)']);
+const vaultAbi=parseAbi(['function paused() view returns(bool)','function depositsPaused() view returns(bool)','function deficitStop() view returns(bool)','function isUnderfunded() view returns(bool)','function tvlCap() view returns(uint256)','function totalAssets() view returns(uint256)','function deposit(uint256,address) returns(uint256)']);
+const sourceAbi=parseAbi(['function negativeCarryBps() view returns(uint256)']);
 const erc20Abi=parseAbi(['function balanceOf(address) view returns(uint256)','function allowance(address,address) view returns(uint256)','function approve(address,uint256) returns(bool)']);
 // user-like deposits at fixed times: one arrival per vault per slot, random size, random depositor
 let lastSlot;
@@ -401,9 +402,12 @@ async function deposits(){
   if(size===0n){log('deposit-schedule',{vault:p.name,slot,owed,size});continue;}
   const [user,balance]=funded[Math.floor(Math.random()*funded.length)];
   if(size>balance)size=balance;
-  const [paused,depositsPaused,underfunded,cap,assets]=await Promise.all(['paused','depositsPaused','isUnderfunded','tvlCap','totalAssets'].map(f=>read(p.vault,vaultAbi,f)));
-  const blocked=paused?'paused':depositsPaused?'deposits-paused':underfunded?'underfunded':assets+size>cap?'tvl-cap':null;
-  log('deposit-schedule',{vault:p.name,slot,user:user.address,owed,size,blocked});
+  const [paused,depositsPaused,cap,assets]=await Promise.all(['paused','depositsPaused','tvlCap','totalAssets'].map(f=>read(p.vault,vaultAbi,f)));
+  const {deficitStop,underfunded}=await depositStop(f=>read(p.vault,vaultAbi,f));
+  const blocked=depositBlock({paused,depositsPaused,deficitStop,underfunded,assets,size,cap});
+  // the source's own shortfall is one view; the per-vault backing stays the keepers' to compute
+  const deficit=blocked==='deficit-stop'?{negativeCarryBps:await read(manifest.addresses.source,sourceAbi,'negativeCarryBps').catch(()=>null)}:{};
+  log('deposit-schedule',{vault:p.name,slot,user:user.address,owed,size,blocked,...deficit});
   if(blocked||!live)continue;
   // hydration asset precompiles revert approvals above u128
   if(await read(p.asset,erc20Abi,'allowance',[user.address,p.vault])<size)await evmWrite(p.asset,erc20Abi,'approve',[p.vault,2n**128n-1n],`${p.name} approve`,'deposit-approved',user);

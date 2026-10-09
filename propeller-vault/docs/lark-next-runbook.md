@@ -73,14 +73,19 @@ any profile but Lark 4.
 ## Still placeholders
 
 - **Track A:** `lark-deposit-guardian.mjs` grants `DEPOSIT_GUARDIAN_ROLE` on both
-  vaults to both keepers as planned, and refuses to run until the artifacts have
-  the role. Review it against A's final code.
+  vaults to both keepers and nothing else. The role gates only `setDeficitStop`;
+  `pauseDeposits` stays with governance. It matches A's surface (juicer-core
+  `885f3d3`) and refuses to run until the artifacts come from the merged build.
 - **Track B:** `lark-ice-wiring.mjs` is a stub for the controller's ICE actions
   and async lanes. Write it once B's interfaces settle.
 - After A and B merge, recheck `lark-deploy.mjs` constructor and initializer
-  arguments, `lark-wire.mjs` controller calls, and the read-only checks:
-  `lark-readiness.mjs` and `lark-observe.mjs` read `ready()`/`isUnderfunded()`,
-  and the bots' depositor reads `isUnderfunded()`; A removes both.
+  arguments and `lark-wire.mjs` controller calls.
+- The read-only checks and the depositor work on both contract versions: they
+  probe the vault's `deficitStop()` and fall back to Lark 4's `ready()`,
+  `isUnderfunded()` and `prepareHarvest()`. On the new chain readiness checks
+  settled source accounting and a clear keeper deficit stop instead, `lark-observe`
+  simulates `sync()`, and the depositor skips a vault while `depositsPaused` or
+  `deficitStop` is set, logging the source's `negativeCarryBps`.
 
 ## After bring-up
 

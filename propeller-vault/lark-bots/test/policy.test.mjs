@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute,depositOwed,userDeposit,botIdentity} from '../policy.mjs';
+import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute,depositOwed,userDeposit,botIdentity,depositStop,depositBlock} from '../policy.mjs';
 test('PRIME NAV and token decimals govern the quote, not a 1:1 reserve ratio',()=>{
  assert.equal(fairOutput(1000000n,106290112n,100000000n,6,18),1062901120000000000n);
  assert.equal(fairOutput(1062901120000000000n,100000000n,106290112n,18,6),1000000n);
@@ -93,4 +93,17 @@ test('the manifest names the chain and signers; a lark 4 manifest keeps today\'s
  assert.equal(next.signers.pools,'//Alice//p');
  assert.equal(next.signers.markets,'//Alice//propeller-20261005-arb');
  assert.throws(()=>botIdentity({chainName:'Hydration'}),/not a lark chain/);
+});
+test('deposits read the keepers\' deficit stop on new vaults and isUnderfunded on lark 4', async () => {
+ const vault=views=>async f=>{if(!(f in views))throw Error('execution reverted');return views[f];};
+ assert.deepEqual(await depositStop(vault({deficitStop:true})),{deficitStop:true,underfunded:false});
+ assert.deepEqual(await depositStop(vault({deficitStop:false})),{deficitStop:false,underfunded:false});
+ assert.deepEqual(await depositStop(vault({isUnderfunded:true})),{deficitStop:false,underfunded:true});
+ await assert.rejects(depositStop(vault({})),/reverted/,'a vault answering neither is never cleared');
+ const open={paused:false,depositsPaused:false,deficitStop:false,underfunded:false,assets:1n,size:1n,cap:10n};
+ assert.equal(depositBlock(open),null);
+ assert.equal(depositBlock({...open,deficitStop:true}),'deficit-stop');
+ assert.equal(depositBlock({...open,depositsPaused:true,deficitStop:true}),'deposits-paused');
+ assert.equal(depositBlock({...open,underfunded:true}),'underfunded');
+ assert.equal(depositBlock({...open,size:10n}),'tvl-cap');
 });

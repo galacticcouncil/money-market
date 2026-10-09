@@ -211,19 +211,25 @@ async function main() {
     for (const vault of VAULTS) {
       const v = new ethers.Contract(vault, ["function mainDebt() view returns (address)",
         "function compoundLogic() view returns (address)",
-        "function yieldAccounting() view returns (address)"], provider);
+        "function yieldAccounting() view returns (address)",
+        "function deficitStop() view returns (bool)"], provider);
       const address = await v.mainDebt();
       const buffer = new ethers.Contract(address, [
         "function vault() view returns (address)", "function hollar() view returns (address)",
         "function ownedCash() view returns (uint256)", "function sourceOutstanding() view returns (uint256)",
-        "function ready() view returns (bool)",
+        "function ready() view returns (bool)", "function pendingSourceAccounting() view returns (bool)",
         "function yieldAccounting() view returns (address)",
       ], provider);
       add("O. Main debt settlement", `${vault}: bound ledger`, eq(await buffer.vault(), vault), address);
       const owned = await buffer.ownedCash();
       const token = new ethers.Contract(await buffer.hollar(), ["function balanceOf(address) view returns (uint256)"], provider);
       add("O. Main debt settlement", `${vault}: ledger backed`, (await token.balanceOf(address)).gte(owned));
-      add("O. Main debt settlement", `${vault}: active debt backed`, await buffer.ready(), `pending source=${await buffer.sourceOutstanding()}`);
+      // a vault with the keepers' deficitStop has no ready(): backing is checked off-chain, allocation stays on it
+      if (await sread(() => v.deficitStop()) === undefined) {
+        add("O. Main debt settlement", `${vault}: active debt backed`, await buffer.ready(), `pending source=${await buffer.sourceOutstanding()}`);
+      } else {
+        add("O. Main debt settlement", `${vault}: source accounting settled`, (await sread(() => buffer.pendingSourceAccounting())) === false, `pending source=${await buffer.sourceOutstanding()}`);
+      }
       const account = await nativeAccount(api, address);
       add("O. Main debt settlement", `${vault}: dust protected`,
         (await api.call.dusterApi.isWhitelisted(account) as any).isTrue, account);
@@ -724,13 +730,16 @@ async function main() {
         "function discountController() view returns (address)",
         "function hollarDebtToken() view returns (address)",
         "function isUnderfunded() view returns (bool)",
+        "function deficitStop() view returns (bool)",
       ], provider);
       add(group, `${vault}: fee pointer`, eq(await sread(() => c.feeController()), FEES));
       add(group, `${vault}: initial 5% fee`, Number(await sread(() => fees.protocolFeeBps(vault))) === 500);
       add(group, `${vault}: binding validates`, (await sread(async () => { await fees.validateVault(vault, HARVESTER); return true; })) === true);
       add(group, `${vault}: discount pointer`, eq(await sread(() => c.discountController()), DISCOUNT));
       add(group, `${vault}: same HOLLAR debt token`, eq(await sread(() => c.hollarDebtToken()), debtAddress));
-      add(group, `${vault}: not underfunded`, (await sread(() => c.isUnderfunded())) === false);
+      const stop = await sread(() => c.deficitStop());
+      if (stop === undefined) add(group, `${vault}: not underfunded`, (await sread(() => c.isUnderfunded())) === false);
+      else add(group, `${vault}: no keeper deficit stop`, stop === false);
     }
   });
 

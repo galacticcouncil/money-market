@@ -70,8 +70,10 @@ starting at `DEPOSIT_START`.
   (index 21 upward), whose funding `lark-depositor-setup.mjs` splits unevenly.
 - Sizes are heavy-tailed, from 0.2× to 5× the average slot, clipped so the
   cumulative total stays within one slot of the straight-line schedule.
-- A vault that is paused, underfunded or at its TVL cap logs
-  `deposit-schedule` with `blocked` and is never forced.
+- A vault that is paused, has deposits paused or stopped by the keepers' deficit
+  check (`deficitStop`; `isUnderfunded` on Lark 4's contracts), or is at its TVL
+  cap, logs `deposit-schedule` with `blocked` and is never forced. A deficit stop
+  also logs the source's `negativeCarryBps`.
 - `lark-stack --depositor` adds the service only when `DEPOSIT_START` is set.
 
 The market bot retains $100 of each input asset for live route quoting. The funded

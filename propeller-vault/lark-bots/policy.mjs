@@ -123,3 +123,11 @@ export function botIdentity(manifest){
  if(!/lark/i.test(id.chainName))throw Error(`not a lark chain: ${id.chainName}`);
  return id;
 }
+// track A's vaults have the keepers' deficitStop, not isUnderfunded; only a successful read of one clears a deposit
+export async function depositStop(read){
+ const deficitStop=await read('deficitStop').catch(()=>undefined);
+ return deficitStop===undefined?{deficitStop:false,underfunded:await read('isUnderfunded')}:{deficitStop,underfunded:false};
+}
+export function depositBlock({paused,depositsPaused,deficitStop,underfunded,assets,size,cap}){
+ return paused?'paused':depositsPaused?'deposits-paused':deficitStop?'deficit-stop':underfunded?'underfunded':assets+size>cap?'tvl-cap':null;
+}
