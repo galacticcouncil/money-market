@@ -135,6 +135,8 @@ contract IceIntentsTest is Test {
         uint128 id = dispatch.lastId();
         uint256 out = dispatch.quote(id, 1);
         dispatch.fill(id, out);
+        assertFalse(pool.usingAsCollateral(address(loop), address(prime)), "isolated: lands unflagged");
+        assertEq(loop.totalEquity(), out * 1e2, "the landed fill counts once, flagged or not");
         vm.expectEmit(true, true, false, true, address(loop));
         emit IntentSettled(ENTRY, 1, out);
         _callback(id, out);
@@ -283,6 +285,7 @@ contract IceIntentsTest is Test {
         // PRIME -2%: the aave HF alone would ask for a safety de-lever
         pool.setPrice(address(prime), 0.98e18);
         assertLt(loop.healthFactor(), TARGET_HF);
+        assertGt(loop.effectiveHealthFactor(), TARGET_HF, "in-flight HOLLAR nets against its debt");
         vm.expectRevert(SubLoop.HealthyEnough.selector);
         loop.deLever();
 
@@ -291,8 +294,27 @@ contract IceIntentsTest is Test {
         dispatch.cleanup(id);
         loop.reconcile();
         // refunded cash is idle, not an aave repayment: the position itself is under target
+        assertEq(loop.effectiveHealthFactor(), loop.healthFactor());
         loop.deLever();
         assertGt(loop.deleverDebtTarget(), 0);
+    }
+
+    function test_deleverTargetClearsOnTheInFlightAwareHf() public {
+        _rampToTarget();
+        loop.setTranches(10_000_000e18, 20e6);
+        loop.requestUnwind(loop.sharesOf(address(this)) / 2);
+        loop.pokeRepayQuoted(EXIT_RATE);
+        pool.setPrice(address(prime), 0.98e18);
+        loop.deLever();
+        assertGt(loop.deleverDebtTarget(), 0);
+        // recovered: the aPRIME out for sale still backs the debt, so the position is at target
+        pool.setPrice(address(prime), 1e18);
+        assertLt(loop.healthFactor(), TARGET_HF, "aave alone misses the in-flight collateral");
+        assertGe(loop.effectiveHealthFactor(), TARGET_HF);
+        assertEq(loop.pokeRepay(), 1, "clearing the target is the work");
+        assertEq(loop.deleverDebtTarget(), 0);
+        (,, uint8 kind,,) = _pending();
+        assertEq(kind, EXIT, "the exit is still in flight");
     }
 
     function test_keeperQuoteOnlyRaisesTheOracleFloor() public {

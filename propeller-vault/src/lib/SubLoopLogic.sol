@@ -118,11 +118,31 @@ abstract contract SubLoopStorage is
 
     function _totalEquity() internal view returns (uint256) {
         (uint256 collBase, uint256 debtBase, , , , ) = pool.getUserAccountData(address(this));
+        // isolated aPRIME that landed before the loop could flag it (a first fill, a refund) is still ours
+        if (collBase == 0) collBase = _unflaggedPrime8();
         uint256 cash = hollar.balanceOf(address(this));
         if (cash > reservedFreed) collBase += (cash - reservedFreed) / 1e10;
         (, uint256 inFlight8) = _inFlight8();
         collBase += inFlight8;
         return collBase > debtBase ? collBase - debtBase : 0;
+    }
+
+    function _unflaggedPrime8() internal view returns (uint256) {
+        uint256 balance = primeAToken.balanceOf(address(this));
+        if (balance == 0) return 0;
+        address oracle = IPoolAddressesProvider(pool.ADDRESSES_PROVIDER()).getPriceOracle();
+        return balance * IAaveOracle(oracle).getAssetPrice(address(prime)) / 1e6;
+    }
+
+    /// @dev the position as if the in-flight input had not left: HOLLAR nets against the debt it
+    /// was borrowed as, aPRIME on its way to a sale still backs it at the PRIME threshold
+    function _effectiveAccount() internal view returns (uint256 coll8, uint256 debt8, uint256 ltBps, uint256 hf) {
+        (coll8, debt8, , ltBps, , hf) = pool.getUserAccountData(address(this));
+        (uint8 kind, uint256 inFlight8) = _inFlight8();
+        if (kind == 0) return (coll8, debt8, ltBps, hf);
+        if (kind == ENTRY) debt8 -= Math.min(debt8, inFlight8);
+        else coll8 += inFlight8;
+        hf = debt8 == 0 ? type(uint256).max : coll8 * ltBps * 1e14 / debt8;
     }
 
     function _intentTokens(uint8 kind) internal view returns (IERC20 tokenIn, IERC20 tokenOut) {
@@ -565,7 +585,9 @@ contract SubLoopLogic is SubLoopStorage {
 
     /// @dev drop a de-lever target once HF is back at targetHf (repaid or price recovered)
     function _dropMetDelever() internal {
-        if (deleverDebtTarget != 0 && _healthFactor() >= targetHf) deleverDebtTarget = 0;
+        if (deleverDebtTarget == 0) return;
+        (,,, uint256 hf) = _effectiveAccount();
+        if (hf >= targetHf) deleverDebtTarget = 0;
     }
 
     /// @dev aPRIME (6dp) still needed: target·coll/(coll − debt) HOLLAR less idle HOLLAR,
@@ -607,13 +629,9 @@ contract SubLoopLogic is SubLoopStorage {
 
     /// @dev sets repay target x solving (coll − x)·lt / (debt − x) = targetHf; pokeRepay executes it
     function deLever() external {
-        (uint256 coll8, uint256 debt8, , uint256 ltBps, , uint256 hf) = pool.getUserAccountData(address(this));
+        // aave's HF dips while a ramp step's HOLLAR is in flight; judge the position without that dip
+        (uint256 coll8, uint256 debt8, uint256 ltBps, uint256 hf) = _effectiveAccount();
         uint256 ltWad = ltBps * 1e14; // bps → WAD
-        // in-flight HOLLAR is debt-backed cash; aPRIME on its way to a sale still backs the debt
-        (uint8 kind, uint256 inFlight8) = _inFlight8();
-        if (kind == ENTRY) debt8 -= Math.min(debt8, inFlight8);
-        if (kind == EXIT) coll8 += inFlight8;
-        if (kind != 0) hf = debt8 == 0 ? type(uint256).max : coll8 * ltWad / debt8;
         if (hf > deLeverTrigger) revert HealthyEnough();
         // degenerate (no debt / LT ≥ target HF) or already at/above target
         if (debt8 == 0 || targetHf <= ltWad) revert HealthyEnough();

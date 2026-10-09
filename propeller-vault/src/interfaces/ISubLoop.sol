@@ -35,6 +35,10 @@ interface ISubLoop is ILeveragedLoop {
     ///         Routine unwind slices go out as intents; a safety de-lever keeps the router.
     function pokeRepayQuoted(uint256 keeperQuote) external returns (uint256);
 
+    /// @notice HF the de-lever trigger uses: aave's, with in-flight HOLLAR netted against the debt
+    ///         and an in-flight aPRIME sale still counted as collateral. `healthFactor` stays aave's.
+    function effectiveHealthFactor() external view returns (uint256);
+
     /// @notice Settle the in-flight intent from balance deltas.
     /// @return outcome 0 nothing in flight, 1 waiting, 2 filled, 3 input returned
     function reconcile() external returns (uint8 outcome);

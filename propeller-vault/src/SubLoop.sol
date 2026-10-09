@@ -326,6 +326,11 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         return _healthFactor();
     }
 
+    /// @inheritdoc ISubLoop
+    function effectiveHealthFactor() external view override returns (uint256 hf) {
+        (,,, hf) = _effectiveAccount();
+    }
+
     /// @inheritdoc IYieldSource
     function totalEquity() external view override returns (uint256) {
         return _totalEquity();
