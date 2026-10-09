@@ -22,7 +22,8 @@ def main():
     lean = ["lean"] if args.compiled else ["lake", "env", "lean"]
     subprocess.run(lean + ["CheckAxioms.lean"], cwd=formal, check=True)
     for source, artifact in [("ParityVectors.lean", "runtime-vectors.json"),
-                             ("CoverageVectors.lean", "coverage-vectors.json")]:
+                             ("CoverageVectors.lean", "coverage-vectors.json"),
+                             ("MachineVectors.lean", "machine-vectors.json")]:
         generated = subprocess.check_output(lean + ["--run", source], cwd=formal, text=True)
         if json.loads(generated) != json.loads((formal / artifact).read_text()):
             raise SystemExit(f"{artifact} changed; regenerate it with {source}")

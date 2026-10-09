@@ -1,5 +1,5 @@
 {
-  "revision": "bbe541fcd6b12b955d539539c3462c700b246dbc",
+  "revision": "c5eeec5a64bf1bf7bf33647d3265fca9ef53ebd3",
   "reviewed": "2026-10-09",
   "files": {
     "src/CollateralVault.sol": "d6f6105ab443f6c8abedc0740ae10279b1e7d3781865ea8cbf236afe31efbe48",
@@ -22,6 +22,15 @@
     "formal/JuicerLean/FixedPoint/Refine.lean": "44ec6af779aed000896b62187e2ead42c9771eed7b2ae225a83410e2ff18d315",
     "formal/JuicerLean/FixedPoint/Uint256.lean": "9906627844c8e5ffbbaa521cf6f6c7a1f5eab7af798926025c4aa3711671c84a",
     "formal/JuicerLean/FixedPoint/LazyOwnership.lean": "4bbd58db0f8449f56843e8cd6a26117271021937d5c301e7177bca6caff6fafb",
-    "formal/JuicerLean/FixedPoint/LazyRefinement.lean": "366bd5cd1ad21d2f9da6b6b491b94959ab7779c3193e21704b2edb54e4b69c77"
+    "formal/JuicerLean/FixedPoint/LazyRefinement.lean": "366bd5cd1ad21d2f9da6b6b491b94959ab7779c3193e21704b2edb54e4b69c77",
+    "formal/JuicerLean/FixedPoint/Lifecycle.lean": "5bea93664af6fd354a2b42c49a04c751e22983d5f9875c556bc91adfa5f87986",
+    "formal/JuicerLean/FixedPoint/LifecycleRefinement.lean": "99a4a2e6cd347a6b1a4e126ee80d0c7e6d34617e8581a14aecdb3f52250cbc84",
+    "formal/JuicerLean/FixedPoint/Orchestration.lean": "7c80b21134645ddee8d29fb1d8931130ace43f7afbfcd4eab54c80c10f7aca99",
+    "formal/JuicerLean/FixedPoint/MainHistories.lean": "abc9f77dc264e42ece09a7423da2df0d156f6ae8c7f6b003fe077bcb078dc38d",
+    "formal/JuicerLean/FixedPoint/QueueHistories.lean": "9929778b9a798f4e7154537f163f3f78097a8047193ba4ddea262359a99ade32",
+    "formal/JuicerLean/FixedPoint/Checked.lean": "bf11fb93803bd341c7dc618cb9741917b5fb110e68671c42b3d856778778ffe4",
+    "formal/JuicerLean/FixedPoint/CheckedRefinement.lean": "0665a9ff22f399c6476c38e22474167b4ceccb6037bafea37d88a192240a0a1e",
+    "formal/MachineVectors.lean": "b3e18d157c04ba57c0e2a4caa326cc5aba1f3b372d71494a37b8696560c8642f",
+    "../bil-vault/lib/openzeppelin-contracts/contracts/utils/math/Math.sol": "85a2caf3bd06579fb55236398c1321e15fd524a8fe140dff748c0f73d7a52345"
   }
 }
