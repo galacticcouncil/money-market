@@ -149,6 +149,11 @@ contract YieldEntryFairnessTest is HarvestTest {
         uint256 tooMuch = vault.balanceOf(address(this)) + 2;
         vm.expectRevert(PropellerYieldAccounting.ExceedsBalance.selector);
         vault.transfer(address(0xCAFE), tooMuch);
+        vm.expectRevert(PropellerYieldAccounting.ExceedsBalance.selector);
+        vault.requestRedeem(tooMuch, address(this));
+        uint256 id = vault.requestRedeem(vault.balanceOf(address(this)), address(this));
+        assertEq(vault.balanceOf(address(this)), 0, "a request up to the balance takes the funded slice");
+        assertGt(vault.yieldAccounting().requestUnits(id), 0);
     }
 
     function test_waitingWithdrawalKeepsEarningUntilUnwindStarts() public {

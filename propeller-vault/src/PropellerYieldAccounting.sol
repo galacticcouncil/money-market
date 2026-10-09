@@ -185,19 +185,16 @@ contract PropellerYieldAccounting {
         if (to != from) _settle(to);
         if (excess != 0) {
             if (to == address(this) || to == address(0)) revert Unauthorized();
-            units[to] += _take(from, excess, true);
+            units[to] += _take(from, excess);
         }
     }
 
     /// @dev units whose funded slice covers `shares`; they keep their source claim. the owner is settled
-    function _take(address owner, uint256 shares, bool strict) private returns (uint256 taken) {
+    function _take(address owner, uint256 shares) private returns (uint256 taken) {
         uint256 owned = units[owner];
         uint256 slice = owned == 0 ? 0 : Math.mulDiv(_funded(), owned, totalUnits);
-        if (shares > slice) {
-            if (strict) revert ExceedsBalance();
-            shares = slice;
-        }
-        taken = slice == 0 ? 0 : Math.min(owned, Math.mulDiv(owned, shares, slice, Math.Rounding.Up));
+        if (shares > slice) revert ExceedsBalance();
+        taken = Math.min(owned, Math.mulDiv(owned, shares, slice, Math.Rounding.Up));
         units[owner] = owned - taken;
     }
 
@@ -262,7 +259,7 @@ contract PropellerYieldAccounting {
         requestIndex[id] = rewardIndex;
         requestEpoch[id] = epoch;
         requestScale[id] = unitScale;
-        if (excess != 0) requestUnits[id] = _take(owner, excess, false);
+        if (excess != 0) requestUnits[id] = _take(owner, excess);
     }
 
     function startExit(uint256 id, address owner, uint256 shares) external onlyVault
