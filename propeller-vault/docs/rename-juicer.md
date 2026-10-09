@@ -10,7 +10,8 @@ old names below stay readable.
 
 ## Run it
 
-On a clean checkout of the merged `juicer-next`:
+With this branch (the script and this file) rebased onto the final `juicer-next`,
+on a clean tree:
 
 ```sh
 node scripts/rename-juicer.mjs --dry-run   # summary, changes nothing
@@ -19,9 +20,10 @@ node scripts/rename-juicer.mjs --check     # exit 1 on any non-excluded leftover
 git diff --cached --stat -M
 ```
 
-Then rebuild, because ignored build output keeps the old names until it is
-replaced: `forge clean` before `forge build` in `juicer-vault`, `npm run build`
-in `juicer-vault/looper`, and a fresh `lake build` in `juicer-vault/formal`.
+Commit the staged result as the rename commit. Then rebuild, because ignored
+build output keeps the old names until it is replaced: `forge clean` before
+`forge build` in `juicer-vault`, `npm run build` in `juicer-vault/looper`, and
+a fresh `lake build` in `juicer-vault/formal`.
 
 How the script behaves:
 
@@ -94,7 +96,7 @@ so they move to `juicer-vault/…`.
 | date in the file name (`YYYY-MM-DD` or `YYYYMMDD`; md, json, log, txt, csv, svg, html) | dated reports, the audit report, fixtures, the ICE spike result | Records of a specific run. Future dated reports from the tracks fall under the same rule. |
 | self-declared historical docs | `coupled-liquidity-checkpoint`, `hollar-peg-liquidity`, `interest-policy-comparison`, `main-debt-verification`, `market-stress-90d`, `operating-buffer`, `operating-buffer-verification`, `pr60-completion`, `prime-pricing-replenishment`, `principal-safety-history`, `release-candidate`, `route-execution-calibration` | Each opens with "historical", "archive" or a dated checkpoint. They quote test names, commands and numbers of that time. |
 | `docs/next-version-plan.md` | the plan | It describes the rename itself ("Propeller → Juicer", "set the share symbols (`pETH`/`ptBTC`)"). Rewritten, it would read "Juicer → Juicer". |
-| `audit/`, `deployments/`, `x-ray/`, `AUDIT.md`, `formal/BRIDGE_SPIKE.md` | audit ledger and report, Lark 4 journal and address registry, x-ray snapshot, Verity spike | Real addresses and on-chain names (Lark 4 really has `pETH`/`ptBTC`), or dated snapshots. |
+| `audit/`, `deployments/`, `x-ray/`, `AUDIT.md`, `formal/BRIDGE_SPIKE.md` | audit ledger and report, Lark 4 journal and address registry, x-ray snapshot, Verity spike | Real addresses with the names deployed under them, or dated snapshots. |
 | `PROPELLER-MAINNET-HANDOVER.md` | root handover | Marked "historical lark-4 handover". |
 | `scripts/rename-juicer.mjs`, `docs/rename-juicer.md` | the rename itself | — |
 
@@ -111,7 +113,7 @@ Consequences:
 
 | Kept | Where | Why |
 | ---- | ----- | --- |
-| `//Alice//propeller-20261005-arb`, `//Alice//propeller-20261007-pools`, `//Alice//propeller-20261007-replay` | lark-bots, `scripts/juicer/lark-*` | sr25519 derivation input. Renaming changes the signer accounts and their EVM bindings and inventory. Fresh bot accounts on the new Lark are a deliberate choice for track D. |
+| `//Alice//propeller-20261005-arb`, `//Alice//propeller-20261007-pools`, `//Alice//propeller-20261007-replay` | lark-bots, `scripts/juicer/lark-*` | sr25519 derivation input. Renaming changes the signer accounts and their EVM bindings and inventory. Fresh bot accounts on the new Lark are a deliberate choice for track D. The rule covers any `//<name>//propeller…` path, so new signers should get their final name from the start. |
 | `.propeller-bot.secret` | `.gitignore` | Renaming it would un-ignore an existing secret file in someone's checkout. |
 | Dated artifact names: `/tmp/propeller-…-20260923.log`, `propeller-${name}-20260923`, `/tmp/propeller-lark-20261005.json`, `/tmp/propeller-routes-20260923.sqlite`, … | report and record scripts | They name specific historical runs and journals. |
 | `galacticcouncil/propeller-lark-*@sha256:…`, stack `propeller-oct2026` | `scripts/juicer/lark-record.mjs` | Facts about the Lark 4 deployment: a digest lives in its old repository. |
@@ -140,21 +142,57 @@ Consequences:
 
 ## Dry run
 
-TBD
+Run on 9 October against `juicer-next` at `4feffdd`, before tracks A–E land.
+The result is on the unmerged branch `juicer-rename-dryrun`.
+
+- **Diff:** 791 paths and 907 changed lines (+907/−907). There are 4 directory
+  moves and 38 file renames, and 572 files move without edits. 210 files carry
+  1,097 replacements. Step 8 will be somewhat larger, because of the files the
+  tracks add.
+- **`--check`** passes. A second run moves nothing and edits nothing.
+- **Forge:** clean via-IR build of the same 155 files. The full suite gives 388
+  passed, 0 failed and 13 skipped (401). That matches the base test for test,
+  and gas matches exactly on all 367 non-fuzz tests.
+- **Bytecode:** runtime and creation code of all 12 `src` contracts is
+  byte-identical to the base once the CBOR metadata is stripped.
+- **Compatibility:** the SubLoop storage check passes (43 preserved entries).
+  `check-ui-abi.cjs` against hydration-ui `feat/juicer` passes 45 signatures.
+- **Keeper:** `npm run build` passes; `npm test` 57/57.
+- **Lark bots:** 11/11.
+- **Scripts:** 74 pass, 1 fail and 50 skip, the same as the base. The one
+  failure, `route-calibration.test.mjs`, cannot find
+  `@galacticcouncil/math-stableswap` at the repository root. `rounding-native`
+  passes 3/3. Root `tsc` shows the base's 88 errors (missing typechain) and no
+  others. All 167 JS files parse.
+- **References:** no new unresolved import or link in renamed files. Six links
+  in excluded docs now dangle, as expected: two in
+  `coupled-liquidity-checkpoint.md` and four in
+  `PROPELLER-MAINNET-HANDOVER.md`.
+- **Lean** (there is no `.lake` here): all 13 `JuicerLean.*` imports resolve.
+  `lakefile.toml`, `lake-manifest.json` and the root module agree on
+  `juicer-lean`/`JuicerLean`, and `namespace Juicer`/`end Juicer` balance in
+  every file.
 
 ## Outside this repository
 
-- **Lark 4.** Keep operating it from `money-market-prop-carry` on the old
-  branch. The renamed tooling no longer finds its journal
-  (`/tmp/propeller-lark-20261007.json`), its swarm config
-  (`propeller-lark4-20261007-manifest-v3`), its stack (`propeller-oct2026`) or
-  its images (`propeller-lark-*`). Do not pull the rename into that checkout
-  while Lark 4 runs.
+- **Lark 4.** Keep operating it from `money-market-prop-carry` at a pre-rename
+  commit. That checkout tracks `juicer-next`, so do not pull the rename into it
+  while Lark 4 runs. The renamed tooling no longer finds Lark 4's journal
+  (`/tmp/propeller-lark-20261007.json`), swarm configs
+  (`propeller-lark4-20261007-manifest-*`), stack (`propeller-oct2026`) or
+  images (`propeller-lark-*`).
+- **New Lark (track D, step 9).** `lark-deploy.mjs` builds names and symbols
+  from the reserve keys as "Juicer ${name} October" and `j${name}-OCT`, which
+  gives `jETH-OCT` and `jTBTC-OCT`. If the new Lark should carry the final
+  `jETH`/`jtBTC`, set them there; that is a deployment choice, not part of the
+  rename. The bot signers keep their `//Alice//propeller-…` paths unless D
+  picks new ones.
 - **hydration-ui #4120** (`feat/juicer`):
   - `apps/main/tests/propeller-abi.mjs` reads
     `PropellerMainDebt.sol/PropellerMainDebt.json` (likewise
     `PropellerYieldAccounting` and `PropellerFeeController`). Rename the group
-    keys to `Juicer*`. ABIs, selectors and events are unchanged.
+    keys to `Juicer*`. Function and event signatures are unchanged; only the
+    `internalType` labels in the ABI JSON change.
   - `config/vaults.ts` `shareSymbol` `pETH`/`ptBTC` → `jETH`/`jtBTC`, with
     the new Lark addresses.
   - When the UI renames `modules/strategies/propeller/`, update the path in
