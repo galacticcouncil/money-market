@@ -20,7 +20,9 @@ for(const [index,accountIndex]of [[0,18],[1,20]]){
  const account=mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:accountIndex});
  // the profile retunes a variable in place or appends one
  const env=Object.assign({RPC_URL:rpcs[0],RPC_URLS:rpcs.join(','),LOOPER_PRIVATE_KEY:toHex(account.getHdKey().privateKey),SUBLOOP_ADDRESS:r.addresses.source,HARVESTER_ADDRESS:r.addresses.harvester,EXECUTION_CONTROLLER:r.addresses.controller,VAULT_ADDRESSES:r.vaults.map(v=>v.address).join(','),PROPELLER_ROUNDING_RESERVES:JSON.stringify(r.vaults.map(v=>v.rounding)),SPONSORED_GAS:'true',POLL_INTERVAL_MS:'30000',SAFETY_INTERVAL_MS:'30000',SLOW_EVERY:'2',OPERATOR_COUNT:'2',OPERATOR_INDEX:String(index),OPERATOR_SLOT_SECONDS:'60',HARVEST_MIN_USD8:'1000000',HARVEST_MAX_DELAY_SECONDS:'60',QUOTE_TTL_SECONDS:'60',QUOTE_DEPTH_BLOCKS:'3',MAX_TX_GAS:'16777216'},stack.keeperEnv);
- services[`keeper${index}`]={...common,image:keeperImage,environment:env,deploy:{...common.deploy,replicas:keepers?1:0}};
+ // the ice keeper loads @polkadot/api for dry runs; lark 4's keeper image predates it
+ const resources=profile.legacy?{}:{resources:{limits:{cpus:'0.50',memory:'768M'},reservations:{memory:'128M'}}};
+ services[`keeper${index}`]={...common,image:keeperImage,environment:env,deploy:{...common.deploy,replicas:keepers?1:0,...resources}};
 }
 for(const [mode,env]of Object.entries(stack.bots))services[mode]={...common,image:botImage,environment:{BOT_MODE:mode,BOT_LIVE:'true',BOT_MANIFEST:'/app/manifest.json',...env,...endpoints},configs:[{source:'propeller_manifest',target:'/app/manifest.json'}]};
 // the depositor only exists with an explicit --depositor and a fixed schedule start:
