@@ -44,13 +44,14 @@ test('the bring-up runs the existing step scripts in the deployment order', () =
  assert.deepEqual(step('seed').args,['--round=baseline']);
 });
 
-test('no nurse or Main cushions; placeholders wait for tracks A and B', () => {
+test('no nurse or Main cushions; only track A\'s grant waits', () => {
  for(const script of ['lark-nurse.mjs','lark-fund-main.mjs','lark-recap-source.mjs','lark-fund-exit.mjs']){
   assert.ok(!STEPS.some(s=>s.script===script),script);
   assert.match(readFileSync(join(here,script),'utf8'),/assert\.ok\(profile\.legacy,/,`${script} refuses the next version`);
  }
- assert.deepEqual(STEPS.filter(s=>s.placeholder).map(s=>[s.id,s.placeholder]),[['guardian','track A'],['ice','track B']]);
- for(const s of STEPS.filter(s=>s.placeholder))assert.match(readFileSync(join(here,s.script),'utf8'),/^\/\/ PLACEHOLDER\(track [AB]/);
+ assert.deepEqual(STEPS.filter(s=>s.placeholder).map(s=>[s.id,s.placeholder]),[['guardian','track A']]);
+ for(const s of STEPS.filter(s=>s.placeholder))assert.match(readFileSync(join(here,s.script),'utf8'),/^\/\/ PLACEHOLDER\(track A/);
+ assert.doesNotMatch(readFileSync(join(here,'lark-ice-wiring.mjs'),'utf8'),/PLACEHOLDER|assert\.fail/);
 });
 
 test('steps whose script demands --live are never dry-run', () => {
@@ -77,7 +78,7 @@ test('a dry run validates only the next step; a live run walks on and stops at p
  const atGuardian=complete(before('guardian'));
  for(const live of [false,true])assert.equal(schedule(STEPS,atGuardian,{live}).stop.id,'guardian');
  assert.equal(schedule(STEPS,atGuardian,{live:true,skip:new Set(['guardian'])}).skip.id,'guardian');
- assert.equal(schedule(STEPS,atGuardian,{live:true,skip:new Set(['guardian']),ran:new Set(['guardian'])}).stop.id,'ice');
+ assert.equal(schedule(STEPS,atGuardian,{live:true,skip:new Set(['guardian']),ran:new Set(['guardian'])}).run.id,'ice');
  const past=complete(before('manifest'));
  assert.equal(schedule(STEPS,past),null,'outputs are never written by a dry run');
  assert.equal(schedule(STEPS,past,{live:true}).run.id,'manifest');

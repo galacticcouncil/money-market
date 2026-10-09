@@ -25,7 +25,7 @@ export const STEPS=[
  {id:'seed',script:'lark-seed-bots.mjs',args:['--round=baseline'],what:'what the Lark 4 bots reported missing, minted up front',done:s=>gov(s,'bots-seed-baseline')},
  {id:'params',script:'lark-next-params.mjs',what:'harvest threshold 2e14, 1,000 HOLLAR protocol reserve per vault',done:s=>check(s,'nextParameters')},
  {id:'guardian',script:'lark-deposit-guardian.mjs',placeholder:'track A',what:'DEPOSIT_GUARDIAN_ROLE for both keepers on both vaults',done:s=>check(s,'depositGuardian')},
- {id:'ice',script:'lark-ice-wiring.mjs',placeholder:'track B',what:'controller ICE actions and async lanes',done:s=>check(s,'iceWiring')},
+ {id:'ice',script:'lark-ice-wiring.mjs',what:'ICE: 300 s intents with 2 bps drift, KEEPER_ROLE for both keepers, async entry and unwind lanes, WETH for the callback fee',done:s=>check(s,'iceWiring')},
  {id:'manifest',script:'lark-manifest.mjs',output:true,what:'bot manifest for the swarm config'},
  {id:'stack',script:'lark-stack.mjs',args:['--keepers'],output:true,needs:['images'],what:'swarm stack, keepers on'},
 ];
