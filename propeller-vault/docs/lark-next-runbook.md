@@ -69,8 +69,10 @@ node scripts/propeller/lark-bringup.mjs --live    # runs pending steps in order
 
 The outputs are config `propeller-lark0-20261009-manifest-v1` and stack
 `propeller-lark0-20261009`.
-Keepers get `QUOTE_DEPTH_BLOCKS` 3 and markets `PEG_BAND_BPS` 0.5. Creating the
-Swarm config and stack stays a manual, stop-first step.
+Keepers get `QUOTE_DEPTH_BLOCKS` 3 and markets `PEG_BAND_BPS` 0.5. Lark 0 runs
+the renamed images, `galacticcouncil/juicer-lark-keeper` and `juicer-lark-bots`,
+by digest; Lark 4 keeps its `propeller-lark-*` digests. Creating the Swarm config
+and stack stays a manual, stop-first step.
 
 ## Lark 0 timing
 
