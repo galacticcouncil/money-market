@@ -10,6 +10,7 @@ and model inputs; the check fails if they change without a new comparison.
 | `SyntheticFloor.buffered` | `Runtime.buffered`; `IState.repegSynth` | universal floor theorem, including one wei; 36 comparisons |
 | `CompoundLogic.rebalance` budget | `State.borrowCapacity` excludes synthetic; `aaveBorrowCapacity` includes it | algebraic independence proof; source subtracts synthetic from the collateral base |
 | `JuicerYieldAccounting.balanceOf`, `_settle` | `Runtime.accountUnits`, `settle` | 48 epoch, cap and shift cases |
+| lazy account histories | `LazyLedger`, `normalizeAccount`, `normalizeLedger` | finite trace bounds, exact account-view/settlement/scale normalization; seeded rescale counterexample |
 | `settle` / `_take` | `Runtime.take`, `fundedOf` | conservation/cap proofs and 80 success/revert cases |
 | `_allocate` | `Runtime.allocate`, `rescale` | 48 cases: virtual +1, fees, capital gifts, self-compounding, write-off and rescale |
 | `startExit` | `Runtime.startExit` | 64 request epoch, committed unit, accrual, fee rounding and funded fold cases |
@@ -33,10 +34,32 @@ funded debit/credit bounds. `YieldTransitions.lean` proves the actual executable
 keeps source and protocol reserves junior to Main backing, loss trimming respects available
 capital, rescaling leaves the fund's assets intact, and exit and harvest splits conserve assets.
 Finite-holder indexed accrual cannot assign more than the minted units. The `Ownership.Step`
-projection preserves its unit bound across finite allocation/rescale/transfer/exit/write-off
-traces. Its holders are already settled; it is not a proof that every lazy account history
-commutes with that projection. `lazy_index_rescale_error` separately bounds the shifted index
-difference, which can round upward even though individual stored words shift downward.
+projection preserves its unit bound for already-settled cohorts. `LazyOwnership.lean` separately
+handles lazy finite-holder traces: allocations, settlements, changes in wallet weight after
+settlement, new holders, unit transfers, burns, rescales and write-offs. Allocations require the
+tracked weights to sum to at most the outside supply. The model is proved for any positive index
+precision; `LazyRefinement.lean` instantiates it at the contract's `RAY` and proves normalization
+of account views, settlement, weight changes, epoch invalidation and accumulated shifts.
+
+For current index `I`, precision `R`, stored units/index/weight `(u, p, w)`, and ghost rounding
+budget `E`, the invariant is `sum(u * R + w * (I - p)) <= total * R + E`. The budget starts at zero;
+ordinary operations leave it unchanged. A rescale by `d = 2^k`, with total tracked weight `W`, uses:
+
+```
+E' = floor(((total mod d) * R + E + W * (d - 1)) / d)
+```
+
+Thus aggregate unit claims are at most `total + floor(E / R)`. For funded shares `F` and positive
+total units, aggregate displayed funded claims are at most
+`F + floor(F * floor(E / R) / total)`. In particular, they do not exceed `F` when the last numerator
+is smaller than `total`. Without rescaling, the zero-budget trace from genesis cannot overclaim
+units. These are bounds, not equality with the ideal real-number model.
+
+`runtime_rescale_unit_excess` proves that one executable allocation can produce an aggregate unit
+excess of one from an initially valid seeded state. `LeanLazyHistoryParity.t.sol` reproduces the
+same state through the actual allocation and settlement functions. This test seeds storage and
+uses a fixture vault; it does not establish public-call reachability or economic loss. See
+`ROUNDING.md` for the exact state.
 
 Main's batch proofs cover arbitrary finite lists of frozen cohort weights, including exact cash
 and cost totals and per-cohort reduction caps. The repayment model uses observed cash paid and
@@ -73,11 +96,12 @@ Lean. Private seed slots are checked against the compiler's storage layout befor
 
 ## verification
 
-377 source theorem/lemma declarations compile. The axiom audit checks all 742 kernel theorem
+416 source theorem/lemma declarations compile. The axiom audit checks all 806 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. The combined Foundry run passes 172 tests, with zero failures and skips, including
 820 comparison vectors, 512 transfer-bound fuzz cases and the existing Main, fee, controller,
-ICE, yield and invariant suites. Both generated datasets reproduce exactly.
+ICE, yield and invariant suites. The additional lazy-rescale fixture also passes. Both generated
+datasets reproduce exactly; the current formal suites contain 23 tests.
 
 ## reproduce
 
@@ -89,7 +113,8 @@ python3 check-runtime.py
 
 This builds the proofs, regenerates and compares 820 cases across two datasets, checks source
 fingerprints and storage slots, then runs the comparison suites, 512 transfer-bound fuzz cases,
-and the public-call rounding reproduction. After a reviewed model change, regenerate with:
+the public-call rounding reproduction and the seeded lazy-rescale case. After a reviewed model
+change, regenerate with:
 
 ```sh
 lake build
@@ -108,10 +133,13 @@ calls. Nonzero divisors and guarded subtraction match the successful Solidity pa
 corrupt storage and every overflow/revert are not modeled. Four 64-bit rescale steps suffice for
 an initial total below `2^256`, proved by `rescale_four_suffices`.
 
-The 820 cases are cross-language comparisons, not a proof of every Solidity trace. The real-valued
-index proofs do not yet refine arbitrary histories of lazy account settlement and rescaling.
-The new integer ownership trace theorem applies to the settled-cohort projection, with explicit
-weight/unit bounds, rather than asserting exact integer equivalence to the ideal real-valued model.
+The 820 cases are cross-language comparisons, not a proof of every Solidity trace. The integer
+lazy-history results bound rounding under explicit initial-state and weight premises. Normalization
+matches ordinary account views and the listed arithmetic primitives; deriving every model step
+from the complete vault/request/queue call sequence remains open. The holder list must represent
+distinct holders or disjoint weights, with no omitted liability in its claimed initial bound.
+The real-valued index proofs remain ideal arithmetic; exact integer equivalence would contradict
+the checked rescale counterexample.
 Main arithmetic, fee vesting, controller policies and queue arithmetic now have the coverage above;
 complete cross-contract orchestration, all revert/overflow paths, upgrades and reentrancy remain
 outside the kernel proof. Access control and trusted administrative configuration are not replaced

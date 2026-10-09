@@ -20,6 +20,8 @@
     "formal/JuicerLean/FixedPoint/YieldTransitions.lean": "129f00bf25088dbffda05caf3f8e89520e0155f02c09d1a847e5f6458202cb12",
     "formal/JuicerLean/FixedPoint/Rounding.lean": "62ad34f6cce495fc71452aa0949fb5e08aafcb181835445f7480835bd14e8566",
     "formal/JuicerLean/FixedPoint/Refine.lean": "44ec6af779aed000896b62187e2ead42c9771eed7b2ae225a83410e2ff18d315",
-    "formal/JuicerLean/FixedPoint/Uint256.lean": "9906627844c8e5ffbbaa521cf6f6c7a1f5eab7af798926025c4aa3711671c84a"
+    "formal/JuicerLean/FixedPoint/Uint256.lean": "9906627844c8e5ffbbaa521cf6f6c7a1f5eab7af798926025c4aa3711671c84a",
+    "formal/JuicerLean/FixedPoint/LazyOwnership.lean": "4bbd58db0f8449f56843e8cd6a26117271021937d5c301e7177bca6caff6fafb",
+    "formal/JuicerLean/FixedPoint/LazyRefinement.lean": "366bd5cd1ad21d2f9da6b6b491b94959ab7779c3193e21704b2edb54e4b69c77"
   }
 }

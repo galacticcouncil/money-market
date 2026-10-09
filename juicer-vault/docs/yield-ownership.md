@@ -63,6 +63,9 @@ settlement.
 A completely worthless reward fund starts a new accounting epoch. Repeated
 losses that leave only dust use lazy unit rescaling, avoiding unbounded growth
 in accounting units without scanning holders or changing the underlying assets.
+Shifting a holder's previous index can round pending accrual upward. The integer proofs track an
+aggregate rounding budget; a seeded allocation produces one excess reward unit after rescaling.
+This is not a demonstrated public-call loss; see `formal/ROUNDING.md` for the state and bounds.
 
 A lazy index awards reward-fund units to wallet-share holders at each
 allocation. Deposits allocate before they mint and start at the current index,

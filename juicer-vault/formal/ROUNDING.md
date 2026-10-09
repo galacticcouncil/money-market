@@ -15,7 +15,8 @@ D = S - floor(F * (U - x) / T)
 G = floor(F * (V + x) / T) - floor(F * V / T)
 ```
 
-`V` is the recipient's previous units. sender and recipient are distinct ordinary holders;
+`V` is the recipient's previous units, with `V + x <= T` so its unit cap is inactive.
+sender and recipient are distinct ordinary holders;
 self-transfers restore the same account's units and have zero net balance movement. successful positive transfers require `0 < s <= S`.
 `take_exact_units` proves the cap is redundant on that domain. the Lean proofs
 `take_displayed_bound`, `transfer_credit_refines`, and `transfer_discrepancy_at_most_one` establish:
@@ -33,7 +34,8 @@ alone does not establish that every such state is reachable in production.
 
 there is no enforced constant funded-value-per-unit ratio: wallet shares can be donated to the
 accounting contract without issuing reward units. the exact state-dependent bound above applies
-regardless of how a successful state was reached. no small global production bound is claimed.
+under the stated cap condition, regardless of how a successful state was reached. no small global
+production bound is claimed.
 
 ## public-call reproduction
 
@@ -71,3 +73,22 @@ reproduce with:
 ```sh
 forge test --offline --match-contract LeanRoundingReachabilityTest --match-test test_publicDonation -vv
 ```
+
+## separate lazy-rescale limitation
+
+`test_rescaleCanLeaveOneExcessLazyUnit` in `LeanLazyHistoryParity.t.sol` reproduces a different
+rounding boundary in the actual accounting contract. the fixture seeds a valid aggregate unit
+balance before allocation: total units are `2^64 + 1`, the current index is `2^64`, an old holder
+owns `2^64 - 1` units with no wallet weight, and two holders each have wallet weight `RAY` and
+previous index `2^64 - 1`. their two pending units complete the initial total.
+
+an allocation with source shares `2`, source holdings/equity `2 * 10^38`, zero fee/backing/funded
+shares and outside supply `2 * RAY` triggers one 64-bit rescale. the old holder's units round to
+zero; the two previous indices also round to zero. the resulting sum of unit balances is
+`totalUnits + 1`, including after both holders settle. `runtime_rescale_unit_excess` checks the
+same initial state and executable allocation in Lean.
+
+this is a seeded arithmetic counterexample, not a public-call reachability proof or a production
+loss estimate. the excess is one **reward unit**, not one vault share. it invalidates an exact
+aggregate unit-conservation claim across every lazy rescale; displayed funded claims also depend
+on the fund's shares-per-unit ratio. it is separate from the allowance mismatch above.
