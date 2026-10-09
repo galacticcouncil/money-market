@@ -367,6 +367,14 @@ contract IceIntentsTest is Test {
         assertEq(nonce, 0, "recorded and closed by the callback");
     }
 
+    function test_idleDustIsNotWorthAnIntent() public {
+        hollar.mint(address(loop), 1);
+        assertEq(loop.pokeBorrowQuoted(ENTRY_RATE), 0);
+        assertEq(dispatch.counter(), 0);
+        _deposit(SEED);
+        assertEq(loop.pokeBorrowQuoted(ENTRY_RATE), SEED + 1, "dust rides along with real cash");
+    }
+
     function test_routerModeKeepsSynchronousEntries() public {
         loop.configureIntents(0, 0);
         _deposit(SEED);

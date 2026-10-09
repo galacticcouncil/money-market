@@ -169,8 +169,13 @@ abstract contract SubLoopStorage is
         (uint8 outcome, ) = _outcome(p);
         if (outcome != WAITING) return (0, 0);
         if (p.kind == ENTRY) return (ENTRY, p.amountIn / 1e10);
+        return (EXIT, _pendingExit8());
+    }
+
+    function _pendingExit8() internal view returns (uint256) {
+        if (pendingIntent.kind != EXIT) return 0;
         (, uint256 pPrime) = _oracleRate();
-        return (EXIT, uint256(p.amountIn) * pPrime / 1e6);
+        return uint256(pendingIntent.amountIn) * pPrime / 1e6;
     }
 
     /// @dev after the loop's own transfers, so the next transaction measures only what arrived
@@ -223,6 +228,12 @@ contract SubLoopLogic is SubLoopStorage {
         _settleArrived();
     }
 
+    /// @notice permissionless: settle the in-flight intent once its fill or refund shows up in the
+    /// balances. 0 = nothing in flight, 1 = still waiting, 2 = filled, 3 = input returned
+    function reconcile() external returns (uint8) {
+        return _settleArrived();
+    }
+
     /// @dev bounded by deployHfFloor, deployTranche, an oracle-fair minOut and the controller's caps
     function pokeBorrowQuoted(uint256 keeperQuote) external returns (uint256 amount) {
         amount = _pokeBorrow(keeperQuote);
@@ -230,10 +241,10 @@ contract SubLoopLogic is SubLoopStorage {
     }
 
     function _pokeBorrow(uint256 keeperQuote) internal returns (uint256 borrowed) {
-        bool idle = _settleArrived();
+        bool waiting = _settleArrived() == WAITING;
         _dropMetDelever();
         // the next ramp step waits for the in-flight intent
-        if (unwindTargetEquity != 0 || deleverDebtTarget != 0 || !idle) return 0;
+        if (unwindTargetEquity != 0 || deleverDebtTarget != 0 || waiting) return 0;
         // the route's aave hop mints aPRIME without enabling it as collateral
         if (primeAToken.balanceOf(address(this)) > 0) {
             pool.setUserUseReserveAsCollateral(address(prime), true);
@@ -278,9 +289,12 @@ contract SubLoopLogic is SubLoopStorage {
         if (address(control) != address(0)) {
             amount = control.fit(address(this), address(hollar), address(primeAToken), amount);
         }
+        uint256 fairOut = _entryFairOut(amount);
+        // idle dust worth less than one unit of output is not worth an intent
+        if (fairOut * (1_000_000 - dcaSlippagePpm) < 1_000_000) amount = 0;
         uint256 borrowed = amount > idle ? amount - idle : 0;
         if (borrowed != 0) pool.borrow(address(hollar), borrowed, VARIABLE_RATE, 0, address(this));
-        if (amount != 0) _submit(ENTRY, amount, _entryFairOut(amount), keeperQuote);
+        if (amount != 0) _submit(ENTRY, amount, fairOut, keeperQuote);
         emit Borrowed(borrowed, _healthFactor());
     }
 
@@ -343,17 +357,6 @@ contract SubLoopLogic is SubLoopStorage {
         emit IntentSubmitted(kind, nonce, amountIn, minOut, deadline);
     }
 
-    /// @notice permissionless: settle the in-flight intent once its fill or refund shows up in the
-    /// balances. 0 = nothing in flight, 1 = still waiting, 2 = filled, 3 = input returned
-    function reconcile() external returns (uint8 outcome) {
-        PendingIntent memory p = pendingIntent;
-        if (p.kind == 0) return 0;
-        uint256 output;
-        (outcome, output) = _outcome(p);
-        if (outcome == FILLED) _settle(p, Math.max(output, p.minOut));
-        else if (outcome == RETURNED) _settle(p, 0);
-    }
-
     /// @notice lazy-executor receiver for the loop's own intents: it calls as the owner, which is
     /// the loop. A callback for an intent already reconciled is acknowledged and ignored.
     function execute(address owner, uint256, address, uint256, address assetOut, uint256 amountOut,
@@ -377,21 +380,21 @@ contract SubLoopLogic is SubLoopStorage {
     /// id; the input returns within the call and settles as a refund
     function removeIntent(uint128 intentId) external {
         if (!_emergencyPaused) revert IntentRejected();
-        if (_settleArrived()) return;
+        if (_settleArrived() != WAITING) return;
         DcaDispatch.removeIntent(intentId);
         _settleArrived();
         _rebase();
     }
 
-    /// @dev true when nothing is left in flight
-    function _settleArrived() internal returns (bool idle) {
+    /// @dev 0 when nothing was in flight, else the outcome; only WAITING leaves an intent in flight
+    function _settleArrived() internal returns (uint8 outcome) {
         PendingIntent memory p = pendingIntent;
-        if (p.kind == 0) return true;
-        (uint8 outcome, uint256 output) = _outcome(p);
-        if (outcome == WAITING) return false;
+        if (p.kind == 0) return 0;
+        uint256 output;
+        (outcome, output) = _outcome(p);
+        if (outcome == WAITING) return outcome;
         // a measured fill below the limit is fee or rounding noise: the pallet never fills under it
         _settle(p, outcome == FILLED ? Math.max(output, p.minOut) : 0);
-        return true;
     }
 
     function _settle(PendingIntent memory p, uint256 output) internal {
@@ -427,7 +430,7 @@ contract SubLoopLogic is SubLoopStorage {
     }
 
     function _pokeRepay(uint256 keeperQuote) internal returns (uint256 work) {
-        bool idle = _settleArrived();
+        bool waiting = _settleArrived() == WAITING;
         uint256 previousTarget = deleverDebtTarget;
         _dropMetDelever();
         // Clearing a completed safety commitment is useful work too: otherwise
@@ -436,7 +439,7 @@ contract SubLoopLogic is SubLoopStorage {
         if (unwindTargetEquity == 0 && deleverDebtTarget == 0) return work;
         if (_emergencyPaused && deleverDebtTarget == 0) return work;
         // the next unwind step waits for the in-flight intent; a safety de-lever never does
-        if (!idle && deleverDebtTarget == 0) return work;
+        if (waiting && deleverDebtTarget == 0) return work;
         // sell an HF-safe aPRIME sliver; capping at STEP_HF_FLOOR keeps the in-route withdraw from reverting
         if (unwindTargetEquity > 0 || deleverDebtTarget > 0) {
             (uint256 coll8, uint256 debt8, , uint256 lt, , ) = pool.getUserAccountData(address(this));
@@ -510,11 +513,11 @@ contract SubLoopLogic is SubLoopStorage {
 
         // repay the sold slice's debt portion so the position shrinks proportionally; free the rest
         //   preColl = currentColl + inFlight + avail ; repay = avail · debt/preColl
-        // (with intents avail is the previous slice's fill, and this call's slice is still in flight)
+        // (with intents avail is the previous slice's fill; a slice still pending was unfilled at
+        // the start of this call, so it is away for all of it)
         (uint256 collBase8, uint256 debtBase8, , , , ) = pool.getUserAccountData(address(this));
-        (, uint256 inFlight8) = _inFlight8();
         uint256 avail8 = avail / 1e10;
-        uint256 preColl8 = collBase8 + inFlight8 + avail8;
+        uint256 preColl8 = collBase8 + _pendingExit8() + avail8;
         uint256 repay8 = preColl8 == 0 ? 0 : (avail8 * debtBase8) / preColl8;
         uint256 repayHollar = repay8 * 1e10;
         if (repayHollar > avail) repayHollar = avail;
@@ -556,6 +559,7 @@ contract SubLoopLogic is SubLoopStorage {
     }
 
     function _exitByIntent(uint256 amount, uint256 fairOut, uint256 keeperQuote) internal {
+        if (pendingIntent.kind != 0) return;
         ExecutionController control = executionController;
         uint64 nonce = intentNonce + 1;
         uint256 minimum;
