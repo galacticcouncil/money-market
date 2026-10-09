@@ -1,6 +1,6 @@
 # current Solidity mapping
 
-reviewed against `juicer-next` at `c5eeec5a64bf1bf7bf33647d3265fca9ef53ebd3`, 9 october 2026.
+reviewed against `juicer-next` at `6bf81febcbdca15479ce44aeaaa03cec3eb5f558`, 9 october 2026.
 contract code is unchanged by this formal update. The [funded-transfer allowance mismatch](ROUNDING.md)
 on this branch is addressed by the stacked [allowance fix](https://github.com/galacticcouncil/money-market/pull/73).
 `solidity-manifest.json` pins the source, model inputs and the OpenZeppelin math implementation;
@@ -30,6 +30,7 @@ the check fails if they change without a new comparison.
 | controller credit, pacing, expiry and safety lanes | `Policy`, `available`, `policyCharge`, `executionMinimum` | credit/size bounds, no refill on refresh, quote only tightens oracle floor; 64 availability and 32 executed quote comparisons |
 | FIFO start and collateral claims | `queueReady`, `startQueue`, `settleRedemption`, `claimRedemption` | work/FIFO bounds, full final burn, recipient protection; 32 queue and 48 claim comparisons |
 | repeated settlement/claim histories | `RedemptionState.valid`, `settleQueue` | cumulative collateral/burn bounds, unpaid-head stop, final payout/burn; 24 three-claim histories |
+| stateful public vault/Main sequences | `PublicCalls.State`, `runCall`, `execute` | independent replay from fixture genesis; exact outcomes, holder/request/Main snapshots, rollback and accounting partitions |
 | checked arithmetic and failure | `Checked`, checked account/backing/borrow/batch/claim/rescale operations | success refinement, exact arithmetic revert classes, atomic failure semantics; 488 primitive, 40 account and eight backing comparisons |
 | external observations | `payValid`, `exactReceipt`, `exactPayment`, callback/arrival theorems | conditional cash/debt bounds; detection threshold does not authenticate token origin |
 
@@ -130,6 +131,20 @@ retaining the previous claims' real storage and token transfers; the public life
 exercises `pokeSettle` itself. These tests are implementation comparisons, not reachability proofs
 for every machine-boundary fixture.
 
+`LeanStatefulParity.t.sol` adds long public-call campaigns against the actual vault, accounting,
+Main and delegatecall logic, using the existing deterministic pool/token/source mocks.
+`StatefulReplay.lean` keeps its own predicted state from fixture genesis; it never resets from
+a Solidity snapshot. Each call checks its outcome, all tracked holder/allowance/request/Main
+fields, and share, cash, collateral and lazy-liability partitions. The default eight seeds cover
+2,419 calls, including 596 expected reverts and 48 deliberately corrupted outputs rejected by
+the checker. Coverage gates require partial/final claims, keeper receiver protection, 71-request
+starts, resumed 64-cohort batches with late receipts and the 32-request settlement limit.
+Eight additional seeds with 512 pseudorandom actions pass 5,005 calls and 1,640 expected reverts;
+the longest complete sequence has 696 calls. Together the 16 campaigns check 7,424 calls,
+2,236 expected reverts and 96 corrupted-output checks. A truncated-trace rejection also passes.
+See [stateful scope and reproduction](STATEFUL_PARITY.md). These tests exercise control-flow
+correspondence for a bounded fixture environment, not every Solidity trace.
+
 ## corrections
 
 - Minting is `ceil(debt * 10000 / lt) + floor(base / 200)`. The old floored mint formula and
@@ -149,14 +164,15 @@ for every machine-boundary fixture.
 
 ## verification
 
-517 source theorem/lemma declarations compile, including declarations with same-line attributes.
-The axiom audit checks all 1,056 kernel theorem
+518 source theorem/lemma declarations compile, including declarations with same-line attributes.
+The axiom audit checks all 1,067 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
-`Quot.sound`. This adds 100 source declarations to the previous coverage. The comparison datasets
+`Quot.sound`. The public-call machine includes a rollback lemma; its Solidity correspondence is
+tested by replay, not proved for all executions. The comparison datasets
 contain 1,424 rows: the previous 820 plus 604 machine-boundary and history cases. Validation also
 includes 512 transfer-bound fuzz cases, the public vault lifecycle, rollback regressions and the
 existing seeded lazy-rescale fixture. All three generated datasets reproduce exactly.
-The full formal check passes 47 Foundry tests with zero failures and skips, including inherited
+The full formal check passes 56 Foundry tests with zero failures and skips, including inherited
 fixture regressions; source fingerprints and storage-layout checks also pass.
 
 ## reproduce

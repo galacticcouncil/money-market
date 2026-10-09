@@ -2,8 +2,10 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
+from stateful_coverage import check_coverage
 
 
 def main():
@@ -36,8 +38,17 @@ def main():
     for slot, name in enumerate(names):
         if slots.get(name) != slot:
             raise SystemExit(f"storage layout changed: {name}")
+    traces = [formal / ".stateful" / f"trace-{seed}.jsonl" for seed in range(1, 9)]
+    for path in traces:
+        path.unlink(missing_ok=True)
+    env = os.environ.copy()
+    env.update(LEAN_STATEFUL_SEED="1", LEAN_STATEFUL_COUNT="8", LEAN_STATEFUL_DEPTH="192")
     subprocess.run(["forge", "test", "--offline", "--match-path", "test/formal/Lean*.t.sol", "-vv"],
-                   cwd=vault, check=True)
+                   cwd=vault, env=env, check=True)
+    subprocess.run(lean + ["--run", "StatefulReplay.lean"] +
+                   [str(path) for path in traces],
+                   cwd=formal, check=True)
+    check_coverage(traces)
     print("Lean/Solidity runtime comparisons passed; source fingerprints and vector regeneration match")
 
 
