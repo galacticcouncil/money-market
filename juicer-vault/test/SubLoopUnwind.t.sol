@@ -8,6 +8,7 @@ import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice Unwind flow: ramp a loop, then full-unwind via the deleveraging
 ///         spiral (pokeRepay sells an HF-safe aPRIME sliver and repays each
@@ -39,7 +40,7 @@ contract SubLoopUnwindTest is Test {
         pool.initReserve(address(prime), address(aPrime), address(primeDebt), 8800, 8500, 6, 1e18);
         pool.initReserve(address(hollar), address(aHollar), address(hollarDebt), 0, 0, 18, 1e18);
 
-        SubLoop impl = new SubLoop();
+        SubLoop impl = new SubLoop(address(new SubLoopLogic()));
         bytes memory init = abi.encodeCall(
             SubLoop.initialize,
             (

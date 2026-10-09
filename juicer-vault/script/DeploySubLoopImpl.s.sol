@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import "forge-std/Script.sol";
 import {SubLoop} from "../src/SubLoop.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice Deploy a fresh SubLoop *implementation* (no proxy, no init) for a
 ///         UUPS upgrade of the existing proxy. The proxy's UPGRADER_ROLE is held
@@ -16,7 +17,7 @@ contract DeploySubLoopImpl is Script {
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerKey);
-        SubLoop impl = new SubLoop();
+        SubLoop impl = new SubLoop(address(new SubLoopLogic()));
         vm.stopBroadcast();
         console2.log("SubLoop impl:", address(impl));
     }

@@ -11,6 +11,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice `negativeCarryBps()` reports how far source equity is below cost basis,
 /// in bps; a side-effect-free monitoring view
@@ -55,7 +56,7 @@ contract NegativeCarryViewTest is Test {
         loop = SubLoop(
             address(
                 new ERC1967Proxy(
-                    address(new SubLoop()),
+                    address(new SubLoop(address(new SubLoopLogic()))),
                     abi.encodeCall(
                         SubLoop.initialize,
                         (

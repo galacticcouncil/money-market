@@ -12,6 +12,7 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {Deficit} from "./helpers/Deficit.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice settled-but-unclaimed collateral still backs shares: settling leaves the
 ///         share price unchanged and a deposit in the settle→claim window mints fairly.
@@ -58,7 +59,7 @@ contract ExchangeRateSettleWindowTest is Test {
         loop = SubLoop(
             address(
                 new ERC1967Proxy(
-                    address(new SubLoop()),
+                    address(new SubLoop(address(new SubLoopLogic()))),
                     abi.encodeCall(
                         SubLoop.initialize,
                         (

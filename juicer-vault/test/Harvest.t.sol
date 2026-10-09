@@ -14,6 +14,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {MockSwapper} from "./mocks/MockSwapper.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice harvest skims prime carry above cost basis and compounds it into the
 ///         eth vault's collateral; loop equity returns to its basis.
@@ -64,7 +65,7 @@ contract HarvestTest is Test {
         loop = SubLoop(
             address(
                 new ERC1967Proxy(
-                    address(new SubLoop()),
+                    address(new SubLoop(address(new SubLoopLogic()))),
                     abi.encodeCall(
                         SubLoop.initialize,
                         (

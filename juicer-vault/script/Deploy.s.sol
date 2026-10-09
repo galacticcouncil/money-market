@@ -7,6 +7,7 @@ import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {Harvester} from "../src/Harvester.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice Scaffold deploy. Wires SyntheticToken + SubLoop + Harvester + one
 ///         CollateralVault (ETH) against the live Hydration money market.
@@ -39,7 +40,7 @@ contract Deploy is Script {
         SyntheticToken synth = new SyntheticToken("Juicer Synthetic HOLLAR", "jsHOLLAR", admin);
 
         // 2. Shared SubLoop (behind a proxy)
-        SubLoop loopImpl = new SubLoop();
+        SubLoop loopImpl = new SubLoop(address(new SubLoopLogic()));
         bytes memory loopInit = abi.encodeCall(
             SubLoop.initialize,
             (

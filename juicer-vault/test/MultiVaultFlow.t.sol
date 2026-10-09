@@ -15,6 +15,7 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {MockSwapper} from "./mocks/MockSwapper.sol";
 import {Deficit} from "./helpers/Deficit.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice two vaults (eth 75% ltv, tbtc 80%) share one subloop and harvester;
 ///         each earns carry in its own collateral and an eth exit leaves tbtc untouched.
@@ -67,7 +68,7 @@ contract MultiVaultFlowTest is Test {
         loop = SubLoop(
             address(
                 new ERC1967Proxy(
-                    address(new SubLoop()),
+                    address(new SubLoop(address(new SubLoopLogic()))),
                     abi.encodeCall(
                         SubLoop.initialize,
                         (

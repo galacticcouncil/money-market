@@ -64,9 +64,12 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     error EmergencyPaused();
     error IntentRejected();
 
+    /// @dev the logic is deployed on its own: creating it here would put both bytecodes in one
+    /// transaction, past what a Hydration transaction can carry
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        logic = address(new SubLoopLogic());
+    constructor(address logic_) {
+        if (logic_.code.length == 0) revert InvalidParameters();
+        logic = logic_;
         _disableInitializers();
     }
 

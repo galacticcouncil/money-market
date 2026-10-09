@@ -142,7 +142,8 @@ try {
   assert.equal(helperCode.toLowerCase(), bytecode(artifact('CompoundLogic').deployedBytecode.object).toLowerCase());
   result.checks.immutableHelper = {address: helper, runtimeBytes: (helperCode.length - 2) / 2, codeHash: keccak256(helperCode)};
   const synth = await deploy('SyntheticToken', ['Juicer Synthetic HOLLAR', 'jsHOLLAR', account.address]);
-  const subImpl = await deploy('SubLoop');
+  const subLogic = await deploy('SubLoopLogic');
+  const subImpl = await deploy('SubLoop', [subLogic]);
   const reserveAbi = JSON.parse(readFileSync(new URL('../../deployments/hydration/Pool-Implementation.json', import.meta.url), 'utf8')).abi;
   const ethReserve = await pub.readContract({ address: POOL, abi: reserveAbi, functionName: 'getReserveData', args: [ETH] });
   const primeReserve = await pub.readContract({ address: POOL, abi: reserveAbi, functionName: 'getReserveData', args: [PRIME] });

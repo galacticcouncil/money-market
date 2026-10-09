@@ -6,6 +6,7 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 import {SubLoop} from "../src/SubLoop.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {Harvester} from "../src/Harvester.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice Deploy the Juicer stack (SubLoop + ETH CollateralVault + Harvester)
 ///         against a mainnet-mirrored money market: ETH collateral + HOLLAR debt
@@ -59,7 +60,7 @@ contract DeployMain is Script {
 
         vm.startBroadcast(deployerKey);
 
-        SubLoop loopImpl = new SubLoop();
+        SubLoop loopImpl = new SubLoop(address(new SubLoopLogic()));
         bytes memory loopInit = abi.encodeCall(
             SubLoop.initialize, (pool, hollar, prime, aPrime, targetHf, deLeverTrigger, gov)
         );

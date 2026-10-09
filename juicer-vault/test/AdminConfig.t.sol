@@ -13,6 +13,7 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {MockSwapper} from "./mocks/MockSwapper.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice config that must fail closed or follow governance rather than drift:
 ///         swapper, synthetic lt, carry recipient and the harvest registry.
@@ -60,7 +61,7 @@ contract AdminConfigTest is Test {
         loop = SubLoop(
             address(
                 new ERC1967Proxy(
-                    address(new SubLoop()),
+                    address(new SubLoop(address(new SubLoopLogic()))),
                     abi.encodeCall(
                         SubLoop.initialize,
                         (address(pool), address(hollar), address(prime), address(aPrime), 1.05e18, 1.10e18, address(this))

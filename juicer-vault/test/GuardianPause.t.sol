@@ -8,6 +8,7 @@ import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice P-4: the emergency pause on both `CollateralVault` and `SubLoop` is
 ///         gated `onlyRole(GUARDIAN_ROLE)`, but `initialize` grants only
@@ -65,7 +66,7 @@ contract GuardianPauseTest is Test {
         loop = SubLoop(
             address(
                 new ERC1967Proxy(
-                    address(new SubLoop()),
+                    address(new SubLoop(address(new SubLoopLogic()))),
                     abi.encodeCall(
                         SubLoop.initialize,
                         (

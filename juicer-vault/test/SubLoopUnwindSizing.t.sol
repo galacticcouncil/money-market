@@ -8,6 +8,7 @@ import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice pokeRepay sells only what open requests still need, and a de-lever target
 /// lapses once hf is back at targetHf
@@ -37,7 +38,7 @@ contract SubLoopUnwindSizingTest is Test {
         pool.initReserve(address(prime), address(aPrime), address(primeDebt), 8800, 8500, 6, 1e18);
         pool.initReserve(address(hollar), address(aHollar), address(hollarDebt), 0, 0, 18, 1e18);
 
-        SubLoop impl = new SubLoop();
+        SubLoop impl = new SubLoop(address(new SubLoopLogic()));
         bytes memory init = abi.encodeCall(
             SubLoop.initialize,
             (address(pool), address(hollar), address(prime), address(aPrime), TARGET_HF, 1.10e18, address(this))

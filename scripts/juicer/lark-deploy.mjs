@@ -29,7 +29,9 @@ try{
   a.compoundLogic=await read('CollateralVault',a.vaultImpl,'compoundLogic');save();
   assert.equal((await pub.getBytecode({address:a.compoundLogic})).toLowerCase(),artifact('CompoundLogic').deployedBytecode.object.toLowerCase());
   a.synth=await deploy('SyntheticToken',[...profile.names.synth,GOV]);save();
-  a.subImpl=await deploy('SubLoop');save();
+  // two transactions: one would carry both bytecodes, past a hydration transaction's limit
+  a.subLogic??=await deploy('SubLoopLogic');save();
+  a.subImpl=await deploy('SubLoop',[a.subLogic]);save();
   const sourceInit=v.encodeFunctionData({abi:artifact('SubLoop').abi,functionName:'initialize',args:[POOL,HOLLAR,token(43),reserves.PRIME.aTokenAddress,1050000000000000000n,1100000000000000000n,GOV]});
   a.source=await deploy('ERC1967Proxy',[a.subImpl,sourceInit],'SubLoop.proxy');save();
   a.harvester=await deploy('Harvester',[a.source,token(43),GOV]);save();

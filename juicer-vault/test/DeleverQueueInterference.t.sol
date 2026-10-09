@@ -12,6 +12,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice interference between the permissionless `rebalance()` de-lever and the
 ///         fifo redemption queue.
@@ -58,7 +59,7 @@ contract DeleverQueueInterferenceTest is Test {
         loop = SubLoop(
             address(
                 new ERC1967Proxy(
-                    address(new SubLoop()),
+                    address(new SubLoop(address(new SubLoopLogic()))),
                     abi.encodeCall(
                         SubLoop.initialize,
                         (address(pool), address(hollar), address(prime), address(aPrime), 1.05e18, 1.10e18, address(this))

@@ -13,6 +13,7 @@ import {DcaDispatch} from "../../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "../mocks/MockDispatch.sol";
 import {Handler} from "./Handler.sol";
 import {JuicerMainDebt} from "../../src/JuicerMainDebt.sol";
+import {SubLoopLogic} from "../../src/lib/SubLoopLogic.sol";
 
 /// @notice invariants that must hold after every random handler call
 contract JuicerInvariantTest is Test {
@@ -60,7 +61,7 @@ contract JuicerInvariantTest is Test {
         loop = SubLoop(
             address(
                 new ERC1967Proxy(
-                    address(new SubLoop()),
+                    address(new SubLoop(address(new SubLoopLogic()))),
                     abi.encodeCall(
                         SubLoop.initialize,
                         (

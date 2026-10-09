@@ -8,6 +8,7 @@ import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice Deploy-ramp flow: deposit a HOLLAR seed, then keeper pokeBorrow
 ///         until the loop self-ramps to the target HF (each poke borrows an
@@ -41,7 +42,7 @@ contract SubLoopDeployTest is Test {
         // HOLLAR: borrow-only (LT 0 / LTV 0), 18dp, $1
         pool.initReserve(address(hollar), address(aHollar), address(hollarDebt), 0, 0, 18, 1e18);
 
-        SubLoop impl = new SubLoop();
+        SubLoop impl = new SubLoop(address(new SubLoopLogic()));
         bytes memory init = abi.encodeCall(
             SubLoop.initialize,
             (
@@ -95,7 +96,7 @@ contract SubLoopDeployTest is Test {
 
     /// the proxy's code says nothing about EIP-170; the implementation and its logic must fit
     function test_implementationAndLogicFitEip170() public {
-        SubLoop impl = new SubLoop();
+        SubLoop impl = new SubLoop(address(new SubLoopLogic()));
         assertLe(address(impl).code.length, 24_576, "SubLoop implementation");
         assertLe(impl.logic().code.length, 24_576, "SubLoop logic");
         assertGt(impl.logic().code.length, 0);

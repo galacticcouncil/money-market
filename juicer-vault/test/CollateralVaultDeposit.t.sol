@@ -11,6 +11,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice once deployed, the synthetic floors main hf >= 1 even after a ~99% eth
 ///         crash; a bare borrow at the same price is liquidatable.
@@ -59,7 +60,7 @@ contract CollateralVaultDepositTest is Test {
         pool.initReserve(address(synth), address(aSynth), address(synthDebt), SYNTH_LT, 100, 18, 1e18);
 
         // SubLoop
-        SubLoop loopImpl = new SubLoop();
+        SubLoop loopImpl = new SubLoop(address(new SubLoopLogic()));
         loop = SubLoop(
             address(
                 new ERC1967Proxy(

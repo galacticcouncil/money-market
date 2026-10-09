@@ -9,6 +9,7 @@ import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockIntentDispatch} from "./mocks/MockIntentDispatch.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice ICE entries: the ramp submits HOLLAR→aPRIME intents; the lazy executor's callback (or a
 ///         permissionless reconcile) settles them. The intent mock at 0x0401 plays the pallet:
@@ -53,7 +54,7 @@ contract IceIntentsTest is Test {
         // live PRIME is isolated: an aPRIME arrival is not collateral until the loop enables it
         pool.setIsolationMode(address(prime), true);
 
-        loop = SubLoop(address(new ERC1967Proxy(address(new SubLoop()), abi.encodeCall(SubLoop.initialize,
+        loop = SubLoop(address(new ERC1967Proxy(address(new SubLoop(address(new SubLoopLogic()))), abi.encodeCall(SubLoop.initialize,
             (address(pool), address(hollar), address(prime), address(aPrime), TARGET_HF, 1.10e18, address(this))))));
 
         vm.etch(DcaDispatch.DISPATCH, address(new MockIntentDispatch()).code);

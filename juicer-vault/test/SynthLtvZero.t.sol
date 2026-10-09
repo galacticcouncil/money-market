@@ -11,6 +11,7 @@ import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @notice aave never enables an ltv-0 synth as collateral, which would leave the floor
 ///         inert; deployment must revert, and an ltv bump + next supply recovers.
@@ -38,7 +39,7 @@ contract SynthLtvZeroTest is Test {
         // synth listed with ltv 0
         pool.initReserve(address(synth), address(aSynth), address(synthDebt), SYNTH_LT, 0, 18, 1e18);
 
-        loop = SubLoop(address(new ERC1967Proxy(address(new SubLoop()), abi.encodeCall(SubLoop.initialize,
+        loop = SubLoop(address(new ERC1967Proxy(address(new SubLoop(address(new SubLoopLogic()))), abi.encodeCall(SubLoop.initialize,
             (address(pool),address(hollar),address(prime),address(aPrime),1.05e18,1.10e18,address(this))))));
         vault = CollateralVault(address(new ERC1967Proxy(address(new CollateralVault()), abi.encodeCall(CollateralVault.initialize,
             ("Juicer ETH","jETH",address(eth),address(pool),address(loop),address(0),address(hollar),address(synth),address(aEth),address(hollarDebt),1_000e18,address(this))))));

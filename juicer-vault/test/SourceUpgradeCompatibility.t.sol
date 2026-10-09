@@ -9,10 +9,13 @@ import {JuicerYieldAccounting} from "../src/JuicerYieldAccounting.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {Deficit} from "./helpers/Deficit.sol";
+import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
 /// @dev test-only append-only upgrade, not strategy rotation
 contract SubLoopUpgradeProbe is SubLoop {
     uint256 public compatibilityMarker;
+
+    constructor() SubLoop(address(new SubLoopLogic())) {}
 
     function initializeProbe(uint256 marker) external reinitializer(2) onlyRole(UPGRADER_ROLE) {
         compatibilityMarker = marker;
