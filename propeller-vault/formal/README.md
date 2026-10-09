@@ -30,6 +30,8 @@ PropellerLean/
 │  │                      peg band, and collateral-out-ge-in across every position at once
 │  ├─ YieldShares.lean    next version (plan §3): balances that include funded earnings, no
 │  │                      claims — Σ balanceOf identity, exact local transfers, value conservation
+│  ├─ Allocation.lean     next version (plan §2): event-driven allocation on a lazy index —
+│  │                      refines YieldShares, transfers settle two holders, no pre-entry yield
 │  └─ Examples.lean       worked numeric instances (concrete ETH position, dust threshold,
 │                          loop-at-HF-1.05, full-unwind) cross-checking the Solidity test suite
 └─ FixedPoint/
@@ -78,6 +80,11 @@ parallel; the bridge/parity tests follow once it merges. Same integrity bar: 0 `
 | `ShareBook.allocate_totalValue` / `allocate_value_mono` / `allocate_slice_dip` | allocation adds exactly the new yield in value and never lowers a holder's value; a displayed slice can dip by at most the holder's pro-rata share of the new yield |
 | `ShareBook.requestRedeem_max_empties` | `requestRedeem(balanceOf)` escrows the whole wallet and commits every unit |
 | `ShareBook.rejected_claim_shifts` | the plan's first claim rule (take `units/T × F`, burn units by value) lowers every passive holder's slice once S > 0 — kept as the reason for the redesign |
+| `LazyBook.view_run` / `LazyBook.run_totalBalance_add` | the lazy index (one bump per event, holders settled only when touched) implements the eager book along any trace, so the balance identity holds at every lazily reachable state |
+| `LazyBook.transfer_frame` / `LazyBook.transfer_noAlloc` | a transfer settles and writes only its two holders; it moves no index and mints no units |
+| `LazyBook.allocation_consistent` / `LazyBook.allocate_view_congr` | an event credits `m × weight/outside` on the balances standing at the event, however many transfers preceded it and whenever each holder last settled |
+| `ShareBook.eventVsTransfer` | against the old per-transfer allocation, only the interval's pre-transfer yield on the moved shares changes hands |
+| `ShareBook.deposit_newcomer` / `ShareBook.mintFirst_captures` | deposits allocate before they mint, so a newcomer captures no pre-entry yield (minting first would) |
 
 ## Build & verify
 

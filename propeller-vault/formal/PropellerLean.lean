@@ -10,6 +10,7 @@ import PropellerLean.Spec.SubLoopShares
 import PropellerLean.Spec.RedeemCredit
 import PropellerLean.Spec.Aggregate
 import PropellerLean.Spec.YieldShares
+import PropellerLean.Spec.Allocation
 import PropellerLean.Spec.Examples
 import PropellerLean.FixedPoint.Uint256
 import PropellerLean.FixedPoint.Refine

@@ -240,15 +240,18 @@ noncomputable def transfer (f t : Acct) (x : ℝ) (B : ShareBook Acct) : ShareBo
            units := fun b => B.units b - (if b = f then B.unitPart f x else 0)
                                + (if b = t then B.unitPart f x else 0) }
 
-/-- `requestRedeem`: checkpoint, then escrow up to the wallet and commit units for the excess to
-the request. -/
+/-- `requestRedeem` after its checkpoint: escrow up to the wallet and commit units for the excess
+to the request. -/
+noncomputable def escrowRequest (o : Acct) (x : ℝ) (B : ShareBook Acct) : ShareBook Acct :=
+  { B with wallet := fun b => B.wallet b - (if b = o then B.walletPart o x else 0)
+                                + (if b = B.escrow then B.walletPart o x else 0)
+           units := fun b => B.units b - if b = o then B.unitPart o x else 0
+           requestUnits := B.requestUnits + B.unitPart o x
+           waiting := B.waiting + B.walletPart o x }
+
+/-- `requestRedeem`: checkpoint, then escrow. -/
 noncomputable def requestRedeem (o : Acct) (x m v : ℝ) (B : ShareBook Acct) : ShareBook Acct :=
-  let C := B.allocate m v
-  { C with wallet := fun b => C.wallet b - (if b = o then C.walletPart o x else 0)
-                                + (if b = C.escrow then C.walletPart o x else 0)
-           units := fun b => C.units b - if b = o then C.unitPart o x else 0
-           requestUnits := C.requestUnits + C.unitPart o x
-           waiting := C.waiting + C.walletPart o x }
+  (B.allocate m v).escrowRequest o x
 
 /-- the final collateral claim burns `y` escrowed shares of a started request. -/
 def burnEscrow (y : ℝ) (B : ShareBook Acct) : ShareBook Acct :=
@@ -333,41 +336,34 @@ theorem transfer_conserved (f t : Acct) (x : ℝ) (B : ShareBook Acct) (hf : f �
         + (if B.escrow = t then B.walletPart f x else 0) = B.waiting + B.queued
     rw [if_neg hef, if_neg het, sub_zero, add_zero, h.escrow]
 
-theorem requestRedeem_conserved (o : Acct) (x m v : ℝ) (B : ShareBook Acct) (ho : o ∈ B.holders)
-    (hm : B.outside ≠ 0 ∨ m = 0) (h : B.Conserved) : (B.requestRedeem o x m v).Conserved := by
-  have hc : (B.allocate m v).Conserved := allocate_conserved m v B hm h
-  set C := B.allocate m v with hC
-  have hCf : C.fund = B.fund := rfl
-  have hCe : C.escrow = B.escrow := rfl
-  have hCh : C.holders = B.holders := rfl
+theorem escrowRequest_conserved (o : Acct) (x : ℝ) (B : ShareBook Acct) (ho : o ∈ B.holders)
+    (h : B.Conserved) : (B.escrowRequest o x).Conserved := by
   have hoe : B.escrow ≠ o := fun e => h.escrow_not_holder (e ▸ ho)
   have hfo : B.fund ≠ o := fun e => h.fund_not_holder (e ▸ ho)
   have hfe : B.fund ≠ B.escrow := h.fund_ne_escrow
   refine ⟨h.fund_not_holder, h.escrow_not_holder, h.fund_ne_escrow, ?_, ?_, ?_⟩
-  · show (C.wallet B.fund - (if B.fund = o then C.walletPart o x else 0)
-          + (if B.fund = B.escrow then C.walletPart o x else 0))
-        + (C.wallet B.escrow - (if B.escrow = o then C.walletPart o x else 0)
-          + (if B.escrow = B.escrow then C.walletPart o x else 0))
-        + ∑ b ∈ B.holders, (C.wallet b - (if b = o then C.walletPart o x else 0)
-          + (if b = B.escrow then C.walletPart o x else 0)) = C.totalSupply
+  · show (B.wallet B.fund - (if B.fund = o then B.walletPart o x else 0)
+          + (if B.fund = B.escrow then B.walletPart o x else 0))
+        + (B.wallet B.escrow - (if B.escrow = o then B.walletPart o x else 0)
+          + (if B.escrow = B.escrow then B.walletPart o x else 0))
+        + ∑ b ∈ B.holders, (B.wallet b - (if b = o then B.walletPart o x else 0)
+          + (if b = B.escrow then B.walletPart o x else 0)) = B.totalSupply
     rw [sum_add_ite, sum_sub_ite, if_pos ho, if_neg h.escrow_not_holder, if_neg hfo, if_neg hfe,
       if_neg hoe, if_pos rfl]
-    have := hc.supply
-    rw [hCf, hCe, hCh] at this
-    linarith
-  · show ∑ b ∈ B.holders, (C.units b - if b = o then C.unitPart o x else 0)
-        + (C.requestUnits + C.unitPart o x) = C.totalUnits
+    linarith [h.supply]
+  · show ∑ b ∈ B.holders, (B.units b - if b = o then B.unitPart o x else 0)
+        + (B.requestUnits + B.unitPart o x) = B.totalUnits
     rw [sum_sub_ite, if_pos ho]
-    have := hc.units
-    rw [hCh] at this
-    linarith
-  · show C.wallet B.escrow - (if B.escrow = o then C.walletPart o x else 0)
-        + (if B.escrow = B.escrow then C.walletPart o x else 0)
-        = (C.waiting + C.walletPart o x) + C.queued
-    rw [if_neg hoe, if_pos rfl, sub_zero]
-    have := hc.escrow
-    rw [hCe] at this
-    linarith
+    linarith [h.units]
+  · show B.wallet B.escrow - (if B.escrow = o then B.walletPart o x else 0)
+        + (if B.escrow = B.escrow then B.walletPart o x else 0)
+        = (B.waiting + B.walletPart o x) + B.queued
+    rw [if_neg hoe, if_pos rfl, sub_zero, h.escrow]
+    ring
+
+theorem requestRedeem_conserved (o : Acct) (x m v : ℝ) (B : ShareBook Acct) (ho : o ∈ B.holders)
+    (hm : B.outside ≠ 0 ∨ m = 0) (h : B.Conserved) : (B.requestRedeem o x m v).Conserved :=
+  escrowRequest_conserved o x _ ho (allocate_conserved m v B hm h)
 
 theorem burnEscrow_conserved (y : ℝ) (B : ShareBook Acct) (h : B.Conserved) :
     (B.burnEscrow y).Conserved := by
