@@ -10,6 +10,7 @@ import {resolveProfile} from './lark-pins.mjs';
 const here=fileURLToPath(new URL('.',import.meta.url));
 const step=id=>STEPS.find(s=>s.id===id);
 // the journal markers each step leaves once it is complete
+const LARK0=resolveProfile('lark0',{});
 function complete(ids){
  const core={checks:{},governance:[],vaults:[]},prices={addresses:{}};
  const verified=label=>core.governance.push({label,verified:true});
@@ -18,13 +19,14 @@ function complete(ids){
   deploy:()=>core.vaults.push({name:'ETH',rounding:{}},{name:'TBTC',rounding:{}}),wire:()=>verified('bind-execution-controller'),
   prices:()=>prices.oracles=[{},{},{}],discount:()=>prices.addresses.discount='0x01',market:()=>verified('testnet-guardians-and-open-bootstrap'),
   bootstrap:()=>core.checks.bootstrapNoBorrow=true,'prime-cap':()=>verified('arb.refill-hollar-with-quote-reserve'),adapter:()=>core.checks.adapterWhitelisted=true,
-  routes:()=>core.checks.primeCollateralRoutes=true,'harvest-cap':()=>verified('approved-lark-only-collateral-hundred-bps'),throughput:()=>verified('lark-prime-tranches-1000'),
+  routes:()=>core.checks.primeCollateralRoutes=true,'harvest-cap':()=>verified('approved-lark-only-collateral-hundred-bps'),throughput:()=>verified('lark-prime-tranches-2500'),
   sync:()=>core.checks.mainnetSync=true,'sync-inventory':()=>core.checks.syncInventory=true,wrap:()=>verified('pools-underlying-stash'),
   stable:()=>verified('pools-stable-inventory'),release:()=>core.checks.depositRelease=true,seed:()=>verified('bots-seed-baseline'),
   params:()=>core.checks.nextParameters={},guardian:()=>core.checks.depositGuardian={},ice:()=>core.checks.iceWiring=true,
+  depositors:()=>core.checks.depositorFunded=true,'depositor-approve':()=>core.checks.depositorApproved=true,
  };
  for(const id of ids)marks[id]();
- return {core,prices};
+ return {profile:LARK0,core,prices};
 }
 const before=id=>STEPS.slice(0,STEPS.findIndex(s=>s.id===id)).filter(s=>!s.output).map(s=>s.id);
 const dirs=[],scratch=()=>{const dir=mkdtempSync(join(tmpdir(),'lark-bringup-'));dirs.push(dir);return dir;};
@@ -42,6 +44,8 @@ test('the bring-up runs the existing step scripts in the deployment order', () =
   assert.ok(ids.indexOf(a)<ids.indexOf(b),`${a} before ${b}`);
  assert.deepEqual(STEPS.filter(s=>s.journal==='prices').map(s=>s.id),['prices','discount']);
  assert.deepEqual(step('seed').args,['--round=baseline']);
+ assert.deepEqual(step('stack').args,['--keepers','--depositor']);
+ assert.ok(ids.indexOf('depositor-approve')<ids.indexOf('manifest'),'the manifest carries the depositor plan');
 });
 
 test('no nurse or Main cushions, and no placeholders left', () => {
@@ -65,6 +69,9 @@ test('journal markers complete each step', () => {
  const all=complete(STEPS.filter(s=>!s.output).map(s=>s.id));
  for(const s of STEPS.filter(s=>!s.output))assert.equal(stepStatus(s,all),'done',s.id);
  assert.equal(stepStatus(step('deploy'),{core:{vaults:[{name:'ETH',rounding:{}}]}}),'pending','one vault is not a deployment');
+ const lark4=complete([]);lark4.profile=resolveProfile('lark4',{});lark4.core.governance.push({label:'lark-prime-tranches-1000',verified:true});
+ assert.equal(stepStatus(step('throughput'),lark4),'done','each profile finishes its own lane size');
+ assert.equal(stepStatus(step('throughput'),{...lark4,profile:LARK0}),'pending');
 });
 
 test('a dry run validates only the next step; a live run walks on, skipping only on request', () => {
@@ -102,7 +109,8 @@ test('--plan shows lark 0 from zero and writes nothing', () => {
  assert.match(out.stdout,/bring-up lark0: deployment lark0-20261009, chain Lark 0 Hydration, genesis unpinned/);
  assert.match(out.stdout,/ 1 chain +pending/);
  assert.match(out.stdout,/22 guardian +pending +DEPOSIT_GUARDIAN_ROLE \(setDeficitStop only\)/);
- assert.match(out.stdout,/25 stack +output/);
+ assert.match(out.stdout,/24 depositors +pending/);
+ assert.match(out.stdout,/27 stack +output +swarm stack: keepers on, depositor an hour after it is written/);
  assert.match(out.stdout,/unset: LARK_GENESIS, LARK_COMMIT, PROPELLER_ARTIFACT_DIR, PROPELLER_ADAPTER_ARTIFACT, KEEPER_IMAGE, BOT_IMAGE/);
  assert.ok(!existsSync(join(dir,'propeller-lark-bringup-lark0-20261009.json')));
 });

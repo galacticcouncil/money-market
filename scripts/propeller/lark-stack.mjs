@@ -22,12 +22,16 @@ for(const [index,accountIndex]of [[0,18],[1,20]]){
  services[`keeper${index}`]={...common,image:keeperImage,environment:env,deploy:{...common.deploy,replicas:keepers?1:0}};
 }
 for(const [mode,env]of Object.entries(stack.bots))services[mode]={...common,image:botImage,environment:{BOT_MODE:mode,BOT_LIVE:'true',BOT_MANIFEST:'/app/manifest.json',...env,...endpoints},configs:[{source:'propeller_manifest',target:'/app/manifest.json'}]};
-// the depositor only exists with an explicit --depositor and a fixed schedule start
+// the depositor only exists with an explicit --depositor and a fixed schedule start:
+// DEPOSIT_START, or the profile's delay (DEPOSIT_DELAY_S) after this stack is written
+let depositStart;
 if(process.argv.includes('--depositor')){
- assert.ok(/^\d+$/.test(process.env.DEPOSIT_START??''),'set DEPOSIT_START (unix seconds)');
- services.depositor={...common,image:botImage,environment:{BOT_MODE:'deposits',BOT_LIVE:'true',BOT_MANIFEST:'/app/manifest.json',BOT_INTERVAL_MS:'60000',DEPOSIT_START:process.env.DEPOSIT_START,DEPOSIT_DURATION_S:process.env.DEPOSIT_DURATION_S??'259200',DEPOSIT_EVERY_S:process.env.DEPOSIT_EVERY_S??'1800',DEPOSIT_USERS:'8',...endpoints},configs:[{source:'propeller_manifest',target:'/app/manifest.json'}]};
+ const d=profile.depositor;
+ depositStart=process.env.DEPOSIT_START??(d.delayS===null?undefined:String(Math.floor(Date.now()/1000)+Number(process.env.DEPOSIT_DELAY_S??d.delayS)));
+ assert.ok(/^\d+$/.test(depositStart??''),'set DEPOSIT_START (unix seconds)');
+ services.depositor={...common,image:botImage,environment:{BOT_MODE:'deposits',BOT_LIVE:'true',BOT_MANIFEST:'/app/manifest.json',BOT_INTERVAL_MS:'60000',DEPOSIT_START:depositStart,DEPOSIT_DURATION_S:process.env.DEPOSIT_DURATION_S??String(d.durationS),DEPOSIT_EVERY_S:process.env.DEPOSIT_EVERY_S??String(d.everyS),DEPOSIT_USERS:'8',...endpoints},configs:[{source:'propeller_manifest',target:'/app/manifest.json'}]};
 }
 const compose={version:'3.8',services,configs:{propeller_manifest:{external:true,name:MANIFEST_CONFIG}}};
 const file=stack.file;writeFileSync(file,JSON.stringify(compose,null,2)+'\n',{mode:0o600});
 // a new chain's summary names its swarm stack; lark 4's stays as it was
-console.log(JSON.stringify({file,keepers,genesis:r.genesis,keeperImage,botImage,services:Object.keys(services),...(profile.legacy?{}:{stack:stack.name,manifestConfig:MANIFEST_CONFIG})}));
+console.log(JSON.stringify({file,keepers,genesis:r.genesis,keeperImage,botImage,services:Object.keys(services),...(profile.legacy?{}:{stack:stack.name,manifestConfig:MANIFEST_CONFIG,...(depositStart?{depositStart}:{})})}));

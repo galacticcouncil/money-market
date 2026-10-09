@@ -39,9 +39,9 @@ test('each report maps to what is minted, supplied and capped', () => {
 const base={isToken,decimals:DECIMALS,caps:CAPS,now:T0+10*60000,minIntervalMs:6*3600000};
 test('a refill tops up to the cap and never past it', () => {
  const {plan,skipped}=planRefills({...base,wanted:[{bot:'markets',asset:43}],held:{'markets:43':fromUnits(10000,6)}});
- assert.deepEqual(plan,[['markets',43,290000]]);
+ assert.deepEqual(plan,[['markets',43,490000]]);
  assert.deepEqual(skipped,[]);
- assert.deepEqual(planRefills({...base,wanted:[{bot:'markets',asset:43}],held:{'markets:43':fromUnits(150000,6)}}).skipped.map(s=>s.reason),['holds half its cap or more']);
+ assert.deepEqual(planRefills({...base,wanted:[{bot:'markets',asset:43}],held:{'markets:43':fromUnits(250000,6)}}).skipped.map(s=>s.reason),['holds half its cap or more']);
  const atoken=planRefills({...base,wanted:[{bot:'replay',asset:1003}],held:{'replay:1003':fromUnits(1000.5,6)}});
  assert.deepEqual(atoken.plan,[['replay',22,298999.5,1003]],'aUSDC refills mint USDC and supply it');
  const btc=planRefills({...base,wanted:[{bot:'replay',asset:1006}],caps:{replay:{1006:0.5}},decimals:{1000765:18},isToken:()=>false,held:{}});
@@ -66,7 +66,7 @@ test('deposit fuse and facilitator room clamp a round, shared across bots', () =
  assert.ok(used<=room*9n/10n,'a tenth of the room stays free');
  const clamped=planRefills({...base,wanted:[{bot:'markets',asset:43}],held:{},headroom:{43:fromUnits(100000,6)}});
  assert.deepEqual(clamped.plan,[['markets',43,90000]]);
- assert.equal(planRefills({...base,wanted:[{bot:'markets',asset:43}],held:{},headroom:{43:null}}).plan[0][2],300000,'no fuse, no clamp');
+ assert.equal(planRefills({...base,wanted:[{bot:'markets',asset:43}],held:{},headroom:{43:null}}).plan[0][2],500000,'no fuse, no clamp');
 });
 
 test('one refill per held asset, and unknown assets wait for a hand seed', () => {

@@ -23,7 +23,7 @@ assert.ok(!(live&&planOnly),'--plan never runs anything');
 if(!planOnly)assert.ok(!profile.legacy,`profile ${profile.name} is already up; the bring-up targets a new lark (--profile=lark0)`);
 const here=fileURLToPath(new URL('.',import.meta.url)),root=join(here,'..','..');
 const readJson=file=>existsSync(file)?JSON.parse(readFileSync(file,'utf8')):null;
-const state=()=>({core:readJson(CORE_FILE),prices:readJson(PRICES_FILE)});
+const state=()=>({profile,core:readJson(CORE_FILE),prices:readJson(PRICES_FILE)});
 const log=readJson(profile.bringUp)??{profile:profile.name,deployment:profile.deployment,events:[]};
 function record(event){
  log.genesis??=state().core?.genesis;

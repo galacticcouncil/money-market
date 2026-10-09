@@ -16,7 +16,7 @@ export const STEPS=[
  {id:'adapter',script:'lark-protect-adapter.mjs',what:'duster protection for the adapter',done:s=>check(s,'adapterWhitelisted')},
  {id:'routes',script:'lark-routes-setup.mjs',what:'PRIME to ETH/tBTC routes through pool 143',done:s=>check(s,'primeCollateralRoutes')},
  {id:'harvest-cap',script:'lark-approve-harvest-cap.mjs',what:'100 bps collateral lanes and compound floor (Lark only)',done:s=>gov(s,'approved-lark-only-collateral-hundred-bps')},
- {id:'throughput',script:'lark-prime-throughput.mjs',what:'PRIME lanes 1,000 a trade at 10/s, source tranches 1,000, PRIME for the peg',done:s=>gov(s,'lark-prime-tranches-1000')},
+ {id:'throughput',script:'lark-prime-throughput.mjs',what:'PRIME lanes and source tranches at the profile\'s trade size (Lark 0: 2,500 a trade, 50/s)',done:s=>gov(s,`lark-prime-tranches-${s.profile.primeLanes.trade}`)},
  {id:'sync',script:'lark-mainnet-sync-setup.mjs',what:'mainnet feeds to the mirror signer, pools and replay inventory, EVM bindings and HOLLAR',done:s=>check(s,'mainnetSync')},
  {id:'sync-inventory',script:'lark-mainnet-sync-inventory.mjs',what:'replay long tail and EVM-token inventory',done:s=>check(s,'syncInventory')},
  {id:'wrap',script:'lark-wrap-inventory.mjs',what:'pools aTokens wrapped from minted underlying, plus its stash',done:s=>gov(s,'pools-underlying-stash')},
@@ -26,8 +26,10 @@ export const STEPS=[
  {id:'params',script:'lark-next-params.mjs',what:'harvest threshold 2e14, 1,000 HOLLAR protocol reserve per vault',done:s=>check(s,'nextParameters')},
  {id:'guardian',script:'lark-deposit-guardian.mjs',what:'DEPOSIT_GUARDIAN_ROLE (setDeficitStop only) for both keepers on both vaults',done:s=>check(s,'depositGuardian')},
  {id:'ice',script:'lark-ice-wiring.mjs',what:'ICE: 300 s intents with 2 bps drift, KEEPER_ROLE for both keepers, async entry and unwind lanes, WETH for the callback fee',done:s=>check(s,'iceWiring')},
- {id:'manifest',script:'lark-manifest.mjs',output:true,what:'bot manifest for the swarm config'},
- {id:'stack',script:'lark-stack.mjs',args:['--keepers'],output:true,needs:['images'],what:'swarm stack, keepers on'},
+ {id:'depositors',script:'lark-depositor-setup.mjs',what:'eight public test depositors with ~$100k of test ETH and tBTC, TVL caps to fit',done:s=>check(s,'depositorFunded')},
+ {id:'depositor-approve',script:'lark-depositor-approve.mjs',what:'each depositor approves both vaults (u128 max, all the precompile takes)',done:s=>check(s,'depositorApproved')},
+ {id:'manifest',script:'lark-manifest.mjs',output:true,what:'bot manifest for the swarm config, depositor plan included'},
+ {id:'stack',script:'lark-stack.mjs',args:['--keepers','--depositor'],output:true,needs:['images'],what:'swarm stack: keepers on, depositor an hour after it is written'},
 ];
 export function stepStatus(step,state){
  if(step.output)return 'output';

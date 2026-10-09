@@ -76,3 +76,18 @@ test('the lark 0 manifest tells the bots which chain and signers they run on', (
  assert.equal(manifest.genesis,LARK0.LARK_GENESIS);
  assert.deepEqual(Object.keys(manifest.signers),['markets','pools','replay']);
 });
+
+test('the lark 0 depositor runs ten hours, every ten minutes, a set delay after the stack', () => {
+ const dir=lark0State(),now=Math.floor(Date.now()/1000);
+ const read=env=>{
+  const out=run('lark-stack.mjs',['--keepers','--depositor'],{...LARK0,...IMAGES,LARK_STATE_DIR:dir,...env});
+  assert.equal(out.status,0,out.stderr);
+  return [JSON.parse(out.stdout),JSON.parse(readFileSync(join(dir,`propeller-lark-stack-${ID}.json`),'utf8')).services.depositor.environment];
+ };
+ const [summary,env]=read({});
+ assert.deepEqual([env.DEPOSIT_DURATION_S,env.DEPOSIT_EVERY_S,env.LARK_RPC],['36000','600',NODE0]);
+ assert.ok(Math.abs(Number(env.DEPOSIT_START)-(now+3600))<=60,'an hour after the stack by default');
+ assert.equal(summary.depositStart,env.DEPOSIT_START);
+ assert.ok(Math.abs(Number(read({DEPOSIT_DELAY_S:'600'})[1].DEPOSIT_START)-(now+600))<=60);
+ assert.equal(read({DEPOSIT_START:'1800000000'})[1].DEPOSIT_START,'1800000000');
+});

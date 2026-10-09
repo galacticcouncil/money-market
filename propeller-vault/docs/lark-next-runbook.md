@@ -58,18 +58,38 @@ node scripts/propeller/lark-bringup.mjs --live    # runs pending steps in order
 | `deploy`, `wire` | `lark-deploy.mjs`, `lark-wire.mjs` | adapter, contracts, synthetic listing and reserve, wiring, execution lanes; shares `pETH`/`ptBTC` from the profile |
 | `prices`, `discount` | `lark-prices-deploy.mjs`, `lark-discount-deploy.mjs` | price mirrors and zero discount, in the prices journal |
 | `market` … `harvest-cap` | `lark-market-setup.mjs`, `lark-bootstrap.mjs`, `lark-approve-prime-cap.mjs`, `lark-protect-adapter.mjs`, `lark-routes-setup.mjs`, `lark-approve-harvest-cap.mjs` | as on Lark 4: mirrors installed, bot accounts, bootstrap, 6 bps PRIME and 100 bps collateral lanes, routes |
-| `throughput` | `lark-prime-throughput.mjs` | PRIME lanes 1,000 a trade |
+| `throughput` | `lark-prime-throughput.mjs` | PRIME entry and unwind lanes and source tranches: 2,500 a trade, 25,000 budget, 50/s refill, 6 bps cap and 60 s pacing kept |
 | `sync` … `release` | `lark-mainnet-sync-*.mjs`, `lark-wrap-inventory.mjs`, `lark-stable-inventory.mjs`, `lark-release-deposits.mjs` | feeds, pools and replay inventory |
 | `seed` | `lark-seed-bots.mjs --round=baseline` | everything the Lark 4 bots reported missing (rounds 463 and 464) |
 | `params` | `lark-next-params.mjs` (new) | `harvestThreshold` 2e14, `fundReserve` 1,000 HOLLAR per vault from governance |
 | `guardian` | `lark-deposit-guardian.mjs` (new) | `DEPOSIT_GUARDIAN_ROLE` on both vaults for both keepers and nothing else; it gates only `setDeficitStop`, while `pauseDeposits` and `pause` stay with governance |
 | `ice` | `lark-ice-wiring.mjs` (new) | ICE for entries and routine exits: `configureIntents(300, 2)`, SubLoop `KEEPER_ROLE` for both keepers, `configureAsync` on the loop's entry and unwind lanes, and WETH on the loop's mapped account for the callback fee |
-| `manifest`, `stack` | `lark-manifest.mjs`, `lark-stack.mjs --keepers` | rerun on every live pass; the stack needs `KEEPER_IMAGE` and `BOT_IMAGE` by digest |
+| `depositors`, `depositor-approve` | `lark-depositor-setup.mjs`, `lark-depositor-approve.mjs` | eight public test depositors with ~$100k of test ETH and tBTC, TVL caps to fit, u128 approvals |
+| `manifest`, `stack` | `lark-manifest.mjs`, `lark-stack.mjs --keepers --depositor` | rerun on every live pass; the stack needs `KEEPER_IMAGE` and `BOT_IMAGE` by digest |
 
 The outputs are config `propeller-lark0-20261009-manifest-v1` and stack
 `propeller-lark0-20261009`.
 Keepers get `QUOTE_DEPTH_BLOCKS` 3 and markets `PEG_BAND_BPS` 0.5. Creating the
 Swarm config and stack stays a manual, stop-first step.
+
+## Lark 0 timing
+
+The $100k depositor plan has to land and lever within 12 hours:
+
+- **Deposits:** one per vault every 600 s over a 10 h window (36,000 s), 60
+  slots each. The schedule starts an hour after the stack is written
+  (`DEPOSIT_DELAY_S`, or an absolute `DEPOSIT_START`), so it ends at 11 h.
+- **Ramp:** every PRIME buy goes through the source's entry lane. The plan levers
+  into ~400k of PRIME buys: 160 trades of 2,500 HOLLAR. Pacing allows one a
+  minute and the 50/s refill restores a trade's budget in 50 s, so the lane
+  carries 150k an hour. That is 2.7 h of trading against the deposits' ~40k an
+  hour of buys; the loop keeps pace and finishes minutes after the last deposit.
+  Lark 4 runs 1,000 a trade at a 10/s refill, budget-bound at 600 a minute: 11 h
+  for the same buys.
+- **Peg inventory:** the markets bot sells pool 143 back every PRIME the loop
+  buys. It starts with 500k PRIME, 100k from `prepare` and 400k from the
+  baseline seed round, 25% over the ramp. The refiller tops it back up to 500k
+  once it holds under 250k, at most every 6 h.
 
 There is no nurse and no Main cushion on the new chain: `lark-nurse.mjs`,
 `lark-fund-main.mjs`, `lark-recap-source.mjs` and `lark-fund-exit.mjs` refuse
@@ -100,8 +120,6 @@ any profile but Lark 4.
 
 ## After bring-up
 
-- Depositor: `lark-depositor-setup.mjs`, `lark-depositor-approve.mjs`, then
-  `lark-stack.mjs --keepers --depositor` with `DEPOSIT_START`.
 - Refills: `lark-refill-bots.mjs --reports=<bot logs>` turns
   `inventory-refill-needed` rows and replay's skipped inputs into one seed
   referendum. Each bot and asset is topped up to a ceiling (pools and replay

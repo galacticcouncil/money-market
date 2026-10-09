@@ -9,7 +9,8 @@ export const POOL_STASH={1001:5,9001:40,420:1000809};
 // top-up ceilings in units of the held asset. pools omnipool tokens and replay tokens without
 // an entry get the setup levels instead: 5% of the omnipool reserve, 1% of issuance
 export const CAPS={
- markets:{43:300000,222:60000},
+ // markets sells the peg back the PRIME the loop buys: ~400k on a $100k lark 0 ramp
+ markets:{43:500000,222:60000},
  pools:{222:200000,22:50000,5:100000,40:200,1000809:15,1002:29500,1003:26300,1007:0.5,1044:20800,1009:380},
  replay:{222:200000,1001:20000,1002:150000,1003:300000,1006:0.5},
 };

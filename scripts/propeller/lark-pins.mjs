@@ -27,6 +27,8 @@ export const PROFILES={
    vaults:{ETH:['Propeller ETH October','pETH-OCT'],TBTC:['Propeller TBTC October','pTBTC-OCT']},
   },
   hollarBucket:1000000,
+  primeLanes:{trade:1000,capacity:10000,refill:10,pegPrime:150000,approval:'make sure the lark4 prime loop leveraging continues'},
+  depositor:{durationS:259200,everyS:1800,delayS:null},
   stack:{file:'propeller-lark-stack.json',name:'propeller-oct2026',manifestConfig:'propeller-lark4-20261007-manifest-v3',keeperRpcUrls:['https://node4.lark.hydration.cloud','https://4.lark.hydration.cloud'],keeperEnv:{},bots:BOTS},
  },
  // the next version on Lark 0, reforked from mainnet after the rename; pin its genesis and
@@ -47,6 +49,12 @@ export const PROFILES={
    vaults:{ETH:['Juicer ETH','jETH'],TBTC:['Juicer tBTC','jtBTC']},
   },
   hollarBucket:5000000,
+  // one 2,500 HOLLAR trade a minute (60 s pacing; 50/s refills a trade in 50 s) buys the
+  // ~400k PRIME the $100k plan levers into in under 3 h of trading, inside its 10 h window.
+  // the peg's PRIME comes from the baseline seed round (400k) and prepare (100k)
+  primeLanes:{trade:2500,capacity:25000,refill:50,pegPrime:0,approval:'faster PRIME entry lane than lark 4 so the loop levers within the deposit window'},
+  // the $100k depositor plan in 10 h, one deposit per vault every 10 min, an hour after the stack
+  depositor:{durationS:36000,everyS:600,delayS:3600},
   stack:{keeperRpcUrls:['https://node0.lark.hydration.cloud','https://0.lark.hydration.cloud'],keeperEnv:{QUOTE_DEPTH_BLOCKS:'3'},bots:BOTS},
  },
 };
@@ -65,7 +73,7 @@ export function resolveProfile(name='lark4',env={}){
   manifest:join(dir,`propeller-lark-manifest-${d}.json`),bringUp:join(dir,`propeller-lark-bringup-${d}.json`),
   artifactDir:p.artifactDir,adapterArtifact:p.adapterArtifact,
   signers:p.signers,names:p.names,hollarBucket:BigInt(p.hollarBucket)*10n**18n,
-  primePool:p.primePool??{minDepthUsd:100000,targetDepthUsd:400000},
+  primePool:p.primePool??{minDepthUsd:100000,targetDepthUsd:400000},primeLanes:p.primeLanes,depositor:p.depositor,
   stack:{
    file:join(dir,s.file??`propeller-lark-stack-${d}.json`),name:s.name??`propeller-${d}`,manifestConfig:s.manifestConfig??`propeller-${d}-manifest-v1`,
    keeperRpcUrls:s.keeperRpcUrls??[...new Set([rpc,gateway.rpc])].filter(Boolean),keeperEnv:s.keeperEnv,bots:s.bots,

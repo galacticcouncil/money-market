@@ -23,4 +23,5 @@ try{
   r.depositor.approvals.push({user:u.index,vault:p.name,hash,block:Number(receipt.blockNumber),allowance:MAX_U128.toString(),reason:'precompile rejects maxUint256 approvals'});save();
   console.log('APPROVED',u.index,p.name,hash);
  }
+ if(live){r.checks.depositorApproved=true;save();}
 }finally{await c.api.disconnect();}
