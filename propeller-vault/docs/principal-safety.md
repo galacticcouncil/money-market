@@ -19,9 +19,9 @@ and dated test results.
 | Main collateral  | Not sold for ordinary strategy-loss recovery or interest servicing. Synthetic collateral maintains a health-factor floor under valid configuration and timely maintenance. |
 | PRIME strategy   | Can incur trading losses, negative carry or liquidation. Lost source value can leave HOLLAR shortfalls without reducing the recorded collateral claim.                     |
 | Unpaid claims    | Remain outstanding when execution or funding is insufficient. No automatic haircut or write-off to finish an exit.                                                         |
-| New deposits     | Blocked while the contract's backing checks report underfunding; new users are not a recovery fund.                                                                        |
+| New deposits     | Stopped by the keepers' `deficitStop` while their off-chain deficit check exceeds 50 bps, and by governance's `pauseDeposits`; new users are not a recovery fund.          |
 | Yield            | Not guaranteed. Un-compounded earned yield can absorb eligible execution costs. Compounded yield may contribute to governance-approved emergency recovery.                 |
-| Recovery funding | External governance responsibility. No dedicated automatic strategy-loss reserve or fixed repayment deadline is implemented.                                               |
+| Recovery funding | External governance responsibility. A governance-funded protocol reserve covers realized exit shortfalls only. No fixed repayment deadline is implemented.                 |
 
 Main's synthetic floor is not HOLLAR liquidity. Interest keeps accruing during
 outages, and floor maintenance still needs functioning permissions, market
@@ -39,9 +39,11 @@ with `setWithdrawalDelay(uint32)`. Zero disables the delay for future requests.
 Existing requests retain their recorded `unwindEligibleAt`.
 
 1. `requestRedeem` escrows shares. They remain invested and share yield and debt
-   during the wait; no source unwind is started for that request.
-2. `startUnwinds(maxRequests)` starts eligible requests in FIFO order. It snapshots
-   collateral owed and allocates Main debt and source claims at that point.
+   during the wait; no source unwind is started for that request. Beyond the
+   wallet it commits reward units instead.
+2. `startUnwinds(maxRequests)` starts eligible requests in FIFO order. It folds
+   the exit's funded earnings into the escrow, then snapshots collateral owed and
+   allocates Main debt and source claims at that point.
 3. Source repayments and `pokeSettle` fund collateral release. Post-start
    interest belongs to that exit, not the remaining holders' cash.
 4. `claim` pays settled collateral, including partial claims. Unpaid balances
@@ -57,13 +59,26 @@ it cannot reverse payouts completed before the pause.
 | Control                   | User flows                                                                                            | Safety operations                                                               |
 | ------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Vault `pause()`           | Stops local deposits, requests, starts, FIFO allocation, claims and share transfers.                  | Main repayment and `maintainPeg` remain callable.                               |
-| Source `pauseEmergency()` | Freezes attached vaults and stops new source risk and ordinary unwind allocation.                     | Permits source safety deleveraging and Main maintenance.                        |
+| Source `pauseEmergency()` | Freezes attached vaults, except plain share transfers; stops new source risk and unwind allocation.   | Permits source safety deleveraging and Main maintenance.                        |
+| Vault `pauseDeposits()`   | Stops deposits only. The guardian sets and lifts it.                                                  | Everything else continues.                                                      |
+| Vault `deficitStop`       | Stops deposits only. The keepers set and clear it (`DEPOSIT_GUARDIAN_ROLE`).                          | The role cannot lift `pauseDeposits` or do anything else.                       |
 | Source `pause()`          | Stops source route execution, including ordinary borrowing/unwinding. It is not a vault claim freeze. | Also stops source safety swaps; use only when route execution itself must stop. |
 
 Guardians can activate emergency freezes; governance's `ADMIN_ROLE` reopens.
 The separate source route pause can also be lifted by its guardian. A local unpause cannot
 bypass the source emergency flag. Pausing the keeper alone is insufficient:
 operations are permissionless and can be called directly.
+
+Share transfers check only the vault's own pause, so balances keep moving under
+a source emergency. To freeze them, pause the affected vaults before the source
+emergency: a vault's `pause()` reverts while that emergency is set, because the
+vault already counts as paused.
+
+Deposits have two separate stops: governance's `pauseDeposits`
+(`GUARDIAN_ROLE`) and the keepers' `deficitStop`, which follows their off-chain
+deficit check ([keeper runbook](../looper/README.md#deficit-stop)). Deposits
+revert while either is set. A keeper can neither lift the guardian's pause nor
+use its role for anything else.
 
 Paused `pokeSettle` may receive source funds and service Main debt, but does not
 advance ordinary user collateral allocation. Main-ledger HOLLAR surplus claims
@@ -85,7 +100,8 @@ The agreed approach is to defer incident-specific indexing and payout
 implementation until needed. Keep affected exits frozen while preparing:
 
 1. A canonical freeze snapshot covering deposits, transfers, escrowed shares,
-   prior partial payments, settled claims, Main debt and source claims.
+   reward units (balances include each holder's funded slice), prior partial
+   payments, settled claims, Main debt and source claims.
 2. Per-holder protected principal, eligible yield and recovery allocation,
    reconciled across vaults and independently reviewed.
 3. Explicit governance funding and, if approved, the contribution of compounded

@@ -14,6 +14,15 @@ oracle inputs and timely synthetic-collateral maintenance.
 Start with the [team documentation index](docs/README.md) and
 [RC scope, evidence and activation gates](docs/release-candidate.md).
 
+This README describes the next version on `juicer-next`
+([plan](docs/next-version-plan.md)): the keepers check underfunding off-chain
+and stop deposits themselves, yield is allocated at events instead of on every
+transfer, and funded earnings are part of each holder's vault balance, so
+nothing is claimed. ICE intents are replacing the router for entries, harvest
+swaps and normal exits, which become asynchronous; the synchronous router stays
+for the safety de-lever. That work (track B) is still being integrated, and
+these documents describe the router flow until it lands.
+
 ## Architecture
 
 ```text
@@ -41,7 +50,7 @@ CollateralVault -> Aave Main position
 | [SyntheticToken](src/SyntheticToken.sol)                 | Non-cash collateral used to maintain the Main health-factor floor. It cannot fund repayments.             |
 | [SubLoop](src/SubLoop.sol)                               | Shared PRIME exposure, HOLLAR borrowing, incremental deployment/unwinding and retained execution yield.   |
 | [Harvester](src/Harvester.sol)                           | Splits harvestable PRIME among participating vaults; each vault compounds its allocation.                 |
-| [PropellerYieldAccounting](src/PropellerYieldAccounting.sol) | Separate pre-entry yield ownership, funded reward shares and realization accounting. |
+| [PropellerYieldAccounting](src/PropellerYieldAccounting.sol) | Reward units allocated at equity events, each holder's funded slice of the reward fund, and realization accounting. |
 | [PropellerMainDebt](src/PropellerMainDebt.sol)           | Per-vault ledger separating active-holder and started-exit debt, cash, source claims and late recoveries. |
 | [PropellerFeeController](src/PropellerFeeController.sol) | Per-vault harvest fees held in underlying collateral for the configured recipient.                        |
 | [PropellerDiscount](src/PropellerDiscount.sol)           | Main-only HOLLAR interest discount for governance-enrolled vaults.                                        |
@@ -59,7 +68,9 @@ but does not replace missing HOLLAR.
    collateral in quoted slices, borrowing only the immediately executable amount
    within the live reserve LTV and supplying synthetic backing atomically.
    Governance funds the locked bootstrap shares and rounding reserve first.
-   Deposits reject insufficient backing. Waiting collateral creates no new debt;
+   Deposits revert while governance's `depositsPaused` or the keepers'
+   `deficitStop` is set, or while a Main resize or source allocation is
+   pending; backing itself is checked off-chain by the keepers. Waiting collateral creates no new debt;
    production trade sizes, pacing and price bounds remain activation settings.
 2. **Earn.** Source surplus first retains an earned PRIME allowance for execution
    costs. A harvest swaps the remaining allocation into each vault's collateral,
@@ -67,8 +78,11 @@ but does not replace missing HOLLAR.
    No minimum yield or fixed APY is promised.
    Anyone can trigger the Harvester; only that contract can pull source yield,
    so the pull and distribution are atomic. [Separate yield ownership](docs/yield-ownership.md)
-   keeps prior earnings with their owners. Funded rewards compound while unclaimed;
-   `claimYield` adds their backed vault shares to the owner's wallet.
+   keeps prior earnings with their owners. Yield is allocated at deposits,
+   redemption requests, unwind starts, rebalances and the permissionless
+   `sync()`, which keepers call after price updates; transfers only settle their
+   two holders. Funded rewards are part of each holder's vault balance and keep
+   compounding; nobody claims.
 3. **Rebalance.** Pending deposits and newly earned collateral permit Main borrowing
    without waiting for the price-movement band. Collateral appreciation can
    also permit more borrowing.
@@ -78,10 +92,11 @@ but does not replace missing HOLLAR.
    delay, initially 12 hours. Those shares remain invested during the wait.
    Governance can set `setWithdrawalDelay(uint32)` to zero for future requests;
    queued requests keep their original eligibility time.
-   `requestRedeem(type(uint256).max, owner)` is a full exit: earned reward
-   shares are claimed into the same request.
+   A request beyond the wallet commits reward units to it;
+   `requestRedeem(type(uint256).max, owner)` is a full exit.
 5. **Unwind and settle.** After eligibility, permissionless `startUnwinds`
-   processes strict FIFO and stops at the first ineligible request. It snapshots the
+   processes strict FIFO and stops at the first ineligible request. It folds the
+   exit's funded earnings into the escrow, then snapshots the
    collateral entitlement and debt allocation. `pokeRepay` frees source HOLLAR;
    `pokeSettle` services debt and releases collateral. Exits bear their own
    post-start interest. A shortfall preserves the unpaid claim.
@@ -105,15 +120,21 @@ compounded user yield are not implemented. See [principal and emergency policy](
 | Treasury recipient     | Owner-configurable; all unclaimed fees follow the new recipient. Anyone may trigger payment to that recipient.                                        |
 | Withdrawal delay       | Governance-configurable per vault, initially 12 hours before unwinding; existing requests retain their eligibility time.                              |
 | Emergency freeze       | Guardian can freeze; governance reopens. Local vault freeze and source-wide emergency freeze are distinct from the source route kill switch.          |
+| Share transfers        | Stopped only by a vault's own pause, not by a source-wide freeze. A vault's `pause()` reverts while that freeze is set, so pause vaults first.        |
+| Deposit stops          | Guardian `pauseDeposits`, and the keepers' `deficitStop` (`DEPOSIT_GUARDIAN_ROLE`): set above a 50 bps off-chain deficit, cleared below 25 bps.       |
+| Protocol reserve       | Governance funds HOLLAR per Main ledger (`fundReserve`); drawn only for realized exit shortfalls, never counted as backing. Admin can withdraw.       |
 | Swap limits            | Oracle-relative floors are enforced on-chain; no automatic widening. Production floors, tranches and TVL/ramp budgets still require approval.         |
 
-The earned execution allowance, donated collateral rounding reserve and treasury
-fees are different balances. There is **no mandatory sponsored HOLLAR operating
-buffer**. [Main servicing](docs/main-debt-servicing.md) explains their funding
-and the fee/interest/compounding order.
+The earned execution allowance, donated collateral rounding reserve, protocol
+reserve and treasury fees are different balances. There is **no mandatory
+sponsored HOLLAR operating buffer**. [Main servicing](docs/main-debt-servicing.md)
+explains their funding and the fee/interest/compounding order.
 
 ## Verification and Limits
 
+- The next version's changes carry per-change Forge and keeper tests (see the
+  [plan](docs/next-version-plan.md)); its verification record (plan step 7) is
+  not written yet. The counts below are for earlier revisions.
 - The [4 October deferred-deployment report](docs/deferred-deployment-validation-2026-10-04.md)
   records 367 passing contract tests, 48 keeper tests, current artifact sizes,
   native deposit/withdrawal receipts and the remaining execution/activation gates.
@@ -134,6 +155,8 @@ and the fee/interest/compounding order.
   needed. They are not a $100m native-liquidity demonstration.
 - Existing [formal work](formal/README.md) has bounded scope and assumptions;
   it does not prove the revised Main debt ledger or execution-cost accounting.
+  Its next-version models (balances, event allocation, exit fold, ICE in
+  flight) follow the plan; bridge parity with the Solidity is still to run.
 
 The current release gates are maintained in one place:
 [RC1 activation gates](docs/release-candidate.md#activation-gates).
@@ -164,8 +187,9 @@ not native route coverage. See [verification commands](docs/main-debt-verificati
 
 Use the [deployment runbook](DEPLOYMENT.md) for fresh deployments only. No
 production migration from funded older accounting is supplied. The ownership
-revision is reviewed in `prop_carry`, stacked on #60/#61/#63. The older
-`feat/propeller-interest-buffer` branch name is historical.
+revision is reviewed in `prop_carry`, stacked on #60/#61/#63; the next version
+is on `juicer-next`, stacked on `prop_carry`, and is a fresh deployment too. The
+older `feat/propeller-interest-buffer` branch name is historical.
 
 Future source rotation should preserve the source proxy, storage and claim
 ownership. Compatibility tests and a [deferred rotation plan](docs/source-upgrades.md)

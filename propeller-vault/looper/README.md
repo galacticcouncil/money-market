@@ -94,10 +94,13 @@ Waiting shares remain invested and earn their share of yield; collateral and
 debt are snapshotted by `startUnwinds`, not `requestRedeem`.
 
 `SubLoop.pauseEmergency()` is the guardian's source-wide incident freeze. It
-blocks exits, share transfers, and new risk across all attached vaults while
-retaining safety deleveraging and Main peg maintenance. Only governance's
+blocks deposits, exits, harvests and new risk across all attached vaults while
+retaining safety deleveraging and Main peg maintenance. Plain share transfers
+continue: they check only the vault's own pause. Only governance's
 `ADMIN_ROLE` can call `unpauseEmergency()`. A vault's local `pause()` blocks its
-own user flows; local `unpause()` also requires `ADMIN_ROLE`.
+own user flows, transfers included, and reverts while the source emergency is
+set, so pause vaults first when balances must stop moving; local `unpause()`
+also requires `ADMIN_ROLE`.
 
 `SubLoop.pause()` is a separate swap-route kill switch: it stops `pokeRepay`
 as well as new borrowing. Use it when route execution itself is unsafe, not as

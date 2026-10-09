@@ -6,8 +6,9 @@ Fresh deployments only. The old buffer evidence is historical, not verification
 of these revised contracts. No production slippage setting is approved here.
 
 The #62 [ownership ledger](yield-ownership.md) separates earlier earnings from
-new collateral deposits. Entry backing must cover Main interest after the known
-protocol fee. Active resize receivables remain Main backing while in flight;
+new collateral deposits. In the next version no contract checks entry backing;
+the keepers check it off-chain and stop deposits (`deficitStop`, below).
+Active resize receivables remain Main backing while in flight;
 transfers cannot reassign previously earned rewards during a resize. Fees on
 source unwinds remain reserved until the corresponding claim closes, so late
 execution costs can reduce them. The resize target decreases by actual fees as
@@ -26,8 +27,12 @@ well as execution costs and debt repaid. User collateral promises remain fixed.
   require funding it. Governance's locked initial vault shares and collateral
   rounding reserve are distinct and still required.
 - Unpaid interest remains debt. Earned source equity can back it between
-  harvests; new deposits are blocked when backing is insufficient. Synthetic
-  maintenance remains necessary independently of repayment liquidity.
+  harvests. The keepers stop new deposits and the source ramp when the source's
+  negative carry, or the share of active Main debt not covered by
+  `equityOf − sourceValue + activeFunds`, exceeds 50 bps, and resume below
+  25 bps ([keeper runbook](../looper/README.md#deficit-stop)). Smaller deficits
+  do not block entry. Synthetic maintenance remains necessary independently of
+  repayment liquidity.
 - Entry costs arise before income. Early exits, negative carry, delayed fills
   and losses can require waiting or explicit governance recovery. Future yield
   is not counted as cash already available. No principal or source claim is
@@ -106,12 +111,12 @@ legacy FIFO recovery behavior, so governance must use explicit cohort allocation
 when funding affected holders fairly.
 
 `fundReserve(amount)` adds protocol-owned HOLLAR that belongs to no cohort. It
-counts as source backing in the deposit and borrow guards, since a source
-shortfall only ever costs protocol HOLLAR, never collateral principal. It is
-drawn only when an exit's source claim is fully credited and its debt is still
-short, which would otherwise hold the FIFO head; unused draws return to the
-reserve, so it never becomes exit surplus or active-holder yield. Only the vault
-admin can `withdrawReserve`.
+is drawn only when an exit's source claim is fully credited and its debt is
+still short, which would otherwise hold the FIFO head; unused draws return to the
+reserve, so it never becomes exit surplus or active-holder yield. It is not
+backing: no contract guard reads it any more, and the keepers' deficit check
+leaves it out. Only the vault admin can `withdrawReserve`. The next-version plan
+funds 1,000 HOLLAR per vault.
 
 ## Manual Incentives
 
