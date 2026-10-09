@@ -1,22 +1,24 @@
 # New Lark bring-up for the next version
 
-The next version deploys to a different Lark chain, not chosen yet; it needs a
-runtime with ICE (447 or later). [Lark 4](lark-deployment-2026-10-07.md) keeps
-running from the same scripts. Every Lark script and bot takes its chain from a
-profile in `scripts/propeller/lark-pins.mjs`. **This is a testnet procedure: no
-step targets mainnet, and nothing here has been run with `--live` yet.**
+The next version deploys to Lark 0 (decided 9 October): after the implementation
+and the rename land, Lark 0 is reforked from mainnet and updated to the latest
+runtime, which must have ICE (447 or later). Its pins stay open until the refork
+exists. [Lark 4](lark-deployment-2026-10-07.md) keeps running from the same
+scripts. Every Lark script and bot takes its chain from a profile in
+`scripts/propeller/lark-pins.mjs`. **This is a testnet procedure: no step
+targets mainnet, and nothing here has been run with `--live` yet.**
 
 ## Profiles
 
 | Profile | Chain | Files (`LARK_STATE_DIR`, default `/tmp`) |
 | --- | --- | --- |
 | `lark4` (default) | Lark 4, pinned genesis, scripts on `node4.lark`; the `4.lark` gateway stays the journal's identity, the keepers' fallback and the readiness WS, as before | `propeller-lark-20261007.json`, `propeller-lark-stack.json` |
-| `next` | open until chosen: `LARK_CHAIN_NAME`, `LARK_GENESIS`, `LARK_RPC` (`LARK_WS`), `LARK_COMMIT` | `propeller-lark-next.json`, `propeller-lark-stack-next.json` |
+| `next` | Lark 0, open until reforked: `LARK_CHAIN_NAME`, `LARK_GENESIS`, `LARK_RPC` (`LARK_WS`), `LARK_COMMIT` | `propeller-lark-next.json`, `propeller-lark-stack-next.json` |
 
 - Select with `--profile=next` or `LARK_PROFILE=next`. The environment only fills
   a profile's open pins; it never overrides a pinned one, and a chain whose name
   is not a Lark is refused.
-- Once the chain is chosen, pin its name, genesis, RPC and commit in the `next`
+- Once Lark 0 is reforked, pin its name, genesis, RPC and commit in the `next`
   profile, and rename the deployment id there if wanted, before the first
   `--live` run: the journal, manifest, stack and bring-up log are named after it.
 - `PROPELLER_ARTIFACT_DIR` must point at the London build of the merged next
@@ -58,7 +60,7 @@ node scripts/propeller/lark-bringup.mjs --live    # runs pending steps in order
 | `sync` … `release` | `lark-mainnet-sync-*.mjs`, `lark-wrap-inventory.mjs`, `lark-stable-inventory.mjs`, `lark-release-deposits.mjs` | feeds, pools and replay inventory |
 | `seed` | `lark-seed-bots.mjs --round=baseline` | everything the Lark 4 bots reported missing (rounds 463 and 464) |
 | `params` | `lark-next-params.mjs` (new) | `harvestThreshold` 2e14, `fundReserve` 1,000 HOLLAR per vault from governance |
-| `guardian` | `lark-deposit-guardian.mjs` | placeholder, track A |
+| `guardian` | `lark-deposit-guardian.mjs` | `DEPOSIT_GUARDIAN_ROLE` on both vaults for both keepers; still flagged as a placeholder (below) |
 | `ice` | `lark-ice-wiring.mjs` | placeholder, track B |
 | `manifest`, `stack` | `lark-manifest.mjs`, `lark-stack.mjs --keepers` | rerun on every live pass; the stack needs `KEEPER_IMAGE` and `BOT_IMAGE` by digest |
 
@@ -72,14 +74,18 @@ any profile but Lark 4.
 
 ## Still placeholders
 
-- **Track A:** `lark-deposit-guardian.mjs` grants `DEPOSIT_GUARDIAN_ROLE` on both
-  vaults to both keepers and nothing else. The role gates only `setDeficitStop`;
-  `pauseDeposits` stays with governance. It matches A's surface (juicer-core
-  `885f3d3`) and refuses to run until the artifacts come from the merged build.
+- **Track A** has merged into `juicer-next`. `lark-deposit-guardian.mjs` grants
+  `DEPOSIT_GUARDIAN_ROLE` on both vaults to both keepers and nothing else. The
+  role gates only `setDeficitStop`; `pauseDeposits` stays with governance. The
+  script runs against a `juicer-next` build (it refuses artifacts without the
+  role), but `lark-bringup-steps.mjs` still flags the step as a placeholder, so a
+  `--live` pass stops there: run it once with `--only=guardian --live`, after
+  which the journal shows it done.
 - **Track B:** `lark-ice-wiring.mjs` is a stub for the controller's ICE actions
   and async lanes. Write it once B's interfaces settle.
-- After A and B merge, recheck `lark-deploy.mjs` constructor and initializer
-  arguments and `lark-wire.mjs` controller calls.
+- Track A changed no constructor or initializer. After B merges, recheck
+  `lark-deploy.mjs` constructor and initializer arguments and `lark-wire.mjs`
+  controller calls.
 - The read-only checks and the depositor work on both contract versions: they
   probe the vault's `deficitStop()` and fall back to Lark 4's `ready()`,
   `isUnderfunded()` and `prepareHarvest()`. On the new chain readiness checks

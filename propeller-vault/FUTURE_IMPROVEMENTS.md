@@ -19,6 +19,14 @@ not implemented. Build and independently review the rotation when a replacement
 venue is selected, before relying on it for an emergency. This applies to a
 future production deployment from the current code, not the old lark-2 proxies.
 
+## Parked from the next version (2026-10-09)
+
+The [next-version plan](docs/next-version-plan.md) leaves these out:
+
+- **Rates topic:** fee/discount mix, loop discount, entry cost from yield, band
+  width, share-price jETH.
+- **Dropped:** earn-after-deploy, worth about $1 per $100k deposit.
+
 ## Implemented (this branch, suite green)
 
 - **A [CRITICAL] harvest skimmed in-flight unwind equity** — `surplus18` now
