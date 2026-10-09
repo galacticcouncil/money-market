@@ -11,6 +11,8 @@ The [#62 ownership implementation](docs/pr62-completion-2026-10-02.md) requires
 a fresh, matching vault/source/Main/ownership/fee/Harvester stack. Its new source
 cost bases and reward ownership cannot be initialized by preserving old storage
 slots alone. Do not apply this runbook as an upgrade of funded older vaults.
+The next version (`juicer-next`) is fresh-deploy only as well: its yield
+accounting drops claims and changes storage.
 
 **Check individual EVM outcomes.** `dispatcher.dispatchAsAaveManager` can report
 reverts as `ExecutedFailed` events while the enclosing extrinsic succeeds.
@@ -108,6 +110,21 @@ verified; do not assume these four groups include every external prerequisite.
 Splitting the batches avoids the historically observed scheduler weight limit,
 but each final batch still needs current weight and execution checks.
 
+The next version needs three more governance calls outside those groups
+([plan §6](docs/next-version-plan.md#6-deployment-and-parameters)):
+
+- grant `DEPOSIT_GUARDIAN_ROLE` on every vault to each keeper signer, and
+  nothing else; the role only sets `deficitStop`;
+- fund each Main ledger's protocol reserve with `fundReserve` (1,000 HOLLAR per
+  vault in the plan); it covers realized exit shortfalls only;
+- set the source's `harvestThreshold` through `setParams` (2e14, about 0.02%, in
+  the plan; `initialize` leaves 1e15). `setParams` rewrites all four
+  parameters, so pass the other three at their live values.
+
+Neither the proposal task nor the readiness checker covers them yet; verify them
+by reading state. The plan also sizes the mainnet PRIME lanes from pool 143's
+depth at deploy.
+
 Provide `PROPELLER_SYNTH`, `PROPELLER_SUBLOOP`, `PROPELLER_HARVESTER`,
 `PROPELLER_VAULTS`, `PROPELLER_SWAPPER`, `PROPELLER_GUARDIAN`,
 `PROPELLER_FEE_CONTROLLER`, explicitly approved `PROPELLER_SLIPPAGE_PPM`,
@@ -163,7 +180,11 @@ Use the exact adapter, registry, policy and artifacts intended for deployment.
 - Incident: freeze eligible and already-settled claims, retain Main maintenance,
   fund recovery explicitly, reconcile every affected holder and only then reopen.
   Vault or source-wide emergency freezes stop `claim` and `startUnwinds`;
-  `pokeSettle` remains available to advance settlement.
+  `pokeSettle` remains available to advance settlement. Only a vault's own pause
+  stops share transfers, and it cannot be added once the source emergency is set.
+- Deficit stop: a simulated deficit makes a keeper set `deficitStop` and stop
+  the ramp; recovery below the resume level clears it. Governance's
+  `pauseDeposits` stays untouched throughout.
 - Rounding: exhaust/refill a controlled reserve and verify exact retry without
   reducing principal or charging other holders.
 - Execution: no unapproved price override, floor widening, gas-limit relaxation
@@ -175,7 +196,9 @@ funding. A fresh unchanged-market acceptance run remains an activation gate.
 Start the keeper using the [operations runbook](looper/README.md), with
 `VAULT_ADDRESSES` covering every configured vault. Use one active sender per
 signing key to avoid nonce collisions. Arrange independent monitoring, a funded
-failover process and committee incident coverage; the keeper has no special role.
+failover process and committee incident coverage. The keeper's only role is
+`DEPOSIT_GUARDIAN_ROLE`; without it a keeper still holds its ramp on a deficit
+and alerts, but cannot stop deposits.
 
 ## Incident and Abort Checks
 
@@ -185,7 +208,8 @@ failover process and committee incident coverage; the keeper has no special role
 | Entry or unwind swap fails            | Check routes, reference price, inventory and executable size. Do not widen loss limits to force success.                                            |
 | Harvest fails                         | Check complete harvester registry, both conversion routes, adapter balances/approvals and the fee/Main-ledger bindings.                             |
 | Wrong source bound                    | Treat `setYieldSource` as deployment wiring, not live migration. Follow the [upgrade boundary](docs/source-upgrades.md); preserve all claims.       |
-| User flows must stop                  | Use affected-vault pauses or the source-wide emergency freeze. Stopping the keeper or source route alone does not block existing claims.            |
+| User flows must stop                  | Pause affected vaults, then the source-wide freeze if needed; only vault pauses stop transfers. Stopping the keeper or route blocks no claims.      |
+| Deposits stopped unexpectedly         | Check `depositsPaused` (guardian) and `deficitStop` (keepers) apart. A keeper clears only its own stop, below `DEFICIT_RESUME_BPS`.                 |
 | Route execution is unsafe             | Source `pause()` also stops safety swaps. Account for that loss of debt-reduction capability in the incident plan.                                  |
 | Recovery is only partially funded     | Keep ordinary FIFO frozen; do not advantage early claimants. Follow [all-holder recovery policy](docs/principal-safety.md#fair-emergency-recovery). |
 

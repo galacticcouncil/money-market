@@ -1,6 +1,6 @@
 # Propeller Team Documentation
 
-**7 October 2026 | PR #62 on Lark | Production activation blocked**
+**9 October 2026 | Next version on `juicer-next`, PR #62 on Lark 4 | Production activation blocked**
 
 Propeller's current design uses harvest-time Main interest servicing,
 source-funded resizing and an earned PRIME execution allowance. It does not
@@ -10,8 +10,17 @@ covers deferred deposits, shared swap controls, oracle price bounds and keeper
 size selection. The [Lark deployment record](lark-deployment-2026-10-07.md)
 covers the fresh-fork contracts, UI, hosted keepers, a mined and claimed
 harvest, and the bots that keep Lark's oracles, pool prices and trade flow in
-step with mainnet. The [new-Lark runbook](lark-next-runbook.md) brings the next
-version up on another chain. Earlier reports retain their original artifact scope.
+step with mainnet. Earlier reports retain their original artifact scope.
+
+The next version on `juicer-next` ([plan](next-version-plan.md)) moves the
+underfunding check to the keepers (they stop deposits through a `deficitStop`
+flag), allocates yield at events instead of on every transfer, and puts funded
+earnings in each holder's vault balance, so nothing is claimed. The
+specifications below describe it. ICE intents are replacing the router for
+entries, harvest swaps and normal exits, which become asynchronous, with the
+router kept for the safety de-lever; that work (track B) is still being
+integrated and not yet documented. The [new-Lark runbook](lark-next-runbook.md)
+brings the next version up on Lark 0.
 
 ## Start Here
 
@@ -27,7 +36,8 @@ version up on another chain. Earlier reports retain their original artifact scop
 ## Agreed Design
 
 - Protect original principal in the deposited token, not its dollar value.
-  Preserve unpaid claims and block deposits while underfunded. Governance funds
+  Preserve unpaid claims and stop deposits while underfunded: the keepers check
+  the deficit off-chain and stop deposits above 50 bps. Governance funds
   residual recovery; recording a claim does not make repayment liquid.
 - Yield, including previously compounded yield, may contribute to an emergency
   recovery. That requires explicit per-holder reconciliation and a reviewed
@@ -54,7 +64,7 @@ launch decisions. Defaults and experimental limits are not deployment approvals.
 | Main interest, execution allowance and incentives | [Yield-funded Main servicing](main-debt-servicing.md)              |
 | Discount authority, eligibility and cache refresh | [Main borrowing discount](main-borrow-discount.md)                 |
 | Fee basis, recipient and claims                   | [Per-vault protocol fees](protocol-fees.md)                        |
-| Unharvested yield ownership          | [Separate ownership with preserved collateral claims](yield-ownership.md) |
+| Yield ownership, allocation and balances | [Separate ownership, event allocation, balances without claims](yield-ownership.md) |
 | Principal, delay, pauses, rounding and recovery   | [Principal preservation](principal-safety.md)                      |
 | Future source rotation                            | [Upgrade boundary and deferred implementation](source-upgrades.md) |
 
@@ -92,7 +102,8 @@ proof of self-financing.
 
 ## Integration References
 
-- Integration branch: `propeller`; current RC work: `feat/propeller-interest-buffer`.
+- Integration branch: `propeller`; current RC work: `feat/propeller-interest-buffer`;
+  next version: `juicer-next`, stacked on `prop_carry`.
 - [PR #46](https://github.com/galacticcouncil/money-market/pull/46): umbrella integration; the agreed target is `hydration`.
 - [PR #60](https://github.com/galacticcouncil/money-market/pull/60): Main-servicing work; earlier buffer terminology is superseded by the current specification.
 - [PR #57](https://github.com/galacticcouncil/money-market/pull/57) and [PR #53](https://github.com/galacticcouncil/money-market/pull/53): discount/fee and accounting/yield-source review history.

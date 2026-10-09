@@ -22,7 +22,7 @@ The fee is a fraction of harvested collateral yield, not of principal or TVL.
   is based on actual collateral received after the harvest swap, before Main
   borrowing interest. SubLoop's own borrowing costs are already reflected in
   harvestable equity. This is not a net-profit fee or loss-carryforward system.
-- At 100%, newly checkpointed yield belongs to the protocol. Previously vested
+- At 100%, newly checkpointed yield belongs to the protocol. Previously allocated
   user earnings keep their ownership. Main borrowing interest still applies,
   so net user yield can be negative and servicing can be delayed.
 - Deposits, principal, collateral price gains, Main aToken interest and
@@ -128,9 +128,11 @@ The authenticated Harvester-funded compound path pays collateral fees; the
 bound Main ledger collects fees on active servicing yield realized through an exit. Unregistered
 or mismatched fee wiring cannot silently exempt a source-yield distribution.
 
-The [yield-ownership ledger](yield-ownership.md) checkpoints earnings before
-holder changes and burns only the owning source units on realization. It keeps
-funded collateral claims separate from estimated unconverted yield.
+The [yield-ownership ledger](yield-ownership.md) allocates earnings at deposits,
+redemption requests, unwind starts, rebalances and `sync()`, while transfers
+settle at the stored index, and burns only the owning source units on
+realization. Funded reward shares show in holders' balances; estimated
+unconverted yield stays separate.
 
 ## Fresh deployment
 

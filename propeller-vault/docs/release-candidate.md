@@ -18,6 +18,12 @@ a fresh mainnet fork with mainnet-synced markets and records a mined and claimed
 harvest, under test-only policies. Production policy, quote-aware UI integration
 and deployment activation remain open.
 
+**Next version:** `juicer-next` ([plan](next-version-plan.md)) changes some RC1
+items below. Deposits are stopped by the keepers' off-chain deficit check
+(`deficitStop`) instead of on-chain backing checks, yield is allocated at events
+rather than on every transfer, and funded earnings sit in holders' balances with
+no claims. The lists below describe RC1; the activation gates still apply.
+
 The candidate is on `feat/propeller-interest-buffer`; the name is historical.
 Sponsored operating buffers have been replaced. The commit containing this
 document identifies the candidate; [runtime hashes](evidence/route-execution-2026-09-23/summary.json)
