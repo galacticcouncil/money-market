@@ -107,9 +107,10 @@ token implementation. Outside repayments, reserve deposits and Main funding are 
 funded environment actions, not trading profit. Market changes, time advances and liquidity
 controls are also recorded actions.
 
-the corpus stays below rescale thresholds and checks `unitScale == 0`. a separate public-call
-fixture reaches `unitScale == 64` through positive-residual loss/refill cycles and keeps three
-ordinary holders within `totalUnits`; it does not reproduce the seeded excess-unit witness.
+the corpus stays below rescale thresholds and checks `unitScale == 0`. separate controlled
+public-call fixtures reach `unitScale == 64` with ordinary holders and a waiting request, and
+cumulative `unitScale == 256` with a stale account. ceil-shifted indices keep aggregate claims
+within `totalUnits` and remain defined at the four-shift boundary.
 
 separate integration checks cover three other fixture boundaries. `LeanScaledDebt.t.sol` runs 516
 mint, burn and index steps against Aave core v3's actual `VariableDebtToken` 1.19.3, with a mock

@@ -14,6 +14,60 @@ theorem ceilDiv_bounds (a d : ℕ) (hd : 0 < d) :
     simp only [ceilDiv, Nat.ceilDiv_eq_add_pred_div]
     omega
 
+@[simp] theorem ceilShift_zero (a : ℕ) : ceilShift a 0 = a := by
+  simp [ceilShift, ceilDiv]
+
+@[simp] theorem ceilShift_zero_value (k : ℕ) : ceilShift 0 k = 0 := by
+  simp [ceilShift, ceilDiv]
+
+theorem ceilShift_eq_safe (a k : ℕ) :
+    ceilShift a k = if a = 0 then 0 else ((a - 1) >>> k) + 1 := by
+  by_cases ha : a = 0
+  · simp [ha]
+  · simp only [ha, if_false, ceilShift, ceilDiv, Nat.ceilDiv_eq_add_pred_div,
+      Nat.shiftRight_eq_div_pow]
+    have hd : 0 < 2 ^ k := by positivity
+    have he : a + 2 ^ k - 1 = (a - 1) + 2 ^ k := by omega
+    rw [he, Nat.add_div_right _ hd]
+
+theorem ceilShift_add (a s k : ℕ) :
+    ceilShift (ceilShift a s) k = ceilShift a (s + k) := by
+  unfold ceilShift ceilDiv
+  rw [Nat.pow_add]
+  apply le_antisymm
+  · apply (ceilDiv_le_iff_le_mul (by positivity : 0 < 2 ^ k)).2
+    apply (ceilDiv_le_iff_le_mul (by positivity : 0 < 2 ^ s)).2
+    have h := le_smul_ceilDiv (b := a) (by positivity : 0 < 2 ^ s * 2 ^ k)
+    simpa [Nat.mul_assoc] using h
+  · apply (ceilDiv_le_iff_le_mul (by positivity : 0 < 2 ^ s * 2 ^ k)).2
+    have hs := le_smul_ceilDiv (b := a) (by positivity : 0 < 2 ^ s)
+    have hk := le_smul_ceilDiv (b := a ⌈/⌉ 2 ^ s) (by positivity : 0 < 2 ^ k)
+    calc
+      a ≤ 2 ^ s * (a ⌈/⌉ 2 ^ s) := hs
+      _ ≤ 2 ^ s * (2 ^ k * ((a ⌈/⌉ 2 ^ s) ⌈/⌉ 2 ^ k)) :=
+        Nat.mul_le_mul_left _ hk
+      _ = (2 ^ s * 2 ^ k) * ((a ⌈/⌉ 2 ^ s) ⌈/⌉ 2 ^ k) := by
+        simp [Nat.mul_assoc]
+
+theorem min_floor_ceil_min (i p k : ℕ) :
+    min (i >>> k) (ceilShift (min i p) k) =
+      min (i >>> k) (ceilShift p k) := by
+  simp only [Nat.shiftRight_eq_div_pow]
+  by_cases hpi : p ≤ i
+  · simp [min_eq_right hpi]
+  · have hip : i ≤ p := by omega
+    rw [min_eq_left hip]
+    have hdiv : i / 2 ^ k ≤ p / 2 ^ k := Nat.div_le_div_right hip
+    have hfloor : p / 2 ^ k ≤ ceilShift p k := by
+      apply Nat.div_le_of_le_mul
+      simpa [ceilShift, ceilDiv] using
+        (le_smul_ceilDiv (b := p) (by positivity : 0 < 2 ^ k))
+    have hceil : i / 2 ^ k ≤ ceilShift i k := by
+      apply Nat.div_le_of_le_mul
+      simpa [ceilShift, ceilDiv] using
+        (le_smul_ceilDiv (b := i) (by positivity : 0 < 2 ^ k))
+    rw [min_eq_left hceil, min_eq_left (hdiv.trans hfloor)]
+
 theorem take_displayed_exact (f t u s x left : ℕ)
     (h : take f t u s = some (x, left)) :
     fundedOf f t u - fundedOf f t left = s := by

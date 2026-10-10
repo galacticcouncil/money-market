@@ -19,8 +19,8 @@ def LazyAccount.claim (total current : ℕ) (a : LazyAccount precision) : ℕ :=
 def LazyAccount.settled (total current : ℕ) (a : LazyAccount precision) : LazyAccount precision :=
   ⟨a.claim total current, current, a.weight⟩
 
-def LazyAccount.shift (k : ℕ) (a : LazyAccount precision) : LazyAccount precision :=
-  ⟨a.units >>> k, a.index >>> k, a.weight⟩
+def LazyAccount.shift (current k : ℕ) (a : LazyAccount precision) : LazyAccount precision :=
+  ⟨a.units >>> k, min (current >>> k) (ceilShift a.index k), a.weight⟩
 
 def lazyLiability (current : ℕ) (accounts : List (LazyAccount precision)) : ℕ :=
   (accounts.map (LazyAccount.numerator current)).sum
@@ -58,20 +58,31 @@ theorem lazy_allocation_liability (i delta : ℕ) (accounts : List (LazyAccount 
     nlinarith
 
 theorem lazy_rescale_numerator (i k : ℕ) (a : LazyAccount precision) (h : a.index ≤ i) :
-    (a.shift k).numerator (i >>> k) * 2 ^ k ≤
-      a.numerator i + a.weight * (2 ^ k - 1) := by
+    (a.shift i k).numerator (i >>> k) * 2 ^ k ≤ a.numerator i := by
   have hd : 0 < 2 ^ k := by positivity
   have hu := Nat.div_mul_le_self a.units (2 ^ k)
   have hi := Nat.div_mul_le_self i (2 ^ k)
-  have hp := Nat.mod_lt a.index hd
-  have hp' := Nat.div_add_mod a.index (2 ^ k)
-  have ho := Nat.div_le_div_right (c := 2 ^ k) h
-  have hs := Nat.sub_add_cancel ho
-  have hdelta : (i / 2 ^ k - a.index / 2 ^ k) * 2 ^ k ≤ i - a.index + (2 ^ k - 1) := by
-    have hsub := Nat.sub_add_cancel h
-    have hsd := congrArg (fun n => n * 2 ^ k) hs
-    have hd' : 2 ^ k - 1 + 1 = 2 ^ k := by omega
-    nlinarith
+  have hp := (ceilDiv_bounds a.index (2 ^ k) hd).1
+  have hdelta :
+      (i / 2 ^ k - min (i / 2 ^ k) (ceilShift a.index k)) * 2 ^ k ≤ i - a.index := by
+    by_cases hc : i / 2 ^ k ≤ ceilShift a.index k
+    · simp [min_eq_left hc]
+    · have hc' : ceilShift a.index k ≤ i / 2 ^ k := by omega
+      rw [min_eq_right hc']
+      have hq := Nat.sub_add_cancel hc'
+      have hmul := congrArg (fun n => n * 2 ^ k) hq
+      simp only [Nat.add_mul] at hmul
+      have hadd : (i / 2 ^ k - ceilShift a.index k) * 2 ^ k + a.index ≤ i := by
+        calc
+          _ ≤ (i / 2 ^ k - ceilShift a.index k) * 2 ^ k
+              + ceilDiv a.index (2 ^ k) * 2 ^ k := by
+                dsimp [ceilShift]
+                exact Nat.add_le_add_left hp _
+          _ = i / 2 ^ k * 2 ^ k := by
+                dsimp [ceilShift] at hmul
+                exact hmul
+          _ ≤ i := hi
+      omega
   have h1 := Nat.mul_le_mul_right precision hu
   have h2 := Nat.mul_le_mul_left a.weight hdelta
   dsimp [LazyAccount.shift, LazyAccount.numerator]
@@ -80,14 +91,14 @@ theorem lazy_rescale_numerator (i k : ℕ) (a : LazyAccount precision) (h : a.in
 
 theorem lazy_rescale_liability (i k : ℕ) (accounts : List (LazyAccount precision))
     (h : ∀ a ∈ accounts, a.index ≤ i) :
-    lazyLiability (i >>> k) (accounts.map (LazyAccount.shift k)) * 2 ^ k ≤
-      lazyLiability i accounts + lazyWeight accounts * (2 ^ k - 1) := by
+    lazyLiability (i >>> k) (accounts.map (LazyAccount.shift i k)) * 2 ^ k ≤
+      lazyLiability i accounts := by
   induction accounts with
-  | nil => simp [lazyLiability, lazyWeight]
+  | nil => simp [lazyLiability]
   | cons a rest ih =>
     have ha := lazy_rescale_numerator i k a (h a (by simp))
     have ht := ih (by intro a ha; exact h a (by simp [ha]))
-    simp only [lazyLiability, lazyWeight, List.map_cons, List.sum_cons] at *
+    simp only [lazyLiability, List.map_cons, List.sum_cons] at *
     nlinarith
 
 structure LazyLedger (precision : ℕ) where
@@ -108,8 +119,8 @@ def LazyLedger.rescale (l : LazyLedger precision) (k : ℕ) : LazyLedger precisi
   let divisor := 2 ^ k
   { total := l.total >>> k
     index := l.index >>> k
-    slack := (l.total % divisor * precision + l.slack + lazyWeight l.accounts * (divisor - 1)) / divisor
-    accounts := l.accounts.map (LazyAccount.shift k) }
+    slack := (l.total % divisor * precision + l.slack) / divisor
+    accounts := l.accounts.map (LazyAccount.shift l.index k) }
 
 theorem lazy_allocation_preserves (l : LazyLedger precision) (m s : ℕ) (h : l.valid)
     (hw : lazyWeight l.accounts ≤ s) : (l.allocate m s).valid := by
@@ -129,16 +140,15 @@ theorem lazy_rescale_preserves (l : LazyLedger precision) (k : ℕ) (h : l.valid
   constructor
   · intro a ha
     obtain ⟨old, ho, rfl⟩ := List.mem_map.mp ha
-    simpa [LazyAccount.shift, LazyLedger.rescale, Nat.shiftRight_eq_div_pow] using
-      Nat.div_le_div_right (c := 2 ^ k) (h.1 old ho)
+    simp [LazyAccount.shift, LazyLedger.rescale]
   · have hd : 0 < 2 ^ k := by positivity
     have hl := lazy_rescale_liability l.index k l.accounts h.1
     have hb := h.2
     have ht := Nat.div_add_mod l.total (2 ^ k)
-    let remainder := l.total % 2 ^ k * precision + l.slack + lazyWeight l.accounts * (2 ^ k - 1)
+    let remainder := l.total % 2 ^ k * precision + l.slack
     have he := Nat.div_add_mod remainder (2 ^ k)
     have hr := Nat.mod_lt remainder hd
-    change lazyLiability (l.index >>> k) (l.accounts.map (LazyAccount.shift k)) ≤
+    change lazyLiability (l.index >>> k) (l.accounts.map (LazyAccount.shift l.index k)) ≤
       (l.total >>> k) * precision + remainder / 2 ^ k
     simp only [Nat.shiftRight_eq_div_pow] at hl ⊢
     dsimp only [remainder] at he hr ⊢

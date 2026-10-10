@@ -96,10 +96,10 @@ actual Solidity, and detect source or storage-layout drift. Same integrity bar: 
 `propext`/`Classical.choice`/`Quot.sound` only.
 
 The integer lazy-account model proves aggregate bounds through settlement, wallet-weight changes,
-allocation, unit movement, burns, rescaling and write-off. Rescaling needs an explicit rounding
-budget; exact aggregate unit conservation is false for the seeded state in `ROUNDING.md`.
-`RescaleBounds.lean` proves a uniform slack bound for arbitrary histories whose rescale weight is
-bounded, plus conditions under which aggregate funded claims still cannot exceed the fund.
+allocation, unit movement, burns, rescaling and write-off. Account and waiting-request indices use
+an overflow-safe ceil shift during rescaling. `RescaleBounds.lean` proves the numerator slack stays
+below one precision unit through arbitrary histories from genesis, so aggregate unit claims and
+aggregate funded claims cannot exceed their respective totals.
 The lifecycle layer includes waiting requests' committed units and accrual weights. Its share
 partition derives the allocation weight premise from genesis. Resumable source batches, retries,
 partial/final claim histories and selected checked-arithmetic failures have separate executable
@@ -119,7 +119,7 @@ describes the separate ideal-arithmetic models.
 | `LazyBook.view_run` / `LazyBook.run_totalBalance_add` | the lazy index (one bump per event, holders settled only when touched) implements the eager book along any trace, so the balance identity holds at every lazily reachable state |
 | `LazyBook.transfer_frame` / `LazyBook.transfer_noAlloc` | a transfer settles and writes only its two holders; it moves no index and mints no units |
 | `LazyBook.allocation_consistent` / `LazyBook.allocate_view_congr` | an event credits `m × weight/outside` on the balances standing at the event, however many transfers preceded it and whenever each holder last settled |
-| `bounded_trace_slack` / `bounded_genesis_funded` | arbitrary bounded rescale histories keep a uniform rounding budget and an explicit aggregate funded-claim bound |
+| `lazy_trace_slack_lt_precision` / `lazy_genesis_funded_no_overclaim` | arbitrary lazy-ledger histories from genesis keep sub-precision slack and cannot overclaim aggregate funded shares |
 | `certified_calls_preserve` | collateral custody is conserved through any certified history of executable public-call results; failed calls supply frame certificates automatically |
 | `source_partition_of_history` / `cash_partition_of_history` / `lifecycle_claim_bound_of_history` | public-state projections inherit the existing Main source, cash and lazy-liability bounds from arbitrary valid transition histories |
 | `rayMulHalf_interval` / `rayDivHalf_interval` | Aave's half-up ray multiplication and division lie in their exact quotient intervals |
@@ -174,8 +174,9 @@ price-driven deleveraging. The default eight seeds per fixture cover 5,017 recor
 1,059 expected reverts. Larger campaigns are configurable. See [stateful parity](STATEFUL_PARITY.md)
 for coverage gates and external mock boundaries. `check-runtime.py` includes both default fixtures.
 
-separate integration checks reach a 64-bit accounting rescale through public vault calls in a
-controlled loss/refill environment, replay 516 calls against Aave v3's actual
+separate integration checks reach 64-bit and cumulative 256-bit accounting scales through public
+vault calls in controlled loss/refill environments, including a waiting request, and replay 516
+calls against Aave v3's actual
 `VariableDebtToken`, run repeated harvests across two vaults sharing one loop, and exercise a long
 ICE entry/expiry/reconcile/exit sequence. the Aave pool/index driver and ICE dispatch remain mocks;
 these checks do not claim deployed-protocol equivalence.
