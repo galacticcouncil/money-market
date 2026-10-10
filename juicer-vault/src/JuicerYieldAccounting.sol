@@ -47,6 +47,7 @@ contract JuicerYieldAccounting {
     error Unauthorized();
     error InvalidHarvest();
     error ExceedsBalance();
+    error InexactShares();
     event YieldCheckpoint(uint256 sourceShares, uint256 rewardUnits);
     event RewardsFolded(address indexed owner, uint256 collateralShares);
     event YieldWrittenOff(uint256 indexed epoch);
@@ -185,16 +186,24 @@ contract JuicerYieldAccounting {
         if (to != from) _settle(to);
         if (excess != 0) {
             if (to == address(this) || to == address(0)) revert Unauthorized();
-            units[to] += _take(from, excess);
+            if (from == to) {
+                if (excess > fundedOf(from)) revert ExceedsBalance();
+            } else {
+                units[to] += _take(from, excess);
+            }
         }
     }
 
-    /// @dev units whose funded slice covers `shares`; they keep their source claim. the owner is settled
+    /// @dev debit exactly `shares` from the settled owner's funded balance or revert
     function _take(address owner, uint256 shares) private returns (uint256 taken) {
         uint256 owned = units[owner];
-        uint256 slice = owned == 0 ? 0 : Math.mulDiv(_funded(), owned, totalUnits);
+        uint256 funded = _funded();
+        uint256 total = totalUnits;
+        uint256 slice = owned == 0 ? 0 : Math.mulDiv(funded, owned, total);
         if (shares > slice) revert ExceedsBalance();
-        taken = Math.min(owned, Math.mulDiv(owned, shares, slice, Math.Rounding.Up));
+        uint256 remaining = Math.mulDiv(slice - shares, total, funded, Math.Rounding.Up);
+        taken = Math.min(owned - remaining, Math.mulDiv(owned, shares, slice, Math.Rounding.Up));
+        if (Math.mulDiv(funded, owned - taken, total) != slice - shares) revert InexactShares();
         units[owner] = owned - taken;
     }
 

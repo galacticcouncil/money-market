@@ -1,75 +1,72 @@
 # funded-share transfer rounding
 
-reviewed against `juicer-next` at `21f5aa7`, 10 october 2026. this is an implementation finding;
-the Solidity contracts have not been changed by this formal work. the stacked allowance fix is
-tracked separately in PR #73.
+this fixes the allowance mismatch found at `juicer-next` commit `ddf8186`. the implementation
+and executable Lean model now require the sender's displayed funded debit to equal the request.
+the result is reviewed on the allowance-fixed branch based on `juicer-next` at `21f5aa7`,
+10 october 2026.
 
-## bound
+## exact sender debit
 
 for funded vault shares `F`, total reward units `T > 0`, sender units `U`, and a requested
-funded transfer `s`, the contract computes:
+funded transfer `s`, accounting computes:
 
 ```
 S = floor(F * U / T)
-x = min(U, ceil(U * s / S))
+R = ceil((S - s) * T / F)
+x = min(U - R, ceil(U * s / S))
 D = S - floor(F * (U - x) / T)
 G = floor(F * (V + x) / T) - floor(F * V / T)
 ```
 
-`V` is the recipient's previous units, with `V + x <= T` so its unit cap is inactive.
-sender and recipient are distinct ordinary holders;
-self-transfers restore the same account's units and have zero net balance movement. successful positive transfers require `0 < s <= S`.
-`take_exact_units` proves the cap is redundant on that domain. the Lean proofs
-`take_displayed_bound`, `transfer_credit_refines`, and `transfer_discrepancy_at_most_one` establish:
+positive transfers require `0 < s <= S`. `R` is the minimum retained unit count that prevents
+an excessive debit. the proportional candidate still limits the source claim that moves.
+if the resulting sender balance is not exactly `S - s`, `_take` reverts `InexactShares`.
+`transferFrom` and delegated `requestRedeem` share this guard, measured after account settlement
+and any redemption checkpoint; a revert restores allowance,
+wallet shares, reward units and queue state.
+
+`take_displayed_exact` proves `D = s` for every successful modeled call.
+`take_full_slice` proves a full funded exit takes all the owner's units.
+`take_fine_available` proves every amount within the funded balance is representable when
+`0 < F <= T`. `take_representable` also covers coarse units when the target remainder is
+representable. `coarse_partial_rejected` proves a single coarse unit cannot be partially spent.
+self-transfers validate the balance without moving units, so they remain no-ops even when an
+ordinary transfer of that amount would be unrepresentable.
+
+`V` is the recipient's previous settled units. when `V + x <= T` (the recipient's
+`balanceOf` unit cap does not truncate the credit), the floor/ceiling proofs establish:
 
 ```
 floor(F * x / T) <= D, G <= ceil(F * x / T)
-abs(D - G) <= 1
+D = s
+abs(G - s) <= 1
 ```
 
-these are bounds on the sender's displayed debit and recipient's displayed credit, in vault
-share base units. they are not one-wei bounds on `D - s` or `G - s`. the same unit transfer
-also carries its pending source claim. `unit_granularity_unbounded` proves that with `T = U = 1`,
-a request for one funded share moves the whole funded slice for any positive `F`. that theorem
-alone does not establish that every such state is reachable in production.
+exact sender debit does not imply exact recipient credit: under that unit bound, rounding the
+recipient's separate unit balance can differ by one vault-share base unit. pending source ownership still travels
+with the units, and third-party units and balances do not change. total reward units are
+unchanged by a transfer. wallet-only transfers retain their existing behavior.
 
-there is no enforced constant funded-value-per-unit ratio: wallet shares can be donated to the
-accounting contract without issuing reward units. the exact state-dependent bound above applies
-under the stated cap condition, regardless of how a successful state was reached. no small global
-production bound is claimed.
+## donation regression
 
-## public-call reproduction
+wallet shares can be donated to accounting without issuing units, so `F / T` has no enforced
+constant upper bound. under the previous implementation, a public-call fixture with one
+base-unit approval produced a sender debit of 1,074,114 and recipient credit of 1,074,113.
+that example showed an allowance mismatch; it did not establish a profitable exploit or a
+maximum production loss.
 
-`test_publicDonationMakesTransferRoundingExceedAllowance` uses the actual vault, accounting,
-SubLoop, and harvester fixtures, with mocked external tokens/pool. it creates a small allocation,
-transfers the wallet to a second actor, and that actor donates those wallet shares to the fund.
-there are no storage writes or impersonated vault calls in this reproduction. external balance
-minting represents the fixture's source income and repayment funding; it is not a live-chain test.
+`LeanRoundingReachabilityTest` uses the actual vault, accounting, SubLoop and harvester fixtures
+with mocked external tokens and pool. it creates a small allocation and donates wallet shares
+to the fund without seeding accounting storage or impersonating the vault. eight regressions
+check the rejected one-unit transfer and delegated redemption, direct transfer rejection,
+representable partial transfer and redemption, full transfer, full unwind and self-transfer.
+failed calls leave the approval and ownership intact.
 
-the original holder then approves one share base unit and the spender calls `transferFrom(..., 1)`:
-
-| quantity | observed base units |
-| --- | ---: |
-| allowance consumed | 1 |
-| sender displayed debit | 1,074,114 |
-| recipient displayed credit | 1,074,113 |
-| ceil(funded shares / total reward units) | 1,074,114 |
-
-this establishes a reachable allowance/displayed-balance mismatch in the integration fixture.
-the absolute movement in this example is small for an 18-decimal share. it does not establish
-an economically profitable exploit, a maximum production loss, or deployed-state exposure.
-512 additional fuzz cases check the proved display bounds against the actual accounting contract;
-those cases seed arithmetic states and are not separate reachability evidence.
-
-## disposition
-
-exact-amount ERC20 behavior and allowance protection need an implementation decision. rounding a
-unit count alone cannot guarantee exact displayed transfers when one unit represents multiple
-share base units. a fix must either support exact funded-share accounting or explicitly reject
-unrepresentable transfers; it must also preserve the pending source claim. merely charging the
-requested allowance while moving more displayed balance does not resolve the finding.
-
-reproduce with:
+512 arithmetic fuzz cases check exact sender debits, recipient bounds, representability and
+unit conservation against the accounting contract at both fine and coarse unit ratios.
+86 Lean-generated take vectors include full-precision mul-div inputs whose intermediate
+products exceed 256 bits. these seeded arithmetic comparisons are separate from reachability
+evidence and do not establish full Solidity equivalence.
 
 ```sh
 forge test --offline --match-contract LeanRoundingReachabilityTest --match-test test_publicDonation -vv
@@ -89,25 +86,70 @@ zero; the two previous indices also round to zero. the resulting sum of unit bal
 `totalUnits + 1`, including after both holders settle. `runtime_rescale_unit_excess` checks the
 same initial state and executable allocation in Lean.
 
-this is a seeded arithmetic counterexample, not a production loss estimate. the excess is one
-**reward unit**, not one vault share. it invalidates an exact aggregate unit-conservation claim
-across every lazy rescale; displayed funded claims also depend on the fund's shares-per-unit ratio.
-it is separate from the allowance mismatch above.
+this is a seeded arithmetic counterexample, not a public-call reproduction of excess or a
+production loss estimate. the excess is one **reward unit**, not one vault share. it invalidates
+an exact aggregate unit-conservation claim across every lazy rescale; displayed funded claims also
+depend on the fund's shares-per-unit ratio. it is separate from the allowance mismatch fixed above.
 
-`test_positiveResidualLossRefillsReachRescale` now shows that a rescale itself is public-call
-reachable in the controlled vault/SubLoop fixture. it repeatedly leaves positive residual assets,
-then restores source value and calls `sync`; after four cycles `unitScale` reaches 64 without an
-epoch write-off. the fixture controls the external aPRIME balance by minting and burning mock
-tokens. it does not write accounting storage and does not establish that the required value swings
-are economically reachable against a deployed market.
+### investigation of the rescale excess (item 1, october 2026)
 
-`test_multiplePublicHoldersStayWithinTotalAtReachableRescale` repeats that path with three public
-depositors. after the rescale their aggregate unit claims are two units below `totalUnits`; the
-seeded one-unit excess is not reproduced by this public history. this separates two conclusions:
-public calls can reach the rescale control flow, while the known excess state remains a seeded
-arithmetic witness rather than a public-call reproduction.
+mechanism. `_allocate` rescales by shifting `totalUnits` and `rewardIndex` down 64 bits when
+`totalUnits > 2^160 * denominator / max(denominator, outsideValue)`. `balanceOf` shifts a
+current-epoch account's stored units and index lazily. the rounding split is:
 
-`RescaleBounds.lean` proves the tighter one-step slack recurrence
+- stored units `u` become `floor(u / 2^64)`;
+- pending accrual re-forms at the shifted indices as `w * (I' - floor(p / 2^64)) / RAY`,
+  which overcounts the shifted entitlement `w * (I - p) / (RAY * 2^64)` by up to
+  `w * (2^64 - 1) / (RAY * 2^64)` per account;
+- the per-account `min(totalUnits, ...)` cap truncates any single holder's excess.
+
+the seeded case uses two stale holders, each with wallet weight `RAY`. their combined
+post-rescale view is `M + 2` against `totalUnits = M + 1`; the old holder's floored
+`2^64 - 1` stored units free the headroom that permits the aggregate excess.
+
+accumulation. empirical seeded-state runs in `RescaleAmplification.t.sol`:
+
+- one rescale with two stale `RAY` holders leaves exactly one excess unit;
+- concentrating all stale weight on one holder cannot push that holder past `totalUnits`
+  (the per-account cap binds);
+- a second allocation from the already-rescaled state leaves the excess at one: the rescale
+  collapses the index range, so the same holders' subsequent pending accrual is floored to
+  zero units until the index grows by another `RAY`-scaled step;
+- a 256-case fuzz over seeded totals, indices and holder counts never produced an excess
+  above the stale-holder count, and the aggregate never exceeded `3 * totalUnits + holders`
+  (the per-account cap envelope).
+
+public-call reachability. `RescaleReachability.t.sol` first drove the deployed vault, SubLoop and
+accounting through deposits, `rebalance`, `pokeBorrow`, broad loss/refill cycles on the mocked
+prime position, wallet transfers and account splitting. across 24 deep rounds and a 60-round
+approach test, `totalUnits` tracked roughly one third of `totalAssets` and `unitScale` stayed zero;
+losses that reached zero took the write-off branch.
+
+`test_positiveResidualLossRefillsReachRescale` then targets a strictly positive residual with a
+binary search over the external mock aPRIME balance. four loss/refill cycles followed by public
+`sync` calls reach `unitScale == 64` without changing the epoch. the fixture mints and burns mock
+tokens to control external source value; it does not write accounting storage. this proves that
+the rescale control flow is reachable in the controlled public fixture and corrects the earlier
+bounded-search conclusion. it does not establish that the required value swings are economically
+reachable against a deployed market.
+
+`test_multiplePublicHoldersStayWithinTotalAtReachableRescale` repeats the path with three public
+depositors. their aggregate claims finish two units below `totalUnits`; the seeded one-unit excess
+is not reproduced. public reachability of a rescale and public reachability of the seeded excess
+state are therefore separate questions.
+
+measured impact. `RescaleEconomics.t.sol` runs actual `settle`, transfer and `startExit` calls
+on the post-rescale state:
+
+- at one funded share per unit the excess displays one extra share (`floor(F/T) = 1`);
+- under a 3x donation (coarse units) the aggregate display exceeds the fund by three shares,
+  and a full-slice transfer of the excess still succeeds;
+- exiting both holders folds `foldedFirst + foldedSecond + residue = F` exactly: the excess
+  unit changes who receives the fund's shares, not how many shares exist;
+- with concentrated wallet weight the per-account cap activates and reduces the aggregate
+  excess instead of growing it.
+
+proof bound. `RescaleBounds.lean` proves the tighter one-step slack recurrence
 
 ```
 E' <= ((T mod 2^k) * R + E) / 2^k + W
@@ -115,6 +157,14 @@ E' <= ((T mod 2^k) * R + E) / 2^k + W
 
 and a uniform arbitrary-history bound `E <= 2 * (R + cap)` when every rescale has positive shift
 and tracked weight at most `cap`. it derives funded-claim bounds from that slack and proves no
-aggregate funded overclaim when the resulting grain is smaller than `totalUnits`. these theorems
-bound the seeded phenomenon; they do not turn the controlled reachability test into a deployed
-economic path.
+aggregate funded overclaim when the resulting grain is smaller than `totalUnits`. the displayed
+share bound remains ratio-dependent:
+`F + floor(F * floor(E / RAY) / T)`. converting it to a sub-share impact requires a separate bound
+on `F/T`; total share conservation alone does not establish fairness between holders.
+
+verdict. the finding is a real arithmetic counterexample to exact aggregate unit conservation.
+the public fixture reaches the rescale branch, but it does not reproduce the excess. no public-call
+exploit or implementation correction is established. the second-allocation seeded fixture remains
+at `unitScale == 64`; it does not exercise a second rescale or prove general non-amplification.
+the arbitrary-history theorem bounds slack under an explicit weight cap; it does not make the
+controlled mock-value path economically feasible on a deployed market.

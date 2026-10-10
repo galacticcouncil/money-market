@@ -1,9 +1,12 @@
 # current Solidity mapping
 
-reviewed against `juicer-next` at `21f5aa7b203d0ae79f44e05c87ed75f8d242a1ef`, 10 october 2026.
-contract code is unchanged by this formal update. The [funded-transfer allowance mismatch](ROUNDING.md)
-on this branch is addressed by the stacked [allowance fix](https://github.com/galacticcouncil/money-market/pull/73).
-`solidity-manifest.json` pins the source, model inputs and the OpenZeppelin math implementation;
+reviewed against `juicer-allowance-rounding` at
+`33bfd25e662a3859ce12728dc455389cbd89d62b`, 10 october 2026.
+accounting rejects unrepresentable funded debits and preserves the requested allowance
+bound; [rounding evidence](ROUNDING.md) records the remaining recipient display rounding.
+the common formal update is based on `juicer-next` at
+`21f5aa7b203d0ae79f44e05c87ed75f8d242a1ef`.
+`solidity-manifest.json` pins source/model inputs, integration fixtures and the math implementations;
 the check fails if they change without a new comparison.
 
 | implementation | current Lean model | evidence |
@@ -13,7 +16,7 @@ the check fails if they change without a new comparison.
 | `JuicerYieldAccounting.balanceOf`, `_settle` | `Runtime.accountUnits`, `settle` | 48 epoch, cap and shift cases |
 | lazy account histories | `LazyLedger`, `normalizeAccount`, `normalizeLedger`, `BoundedStep` | finite trace bounds, exact account-view/settlement/scale normalization, uniform bounded-rescale slack; seeded excess witness and public-call rescale reachability |
 | deposit, transfer, waiting request, start and claim lifecycle | `Lifecycle`, `exitOwner`, `exitBurned` | reachable share partition and liability bounds; exact runtime exit normalization; public vault lifecycle regression |
-| `settle` / `_take` | `Runtime.take`, `fundedOf` | conservation/cap proofs and 80 success/revert cases |
+| `settle` / `_take` | `Runtime.take`, `fundedOf` | exact sender debit, full/fine-unit availability, conservation and 86 success/revert cases |
 | `_allocate` | `Runtime.allocate`, `rescale` | 48 cases: virtual +1, fees, capital gifts, self-compounding, write-off and rescale |
 | `startExit` | `Runtime.startExit` | 64 request epoch, committed unit, accrual, fee rounding and funded fold cases |
 | `requiredSourceBacking` | `Runtime.requiredBacking` | 48 cash, interest and fee cases, including 100% fee |
@@ -122,12 +125,18 @@ checked rescale from a uint256 total. Failed transaction bodies retain their com
 in the model; Solidity regressions also verify rollback after checkpoint, token receipt, claim
 and borrow writes would otherwise have occurred.
 
+- `RescaleAmplification.t.sol` / `RescaleReachability.t.sol` / `RescaleEconomics.t.sol` /
+  `RescaleFeasibility.t.sol` investigate the seeded lazy-rescale unit excess from
+  `LeanLazyHistoryParityTest`: per-rescale envelope, public-call approach, asset-level impact
+  and storage preconditions. they seed accounting storage or drive public vault calls and are
+  not included in the comparison-vector counts.
+
 `LeanCoverageParity.t.sol` calls actual Main/controller/claim implementations. Main sequences
 enter through vault-authorized public methods; claim and availability cases use inherited
 harnesses to seed their state. Pool, source and fee-sink behavior is supplied by fixtures.
-`LeanRoundingReachability.t.sol` separately reproduces the allowance mismatch through public
-vault operations, without seeding accounting storage. The model comparison cases are not
-reachability proofs for every seeded state.
+`LeanRoundingReachability.t.sol` checks the allowance fix, representable amounts, full exits
+and self-transfers through public vault operations, without seeding accounting storage. The model
+comparison cases are not reachability proofs for every seeded state.
 
 `LeanRuntimeParity.t.sol` executes the actual accounting contract and inherited SubLoop logic.
 External vault, price, token and pool dependencies are fixtures. Expectations come from executing
@@ -160,9 +169,9 @@ fields, and share, cash, collateral and lazy-liability partitions. The default e
 2,419 recorded steps, including 596 expected reverts and 48 deliberately corrupted outputs rejected by
 the checker. Coverage gates require partial/final claims, keeper receiver protection, 71-request
 starts, resumed 64-cohort batches with late receipts and the 32-request settlement limit.
-Eight additional seeds with 512 pseudorandom actions pass 5,005 recorded steps and 1,640 expected reverts;
+Eight additional seeds with 512 pseudorandom actions pass 5,005 recorded steps and 1,641 expected reverts;
 the longest baseline sequence has 696 steps. Together the 16 campaigns check 7,424 recorded steps,
-2,236 expected reverts and 96 corrupted-output checks. A truncated-trace rejection also passes.
+2,237 expected reverts and 96 corrupted-output checks. A truncated-trace rejection also passes.
 `LeanMarketStatefulParity.t.sol` adds the actual Harvester and fee controller with changing source
 values, collateral prices, debt observations and execution costs. Its default eight campaigns pass
 2,598 recorded steps, 463 expected reverts and 104 corrupted-output checks. Coverage gates require
@@ -199,26 +208,31 @@ replays.
 - Runtime arrival detection uses balance deltas of at least half the expected amount. Authenticated
   callbacks instead check the output token and minimum. The ideal pallet-outcome book abstracts this.
 - Real-valued yield theorems omit rounding, virtual units, epochs and lazy shifts. The integer
-  layer includes them. A rounded unit transfer need not move exactly the requested displayed
-  base units; `take_rounding_example` is a checked counterexample to that stronger claim.
+  layer includes them. Successful funded transfers now debit exactly the requested displayed
+  amount or revert. With the recipient unit cap inactive, its credit can differ by one base unit.
+  `take_rounding_example` checks rejection of the old counterexample, and `take_fine_available`
+  proves fine-unit liveness.
 - `freedBacked` is a solvency hypothesis, not an on-chain deposit gate. `collSold` is a hypothetical
   shortfall diagnostic; current collateral claims remain owed during underfunding.
 
 ## verification
 
-554 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 1,130 kernel theorem
+563 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 1,154 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its complete Solidity dispatch correspondence is tested by replay, not proved for all executions.
-the comparison datasets
-contain 1,424 rows: the previous 820 plus 604 machine-boundary and history cases. Validation also
-includes 512 transfer-bound fuzz cases, the public vault lifecycle, rollback regressions and the
-existing seeded and public-call rescale fixtures. all three generated datasets reproduce exactly.
+the comparison datasets contain 1,430 rows: the previous 826 plus 604 machine-boundary and history
+cases. validation also includes 512 transfer-rounding fuzz cases, the public vault lifecycle,
+rollback regressions, all four focused rescale suites, and the seeded and public-call rescale
+fixtures. all three generated datasets reproduce exactly.
 the Aave scaled-debt trace adds 516 calls with 43 expected reverts. the full formal check invokes
-73 Foundry tests with zero failures and skips, including inherited fixture regressions and the two
+99 Foundry tests with zero failures and skips, including inherited fixture regressions and the two
 targeted shared-flow histories; source fingerprints, all 17 accounting slots and the six private
 Main batch slots also pass. the legacy environment-gated Verity fork suite is outside this formal gate.
+the prior allowance-fix run also passed 187 distinct targeted tests. production Solidity is
+unchanged by this proof merge; the prior London build measured CollateralVault at 24,480 bytes
+and JuicerYieldAccounting at 12,513 bytes (117 bytes larger than the original branch).
 
 ## reproduce
 
@@ -228,10 +242,10 @@ From `juicer-vault/formal`, with the pinned Lean/Mathlib dependencies and Foundr
 python3 check-runtime.py
 ```
 
-this builds the proofs, regenerates and compares 1,424 cases across three datasets, checks source
+this builds the proofs, regenerates and compares 1,430 cases across three datasets, checks source
 fingerprints and storage slots, then runs the comparison suites, 512 transfer-bound fuzz cases,
-the rounding and rescale reproductions, the 516-call Aave scaled-debt replay and both shared-flow
-histories. after a reviewed model change, regenerate with:
+the allowance, rounding and rescale reproductions, the 516-call Aave scaled-debt replay and both
+shared-flow histories. after a reviewed model change, regenerate with:
 
 ```sh
 lake build
@@ -253,12 +267,12 @@ assembly implementation. Valid configuration and truthful external observations 
 Four 64-bit rescale steps suffice for an initial total below `2^256`; checked scale/epoch counter
 overflow reverts rather than silently wrapping.
 
-the 1,424 vector cases and 516 scaled-debt calls are cross-language comparisons, not a proof of
+the 1,430 vector cases and 516 scaled-debt calls are cross-language comparisons, not a proof of
 every Solidity trace. the lifecycle and Main transition systems derive their numerical partitions
-from genesis and cover the listed
-call sequences. public-call custody is kernel-checked for certified `execute` histories, while
-mapping every successful dispatch branch to a certificate and to the source/cash/lifecycle
-transition systems is still manual. liability slots must represent distinct holders or disjoint
+from genesis and cover the listed call sequences. public-call custody is kernel-checked for
+certified `execute` histories, while mapping every successful dispatch branch to a certificate and
+to the source/cash/lifecycle transition systems is still manual. liability slots must represent
+distinct holders or disjoint
 waiting requests; all liabilities must be included in the initial representation. The new genesis
 results remove the repeated numerical weight/partition assumptions, not that representation boundary.
 The real-valued index proofs remain ideal arithmetic; exact integer equivalence would contradict

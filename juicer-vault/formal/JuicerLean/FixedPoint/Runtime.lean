@@ -61,8 +61,10 @@ def fundedOf (funded total owned : ℕ) : ℕ :=
 def take (funded total owned shares : ℕ) : Option (ℕ × ℕ) :=
   let slice := if owned == 0 then 0 else fundedOf funded total owned
   if slice == 0 || slice < shares then none else
-  let taken := min owned (ceilDiv (owned * shares) slice)
-  some (taken, owned - taken)
+  let remaining := ceilDiv ((slice - shares) * total) funded
+  let taken := min (owned - remaining) (ceilDiv (owned * shares) slice)
+  if fundedOf funded total (owned - taken) != slice - shares then none
+  else some (taken, owned - taken)
 
 theorem accountUnits_le (b : Book) (a : Account) (w : ℕ) :
     accountUnits b a w ≤ b.total := by
@@ -83,7 +85,7 @@ theorem take_conserves (f t u s x left : ℕ) (h : take f t u s = some (x, left)
   all_goals
     rcases h with ⟨hx, hl⟩
     rw [← hx, ← hl]
-    exact Nat.add_sub_of_le (min_le_left _ _)
+    exact Nat.add_sub_of_le ((min_le_left _ _).trans (Nat.sub_le _ _))
 
 def requiredBacking (debt principal cash fee : ℕ) : ℕ :=
   let required := debt - cash
@@ -103,7 +105,9 @@ theorem rescale_four_suffices (b : Book) (limit : ℕ) (h : b.total < 2 ^ 256) :
   split_ifs <;> simp_all [Nat.shiftRight_eq_div_pow]
   all_goals omega
 
-theorem take_rounding_example : take 10 3 2 1 = some (1, 1) := by decide
+theorem take_rounding_example : take 10 3 2 1 = none := by decide
+
+theorem take_fine_rounding_example : take 2 3 3 1 = some (1, 2) := by decide
 
 theorem funded_rounding_example : fundedOf 10 3 2 - fundedOf 10 3 1 = 3 := by decide
 

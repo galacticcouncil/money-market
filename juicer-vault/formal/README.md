@@ -3,7 +3,7 @@
 Formal verification of **Juicer** — a protocol-managed leveraged-yield product on
 Hydration — in **Lean 4**. Contains conditional mathematical proofs and executable integer models checked against Solidity.
 [Current implementation mapping and limits](SOLIDITY_PARITY.md) is the coverage record.
-[Funded-transfer rounding](ROUNDING.md) records the allowance mismatch and a separate seeded
+[Funded-transfer rounding](ROUNDING.md) records the allowance fix and a separate seeded
 counterexample to exact aggregate unit conservation across lazy rescales.
 
 Lives beside the contracts it models: `juicer-vault/{src,test,formal}` (branch `juicer-next`).
@@ -89,9 +89,9 @@ JuicerLean/
 
 ## Next version (`juicer-next`, plan §2–§4, §7)
 
-aligned with Solidity on `juicer-next` at `21f5aa7` on 10 october. the real-number models prove ideal accounting
+aligned with the allowance-fixed Solidity based on `juicer-next` at `21f5aa7` on 10 october. the real-number models prove ideal accounting
 properties; `FixedPoint/Runtime.lean` adds current integer arithmetic, epoch and rescale behavior.
-Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 1,424 Lean cases with the
+Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 1,430 Lean cases with the
 actual Solidity, and detect source or storage-layout drift. Same integrity bar: 0 `sorry`, axioms
 `propext`/`Classical.choice`/`Quot.sound` only.
 
