@@ -14,6 +14,7 @@ contract LeanLifecycleParityTest is HarvestTest {
         uint256 stored;
         uint256 previous;
         if (y.accountEpoch(owner) == y.epoch()) {
+            // _assertLifecycle fixes unitScale at zero, where floor and ceil shifts coincide.
             uint256 shift = y.unitScale() - y.accountScale(owner);
             stored = uint256(vm.load(address(y), keccak256(abi.encode(owner, uint256(4))))) >> shift;
             previous = y.accountIndex(owner) >> shift;
@@ -37,6 +38,7 @@ contract LeanLifecycleParityTest is HarvestTest {
             uint256 committed;
             uint256 previous;
             if (y.requestEpoch(id) == y.epoch()) {
+                // this trace is scale zero, so requestIndex >> shift matches the ceil shift.
                 uint256 shift = y.unitScale() - y.requestScale(id);
                 committed = y.requestUnits(id) >> shift;
                 previous = y.requestIndex(id) >> shift;

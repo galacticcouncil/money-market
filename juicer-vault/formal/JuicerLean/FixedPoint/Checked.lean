@@ -55,6 +55,13 @@ def checkedMulDivUp (a b d : ℕ) : Checked ℕ := do
 
 def checkedShift (a shift : ℕ) : ℕ := a >>> shift
 
+def checkedCeilShift (a shift : ℕ) : ℕ :=
+  if a = 0 then 0 else checkedShift (a - 1) shift + 1
+
+theorem checkedCeilShift_refines (a shift : ℕ) : checkedCeilShift a shift = ceilShift a shift := by
+  rw [ceilShift_eq_safe]
+  rfl
+
 def checkedRescale : ℕ → Book → ℕ → Checked Book
   | 0, b, _ => .ok b
   | n + 1, b, limit => do
@@ -129,7 +136,7 @@ theorem checked_shift_bounded (a shift : ℕ) : checkedShift a shift ≤ a := by
 
 def checkedAccountUnits (b : Book) (a : Account) (weight : ℕ) : Checked ℕ := do
   let shift ← if a.epoch == b.epoch then checkedSub b.scale a.scale else pure 0
-  let previous := if a.epoch == b.epoch then checkedShift a.index shift else 0
+  let previous := if a.epoch == b.epoch then min b.index (checkedCeilShift a.index shift) else 0
   let owned := if a.epoch == b.epoch then checkedShift a.units shift else 0
   let delta ← checkedSub b.index previous
   let pending ← checkedMulDiv weight delta ray

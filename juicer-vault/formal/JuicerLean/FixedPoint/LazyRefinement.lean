@@ -6,7 +6,7 @@ def normalizeAccount (b : Book) (a : Account) (weight : ℕ) : LazyAccount ray :
   let current := a.epoch == b.epoch
   let shift := if current then b.scale - a.scale else 0
   ⟨if current then a.units >>> shift else 0,
-    if current then a.index >>> shift else 0, weight⟩
+    if current then min b.index (ceilShift a.index shift) else 0, weight⟩
 
 theorem normalized_claim (b : Book) (a : Account) (w : ℕ) :
     (normalizeAccount b a w).claim b.total b.index = accountUnits b a w := by
@@ -26,19 +26,22 @@ theorem normalized_weight_change (b : Book) (a : Account) (before after : ℕ) :
   simp [normalizeAccount, settle]
 
 theorem normalized_index_change (b : Book) (a : Account) (w m delta : ℕ) :
-    normalizeAccount { b with total := b.total + m, index := b.index + delta } a w =
-      normalizeAccount b a w := by
-  rfl
+    (normalizeAccount b a w).index ≤
+      (normalizeAccount { b with total := b.total + m, index := b.index + delta } a w).index := by
+  by_cases he : a.epoch = b.epoch
+  · simp [normalizeAccount, he]
+  · simp [normalizeAccount, he]
 
 theorem normalized_rescale (b : Book) (a : Account) (w k : ℕ)
     (hs : a.epoch = b.epoch → a.scale ≤ b.scale) :
     normalizeAccount { b with total := b.total >>> k, index := b.index >>> k, scale := b.scale + k } a w =
-      (normalizeAccount b a w).shift k := by
+      (normalizeAccount b a w).shift b.index k := by
   by_cases he : a.epoch = b.epoch
   · have hshift : b.scale + k - a.scale = (b.scale - a.scale) + k := by
       have := hs he
       omega
-    simp [normalizeAccount, he, hshift, LazyAccount.shift, Nat.shiftRight_add]
+    simp [normalizeAccount, he, hshift, LazyAccount.shift, Nat.shiftRight_add,
+      ceilShift_add, min_floor_ceil_min]
   · simp [normalizeAccount, he, LazyAccount.shift]
 
 theorem normalized_writeOff (b : Book) (a : Account) (w : ℕ) (he : a.epoch ≤ b.epoch) :
@@ -81,12 +84,12 @@ theorem rescale_example_initial_valid :
   norm_num [normalizeLedger, normalizeAccount, rescaleExampleBook, rescaleExampleOld,
     rescaleExampleWaiting, LazyLedger.valid, lazyLiability, LazyAccount.numerator, ray]
 
-theorem runtime_rescale_unit_excess :
+theorem runtime_rescale_ceil_index_closes_excess :
     accountUnits rescaleExampleBook rescaleExampleOld 0 +
       2 * accountUnits rescaleExampleBook rescaleExampleWaiting ray = rescaleExampleBook.total ∧
     (allocate rescaleExampleBook rescaleExampleInput).scale = 64 ∧
     accountUnits (allocate rescaleExampleBook rescaleExampleInput) rescaleExampleOld 0 = 0 ∧
     2 * accountUnits (allocate rescaleExampleBook rescaleExampleInput) rescaleExampleWaiting ray =
-      (allocate rescaleExampleBook rescaleExampleInput).total + 1 := by decide
+      (allocate rescaleExampleBook rescaleExampleInput).total - 1 := by decide
 
 end Juicer.Runtime
