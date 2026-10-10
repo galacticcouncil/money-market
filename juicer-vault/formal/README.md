@@ -52,6 +52,7 @@ JuicerLean/
    ├─ MainHistories.lean  reachable source-claim and cash partitions across cohort operations
    ├─ PolicyQueue.lean    controller budgets, quotes, FIFO starts and collateral claims
    ├─ QueueHistories.lean repeated settlement/claim histories and FIFO settlement work
+   ├─ PublicCalls.lean    executable public-call sequences, rollback and full tracked state
    ├─ Checked.lean        uint256 arithmetic failures and atomic transaction semantics
    ├─ CheckedRefinement.lean successful checked operations refine the natural-number models
    ├─ Environment.lean    external observation guards and ICE authentication limits
@@ -155,3 +156,10 @@ exact revert data as well as successful values. The public lifecycle regression 
 deposits and uses the vault's actual transfer, request, start, settle and claim entrypoints;
 external pool/yield behavior is mocked. Separate rollback tests exercise failures after writes.
 The old Verity bridge remains a separate simplified reference model; see [bridge scope](bridge/PARITY.md).
+
+`python3 check-stateful.py` runs long public vault/Main call campaigns and replays them in Lean
+from fixture genesis. The checker compares state and outcomes after every call, enforces accounting
+partitions and rejects incomplete traces. The default eight seeds cover 2,419 recorded steps, including
+596 expected reverts; larger campaigns are configurable. See [stateful parity](STATEFUL_PARITY.md)
+for the covered control flow and the explicit mock-environment boundary. `check-runtime.py`
+also runs the default stateful comparisons.

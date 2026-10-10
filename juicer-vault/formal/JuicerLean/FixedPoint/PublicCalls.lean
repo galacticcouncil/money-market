@@ -1,0 +1,430 @@
+import JuicerLean.FixedPoint.QueueHistories
+
+namespace Juicer.PublicCalls
+
+open Runtime
+
+def actors := 8
+def vaultId := 5
+def fundId := 6
+def zeroId := 7
+
+structure Request where
+  owner : Nat := zeroId
+  claim : RedemptionState := ⟨0, 0, 0, 0, 0, 0, 0, false⟩
+  synth : Nat := 0
+  eligible : Nat := 0
+  account : Account := {}
+
+structure State where
+  supply : Nat := 0
+  assets : Nat := 0
+  supplied : Nat := 0
+  liquid : Nat := 10^9
+  reserve : Nat := 10^9
+  debt : Nat := 0
+  synth : Nat := 0
+  held : Nat := 0
+  basis : Nat := 0
+  freed : Nat := 0
+  reinvest : Nat := 0
+  pending : Nat := 0
+  queued : Nat := 0
+  owed : Nat := 0
+  queuedDebt : Nat := 0
+  head : Nat := 0
+  unwind : Nat := 0
+  book : Book := {}
+  wallets : Array Nat := Array.replicate actors 0
+  accounts : Array Account := Array.replicate actors {}
+  collateral : Array Nat := #[10^24, 10^24, 10^24, 10^24, 0, 0, 0, 0]
+  approvals : Array Nat := Array.replicate 16 0
+  requests : Array Request := #[]
+  positions : Array MainPosition := #[{}]
+  mainUnits : Nat := 0
+  ownedCash : Nat := 0
+  outstanding : Nat := 0
+  sourceHead : Nat := 1
+  unallocated : Nat := 0
+  batchAmount : Nat := 0
+  batchTotal : Nat := 0
+  batchWeight : Nat := 0
+  batchCursor : Nat := 0
+  batchTail : Nat := 0
+  paused : Bool := false
+  depositsPaused : Bool := false
+  sourcePaused : Bool := false
+  time : Nat := 1000
+  pullBps : Nat := 10000
+  repayLimit : Nat := max256
+
+def wallet (s : State) (i : Nat) := s.wallets[i]?.getD 0
+def account (s : State) (i : Nat) := s.accounts[i]?.getD {}
+def position (s : State) (i : Nat) := s.positions[i]?.getD {}
+def request (s : State) (i : Nat) := s.requests[i]?.getD {}
+def activeSupply (s : State) := s.supply - s.queued
+def activeAssets (s : State) := s.assets - s.owed
+def toAssets (s : State) (n : Nat) :=
+  if activeSupply s == 0 then n else n * activeAssets s / activeSupply s
+def special (i : Nat) := i == vaultId || i == fundId || i == zeroId
+def units (s : State) (i : Nat) := accountUnits s.book (account s i) (wallet s i) (special i)
+def balance (s : State) (i : Nat) :=
+  if i == vaultId then wallet s i else
+  if i == fundId then if s.book.total == 0 then wallet s i else 0
+  else wallet s i + fundedOf (wallet s fundId) s.book.total (units s i)
+def setWallet (s : State) (i n : Nat) := { s with wallets := s.wallets.set! i n }
+def setAccount (s : State) (i : Nat) (a : Account) := { s with accounts := s.accounts.set! i a }
+def setPosition (s : State) (i : Nat) (p : MainPosition) := { s with positions := s.positions.set! i p }
+def settleOwner (s : State) (i : Nat) :=
+  if special i then s else setAccount s i (settle s.book (account s i) (wallet s i))
+def pendingAccounting (s : State) := s.unallocated != 0
+
+def allocationInput (s : State) : AllocationInput :=
+  let required := requiredBacking (mainDebtOf s.debt s.mainUnits (position s 0))
+    (position s 0).principal (position s 0).cash 0
+  ⟨s.held, s.held / 10^10 * 10^10, required + (if required == 0 then 0 else 2*10^10),
+    activeSupply s, wallet s fundId, toAssets s (wallet s fundId), s.basis, 0⟩
+
+def checkpoint (s : State) (a b : Nat) : State := Id.run do
+  let mut s := s
+  if !pendingAccounting s then
+    let v := allocationInput s
+    let trimmed := trimLoss s.book (allocationAvailable v)
+    let added := allocationAvailable v - trimmed.source - trimmed.protocol
+    let released := if v.held != 0 && v.supply != 0 && added != 0 then
+      min (added * v.equity / v.held) (v.basis - v.required) else 0
+    s := { s with book := allocate s.book v, basis := s.basis - released }
+  s := settleOwner s a
+  return if a == b then s else settleOwner s b
+
+abbrev Result := Except Nat (State × Nat)
+
+def transfer (s : State) (a b n : Nat) : Except Nat State := do
+  let mut s := s
+  let mut moved := n
+  if a != vaultId && b != vaultId && a != fundId then
+    s := settleOwner (settleOwner s a) b
+    let excess := n - wallet s a
+    if excess != 0 then
+      if b == fundId || b == zeroId then throw 10
+      let owned := (account s a).units
+      if excess > fundedOf (wallet s fundId) s.book.total owned then throw 11
+      if a != b then
+        match take (wallet s fundId) s.book.total owned excess with
+        | none => throw 12
+        | some (taken, left) =>
+          s := setAccount s a { account s a with units := left }
+          s := setAccount s b { account s b with units := (account s b).units + taken }
+      moved := wallet s a
+  if b == zeroId then throw 13
+  if s.paused then throw 14
+  if wallet s a < moved then throw 15
+  return setWallet (setWallet s a (wallet s a - moved)) b
+    ((if a == b then wallet s b - moved else wallet s b) + moved)
+
+def spend (s : State) (owner caller amount : Nat) : Except Nat State := do
+  if owner == caller then return s
+  let i := owner * 4 + caller
+  let allowed := s.approvals[i]?.getD 0
+  if allowed == max256 then return s
+  if allowed < amount then throw 16
+  return { s with approvals := s.approvals.set! i (allowed - amount) }
+
+def pay (s : State) (key limit : Nat) : State × Nat × Nat := Id.run do
+  let mut s := s
+  let mut p := position s key
+  let debt := mainDebtOf s.debt s.mainUnits p
+  let before := p.principal
+  p := { p with principal := min p.principal debt }
+  let interest := debt - p.principal
+  let amount := min p.cash (interest + min p.principal limit)
+  let paid := min (min amount s.debt) s.repayLimit
+  if amount != 0 then
+    let burned := if debt ≤ paid then p.units else paid * s.mainUnits / s.debt
+    p := { p with
+      cash := p.cash - paid,
+      units := p.units - burned,
+      principal := p.principal - min p.principal (paid - interest) }
+    s := { s with mainUnits := s.mainUnits - burned, ownedCash := s.ownedCash - paid }
+  if debt ≤ paid then
+    s := { s with mainUnits := s.mainUnits - p.units }
+    p := { p with units := 0 }
+  let synthBurn := if s.debt == 0 then 0 else s.synth * paid / s.debt
+  s := { s with debt := s.debt - paid, synth := s.synth - synthBurn }
+  return (setPosition s key p, before - p.principal, paid)
+
+def cover (s : State) (n : Nat) : Except Nat State := do
+  if s.reserve < n then throw 17
+  return { s with reserve := s.reserve - n, assets := s.assets + n }
+
+def startOne (s : State) (id : Nat) : Except Nat State := do
+  let mut s := checkpoint s zeroId zeroId
+  let r := request s id
+  let escrowed := r.claim.shares
+  let supply := activeSupply s
+  let settled := settle s.book (account s r.owner) (wallet s r.owner)
+  let out := startExit s.book (account s r.owner) r.account
+    (wallet s r.owner) escrowed (wallet s fundId)
+  s := setAccount s r.owner { settled with units := out.owned }
+  s := { s with book := out.book }
+  s := setWallet (setWallet s fundId (wallet s fundId - out.folded)) vaultId
+    (wallet s vaultId + out.folded)
+  let shares := escrowed + out.folded
+  let numerator := activeAssets s * shares
+  let owed := ceilDiv numerator supply
+  if owed == 0 then throw 2
+  s := { s with reinvest := s.reinvest - s.reinvest * shares / supply }
+  let activeSlice := (s.held - s.book.source - s.book.protocol - out.reward - out.fee) * shares / supply
+  let slice := activeSlice + out.reward + out.fee
+  let basis := s.basis * shares / supply
+  if pendingAccounting s then throw 18
+  let (active, exit, total) := mainExit (position s 0) s.mainUnits s.debt shares supply slice
+  let debt := mainDebtOf s.debt total exit
+  if slice == 0 && debt > (position s 0).cash * shares / supply then throw 19
+  let synth := if s.debt == 0 then 0 else s.synth * debt / s.debt
+  s := setPosition s 0 active
+  s := { s with
+    positions := s.positions.push exit,
+    mainUnits := total,
+    held := s.held - slice,
+    basis := s.basis - (if slice == 0 then 0 else basis),
+    freed := s.freed + slice,
+    outstanding := s.outstanding + slice }
+  s ← cover s (owed - numerator / supply)
+  return { s with
+    pending := s.pending - escrowed, queued := s.queued + shares,
+    owed := s.owed + owed, queuedDebt := s.queuedDebt + debt,
+    requests := s.requests.set! id { r with claim := freshRedemption shares owed debt, synth, account := {} } }
+
+def startMany (fuel : Nat) (s : State) (next : Nat) : Except Nat (State × Nat) := do
+  match fuel with
+  | 0 => return (s, next)
+  | n + 1 =>
+    if s.requests.size ≤ next || s.time < (request s next).eligible then return (s, next)
+    let s ← startOne s next
+    startMany n s (next + 1)
+
+def credit (s : State) (amount : Nat) : State := Id.run do
+  let mut s := { s with unallocated := s.unallocated + amount, ownedCash := s.ownedCash + amount }
+  if s.batchAmount == 0 then
+    if s.unallocated == 0 then return s
+    s := { s with
+      batchAmount := s.unallocated,
+      batchTotal := s.outstanding,
+      batchWeight := 0,
+      batchCursor := s.sourceHead,
+      batchTail := s.positions.size }
+  for _ in [:64] do
+    if s.batchTail ≤ s.batchCursor then break
+    let key := s.batchCursor
+    let p := position s key
+    let cash := (batchSegment s.batchAmount 0 s.batchTotal s.batchWeight p.remaining).1
+    s := setPosition s key { p with cash := p.cash + cash, remaining := p.remaining - cash }
+    s := { s with
+      unallocated := s.unallocated - cash,
+      outstanding := s.outstanding - cash,
+      batchWeight := s.batchWeight + p.remaining,
+      batchCursor := key + 1,
+      sourceHead := if key == s.sourceHead && p.remaining == cash then s.sourceHead + 1 else s.sourceHead }
+  if s.batchCursor == s.batchTail then s := { s with batchAmount := 0, batchWeight := 0 }
+  return s
+
+def settleMany : Nat → State → State
+  | 0, s => s
+  | fuel + 1, s => Id.run do
+    if s.paused || s.sourcePaused || s.unwind ≤ s.head then return s
+    let id := s.head
+    let r := request s id
+    let (s, paid, _) := if r.claim.debt == r.claim.repaid then (s, 0, 0)
+      else pay s (id + 1) (r.claim.debt - r.claim.repaid)
+    let next := settleRedemption r.claim paid
+    let released := next.settled - r.claim.settled
+    let withdrawn := min released s.supplied
+    let s := { s with
+      requests := s.requests.set! id { r with claim := next },
+      queuedDebt := s.queuedDebt - (next.repaid - r.claim.repaid),
+      supplied := s.supplied - withdrawn,
+      liquid := s.liquid + withdrawn }
+    if next.repaid < next.debt then return s
+    return settleMany fuel { s with head := id + 1 }
+
+structure Action where
+  op : Nat
+  caller : Nat := 0
+  a : Nat := 0
+  b : Nat := 0
+  amount : Nat := 0
+  deriving Repr
+
+def runCall (input : State) (action : Action) : Result := do
+  let ⟨op, caller, a, b, n⟩ := action
+  let mut s := input
+  if [0, 4, 5, 7, 8, 9].contains op && (s.paused || s.sourcePaused) then throw 1
+  if op == 0 then
+    if b == zeroId then throw 3
+    if s.depositsPaused then throw 4
+    if n == 0 then throw 2
+    if pendingAccounting s then throw 18
+    -- beforeDeposit adjusts principal but leaves synthetic custody unchanged.
+    let oldSynth := s.synth
+    s := (pay s 0 0).1
+    s := { s with synth := oldSynth }
+    s := checkpoint s zeroId b
+    if s.supply == 0 && caller != 0 then throw 5
+    if s.assets + n > 1000 * wad then throw 6
+    let supply := activeSupply s
+    if supply == 0 && n ≤ 1000 then throw 7
+    if supply != 0 && activeAssets s == 0 then throw 8
+    let shares := if supply == 0 then n - 1000 else ceilDiv (n * supply) (activeAssets s)
+    let needed := if supply == 0 then n else ceilDiv (shares * activeAssets s) supply
+    if s.supply == 0 then s := setWallet { s with supply := 1000 } 4 1000
+    s := setWallet s b (wallet s b + shares)
+    s := { s with
+      supply := s.supply + shares,
+      assets := s.assets + n,
+      supplied := s.supplied + n,
+      reinvest := s.reinvest + n,
+      collateral := s.collateral.set! caller (s.collateral[caller]! - n) }
+    s ← cover s (needed - n)
+    return (s, shares)
+  else if op == 1 then
+    return ({ s with approvals := s.approvals.set! (caller * 4 + b) n }, 1)
+  else if op == 2 || op == 3 then
+    if op == 3 then
+      -- ERC20 transferFrom spends even a self-allowance.
+      let i := a * 4 + caller
+      let allowed := s.approvals[i]?.getD 0
+      if allowed != max256 then
+        if allowed < n then throw 16
+        s := { s with approvals := s.approvals.set! i (allowed - n) }
+    s ← transfer s (if op == 2 then caller else a) b n
+    return (s, 1)
+  else if op == 4 then
+    s := checkpoint s a zeroId
+    if n == max256 && caller != a then throw 9
+    let amount := if n == max256 then balance s a else n
+    if amount == 0 || toAssets s amount == 0 then throw 2
+    s ← spend s a caller amount
+    let escrow := min amount (wallet s a)
+    s ← transfer s a vaultId escrow
+    let mut owned := (account s a).units
+    let mut committed := 0
+    if escrow < amount then
+      if fundedOf (wallet s fundId) s.book.total owned < amount - escrow then throw 11
+      match take (wallet s fundId) s.book.total owned (amount - escrow) with
+      | none => throw 12
+      | some (taken, left) => committed := taken; owned := left
+      s := setAccount s a { account s a with units := owned }
+    let r : Request := { owner := a, eligible := s.time + 10, claim := ⟨escrow, 0, 0, 0, 0, 0, 0, true⟩, account := ⟨committed, s.book.index, s.book.epoch, s.book.scale⟩ }
+    return ({ s with requests := s.requests.push r, pending := s.pending + escrow }, s.requests.size)
+  else if op == 5 then
+    let (next, cursor) ← startMany n s s.unwind
+    return ({ next with unwind := cursor }, 0)
+  else if op == 6 then
+    let freed := s.freed * s.pullBps / 10000
+    let pending := pendingAccounting s
+    s := credit { s with freed := s.freed - freed } freed
+    s := (pay s 0 0).1
+    s := settleMany 32 s
+    return (s, freed + (input.debt - s.debt) + (s.head - input.head) + (if pending then 1 else 0))
+  else if op == 7 then
+    let r := request s n
+    if !r.claim.active then throw 20
+    let receiver := if caller == r.owner then b else r.owner
+    if receiver == zeroId then throw 3
+    if r.claim.settled == 0 then throw 21
+    let (next, _, burned) := claimRedemption r.claim
+    let paid := r.claim.settled
+    s := setWallet s vaultId (wallet s vaultId - burned)
+    s := { s with
+      supply := s.supply - burned,
+      assets := s.assets - (if receiver == vaultId then 0 else paid),
+      liquid := s.liquid - (if receiver == vaultId then 0 else paid),
+      queued := s.queued - burned,
+      owed := s.owed - paid,
+      requests := s.requests.set! n { r with claim := next },
+      collateral := s.collateral.set! receiver (s.collateral[receiver]! + paid) }
+    return (s, paid)
+  else if op == 8 then
+    s := checkpoint s zeroId zeroId
+    if pendingAccounting s then return (s, 0)
+    let equity := s.held / 10^10 * 10^10
+    if equity == 0 || s.held == 0 then return (s, 0)
+    let reserved := s.book.source + s.book.protocol
+    let active := equity - equity * reserved / s.held
+    return (s, reserved + (active - s.basis) * s.held / equity)
+  else if op == 9 then
+    s := checkpoint s zeroId zeroId
+    let coll8 := s.supplied / 10^10
+    if coll8 == 0 then return (s, 0)
+    let debt8 := s.debt / 10^10
+    let exiting := s.pending != 0 || s.head != s.unwind || s.freed != 0
+    let resize := !exiting && debt8 * 10000 / coll8 + 500 < 7500
+    let target := coll8 * 7500 / 10000
+    if resize || (s.reinvest != 0 && debt8 < target) then
+      if pendingAccounting s then throw 18
+      let oldSynth := s.synth
+      s := (pay s 0 0).1
+      s := { s with synth := oldSynth }
+      let wanted := (target - debt8) * 10^10
+      let amount := if resize then wanted else min wanted
+        (coll8 * min s.reinvest s.assets / s.assets * 7500 / 10000 * 10^10)
+      if amount == 0 then return (s, 0)
+      let (active, total) := mainBorrow (position s 0) s.mainUnits s.debt (s.debt + amount)
+      s := setPosition s 0 active
+      return ({ s with
+        mainUnits := total,
+        debt := s.debt + amount,
+        synth := s.synth + buffered amount 9800,
+        held := s.held + amount,
+        basis := s.basis + amount,
+        reinvest := 0 }, amount)
+    if !exiting && 7800 < debt8 * 10000 / coll8 then throw 99
+    return (s, 0)
+  else if op == 10 then return ({ s with time := s.time + n }, 0)
+  else if op == 11 then
+    let paid := min (min n s.debt) s.repayLimit
+    return ({ s with debt := s.debt - paid }, paid)
+  else if op == 12 then return ({ s with pullBps := n }, 0)
+  else if op == 13 then return ({ s with repayLimit := n }, 0)
+  else if op == 14 then
+    if n != 0 && (s.paused || s.sourcePaused) then throw 1
+    if n == 0 && !s.paused && !s.sourcePaused then throw 22
+    return ({ s with paused := n != 0 }, 0)
+  else if op == 15 then return ({ s with depositsPaused := n != 0 }, 0)
+  else if op == 16 then return ({ s with sourcePaused := n != 0 }, 0)
+  else throw 99
+
+def execute (s : State) (a : Action) : State × Nat × Nat :=
+  match runCall s a with
+  | .ok (next, value) => (next, 0, value)
+  | .error code => (s, code, 0)
+
+theorem failure_rolls_back (s : State) (a : Action) (code : Nat)
+    (h : runCall s a = .error code) : execute s a = (s, code, 0) := by
+  simp [execute, h]
+
+def snapshot (s : State) : Array Nat := Id.run do
+  let mut out := #[s.supply, s.assets, s.supplied, s.liquid, s.reserve, s.debt, s.synth,
+    s.held, s.basis, s.freed, s.reinvest, s.pending, s.queued, s.owed, s.queuedDebt,
+    s.head, s.unwind, s.requests.size, s.book.source, s.book.protocol, s.book.total,
+    s.book.index, s.book.epoch, s.book.scale, s.mainUnits, s.ownedCash, s.outstanding,
+    s.sourceHead, s.positions.size, s.unallocated, (s.paused || s.sourcePaused).toNat, s.depositsPaused.toNat,
+    s.sourcePaused.toNat, s.time]
+  for i in [:actors] do
+    let a := account s i
+    out := out ++ #[wallet s i, balance s i, units s i, a.units, a.index, a.epoch, a.scale,
+      if i == vaultId then s.liquid else s.collateral[i]!]
+  out := out ++ s.approvals
+  for r in s.requests do
+    let c := r.claim
+    out := out ++ #[r.owner, c.shares, c.owed, c.debt, r.synth, c.repaid, c.settled,
+      c.burned, c.active.toNat, c.claimed, r.eligible, r.account.units, r.account.index,
+      r.account.epoch, r.account.scale]
+  for i in [:s.positions.size] do
+    let p := position s i
+    out := out ++ #[p.units, p.principal, p.cash, p.remaining,
+      if i == 0 then zeroId else (request s (i-1)).owner]
+  return out
+
+end Juicer.PublicCalls
