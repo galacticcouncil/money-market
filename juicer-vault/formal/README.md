@@ -7,7 +7,7 @@ Hydration — in **Lean 4**. Contains conditional mathematical proofs and execut
 counterexample to exact aggregate unit conservation across lazy rescales.
 
 Lives beside the contracts it models: `juicer-vault/{src,test,formal}` (branch `juicer-next`).
-A self-contained Lake project; the Foundry build ignores it and vice-versa.
+A self-contained Lake project; `check-runtime.py` builds Lean and runs the Foundry comparisons.
 Strategy: Path C.
 
 ## Layout
@@ -44,9 +44,20 @@ JuicerLean/
    ├─ Rounding.lean       displayed-transfer bounds and integer/real mul-div refinement
    ├─ YieldTransitions.lean reserve limits, exit/harvest conservation and settled ownership traces
    ├─ LazyOwnership.lean  lazy holder traces with an explicit rescale rounding budget
+   ├─ RescaleBounds.lean  uniform slack and funded-claim bounds across bounded rescale histories
    ├─ LazyRefinement.lean epoch/scale normalization, runtime bounds and a rescale counterexample
+   ├─ Lifecycle.lean      holders and waiting requests, share partition and reachable liability bounds
+   ├─ LifecycleRefinement.lean request creation, exact runtime exit normalization and escrow guards
    ├─ MainDebt.lean       debt cohorts, source batches, vested fees and reserve limits
+   ├─ Orchestration.lean  frozen batch cursors, later receipts, bounded calls and repayment retry
+   ├─ MainHistories.lean  reachable source-claim and cash partitions across cohort operations
    ├─ PolicyQueue.lean    controller budgets, quotes, FIFO starts and collateral claims
+   ├─ QueueHistories.lean repeated settlement/claim histories and FIFO settlement work
+   ├─ PublicCalls.lean    public-call sequences, harvest/fees, debt rounding, deleveraging and rollback
+   ├─ PublicInvariants.lean custody, source, cash and lifecycle invariants for public-call histories
+   ├─ ScaledDebt.lean     Aave half-up ray arithmetic and executable scaled-balance histories
+   ├─ Checked.lean        uint256 arithmetic failures and atomic transaction semantics
+   ├─ CheckedRefinement.lean successful checked operations refine the natural-number models
    ├─ Environment.lean    external observation guards and ICE authentication limits
    └─ Refine.lean         Phase 3: integer floor guard conservatively refines the real floor,
                            incl. the loop-yield (accrueLoop) and re-peg fixed-point refinements
@@ -78,16 +89,22 @@ JuicerLean/
 
 ## Next version (`juicer-next`, plan §2–§4, §7)
 
-Aligned with Solidity at `bbe541f` on 9 October. The real-number models prove ideal accounting
+aligned with the allowance-fixed Solidity based on `juicer-next` at `21f5aa7` on 10 october. the real-number models prove ideal accounting
 properties; `FixedPoint/Runtime.lean` adds current integer arithmetic, epoch and rescale behavior.
-Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 820 Lean cases with the
+Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 1,430 Lean cases with the
 actual Solidity, and detect source or storage-layout drift. Same integrity bar: 0 `sorry`, axioms
 `propext`/`Classical.choice`/`Quot.sound` only.
 
 The integer lazy-account model proves aggregate bounds through settlement, wallet-weight changes,
-allocation, unit movement, burns, rescaling and write-off. Rescaling needs an explicit rounding
-budget; exact aggregate unit conservation is false for the seeded state in `ROUNDING.md`.
-These are conditional integer trace bounds, not full Solidity trace equivalence. The table below
+allocation, unit movement, burns, rescaling and write-off. Account and waiting-request indices use
+an overflow-safe ceil shift during rescaling. `RescaleBounds.lean` proves the numerator slack stays
+below one precision unit through arbitrary histories from genesis, so aggregate unit claims and
+aggregate funded claims cannot exceed their respective totals.
+The lifecycle layer includes waiting requests' committed units and accrual weights. Its share
+partition derives the allocation weight premise from genesis. Resumable source batches, retries,
+partial/final claim histories and selected checked-arithmetic failures have separate executable
+models and proofs. These are integer transition proofs with explicit environmental boundaries;
+full compiled-Solidity trace equivalence remains outside this project. The table below
 describes the separate ideal-arithmetic models.
 
 | Theorem | Claim |
@@ -102,6 +119,10 @@ describes the separate ideal-arithmetic models.
 | `LazyBook.view_run` / `LazyBook.run_totalBalance_add` | the lazy index (one bump per event, holders settled only when touched) implements the eager book along any trace, so the balance identity holds at every lazily reachable state |
 | `LazyBook.transfer_frame` / `LazyBook.transfer_noAlloc` | a transfer settles and writes only its two holders; it moves no index and mints no units |
 | `LazyBook.allocation_consistent` / `LazyBook.allocate_view_congr` | an event credits `m × weight/outside` on the balances standing at the event, however many transfers preceded it and whenever each holder last settled |
+| `lazy_trace_slack_lt_precision` / `lazy_genesis_funded_no_overclaim` | arbitrary lazy-ledger histories from genesis keep sub-precision slack and cannot overclaim aggregate funded shares |
+| `certified_calls_preserve` | collateral custody is conserved through any certified history of executable public-call results; failed calls supply frame certificates automatically |
+| `source_partition_of_history` / `cash_partition_of_history` / `lifecycle_claim_bound_of_history` | public-state projections inherit the existing Main source, cash and lazy-liability bounds from arbitrary valid transition histories |
+| `rayMulHalf_interval` / `rayDivHalf_interval` | Aave's half-up ray multiplication and division lie in their exact quotient intervals |
 | `ShareBook.eventVsTransfer` | against the old per-transfer allocation, only the interval's pre-transfer yield on the moved shares changes hands |
 | `ShareBook.deposit_newcomer` / `ShareBook.mintFirst_captures` | deposits allocate before they mint, so a newcomer captures no pre-entry yield (minting first would) |
 | `ShareBook.startExit_wallets` / `ShareBook.startExit_fold` | share conservation including the exit fold: supply and holders' wallets unchanged; exactly the burned units' funded slice moves from the fund into the escrow and joins the request's shares |
@@ -138,4 +159,24 @@ Its universal proofs include the synthetic floor for every debt, caps and unit c
 four rescale steps for any uint256 total, and stale/unauthorized callback behavior.
 
 The checked-in vectors are generated by Lean, not copied from Solidity test expectations.
+`MachineVectors.lean` adds 604 cases: 488 arithmetic boundaries, 40 account views, eight backing
+gross-ups, 12 resumable batches, 32 retries and 24 three-claim histories. The boundary cases check
+exact revert data as well as successful values. The public lifecycle regression starts from
+deposits and uses the vault's actual transfer, request, start, settle and claim entrypoints;
+external pool/yield behavior is mocked. Separate rollback tests exercise failures after writes.
 The old Verity bridge remains a separate simplified reference model; see [bridge scope](bridge/PARITY.md).
+
+`python3 check-stateful.py` runs public-call campaigns in two fixtures and replays them in Lean
+from fixture genesis. The checker compares state and outcomes after every step, enforces accounting
+partitions and rejects incomplete traces. The baseline covers vault/Main queues and claims; the
+market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
+price-driven deleveraging. The default eight seeds per fixture cover 5,017 recorded steps and
+1,059 expected reverts. Larger campaigns are configurable. See [stateful parity](STATEFUL_PARITY.md)
+for coverage gates and external mock boundaries. `check-runtime.py` includes both default fixtures.
+
+separate integration checks reach 64-bit and cumulative 256-bit accounting scales through public
+vault calls in controlled loss/refill environments, including a waiting request, and replay 516
+calls against Aave v3's actual
+`VariableDebtToken`, run repeated harvests across two vaults sharing one loop, and exercise a long
+ICE entry/expiry/reconcile/exit sequence. the Aave pool/index driver and ICE dispatch remain mocks;
+these checks do not claim deployed-protocol equivalence.

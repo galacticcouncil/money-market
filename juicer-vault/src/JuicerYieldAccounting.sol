@@ -141,6 +141,10 @@ contract JuicerYieldAccounting {
         return total == 0 ? 0 : Math.mulDiv(_funded(), balanceOf(owner), total);
     }
 
+    function _shiftIndex(uint256 index, uint256 shift) private pure returns (uint256) {
+        return index == 0 ? 0 : ((index - 1) >> shift) + 1;
+    }
+
     /// @notice the fund's vault shares attributable to unit holders
     function attributed() external view returns (uint256) {
         return totalUnits == 0 ? 0 : _funded();
@@ -149,11 +153,8 @@ contract JuicerYieldAccounting {
     function balanceOf(address owner) public view returns (uint256) {
         if (owner == vault || owner == address(this) || owner == address(0)) return units[owner];
         uint256 shift = unitScale - (accountEpoch[owner] == epoch ? accountScale[owner] : unitScale);
-        // shift stored indices up, not down: a rescale already floors stored units, and
-        // flooring the index too would let pending accrual re-claim the floored fraction,
-        // inflating the aggregate view past totalUnits. ceil-shift under-credits instead.
         uint256 previous = accountEpoch[owner] == epoch
-            ? Math.min(rewardIndex, Math.ceilDiv(accountIndex[owner], uint256(1) << shift)) : 0;
+            ? Math.min(rewardIndex, _shiftIndex(accountIndex[owner], shift)) : 0;
         uint256 owned = accountEpoch[owner] == epoch ? units[owner] >> shift : 0;
         return Math.min(totalUnits, owned + Math.mulDiv(_weight(owner), rewardIndex - previous, RAY));
     }
@@ -281,7 +282,7 @@ contract JuicerYieldAccounting {
         _settle(owner);
         bool current = requestEpoch[id] == epoch;
         uint256 shift = current ? unitScale - requestScale[id] : 0;
-        uint256 previous = current ? requestIndex[id] >> shift : 0;
+        uint256 previous = current ? Math.min(rewardIndex, _shiftIndex(requestIndex[id], shift)) : 0;
         uint256 burned = current ? requestUnits[id] >> shift : 0;
         units[owner] = Math.min(totalUnits, units[owner] + Math.mulDiv(shares, rewardIndex - previous, RAY));
         delete requestIndex[id];

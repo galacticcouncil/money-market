@@ -14,7 +14,7 @@ contract LeanLazyHistoryParityTest is Test {
         vm.store(address(y), keccak256(abi.encode(owner, slot)), bytes32(value));
     }
 
-    function test_rescaleCanLeaveOneExcessLazyUnit() public {
+    function test_rescaleCeilIndexPreventsLazyUnitExcess() public {
         ParityVault v = new ParityVault();
         JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
         uint256 divisor = 1 << 64;
@@ -42,8 +42,6 @@ contract LeanLazyHistoryParityTest is Test {
         assertEq(y.totalUnits(), minted + 1);
         assertEq(y.rewardIndex(), 1 + minted / 2);
         assertEq(y.balanceOf(OLD), 0);
-        // ceil-shifted account indices: the rescale under-credits each stale holder's pending
-        // unit, so the aggregate sits one below totalUnits instead of one above.
         assertEq(y.balanceOf(FIRST) + y.balanceOf(SECOND), y.totalUnits() - 1);
         vm.prank(address(v));
         y.settle(FIRST, SECOND, 0);

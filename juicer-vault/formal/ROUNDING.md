@@ -2,6 +2,8 @@
 
 this fixes the allowance mismatch found at `juicer-next` commit `ddf8186`. the implementation
 and executable Lean model now require the sender's displayed funded debit to equal the request.
+the result is reviewed on the allowance-fixed branch based on `juicer-next` at `21f5aa7`,
+10 october 2026.
 
 ## exact sender debit
 
@@ -70,107 +72,101 @@ evidence and do not establish full Solidity equivalence.
 forge test --offline --match-contract LeanRoundingReachabilityTest --match-test test_publicDonation -vv
 ```
 
-## separate lazy-rescale limitation
+## lazy-rescale index correction
 
-`test_rescaleCanLeaveOneExcessLazyUnit` in `LeanLazyHistoryParity.t.sol` reproduces a different
-rounding boundary in the actual accounting contract. the fixture seeds a valid aggregate unit
-balance before allocation: total units are `2^64 + 1`, the current index is `2^64`, an old holder
-owns `2^64 - 1` units with no wallet weight, and two holders each have wallet weight `RAY` and
-previous index `2^64 - 1`. their two pending units complete the initial total.
+`LeanLazyHistoryParityTest` originally exposed a seeded arithmetic counterexample in the
+accounting contract. before allocation, `totalUnits = 2^64 + 1`, `rewardIndex = 2^64`, an old
+zero-weight holder stores `2^64 - 1` units, and two `RAY`-weight holders have prior index
+`2^64 - 1`. an allocation performs one 64-bit rescale. shifting each prior index down with floor
+division re-credited fractions that the global shift had discarded, so aggregate `balanceOf`
+was `totalUnits + 1`.
 
-an allocation with source shares `2`, source holdings/equity `2 * 10^38`, zero fee/backing/funded
-shares and outside supply `2 * RAY` triggers one 64-bit rescale. the old holder's units round to
-zero; the two previous indices also round to zero. the resulting sum of unit balances is
-`totalUnits + 1`, including after both holders settle. `runtime_rescale_unit_excess` checks the
-same initial state and executable allocation in Lean.
+the correction shifts a nonzero prior index upward:
 
-this is a seeded arithmetic counterexample, not a public-call reachability proof or a production
-loss estimate. the excess is one **reward unit**, not one vault share. it invalidates an exact
-aggregate unit-conservation claim across every lazy rescale; displayed funded claims also depend
-on the fund's shares-per-unit ratio. it is separate from the allowance mismatch fixed above.
+```
+ceilShift(p, k) = p == 0 ? 0 : ((p - 1) >> k) + 1
+previous = min(shiftedRewardIndex, ceilShift(p, k))
+```
 
-### candidate correction: ceil-shifted rescale indices (this branch)
+`balanceOf` applies this to account indices and `startExit` applies it to waiting-request indices.
+the formula avoids `1 << k`, so it remains defined when cumulative lazy shift is 256 or larger.
+the `min` handles the case where the upward-rounded prior index is above the floor-shifted global
+index. stored units and committed request units continue to shift downward.
 
-this branch implements the smallest fix: `balanceOf` ceil-shifts a current-epoch account's
-stored index (`Math.ceilDiv(accountIndex, 1 << shift)`, clamped at `rewardIndex`) instead of
-floor-shifting it. the mechanism is the floor/ceil asymmetry: a rescale floors stored units
-(`u >> shift`) but also floored the stored index, letting pending accrual `w * (I' - p')` re-claim
-the floored fraction. ceil-shifting the index makes pending accrual only shrink, so the seeded
-counterexample now yields `totalUnits - 1` (a one-unit under-claim) instead of `totalUnits + 1`.
-the clamp at `rewardIndex` avoids an underflow for an account settled at a non-aligned index.
+an account-only candidate was incomplete in two ways. leaving `requestIndex` floor-shifted retained
+the same extra pending unit when a waiting request crossed a rescale and later started. computing
+`Math.ceilDiv(index, 1 << shift)` also made the divisor zero at `shift >= 256`, reverting a nonzero
+stale account view. `RescaleCeilIndexAudit.t.sol` has seeded and public controlled regressions for
+both paths.
 
-validated: the seeded parity fixture, the four `Rescale*` suites, the 826 Lean runtime vectors
-and the full Foundry suite (59 suites) pass; bytecode is 12,615 bytes (+102), CollateralVault
-unchanged at 24,480.
+### executable evidence
 
-**deferred Lean realignment.** the executable Lean model (`Runtime.accountUnits`) and the lazy
-trace invariant (`LazyOwnership`) still floor-shift the index, so they describe the pre-fix
-semantics and the `runtime_rescale_unit_excess` counterexample is checked against the old model.
-realigning them requires the strengthened rescale lemmas (`lazy_rescale_numerator` /
-`lazy_rescale_liability` dropping the `+ weight * (d - 1)` term, and a nested
-ceil/floor-of-power identity `ceil(⌊x/2^n⌋/2^k) = ceil(x/2^(n+k))`). those natural-number
-division identities resisted `omega`/`nlinarith` automation in this environment and are left as
-explicit follow-up: the Solidity change and its behavior are fully tested, but the Lean model
-and proofs must be updated (and the vectors regenerated) before this branch is treated as the
-new reviewed baseline.
+- `test_rescaleCeilIndexPreventsLazyUnitExcess` reruns the original seeded account case. the
+  aggregate finishes at `totalUnits - 1`, remains bounded after settlement, and matches
+  `runtime_rescale_ceil_index_closes_excess` in Lean.
+- the rescale suites cover concentrated weight, a later allocation, account splitting and 256
+  seeded fuzz cases. every corrected aggregate is at most `totalUnits`.
+- `test_ceilShiftCoversAccountsAndWaitingRequests` combines an old holder, an active holder and a
+  waiting request. their post-rescale claims equal `totalUnits`, and `startExit` preserves the
+  bound.
+- `test_fourShiftAllocationKeepsCeilShiftDefined` performs four 64-bit shifts in one allocation.
+  a nonzero stale index remains readable at `unitScale == 256`.
+- `test_publicControlledCyclesKeepCeilShiftDefined` reaches `unitScale == 256` after 12 controlled
+  loss/refill cycles through public `sync` calls. `balanceOf` remains defined.
+- `test_publicWaitingRequestUsesCeilShift` creates a real deposit and waiting redemption, reaches
+  `unitScale == 64`, and checks that public `startUnwinds` burns the ceil-shifted request claim.
 
-### investigation of the rescale excess (item 1, october 2026)
+these public controlled tests use the actual vault, SubLoop and accounting entry points without
+accounting storage writes or vault impersonation. the waiting-request trace raises the test TVL cap,
+uses two deposits of `RAY` base units, and both public traces mint or burn mock aPRIME to represent
+large external source-value changes. they establish control-flow reachability in the fixture, not
+the economic feasibility of producing those conditions in a deployed market.
 
-mechanism. `_allocate` rescales by shifting `totalUnits` and `rewardIndex` down 64 bits when
-`totalUnits > 2^160 * denominator / max(denominator, outsideValue)`. `balanceOf` shifts a
-current-epoch account's stored units and index lazily. the rounding split is:
+broader public searches in `RescaleReachability.t.sol` cover deposits, `rebalance`, `pokeBorrow`,
+loss/refill cycles, transfers and account splitting. the untargeted 24-round and 60-round searches
+remain at scale zero because zero-value losses take the write-off branch. the targeted
+positive-residual fixture reaches scale 64 in four cycles; three public holders finish two units
+below `totalUnits`.
 
-- stored units `u` become `floor(u / 2^64)`;
-- pending accrual re-forms at the shifted indices as `w * (I' - floor(p / 2^64)) / RAY`,
-  which overcounts the shifted entitlement `w * (I - p) / (RAY * 2^64)` by up to
-  `w * (2^64 - 1) / (RAY * 2^64)` per account;
-- the per-account `min(totalUnits, ...)` cap truncates any single holder's excess.
+`RescaleEconomics.t.sol` reruns the original seeded state at funded ratios of one and three shares
+per unit. corrected aggregate displays remain within the fund, full displayed transfers remain
+representable, and two exits satisfy `foldedFirst + foldedSecond + residue = F`. these tests show
+how the correction behaves at the previously measured boundary; they do not estimate attacker
+profit or deployed-market loss.
 
-the seeded case is minimal for a non-trivial excess: one stale holder with wallet weight `RAY`
-produces `floor((M + 2) / 2) * 2 = M + 2` against `totalUnits = M + 1`, and the old holder's
-floored `2^64 - 1` stored units free exactly the headroom the cap would otherwise remove.
+ceil-shifting deliberately resolves the ambiguous fractional boundary downward. the original
+seeded state therefore finishes one reward unit below `totalUnits`; at funded ratios one and three,
+the measured displayed headroom is one and three vault-share base units. exits conserve assets but
+can leave the corresponding funded residue behind the unclaimed unit. exact redistribution of
+every holder's discarded fraction would require aggregate holder state that this constant-cost
+lazy design does not maintain. the no-overclaim theorem is an upper bound; it does not prove exact
+aggregate conservation, a lower bound on claims, or a cumulative fairness bound for arbitrary
+holder counts and repeated rescales.
 
-accumulation. empirical seeded-state runs in `RescaleAmplification.t.sol`:
+### proof boundary
 
-- one rescale with two stale `RAY` holders leaves exactly one excess unit;
-- concentrating all stale weight on one holder cannot push that holder past `totalUnits`
-  (the per-account cap binds);
-- a second allocation from the already-rescaled state leaves the excess at one: the rescale
-  collapses the index range, so the same holders' subsequent pending accrual is floored to
-  zero units until the index grows by another `RAY`-scaled step;
-- a 256-case fuzz over seeded totals, indices and holder counts never produced an excess
-  above the stale-holder count, and the aggregate never exceeded `3 * totalUnits + holders`
-  (the per-account cap envelope).
+for current index `I`, prior index `p`, divisor `d = 2^k`, weight `w`, precision `R`, total units
+`T` and numerator slack `E`, ceil-shifting gives:
 
-public-call reachability. `RescaleReachability.t.sol` drives the deployed vault, SubLoop and
-accounting through deposits, `rebalance`, `pokeBorrow`, loss/refill cycles on the mocked prime
-position, wallet transfers and account splitting. across 24 deep loss/refill rounds and a
-60-round approach test, `totalUnits` tracked roughly one third of `totalAssets` and
-`unitScale` never left zero. reaching one rescale through public calls requires
-`totalUnits > 2^160 * denominator / max(denominator, outsideValue)`; with
-`totalUnits ~ before / 3` that needs a unit-to-asset ratio near `10^48`, i.e. the fund's asset
-value must fall to about `2^112` times the total asset base without a write-off. losses alone
-cannot do that: when the pre-allocation value reaches zero, `_allocate` writes the fund off
-instead of rescaling. no public-call path was found, and the write-off/reset behavior is the
-structural reason the seeded index `2^64` at totalUnits `2^64 + 1` cannot be grown by deposits
-alone: index growth mints units at least proportionally to `outsideSupply / RAY`.
+```
+d * (floor(I / d) - min(floor(I / d), ceil(p / d))) <= I - p
+E' = floor(((T mod d) * R + E) / d)
+```
 
-measured impact. `RescaleEconomics.t.sol` runs actual `settle`, transfer and `startExit` calls
-on the post-rescale state:
+`LazyOwnership.lean` proves the first inequality for each account and lifts it to aggregate
+liability. the former `w * (d - 1)` rescale term disappears. `RescaleBounds.lean` proves that
+`E < R` implies `E' < R`; ordinary steps preserve slack and write-off resets it. therefore any
+modeled trace from genesis has aggregate unit claims at most `T`, including histories whose
+liability slots represent waiting requests. for `T > 0`, the sum of individually floored funded
+claims is also at most `F`.
 
-- at one funded share per unit the excess displays one extra share (`floor(F/T) = 1`);
-- under a 3x donation (coarse units) the aggregate display exceeds the fund by three shares,
-  and a full-slice transfer of the excess still succeeds;
-- exiting both holders folds `foldedFirst + foldedSecond + residue = F` exactly: the excess
-  unit changes who receives the fund's shares, not how many shares exist;
-- with concentrated wallet weight the per-account cap activates and reduces the aggregate
-  excess instead of growing it.
+`Rounding.lean` proves nested ceil shifts compose and proves the natural-number definition equals
+the overflow-safe Solidity expression above, including shifts of 256 or more. `Runtime.lean`,
+`Checked.lean` and their refinements use the corrected account and request semantics.
 
-verdict. the finding is a real arithmetic counterexample to exact aggregate unit conservation,
-but it is not reachable through observed public-call sequences, the excess does not compound
-across consecutive allocations without an intervening index-building phase, and its collateral
-effect is bounded by `floor(F * excess / totalUnits)` — already covered by the proved
-`lazy_funded_claims_bound`. no correction is proposed here: the smallest change that would
-remove the one-unit excess (per-holder floor alignment at rescale) would add holder-scanning
-state or break lazy constant-cost accounting, and the proved funded bound already caps the
-asset-level effect below one share per unit of excess at any reachable `F/T`.
+verdict. the original floor/floor arithmetic finding was real. the complete correction is a
+constant-cost change with no holder scan: ceil-shift both ordinary and waiting-request indices with
+the overflow-safe formula, then clamp to the current index. executable regressions close the known
+seeded and controlled public traces, and the Lean model proves aggregate no-overclaim for its full
+lazy-ledger transition system. economic reachability against a deployed market and full Solidity
+trace equivalence remain outside these results.

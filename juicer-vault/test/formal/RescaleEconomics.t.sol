@@ -6,10 +6,8 @@ import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 import {ParityVault} from "./LeanRuntimeParity.t.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-/// @notice economic weight of the seeded one-unit excess: what an excess reward unit pays
-/// through actual settle/transfer/exit calls at varying funded-shares-per-unit ratios.
-/// seeded storage (not public-call reachability); collateral effects are measured against
-/// the fixture vault's balances.
+/// @notice economic regression coverage for the corrected seeded rescale across
+/// settle/transfer/exit calls and varying funded-shares-per-unit ratios.
 contract RescaleEconomicsTest is Test {
     uint256 constant RAY = 1e27;
     uint256 constant D = 1 << 64;
@@ -22,8 +20,7 @@ contract RescaleEconomicsTest is Test {
         vm.store(address(y), keccak256(abi.encode(owner, slot)), bytes32(value));
     }
 
-    /// @dev the established seeded rescale; afterwards FIRST and SECOND hold M+2 viewed units
-    /// against totalUnits = M+1, M = 2*(2e38-2)/3. F funded shares sit in the fund.
+    /// @dev the original seeded counterexample after one corrected rescale.
     function _rescaled(uint256 funded) internal returns (JuicerYieldAccounting y, ParityVault v) {
         v = new ParityVault();
         y = new JuicerYieldAccounting(address(v));
@@ -50,9 +47,8 @@ contract RescaleEconomicsTest is Test {
         return y.balanceOf(OLD) + y.balanceOf(FIRST) + y.balanceOf(SECOND);
     }
 
-    /// F/T ~ 1 (fine units): with the ceil-shifted index the aggregate under-claims by one
-    /// unit, so the aggregate displayed funded amount sits one share below the fund.
-    function test_fineUnitsUnderclaimDisplaysOneLess() public {
+    /// F/T = 1: aggregate displayed funded claims stay within the fund.
+    function test_fineUnitsStayFunded() public {
         (JuicerYieldAccounting y, ParityVault v) = _rescaled(0);
         uint256 T = y.totalUnits();
         v.mint(address(y), T); // F == T: one share per unit
@@ -60,34 +56,28 @@ contract RescaleEconomicsTest is Test {
         uint256 displayed = y.fundedOf(FIRST) + y.fundedOf(SECOND);
         emit log_named_uint("displayed funded", displayed);
         emit log_named_uint("funded", T);
-        assertEq(displayed, T - 1, "aggregate display under-claims by one share at F == T");
+        assertEq(displayed, T - 1, "aggregate display stays below funded");
     }
 
-    /// donation-driven F/T >> 1 (coarse units): the aggregate display can no longer exceed
-    /// the fund's shares; the shortfall is the under-credited pending fraction.
-    function test_coarseUnitsNoLongerOverdraw() public {
+    /// donation-driven F/T = 3 remains bounded and a full displayed slice can move exactly.
+    function test_coarseUnitsStayFundedAndSpendable() public {
         (JuicerYieldAccounting y, ParityVault v) = _rescaled(0);
         uint256 T = y.totalUnits();
         uint256 F = 3 * T; // 3 shares per unit
         v.mint(address(y), F);
         uint256 displayed = y.fundedOf(FIRST) + y.fundedOf(SECOND);
         emit log_named_uint("displayed funded", displayed);
-        assertLe(displayed, F, "aggregate display never exceeds the fund");
-        // FIRST moves its entire displayed funded balance to SECOND; the exact-debit guard
-        // still governs.
+        emit log_named_uint("funded headroom", F - displayed);
+        assertLe(displayed, F, "aggregate display stays within funded shares");
+        // FIRST tries to move its entire displayed funded balance to SECOND.
         uint256 firstDisplay = y.fundedOf(FIRST);
         vm.prank(address(v));
-        try y.settle(FIRST, SECOND, firstDisplay) {
-            emit log("full-slice transfer succeeded");
-            assertEq(y.fundedOf(FIRST), 0);
-        } catch {
-            emit log("full-slice transfer reverted (InexactShares)");
-        }
+        y.settle(FIRST, SECOND, firstDisplay);
+        assertEq(y.fundedOf(FIRST), 0);
     }
 
-    /// exit path: with the excess live, both holders exit their full view in turn through
-    /// startExit. measure the total folded shares against the fund's F.
-    function test_exitFoldUnderExcess() public {
+    /// both holders exit their full view in turn through startExit; folds and residue conserve F.
+    function test_exitFoldConservesFund() public {
         (JuicerYieldAccounting y, ParityVault v) = _rescaled(0);
         uint256 T = y.totalUnits();
         uint256 F = 2 * T;
@@ -110,20 +100,19 @@ contract RescaleEconomicsTest is Test {
             "folds and residue conserve the fund's shares");
     }
 
-    /// the per-account cap: when one holder's raw claim would exceed totalUnits, its view is
-    /// truncated. after the rescale, T = M+1 and each holder's raw claim is (M+2)/2 < T,
-    /// so the cap is inactive here; with concentrated weight it activates and *reduces* the
-    /// aggregate excess.
-    function test_recipientCapTruncatesExcess() public {
+    /// concentrating wallet weight still cannot create an aggregate unit overclaim.
+    function test_recipientConcentrationStaysWithinTotal() public {
         (JuicerYieldAccounting y, ParityVault v) = _rescaled(0);
         uint256 T = y.totalUnits();
         // concentrate all wallet weight on FIRST: its raw claim doubles.
         uint256 rawFirst = Math.mulDiv(2 * RAY, y.rewardIndex(), RAY);
         emit log_named_uint("raw claim with double weight", rawFirst);
         emit log_named_uint("totalUnits", T);
-        if (rawFirst > T) {
-            emit log("cap would bind: excess shrinks instead of growing");
-        }
-        assertLt(y.balanceOf(FIRST), T, "single-holder view stays under the cap");
+        assertGt(rawFirst, T);
+        vm.prank(SECOND);
+        v.transfer(FIRST, RAY);
+        assertLe(y.balanceOf(FIRST), T, "concentrated view remains capped");
+        assertEq(y.balanceOf(SECOND), 0);
+        assertLe(_sum(y), T, "aggregate view stays within totalUnits");
     }
 }
