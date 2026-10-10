@@ -17,5 +17,5 @@ TOP 5 KEEPER FEATURES TO IMPORT INTO HYDRATION-NODE
    -> OCW + unsigned. Only redeem needs CLAIM_OPERATOR_ROLE granted to the pallet acct;
       everything else in 1-5 is already permissionless.
 
-Not importing: propeller-rebalancer (pool-143 peg) - pallet-hsm is already the HOLLAR peg
+Not importing: juicer-rebalancer (pool-143 peg) - pallet-hsm is already the HOLLAR peg
 keeper, check if adding PRIME/pool-143 to its collateral set covers it before writing code.
