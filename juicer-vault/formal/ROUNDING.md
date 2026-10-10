@@ -1,7 +1,8 @@
 # funded-share transfer rounding
 
-reviewed against `juicer-next` at `bbe541f`, 9 october 2026. this is an open implementation
-finding; the Solidity contracts have not been changed by this formal work.
+reviewed against `juicer-next` at `21f5aa7`, 10 october 2026. this is an implementation finding;
+the Solidity contracts have not been changed by this formal work. the stacked allowance fix is
+tracked separately in PR #73.
 
 ## bound
 
@@ -88,7 +89,32 @@ zero; the two previous indices also round to zero. the resulting sum of unit bal
 `totalUnits + 1`, including after both holders settle. `runtime_rescale_unit_excess` checks the
 same initial state and executable allocation in Lean.
 
-this is a seeded arithmetic counterexample, not a public-call reachability proof or a production
-loss estimate. the excess is one **reward unit**, not one vault share. it invalidates an exact
-aggregate unit-conservation claim across every lazy rescale; displayed funded claims also depend
-on the fund's shares-per-unit ratio. it is separate from the allowance mismatch above.
+this is a seeded arithmetic counterexample, not a production loss estimate. the excess is one
+**reward unit**, not one vault share. it invalidates an exact aggregate unit-conservation claim
+across every lazy rescale; displayed funded claims also depend on the fund's shares-per-unit ratio.
+it is separate from the allowance mismatch above.
+
+`test_positiveResidualLossRefillsReachRescale` now shows that a rescale itself is public-call
+reachable in the controlled vault/SubLoop fixture. it repeatedly leaves positive residual assets,
+then restores source value and calls `sync`; after four cycles `unitScale` reaches 64 without an
+epoch write-off. the fixture controls the external aPRIME balance by minting and burning mock
+tokens. it does not write accounting storage and does not establish that the required value swings
+are economically reachable against a deployed market.
+
+`test_multiplePublicHoldersStayWithinTotalAtReachableRescale` repeats that path with three public
+depositors. after the rescale their aggregate unit claims are two units below `totalUnits`; the
+seeded one-unit excess is not reproduced by this public history. this separates two conclusions:
+public calls can reach the rescale control flow, while the known excess state remains a seeded
+arithmetic witness rather than a public-call reproduction.
+
+`RescaleBounds.lean` proves the tighter one-step slack recurrence
+
+```
+E' <= ((T mod 2^k) * R + E) / 2^k + W
+```
+
+and a uniform arbitrary-history bound `E <= 2 * (R + cap)` when every rescale has positive shift
+and tracked weight at most `cap`. it derives funded-claim bounds from that slack and proves no
+aggregate funded overclaim when the resulting grain is smaller than `totalUnits`. these theorems
+bound the seeded phenomenon; they do not turn the controlled reachability test into a deployed
+economic path.

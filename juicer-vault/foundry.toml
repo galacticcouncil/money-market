@@ -7,6 +7,7 @@ script = "script"
 # so this module compiles without a separate `forge install`. Vendor independently
 # before audit if a clean dependency boundary is wanted.
 libs = ["../bil-vault/lib"]
+remappings = ["@aave/=../node_modules/@aave/"]
 solc_version = "0.8.22"
 optimizer = true
 # The combined fee/discount vault has little EIP-170 headroom. Keep the runtime

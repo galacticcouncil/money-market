@@ -107,11 +107,20 @@ token implementation. Outside repayments, reserve deposits and Main funding are 
 funded environment actions, not trading profit. Market changes, time advances and liquidity
 controls are also recorded actions.
 
-The corpus stays below rescale thresholds and checks `unitScale == 0`. The separate rescale
-investigation has bounded reachability/economics evidence, not a general unreachability proof.
-Live Aave/SubLoop execution, ICE/solver routes, multi-vault harvest allocation, malicious tokens,
-reentrancy, arbitrary oracle/configuration changes and full uint256 input space remain outside
-these fixtures. Existing component and regression coverage for those boundaries remains separate.
+the corpus stays below rescale thresholds and checks `unitScale == 0`. a separate public-call
+fixture reaches `unitScale == 64` through positive-residual loss/refill cycles and keeps three
+ordinary holders within `totalUnits`; it does not reproduce the seeded excess-unit witness.
+
+separate integration checks cover three other fixture boundaries. `LeanScaledDebt.t.sol` runs 516
+mint, burn and index steps against Aave core v3's actual `VariableDebtToken` 1.19.3, with a mock
+Pool that drives the normalized index, and Lean replays every scaled balance and expected revert.
+`SharedFlowHarness.t.sol` runs repeated harvests for two real vault instances sharing one SubLoop
+and Harvester. its ICE sequence uses the actual SubLoop with `MockIntentDispatch` through entry,
+expiry, permissionless reconciliation, exit, a missed callback, a late callback and final pull.
+
+the deployed Aave Pool and reserve lifecycle, live pallet/solver execution, malicious tokens,
+reentrancy, arbitrary oracle/configuration changes and the full uint256 input space remain outside
+these fixtures. the integration checks are bounded executable comparisons, not live-chain tests.
 
 This is differential execution evidence for the exercised public control flow. The machine
 reuses proved arithmetic transitions, but its correspondence to arbitrary Solidity executions

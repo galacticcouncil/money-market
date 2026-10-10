@@ -159,50 +159,48 @@ def spend (s : State) (owner caller amount : Nat) : Except Nat State := do
   if allowed < amount then throw 16
   return { s with approvals := s.approvals.set! i (allowed - amount) }
 
-def pay (s : State) (key limit : Nat) : State × Nat × Nat := Id.run do
-  let mut s := s
-  let mut p := position s key
+def pay (s : State) (key limit : Nat) : State × Nat × Nat :=
+  let p := position s key
   let debt := mainDebtOf s.debt s.mainUnits p
-  let before := p.principal
   let quantum := 2 * ceilDiv s.debtIndex ray
-  let cap := debt - min p.principal debt + min (min p.principal debt) limit
+  let principal := min p.principal debt
+  let interest := debt - principal
+  let cap := interest + min principal limit
   let drawn := if key != 0 && p.remaining == 0 && spendable s key < cap then
     min s.protocolReserve (cap - spendable s key + quantum) else 0
-  p := { p with cash := p.cash + drawn }
-  s := { s with protocolReserve := s.protocolReserve - drawn, ownedCash := s.ownedCash + drawn }
-  p := { p with principal := min p.principal debt }
-  let interest := debt - p.principal
-  let usable := p.cash - (fee s key).feeLeft
-  let amount := min usable (if key == 0 && limit != 0 then min debt limit else interest + min p.principal limit)
-  s := { s with repayCalls := s.repayCalls + (if amount == 0 then 0 else 1) }
-  let mut paid := min (min amount s.debt) s.repayLimit
-  let mut reduced := if paid == s.debt then paid else paid - s.repayLoss
-  if paid == amount && reduced < amount && paid < usable then
-    s := { s with repayCalls := s.repayCalls + 1 }
-    let extra := min (min (min (usable - paid) (amount - reduced + quantum)) (s.debt - reduced)) s.repayLimit
-    reduced := reduced + (if extra == s.debt - reduced then extra else extra - s.repayLoss)
-    paid := paid + extra
-  if amount != 0 then
-    let burned := if debt ≤ reduced then p.units else reduced * s.mainUnits / s.debt
-    p := { p with
-      cash := p.cash - paid,
-      units := p.units - burned,
-      principal := p.principal - min p.principal (reduced - interest) }
-    s := { s with mainUnits := s.mainUnits - burned, ownedCash := s.ownedCash - paid }
-  if debt ≤ reduced then
-    s := { s with mainUnits := s.mainUnits - p.units }
-    p := { p with units := 0 }
-  let unused := min drawn (p.cash - (fee s key).feeLeft)
-  p := { p with cash := p.cash - unused }
+  let usable := p.cash + drawn - (fee s key).feeLeft
+  let amount := min usable (if key == 0 && limit != 0 then min debt limit else interest + min principal limit)
+  let firstPaid := min (min amount s.debt) s.repayLimit
+  let firstReduced := if firstPaid == s.debt then firstPaid else firstPaid - s.repayLoss
+  let retry := firstPaid == amount && firstReduced < amount && firstPaid < usable
+  let extra := if retry then
+    min (min (min (usable - firstPaid) (amount - firstReduced + quantum))
+      (s.debt - firstReduced)) s.repayLimit else 0
+  let paid := firstPaid + extra
+  let reduced := firstReduced + (if retry then
+    if extra == s.debt - firstReduced then extra else extra - s.repayLoss else 0)
+  let spent := if amount != 0 then paid else 0
+  let burned := if amount != 0 then
+    if debt ≤ reduced then p.units else reduced * s.mainUnits / s.debt else 0
+  let units := p.units - burned
+  let principal := if amount != 0 then principal - min principal (reduced - interest) else principal
+  let unused := min drawn (p.cash + drawn - spent - (fee s key).feeLeft)
+  let total := s.mainUnits - burned
+  let next := { p with
+    cash := p.cash + drawn - spent - unused,
+    units := if debt ≤ reduced then 0 else units, principal }
   let synthBurn := if s.debt == 0 then 0 else s.synth * reduced / s.debt
-  s := { s with
-    debt := s.debt - reduced, synth := s.synth - synthBurn,
-    protocolReserve := s.protocolReserve + unused, ownedCash := s.ownedCash - unused }
-  return (setPosition s key p, before - p.principal, reduced)
+  (setPosition { s with
+    mainUnits := if debt ≤ reduced then total - units else total,
+    ownedCash := s.ownedCash + drawn - spent - unused,
+    protocolReserve := s.protocolReserve - drawn + unused,
+    repayCalls := s.repayCalls + (if amount == 0 then 0 else 1) + (if retry then 1 else 0),
+    debt := s.debt - reduced, synth := s.synth - synthBurn } key next,
+    p.principal - principal, reduced)
 
-def cover (s : State) (n : Nat) : Except Nat State := do
-  if s.reserve < n then throw 17
-  return { s with reserve := s.reserve - n, assets := s.assets + n }
+def cover (s : State) (n : Nat) : Except Nat State :=
+  if s.reserve < n then .error 17
+  else .ok { s with reserve := s.reserve - n, assets := s.assets + n }
 
 def startOne (s : State) (id : Nat) : Except Nat State := do
   let mut s := checkpoint s zeroId zeroId
@@ -275,6 +273,17 @@ def creditPosition (s : State) (key weight : Nat) : State × Nat := Id.run do
     outstanding := s.outstanding - cash - cost,
     batchWeight := s.batchWeight + weight }, cost + charged)
 
+def creditSteps : Nat → State → State
+  | 0, s => s
+  | fuel + 1, s =>
+    if s.batchTail ≤ s.batchCursor then s else
+    let key := s.batchCursor
+    let next := (creditPosition s key (position s key).remaining).1
+    creditSteps fuel { next with
+      batchCursor := key + 1,
+      sourceHead := if key == next.sourceHead && (position next key).remaining == 0
+        then next.sourceHead + 1 else next.sourceHead }
+
 def credit (s : State) (amount cost : Nat) : State := Id.run do
   let mut s := { s with
     unallocated := s.unallocated + amount,
@@ -287,34 +296,37 @@ def credit (s : State) (amount cost : Nat) : State := Id.run do
       batchCursor := s.sourceHead, batchTail := s.positions.size }
     let (next, activeCost) := creditPosition s 0 s.activeRemaining
     s := { next with delever := next.delever - activeCost }
-  for _ in [:64] do
-    if s.batchTail ≤ s.batchCursor then break
-    let key := s.batchCursor
-    s := (creditPosition s key (position s key).remaining).1
-    s := { s with
-      batchCursor := key + 1,
-      sourceHead := if key == s.sourceHead && (position s key).remaining == 0 then s.sourceHead + 1 else s.sourceHead }
+  s := creditSteps 64 s
   if s.batchCursor == s.batchTail then s := { s with batchAmount := 0, batchCost := 0, batchWeight := 0 }
   return s
 
+def settleRecord (s : State) (id : Nat) (r : Request) (next : RedemptionState) : State :=
+  let withdrawn := min (next.settled - r.claim.settled) s.supplied
+  { s with
+    requests := s.requests.set! id { r with claim := next },
+    queuedDebt := s.queuedDebt - (next.repaid - r.claim.repaid),
+    supplied := s.supplied - withdrawn,
+    liquid := s.liquid + withdrawn }
+
+def finishSettle (s : State) (id : Nat) (r : Request) (paid : Nat) : State × Bool :=
+  let next := settleRedemption r.claim paid
+  let nextState := settleRecord s id r next
+  if next.repaid < next.debt then (nextState, false)
+  else ({ nextState with head := id + 1 }, true)
+
+def settleOne (s : State) : State × Bool :=
+  if s.paused || s.sourcePaused || s.delever != 0 || s.unwind ≤ s.head then (s, false) else
+  let id := s.head
+  let r := request s id
+  let (nextState, paid, _) := if r.claim.debt == r.claim.repaid then (s, 0, 0)
+    else pay s (id + 1) (r.claim.debt - r.claim.repaid)
+  finishSettle nextState id r paid
+
 def settleMany : Nat → State → State
   | 0, s => s
-  | fuel + 1, s => Id.run do
-    if s.paused || s.sourcePaused || s.delever != 0 || s.unwind ≤ s.head then return s
-    let id := s.head
-    let r := request s id
-    let (s, paid, _) := if r.claim.debt == r.claim.repaid then (s, 0, 0)
-      else pay s (id + 1) (r.claim.debt - r.claim.repaid)
-    let next := settleRedemption r.claim paid
-    let released := next.settled - r.claim.settled
-    let withdrawn := min released s.supplied
-    let s := { s with
-      requests := s.requests.set! id { r with claim := next },
-      queuedDebt := s.queuedDebt - (next.repaid - r.claim.repaid),
-      supplied := s.supplied - withdrawn,
-      liquid := s.liquid + withdrawn }
-    if next.repaid < next.debt then return s
-    return settleMany fuel { s with head := id + 1 }
+  | fuel + 1, s =>
+    let (next, more) := settleOne s
+    if more then settleMany fuel next else next
 
 def harvestable (s : State) :=
   let equity := sourceEquity s
