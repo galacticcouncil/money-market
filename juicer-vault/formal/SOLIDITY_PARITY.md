@@ -110,6 +110,12 @@ checked rescale from a uint256 total. Failed transaction bodies retain their com
 in the model; Solidity regressions also verify rollback after checkpoint, token receipt, claim
 and borrow writes would otherwise have occurred.
 
+- `RescaleAmplification.t.sol` / `RescaleReachability.t.sol` / `RescaleEconomics.t.sol` /
+  `RescaleFeasibility.t.sol` investigate the seeded lazy-rescale unit excess from
+  `LeanLazyHistoryParityTest`: per-rescale envelope, public-call approach, asset-level impact
+  and storage preconditions. they seed accounting storage or drive public vault calls and are
+  not included in the comparison-vector counts.
+
 `LeanCoverageParity.t.sol` calls actual Main/controller/claim implementations. Main sequences
 enter through vault-authorized public methods; claim and availability cases use inherited
 harnesses to seed their state. Pool, source and fee-sink behavior is supplied by fixtures.
@@ -173,8 +179,9 @@ declarations, including generated lemmas, and finds only `propext`, `Classical.c
 contain 1,430 rows: the previous 826 plus 604 machine-boundary and history cases. Validation also
 includes 512 transfer rounding fuzz cases, the public vault lifecycle, rollback regressions and the
 existing seeded lazy-rescale fixture. All three generated datasets reproduce exactly.
-The full formal check passes 64 Foundry tests with zero failures and skips, including inherited
-fixture regressions; source fingerprints and storage-layout checks also pass.
+The full formal check passes 64 Lean-prefixed Foundry tests with zero failures and skips, including inherited
+fixture regressions; the rescale suites add 18 test executions (three inherited harvest tests)
+and 256 fuzz cases. source fingerprints and storage-layout checks also pass.
 The prior allowance-fix run also passed 187 distinct targeted tests. Production Solidity is
 unchanged by this proof merge; the prior London build measured CollateralVault at 24,480 bytes
 and JuicerYieldAccounting at 12,513 bytes (117 bytes larger than the original branch).

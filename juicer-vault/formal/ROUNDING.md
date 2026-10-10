@@ -88,3 +88,64 @@ this is a seeded arithmetic counterexample, not a public-call reachability proof
 loss estimate. the excess is one **reward unit**, not one vault share. it invalidates an exact
 aggregate unit-conservation claim across every lazy rescale; displayed funded claims also depend
 on the fund's shares-per-unit ratio. it is separate from the allowance mismatch fixed above.
+
+### investigation of the rescale excess (item 1, october 2026)
+
+mechanism. `_allocate` rescales by shifting `totalUnits` and `rewardIndex` down 64 bits when
+`totalUnits > 2^160 * denominator / max(denominator, outsideValue)`. `balanceOf` shifts a
+current-epoch account's stored units and index lazily. the rounding split is:
+
+- stored units `u` become `floor(u / 2^64)`;
+- pending accrual re-forms at the shifted indices as `w * (I' - floor(p / 2^64)) / RAY`,
+  which overcounts the shifted entitlement `w * (I - p) / (RAY * 2^64)` by up to
+  `w * (2^64 - 1) / (RAY * 2^64)` per account;
+- the per-account `min(totalUnits, ...)` cap truncates any single holder's excess.
+
+the seeded case is minimal for a non-trivial excess: one stale holder with wallet weight `RAY`
+produces `floor((M + 2) / 2) * 2 = M + 2` against `totalUnits = M + 1`, and the old holder's
+floored `2^64 - 1` stored units free exactly the headroom the cap would otherwise remove.
+
+accumulation. empirical seeded-state runs in `RescaleAmplification.t.sol`:
+
+- one rescale with two stale `RAY` holders leaves exactly one excess unit;
+- concentrating all stale weight on one holder cannot push that holder past `totalUnits`
+  (the per-account cap binds);
+- a second allocation from the already-rescaled state leaves the excess at one: the rescale
+  collapses the index range, so the same holders' subsequent pending accrual is floored to
+  zero units until the index grows by another `RAY`-scaled step;
+- a 256-case fuzz over seeded totals, indices and holder counts never produced an excess
+  above the stale-holder count, and the aggregate never exceeded `3 * totalUnits + holders`
+  (the per-account cap envelope).
+
+public-call reachability. `RescaleReachability.t.sol` drives the deployed vault, SubLoop and
+accounting through deposits, `rebalance`, `pokeBorrow`, loss/refill cycles on the mocked prime
+position, wallet transfers and account splitting. across 24 deep loss/refill rounds and a
+60-round approach test, `totalUnits` tracked roughly one third of `totalAssets` and
+`unitScale` never left zero. reaching one rescale through public calls requires
+`totalUnits > 2^160 * denominator / max(denominator, outsideValue)`; with
+`totalUnits ~ before / 3` that needs a unit-to-asset ratio near `10^48`, i.e. the fund's asset
+value must fall to about `2^112` times the total asset base without a write-off. losses alone
+cannot do that: when the pre-allocation value reaches zero, `_allocate` writes the fund off
+instead of rescaling. no public-call path was found, and the write-off/reset behavior is the
+structural reason the seeded index `2^64` at totalUnits `2^64 + 1` cannot be grown by deposits
+alone: index growth mints units at least proportionally to `outsideSupply / RAY`.
+
+measured impact. `RescaleEconomics.t.sol` runs actual `settle`, transfer and `startExit` calls
+on the post-rescale state:
+
+- at one funded share per unit the excess displays one extra share (`floor(F/T) = 1`);
+- under a 3x donation (coarse units) the aggregate display exceeds the fund by three shares,
+  and a full-slice transfer of the excess still succeeds;
+- exiting both holders folds `foldedFirst + foldedSecond + residue = F` exactly: the excess
+  unit changes who receives the fund's shares, not how many shares exist;
+- with concentrated wallet weight the per-account cap activates and reduces the aggregate
+  excess instead of growing it.
+
+verdict. the finding is a real arithmetic counterexample to exact aggregate unit conservation,
+but it is not reachable through observed public-call sequences, the excess does not compound
+across consecutive allocations without an intervening index-building phase, and its collateral
+effect is bounded by `floor(F * excess / totalUnits)` — already covered by the proved
+`lazy_funded_claims_bound`. no correction is proposed here: the smallest change that would
+remove the one-unit excess (per-holder floor alignment at rescale) would add holder-scanning
+state or break lazy constant-cost accounting, and the proved funded bound already caps the
+asset-level effect below one share per unit of excess at any reachable `F/T`.
