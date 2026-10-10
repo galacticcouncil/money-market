@@ -101,9 +101,9 @@ current-epoch account's stored units and index lazily. the rounding split is:
   `w * (2^64 - 1) / (RAY * 2^64)` per account;
 - the per-account `min(totalUnits, ...)` cap truncates any single holder's excess.
 
-the seeded case is minimal for a non-trivial excess: one stale holder with wallet weight `RAY`
-produces `floor((M + 2) / 2) * 2 = M + 2` against `totalUnits = M + 1`, and the old holder's
-floored `2^64 - 1` stored units free exactly the headroom the cap would otherwise remove.
+the seeded case uses two stale holders, each with wallet weight `RAY`. their combined
+post-rescale view is `M + 2` against `totalUnits = M + 1`; the old holder's floored
+`2^64 - 1` stored units free the headroom that permits the aggregate excess.
 
 accumulation. empirical seeded-state runs in `RescaleAmplification.t.sol`:
 
@@ -121,14 +121,10 @@ public-call reachability. `RescaleReachability.t.sol` drives the deployed vault,
 accounting through deposits, `rebalance`, `pokeBorrow`, loss/refill cycles on the mocked prime
 position, wallet transfers and account splitting. across 24 deep loss/refill rounds and a
 60-round approach test, `totalUnits` tracked roughly one third of `totalAssets` and
-`unitScale` never left zero. reaching one rescale through public calls requires
-`totalUnits > 2^160 * denominator / max(denominator, outsideValue)`; with
-`totalUnits ~ before / 3` that needs a unit-to-asset ratio near `10^48`, i.e. the fund's asset
-value must fall to about `2^112` times the total asset base without a write-off. losses alone
-cannot do that: when the pre-allocation value reaches zero, `_allocate` writes the fund off
-instead of rescaling. no public-call path was found, and the write-off/reset behavior is the
-structural reason the seeded index `2^64` at totalUnits `2^64 + 1` cannot be grown by deposits
-alone: index growth mints units at least proportionally to `outsideSupply / RAY`.
+`unitScale` never left zero. these bounded searches establish no public path to the seeded
+counterexample. the write-off branch resets units, index and epoch when pre-allocation value
+reaches zero, but this observation is not an invariant excluding all other loss/refill, deposit
+and exit histories. general public-call unreachability remains unproved.
 
 measured impact. `RescaleEconomics.t.sol` runs actual `settle`, transfer and `startExit` calls
 on the post-rescale state:
@@ -141,11 +137,11 @@ on the post-rescale state:
 - with concentrated wallet weight the per-account cap activates and reduces the aggregate
   excess instead of growing it.
 
-verdict. the finding is a real arithmetic counterexample to exact aggregate unit conservation,
-but it is not reachable through observed public-call sequences, the excess does not compound
-across consecutive allocations without an intervening index-building phase, and its collateral
-effect is bounded by `floor(F * excess / totalUnits)` — already covered by the proved
-`lazy_funded_claims_bound`. no correction is proposed here: the smallest change that would
-remove the one-unit excess (per-holder floor alignment at rescale) would add holder-scanning
-state or break lazy constant-cost accounting, and the proved funded bound already caps the
-asset-level effect below one share per unit of excess at any reachable `F/T`.
+verdict. the finding is a real arithmetic counterexample to exact aggregate unit conservation.
+no public-call exploit or implementation correction is established by this investigation.
+the second-allocation fixture remains at `unitScale == 64`; it does not exercise a second
+rescale or prove general non-amplification. the displayed-share bound is ratio-dependent:
+`F + floor(F * floor(E / RAY) / T)` under the hypotheses of `lazy_funded_claims_bound`.
+converting it to a sub-share impact requires a separate bound on `F/T`; total share
+conservation alone does not establish fairness between holders. the tighter one-rescale
+slack proof attempted during this investigation is unfinished.

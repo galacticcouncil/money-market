@@ -96,10 +96,8 @@ contract RescaleAmplificationTest is Test {
         assertLe(firstUnits, y.totalUnits(), "per-account cap binds");
     }
 
-    /// a second rescale applied to an already-rescaled state can add another excess unit,
-    /// but only because the first excess sits in stored units that the next shift floors down
-    /// while fresh pending accrual rounds separately. measure the two-cycle total.
-    function test_twoRescalesFromSeededState() public {
+    // this checks a later allocation, not a second rescale.
+    function test_secondAllocationPreservesSeededExcess() public {
         (JuicerYieldAccounting y, ParityVault v) = _seed(D + 1, D, 2, 2e38, 2e38);
         v.mint(FIRST, RAY);
         v.mint(SECOND, RAY);
@@ -122,7 +120,9 @@ contract RescaleAmplificationTest is Test {
         emit log_named_uint("unitScale", y.unitScale());
         emit log_named_uint("excess1", excess1);
         emit log_named_uint("excess2", excess2);
-        assertGe(excess2, excess1, "later allocations never reduce the seeded excess");
+        assertEq(y.unitScale(), 64, "only one rescale exercised");
+        assertEq(excess1, 1);
+        assertEq(excess2, 1);
     }
 
     /// fuzz: for arbitrary seeded totals/indices and two stale holders, the post-rescale

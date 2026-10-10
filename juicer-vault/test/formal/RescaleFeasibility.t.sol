@@ -34,28 +34,14 @@ contract RescaleFeasibilityTest is Test {
         vm.store(address(y), bytes32(uint256(3)), bytes32(index));
     }
 
-    /// precondition probe: settle() computes claim = min(T, u + w*(I-p)/RAY) and reverts on
-    /// underflow when u + w*(I-p)/RAY exceeds T. with u = d-1 near T = d+1 there is headroom
-    /// for only ~2 pending units per holder, so w*(I-p)/RAY <= 2 per holder; the seeded
-    /// I = p + 1 at w = RAY is exactly the maximum stale state that settle() tolerates.
-    function test_seededStateSitsAtSettleHeadroomEdge() public {
-        (JuicerYieldAccounting y,) = _seed(D + 1, D);
-        _map(y, 4, OLD, D - 1);
-        _map(y, 5, OLD, D - 1);
-        _map(y, 5, FIRST, D - 1);
-        _map(y, 5, SECOND, D - 1);
-        // one more unit of pending accrual for FIRST would underflow settle:
-        // u + w*(I-p)/RAY = (d-1) + 2 > d+1 headroom once stored units are nonzero.
-        // show the edge: balanceOf at I+1 would give FIRST 2 pending units; settle then holds.
-        vm.store(address(y), bytes32(uint256(3)), bytes32(D + 1));
-        vm.prank(address(vaultOf(y)));
-        // settle must NOT revert here: claim = min(d+1, 2) fits under totalUnits d+1
-        // when stored units are zero.
-        // (OLD stored units are not settled in this call.)
-        vm.stopPrank();
-        assertEq(y.balanceOf(FIRST), 2, "two pending units at the edge");
-        // but with OLD's stored d-1 plus 2 pending the sum hits the cap:
-        assertEq(y.balanceOf(OLD) + y.balanceOf(FIRST), D + 1, "aggregate at the cap");
+    function test_settlementUsesPerHolderCap() public {
+        (JuicerYieldAccounting y, ParityVault v) = _seed(D + 1, D);
+        _map(y, 4, FIRST, D + 2);
+        _map(y, 5, FIRST, D);
+        assertEq(y.balanceOf(FIRST), D + 1);
+        vm.prank(address(v));
+        y.settle(FIRST, SECOND, 0);
+        assertEq(uint256(vm.load(address(y), keccak256(abi.encode(FIRST, uint256(4))))), D + 1);
     }
 
     /// the seeded index I = d at outside supply 2*RAY means ~d/2 units were minted per holder
@@ -78,7 +64,7 @@ contract RescaleFeasibilityTest is Test {
         assertEq(y.totalUnits(), 0);
         assertEq(y.rewardIndex(), 0);
         // stale account: its epoch no longer matches, so its view is zeroed — the write-off
-        // wipes account claims. a stale accountIndex can therefore NOT survive an epoch bump.
+        // wipes account claims. an old accountIndex is ignored after the epoch bump.
         assertEq(y.balanceOf(FIRST), 0, "epoch mismatch zeroes the account");
     }
 
@@ -104,7 +90,4 @@ contract RescaleFeasibilityTest is Test {
         assertTrue(y.totalUnits() != D + 1, "a generic exit does not land on d+1");
     }
 
-    function vaultOf(JuicerYieldAccounting) internal view returns (address) {
-        return address(this); // placeholder to keep the probe above non-transacting
-    }
 }

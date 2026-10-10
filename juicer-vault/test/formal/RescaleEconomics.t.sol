@@ -78,12 +78,9 @@ contract RescaleEconomicsTest is Test {
         // FIRST tries to move its entire displayed funded balance to SECOND.
         uint256 firstDisplay = y.fundedOf(FIRST);
         vm.prank(address(v));
-        try y.settle(FIRST, SECOND, firstDisplay) {
-            emit log("full-slice transfer succeeded");
-            assertEq(y.fundedOf(FIRST), 0);
-        } catch {
-            emit log("full-slice transfer reverted (InexactShares)");
-        }
+        y.settle(FIRST, SECOND, firstDisplay);
+        assertEq(y.fundedOf(FIRST), 0);
+
     }
 
     /// exit path: with the excess live, both holders exit their full view in turn through
@@ -122,9 +119,10 @@ contract RescaleEconomicsTest is Test {
         uint256 rawFirst = Math.mulDiv(2 * RAY, y.rewardIndex(), RAY);
         emit log_named_uint("raw claim with double weight", rawFirst);
         emit log_named_uint("totalUnits", T);
-        if (rawFirst > T) {
-            emit log("cap would bind: excess shrinks instead of growing");
-        }
-        assertLt(y.balanceOf(FIRST), T, "single-holder view stays under the cap");
+        assertGt(rawFirst, T);
+        vm.prank(SECOND);
+        v.transfer(FIRST, RAY);
+        assertEq(y.balanceOf(FIRST), T, "concentrated view reaches the per-account cap");
+        assertEq(y.balanceOf(SECOND), 0);
     }
 }
