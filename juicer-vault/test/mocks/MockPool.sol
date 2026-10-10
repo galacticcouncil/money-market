@@ -30,12 +30,22 @@ contract MockPool is IAavePool {
         repayRoundingLoss = repayLoss;
     }
 
-    function getReserveNormalizedVariableDebt(address) external pure returns (uint256) { return 1e27; }
+    uint256 public debtIndex = 1e27;
+    uint256 public repayCalls;
+    function getReserveNormalizedVariableDebt(address) external view returns (uint256) { return debtIndex; }
+
+    function accrueInterest(address asset, address debtor, uint256 bps) external {
+        uint256 next = (debtIndex * (10_000 + bps) + 9999) / 10_000;
+        uint256 debt = reserves[asset].debtToken.balanceOf(debtor);
+        uint256 after_ = (debt * next + debtIndex - 1) / debtIndex;
+        debtIndex = next;
+        reserves[asset].debtToken.mint(debtor, after_ - debt);
+    }
 
     function setVariableBorrowRate(uint128 rate) external { variableBorrowRate = rate; }
 
     function getReserveData(address) external view returns (uint256, uint128, uint128, uint128, uint128) {
-        return (0, 1e27, 0, 1e27, variableBorrowRate);
+        return (0, 1e27, 0, uint128(debtIndex), variableBorrowRate);
     }
     mapping(address => uint256) public supplyRoundingLoss;
     mapping(address => uint256) public withdrawRoundingLoss;
@@ -127,6 +137,7 @@ contract MockPool is IAavePool {
         override
         returns (uint256)
     {
+        ++repayCalls;
         uint256 d = reserves[asset].debtToken.balanceOf(onBehalfOf);
         uint256 r = amount > d ? d : amount;
         if (r > repayLimit) r = repayLimit;

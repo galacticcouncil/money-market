@@ -1,6 +1,6 @@
 # current Solidity mapping
 
-reviewed against `juicer-next` at `6bf81febcbdca15479ce44aeaaa03cec3eb5f558`, 9 october 2026.
+reviewed against `juicer-next` at `5d7d809046ec09b91b85bc62b5edf22fd0d3ce78`, 10 october 2026.
 contract code is unchanged by this formal update. The [funded-transfer allowance mismatch](ROUNDING.md)
 on this branch is addressed by the stacked [allowance fix](https://github.com/galacticcouncil/money-market/pull/73).
 `solidity-manifest.json` pins the source, model inputs and the OpenZeppelin math implementation;
@@ -30,7 +30,7 @@ the check fails if they change without a new comparison.
 | controller credit, pacing, expiry and safety lanes | `Policy`, `available`, `policyCharge`, `executionMinimum` | credit/size bounds, no refill on refresh, quote only tightens oracle floor; 64 availability and 32 executed quote comparisons |
 | FIFO start and collateral claims | `queueReady`, `startQueue`, `settleRedemption`, `claimRedemption` | work/FIFO bounds, full final burn, recipient protection; 32 queue and 48 claim comparisons |
 | repeated settlement/claim histories | `RedemptionState.valid`, `settleQueue` | cumulative collateral/burn bounds, unpaid-head stop, final payout/burn; 24 three-claim histories |
-| stateful public vault/Main sequences | `PublicCalls.State`, `runCall`, `execute` | independent replay from fixture genesis; exact outcomes, holder/request/Main snapshots, rollback and accounting partitions |
+| stateful vault/Main/harvest sequences | `PublicCalls.State`, `runCall`, `execute` | independent replay from fixture genesis; exact outcomes, holder/request/Main snapshots, rollback and accounting partitions |
 | checked arithmetic and failure | `Checked`, checked account/backing/borrow/batch/claim/rescale operations | success refinement, exact arithmetic revert classes, atomic failure semantics; 488 primitive, 40 account and eight backing comparisons |
 | external observations | `payValid`, `exactReceipt`, `exactPayment`, callback/arrival theorems | conditional cash/debt bounds; detection threshold does not authenticate token origin |
 
@@ -140,8 +140,15 @@ fields, and share, cash, collateral and lazy-liability partitions. The default e
 the checker. Coverage gates require partial/final claims, keeper receiver protection, 71-request
 starts, resumed 64-cohort batches with late receipts and the 32-request settlement limit.
 Eight additional seeds with 512 pseudorandom actions pass 5,005 recorded steps and 1,640 expected reverts;
-the longest complete sequence has 696 steps. Together the 16 campaigns check 7,424 recorded steps,
+the longest baseline sequence has 696 steps. Together the 16 campaigns check 7,424 recorded steps,
 2,236 expected reverts and 96 corrupted-output checks. A truncated-trace rejection also passes.
+`LeanMarketStatefulParity.t.sol` adds the actual Harvester and fee controller with changing source
+values, collateral prices, debt observations and execution costs. Its default eight campaigns pass
+2,598 recorded steps, 463 expected reverts and 104 corrupted-output checks. Coverage gates require
+harvests/reward mints, fee collection, interest servicing, debt-rounding retries, peg top-ups,
+source costs/losses and completed price-driven deleveraging. Both fixtures run in the formal check.
+The larger market campaigns add 5,194 steps and 1,034 expected reverts, reaching 720 steps per
+sequence. Across both fixtures, 32 campaigns pass 15,216 recorded steps and 304 corruption checks.
 See [stateful scope and reproduction](STATEFUL_PARITY.md). These tests exercise control-flow
 correspondence for a bounded fixture environment, not every Solidity trace.
 
@@ -172,8 +179,9 @@ tested by replay, not proved for all executions. The comparison datasets
 contain 1,424 rows: the previous 820 plus 604 machine-boundary and history cases. Validation also
 includes 512 transfer-bound fuzz cases, the public vault lifecycle, rollback regressions and the
 existing seeded lazy-rescale fixture. All three generated datasets reproduce exactly.
-The full formal check passes 56 Foundry tests with zero failures and skips, including inherited
-fixture regressions; source fingerprints and storage-layout checks also pass.
+The full formal check passes 65 Foundry tests with zero failures and skips, including inherited
+fixture regressions; source fingerprints, all 17 accounting slots and the six private Main batch
+slots also pass. The legacy environment-gated Verity fork suite is outside this formal gate.
 
 ## reproduce
 

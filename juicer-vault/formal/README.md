@@ -7,7 +7,7 @@ Hydration — in **Lean 4**. Contains conditional mathematical proofs and execut
 counterexample to exact aggregate unit conservation across lazy rescales.
 
 Lives beside the contracts it models: `juicer-vault/{src,test,formal}` (branch `juicer-next`).
-A self-contained Lake project; the Foundry build ignores it and vice-versa.
+A self-contained Lake project; `check-runtime.py` builds Lean and runs the Foundry comparisons.
 Strategy: Path C.
 
 ## Layout
@@ -52,7 +52,7 @@ JuicerLean/
    ├─ MainHistories.lean  reachable source-claim and cash partitions across cohort operations
    ├─ PolicyQueue.lean    controller budgets, quotes, FIFO starts and collateral claims
    ├─ QueueHistories.lean repeated settlement/claim histories and FIFO settlement work
-   ├─ PublicCalls.lean    executable public-call sequences, rollback and full tracked state
+   ├─ PublicCalls.lean    public-call sequences, harvest/fees, debt rounding, deleveraging and rollback
    ├─ Checked.lean        uint256 arithmetic failures and atomic transaction semantics
    ├─ CheckedRefinement.lean successful checked operations refine the natural-number models
    ├─ Environment.lean    external observation guards and ICE authentication limits
@@ -157,9 +157,10 @@ deposits and uses the vault's actual transfer, request, start, settle and claim 
 external pool/yield behavior is mocked. Separate rollback tests exercise failures after writes.
 The old Verity bridge remains a separate simplified reference model; see [bridge scope](bridge/PARITY.md).
 
-`python3 check-stateful.py` runs long public vault/Main call campaigns and replays them in Lean
-from fixture genesis. The checker compares state and outcomes after every call, enforces accounting
-partitions and rejects incomplete traces. The default eight seeds cover 2,419 recorded steps, including
-596 expected reverts; larger campaigns are configurable. See [stateful parity](STATEFUL_PARITY.md)
-for the covered control flow and the explicit mock-environment boundary. `check-runtime.py`
-also runs the default stateful comparisons.
+`python3 check-stateful.py` runs public-call campaigns in two fixtures and replays them in Lean
+from fixture genesis. The checker compares state and outcomes after every step, enforces accounting
+partitions and rejects incomplete traces. The baseline covers vault/Main queues and claims; the
+market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
+price-driven deleveraging. The default eight seeds per fixture cover 5,017 recorded steps and
+1,059 expected reverts. Larger campaigns are configurable. See [stateful parity](STATEFUL_PARITY.md)
+for coverage gates and external mock boundaries. `check-runtime.py` includes both default fixtures.

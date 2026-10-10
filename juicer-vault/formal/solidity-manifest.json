@@ -1,6 +1,6 @@
 {
-  "revision": "6bf81febcbdca15479ce44aeaaa03cec3eb5f558",
-  "reviewed": "2026-10-09",
+  "revision": "5d7d809046ec09b91b85bc62b5edf22fd0d3ce78",
+  "reviewed": "2026-10-10",
   "files": {
     "src/CollateralVault.sol": "d6f6105ab443f6c8abedc0740ae10279b1e7d3781865ea8cbf236afe31efbe48",
     "src/JuicerYieldAccounting.sol": "41736f584a1f11f47e4741fc0ab01004a998ac5663f1a8a8788ef776adcbe6bf",
@@ -32,19 +32,24 @@
     "formal/JuicerLean/FixedPoint/CheckedRefinement.lean": "0665a9ff22f399c6476c38e22474167b4ceccb6037bafea37d88a192240a0a1e",
     "formal/MachineVectors.lean": "b3e18d157c04ba57c0e2a4caa326cc5aba1f3b372d71494a37b8696560c8642f",
     "../bil-vault/lib/openzeppelin-contracts/contracts/utils/math/Math.sol": "85a2caf3bd06579fb55236398c1321e15fd524a8fe140dff748c0f73d7a52345",
-    "formal/JuicerLean/FixedPoint/PublicCalls.lean": "9f29e6b3d5be4a21bb7d6fe68a1c35f0b8f3344881bc0a5e38003401f8d358e5",
-    "formal/StatefulReplay.lean": "4abd4bfb0b896cb3b473dcf2f6622c4df9cc8ed42148fa8103e8d5a2f037591f",
-    "formal/check-stateful.py": "23f51a0fe467194926f30de6a2d607d27ab2e61ae3775ce7641fcd9570deeea5",
-    "formal/stateful_coverage.py": "02a5c58fae5a5dde3e411d6ee8d040da41fc62f413899adc933bd4043f86540c",
-    "test/formal/LeanStatefulParity.t.sol": "17d1e4d180ef42a06e3aa2fcf9927d825e9f4b256192b1f8f0a85202770cd1d1",
+    "formal/JuicerLean/FixedPoint/PublicCalls.lean": "9f13e664d827bcd5c06f6818602dfa62b35c00ed8c0bd2b7481f0c7a759606c6",
+    "formal/StatefulReplay.lean": "93c1f6e14f4d7eaa3fa969bb050c461303d76cb7bf070139a1b2e428474d4bd4",
+    "formal/check-stateful.py": "bd3ac7feaf047fadbeeb92531241a3e0af5dbbab505beb9b394c683e43834572",
+    "formal/stateful_coverage.py": "65c59644a01a808d7e125c0af4ec38a1d4b7645ec2735c6731e192f4dbf0e51a",
+    "test/formal/LeanStatefulParity.t.sol": "a0a093aea5d29648c95685845480936b8b8342514c396810664ba1a5394bdbe2",
     "test/PluggableYieldSource.t.sol": "1803baf9822b4d93de9e39cc8b75f376be100aa3dbbd83e7225205fa09dfa00b",
     "test/helpers/RoundingReserveFixture.sol": "37cca4dffdd11be331fcbadd1c623220ced12500a517b112e076ebf5422f079a",
-    "test/mocks/MockPool.sol": "a55789ac5e8fb59c71a78837ce6b91dddbf0a1a3b50626bd28d3924813251f10",
+    "test/mocks/MockPool.sol": "10349b6ae3f65dd9891b9ce9af70868ae808d62c91580c610ca68f36c20d9f14",
     "test/mocks/MockYieldSource.sol": "db61c760ed411fc065b22e539776f83b50da33be305b32e3db73e811f493e58f",
     "test/mocks/MockERC20.sol": "807960c165df360dd7e8588b01ae166ba5e0fd4f3e7b968b4b759d1135b80acd",
     "foundry.toml": "c49cb600c05177828ba339bab113bca43a63df9f5d46a4c44492f2f9a9245128",
     "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol": "41b11f70764d014fd808bcaa33aa16dbad5554263c4e7e9ef1f3359ada116a11",
     "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/security/PausableUpgradeable.sol": "75f05e967778c82f77388aab6cd9523400e894de0247156935f827b3ad5830a9",
-    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol": "82789e6bdc1d6b5d8348a741281ec7a1e46c602017e1e4b7ae805bd55bfed26b"
+    "../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol": "82789e6bdc1d6b5d8348a741281ec7a1e46c602017e1e4b7ae805bd55bfed26b",
+    "src/Harvester.sol": "adf640cb05ab2facca9f61d4934ab765b790a286543dfb1ad76ee10a8fabb092",
+    "test/formal/LeanMarketStatefulParity.t.sol": "b3214220f75f163ba80873368028742e4514ed3690dd4f9f765b6f3f540bb30c",
+    "test/mocks/StatefulYieldSource.sol": "c76df6893d40a2167c66719973a3490322b2b277e5591b6d77e55081b9cd81c9",
+    "test/mocks/MockSwapper.sol": "b3031758599a1f3b8cd955a0a2b367c35c47d0a741b8627d8dc5600dd894e4ce",
+    "formal/check-runtime.py": "83957efcff28bad1433f34868db532aeefbe4ae1ac5d8eac4ea2d3b013026d31"
   }
 }
