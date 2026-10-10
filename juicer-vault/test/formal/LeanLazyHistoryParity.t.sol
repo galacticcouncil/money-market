@@ -42,9 +42,11 @@ contract LeanLazyHistoryParityTest is Test {
         assertEq(y.totalUnits(), minted + 1);
         assertEq(y.rewardIndex(), 1 + minted / 2);
         assertEq(y.balanceOf(OLD), 0);
-        assertEq(y.balanceOf(FIRST) + y.balanceOf(SECOND), y.totalUnits() + 1);
+        // ceil-shifted account indices: the rescale under-credits each stale holder's pending
+        // unit, so the aggregate sits one below totalUnits instead of one above.
+        assertEq(y.balanceOf(FIRST) + y.balanceOf(SECOND), y.totalUnits() - 1);
         vm.prank(address(v));
         y.settle(FIRST, SECOND, 0);
-        assertEq(y.balanceOf(FIRST) + y.balanceOf(SECOND), y.totalUnits() + 1);
+        assertEq(y.balanceOf(FIRST) + y.balanceOf(SECOND), y.totalUnits() - 1);
     }
 }

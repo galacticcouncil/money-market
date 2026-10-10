@@ -149,7 +149,11 @@ contract JuicerYieldAccounting {
     function balanceOf(address owner) public view returns (uint256) {
         if (owner == vault || owner == address(this) || owner == address(0)) return units[owner];
         uint256 shift = unitScale - (accountEpoch[owner] == epoch ? accountScale[owner] : unitScale);
-        uint256 previous = accountEpoch[owner] == epoch ? accountIndex[owner] >> shift : 0;
+        // shift stored indices up, not down: a rescale already floors stored units, and
+        // flooring the index too would let pending accrual re-claim the floored fraction,
+        // inflating the aggregate view past totalUnits. ceil-shift under-credits instead.
+        uint256 previous = accountEpoch[owner] == epoch
+            ? Math.min(rewardIndex, Math.ceilDiv(accountIndex[owner], uint256(1) << shift)) : 0;
         uint256 owned = accountEpoch[owner] == epoch ? units[owner] >> shift : 0;
         return Math.min(totalUnits, owned + Math.mulDiv(_weight(owner), rewardIndex - previous, RAY));
     }

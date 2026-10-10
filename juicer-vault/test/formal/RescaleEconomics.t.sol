@@ -50,32 +50,31 @@ contract RescaleEconomicsTest is Test {
         return y.balanceOf(OLD) + y.balanceOf(FIRST) + y.balanceOf(SECOND);
     }
 
-    /// F/T ~ 1 (fine units): the aggregate displayed funded excess is floor(F * 1 / T) = 1.
-    function test_fineUnitsExcessDisplaysOne() public {
+    /// F/T ~ 1 (fine units): with the ceil-shifted index the aggregate under-claims by one
+    /// unit, so the aggregate displayed funded amount sits one share below the fund.
+    function test_fineUnitsUnderclaimDisplaysOneLess() public {
         (JuicerYieldAccounting y, ParityVault v) = _rescaled(0);
         uint256 T = y.totalUnits();
         v.mint(address(y), T); // F == T: one share per unit
-        assertEq(_sum(y), T + 1);
+        assertEq(_sum(y), T - 1);
         uint256 displayed = y.fundedOf(FIRST) + y.fundedOf(SECOND);
         emit log_named_uint("displayed funded", displayed);
         emit log_named_uint("funded", T);
-        assertEq(displayed, T + 1, "aggregate display exceeds funded by floor(F/T) = 1");
+        assertEq(displayed, T - 1, "aggregate display under-claims by one share at F == T");
     }
 
-    /// donation-driven F/T >> 1 (coarse units, as in ROUNDING.md): an excess unit displays
-    /// floor(F/T) shares, but the transfer guard debits exactly and reverts when the sender's
-    /// remaining slice cannot be represented — the excess is only spendable while the
-    /// InexactShares check passes.
-    function test_coarseUnitsExcessDisplayAndSpendability() public {
+    /// donation-driven F/T >> 1 (coarse units): the aggregate display can no longer exceed
+    /// the fund's shares; the shortfall is the under-credited pending fraction.
+    function test_coarseUnitsNoLongerOverdraw() public {
         (JuicerYieldAccounting y, ParityVault v) = _rescaled(0);
         uint256 T = y.totalUnits();
         uint256 F = 3 * T; // 3 shares per unit
         v.mint(address(y), F);
         uint256 displayed = y.fundedOf(FIRST) + y.fundedOf(SECOND);
         emit log_named_uint("displayed funded", displayed);
-        emit log_named_uint("excess display", displayed - F);
-        assertLe(displayed, F + F / T, "Lean funded bound: <= F + floor(F*1/T)");
-        // FIRST tries to move its entire displayed funded balance to SECOND.
+        assertLe(displayed, F, "aggregate display never exceeds the fund");
+        // FIRST moves its entire displayed funded balance to SECOND; the exact-debit guard
+        // still governs.
         uint256 firstDisplay = y.fundedOf(FIRST);
         vm.prank(address(v));
         try y.settle(FIRST, SECOND, firstDisplay) {

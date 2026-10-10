@@ -89,6 +89,31 @@ loss estimate. the excess is one **reward unit**, not one vault share. it invali
 aggregate unit-conservation claim across every lazy rescale; displayed funded claims also depend
 on the fund's shares-per-unit ratio. it is separate from the allowance mismatch fixed above.
 
+### candidate correction: ceil-shifted rescale indices (this branch)
+
+this branch implements the smallest fix: `balanceOf` ceil-shifts a current-epoch account's
+stored index (`Math.ceilDiv(accountIndex, 1 << shift)`, clamped at `rewardIndex`) instead of
+floor-shifting it. the mechanism is the floor/ceil asymmetry: a rescale floors stored units
+(`u >> shift`) but also floored the stored index, letting pending accrual `w * (I' - p')` re-claim
+the floored fraction. ceil-shifting the index makes pending accrual only shrink, so the seeded
+counterexample now yields `totalUnits - 1` (a one-unit under-claim) instead of `totalUnits + 1`.
+the clamp at `rewardIndex` avoids an underflow for an account settled at a non-aligned index.
+
+validated: the seeded parity fixture, the four `Rescale*` suites, the 826 Lean runtime vectors
+and the full Foundry suite (59 suites) pass; bytecode is 12,615 bytes (+102), CollateralVault
+unchanged at 24,480.
+
+**deferred Lean realignment.** the executable Lean model (`Runtime.accountUnits`) and the lazy
+trace invariant (`LazyOwnership`) still floor-shift the index, so they describe the pre-fix
+semantics and the `runtime_rescale_unit_excess` counterexample is checked against the old model.
+realigning them requires the strengthened rescale lemmas (`lazy_rescale_numerator` /
+`lazy_rescale_liability` dropping the `+ weight * (d - 1)` term, and a nested
+ceil/floor-of-power identity `ceil(⌊x/2^n⌋/2^k) = ceil(x/2^(n+k))`). those natural-number
+division identities resisted `omega`/`nlinarith` automation in this environment and are left as
+explicit follow-up: the Solidity change and its behavior are fully tested, but the Lean model
+and proofs must be updated (and the vectors regenerated) before this branch is treated as the
+new reviewed baseline.
+
 ### investigation of the rescale excess (item 1, october 2026)
 
 mechanism. `_allocate` rescales by shifting `totalUnits` and `rewardIndex` down 64 bits when
