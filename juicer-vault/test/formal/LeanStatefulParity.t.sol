@@ -13,7 +13,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
     uint256 internal step;
     bytes32 internal lastSnapshot;
 
-    function _configure() internal {
+    function _configure() internal virtual {
         pool.setPrice(address(eth), 1e18);
         vault.setWithdrawalDelay(10);
         vm.warp(1000);
@@ -30,7 +30,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         revert("untracked actor");
     }
 
-    function _snapshot() internal view returns (uint256[] memory out) {
+    function _snapshot() internal view virtual returns (uint256[] memory out) {
         JuicerYieldAccounting y = vault.yieldAccounting();
         JuicerMainDebt m = JuicerMainDebt(address(vault.mainDebt()));
         uint256 tail = vault.queueTail();
@@ -77,6 +77,11 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         }
         assertEq(k, out.length);
         assertEq(y.unitScale(), 0, "rescale belongs to its separate investigation");
+        _checkFixture();
+    }
+
+    function _checkFixture() internal view virtual {
+        JuicerMainDebt m = JuicerMainDebt(address(vault.mainDebt()));
         assertEq(source.sharesOf(address(vault)), vault.loopShares());
         assertEq(hollar.balanceOf(address(m)), m.ownedCash());
         assertEq(aSynth.balanceOf(address(vault)), vault.syntheticSupplied());
@@ -85,7 +90,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         assertEq(vault.deleverTarget(), 0);
     }
 
-    function _error(bytes memory reason) internal pure returns (uint256) {
+    function _error(bytes memory reason) internal pure virtual returns (uint256) {
         bytes4 selector = bytes4(reason);
         if (keccak256(reason) == keccak256(abi.encodeWithSignature("Error(string)", "Pausable: paused"))) return 1;
         if (selector == CollateralVault.ZeroAmount.selector) return 2;
@@ -131,7 +136,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         this.perform(op, caller, a, b, n);
     }
 
-    function perform(uint256 op, uint256 caller, uint256 a, uint256 b, uint256 n) external {
+    function perform(uint256 op, uint256 caller, uint256 a, uint256 b, uint256 n) public virtual {
         require(msg.sender == address(this));
         bytes memory data;
         address target = address(vault);
@@ -168,7 +173,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         return random;
     }
 
-    function _campaign(uint256 seed, uint256 depth, bool wide) internal {
+    function _campaign(uint256 seed, uint256 depth, bool wide) internal virtual {
         tracePath = string.concat("formal/.stateful/trace-", vm.toString(seed), ".jsonl");
         vm.writeFile(tracePath, ""); random = seed; step = 0;
         _record([uint256(999), 0, 0, 0, 0], 0, 0);

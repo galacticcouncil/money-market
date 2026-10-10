@@ -29,8 +29,12 @@ def main():
         generated = subprocess.check_output(lean + ["--run", source], cwd=formal, text=True)
         if json.loads(generated) != json.loads((formal / artifact).read_text()):
             raise SystemExit(f"{artifact} changed; regenerate it with {source}")
-    layout = json.loads(subprocess.check_output(
-        ["forge", "inspect", "JuicerYieldAccounting", "storage-layout", "--json", "--offline"], cwd=vault, text=True))
+    layout_out = formal / ".stateful" / "layout-out"
+    subprocess.run(["forge", "build", "--offline", "--skip", "test", "--skip", "script",
+                    "--extra-output", "storageLayout", "--out", str(layout_out),
+                    "--cache-path", str(formal / ".stateful" / "layout-cache")], cwd=vault, check=True)
+    layout = json.loads((layout_out / "JuicerYieldAccounting.sol" /
+                         "JuicerYieldAccounting.json").read_text())["storageLayout"]
     slots = {entry["label"]: int(entry["slot"]) for entry in layout["storage"]}
     names = ["sourceShares", "protocolShares", "totalUnits", "rewardIndex", "units", "accountIndex",
              "requestIndex", "harvestUnits", "harvestRewardUnits", "harvestProtocolUnits", "epoch",
@@ -38,17 +42,26 @@ def main():
     for slot, name in enumerate(names):
         if slots.get(name) != slot:
             raise SystemExit(f"storage layout changed: {name}")
-    traces = [formal / ".stateful" / f"trace-{seed}.jsonl" for seed in range(1, 9)]
+    main_layout = json.loads((layout_out / "JuicerMainDebt.sol" /
+                              "JuicerMainDebt.json").read_text())["storageLayout"]
+    main_slots = {entry["label"]: int(entry["slot"]) for entry in main_layout["storage"]}
+    for slot, name in enumerate(["allocationAmount", "allocationCost", "allocationTotal",
+                                 "allocationWeight", "allocationCursor", "allocationTail"], 13):
+        if main_slots.get(name) != slot:
+            raise SystemExit(f"Main storage layout changed: {name}")
+    traces = [formal / ".stateful" / f"{prefix}-{seed}.jsonl"
+              for prefix in ("trace", "market") for seed in range(1, 9)]
     for path in traces:
         path.unlink(missing_ok=True)
     env = os.environ.copy()
     env.update(LEAN_STATEFUL_SEED="1", LEAN_STATEFUL_COUNT="8", LEAN_STATEFUL_DEPTH="192")
-    subprocess.run(["forge", "test", "--offline", "--match-path", "test/formal/Lean*.t.sol", "-vv"],
+    subprocess.run(["forge", "test", "--offline", "--match-path", "test/formal/*.t.sol", "--match-contract", "^(Lean|Rescale)", "--gas-limit", str(2**40), "-vv"],
                    cwd=vault, env=env, check=True)
     subprocess.run(lean + ["--run", "StatefulReplay.lean"] +
                    [str(path) for path in traces],
                    cwd=formal, check=True)
-    check_coverage(traces)
+    check_coverage(traces[:8])
+    check_coverage(traces[8:])
     print("Lean/Solidity runtime comparisons passed; source fingerprints and vector regeneration match")
 
 

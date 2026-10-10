@@ -3,7 +3,8 @@
 `PublicCalls.lean` composes the existing integer allocation, account, exit, Main-debt,
 source-batch and redemption models into an executable public-call machine.
 `LeanStatefulParity.t.sol` runs the actual vault, accounting, Main and delegatecall logic
-from deployment. `StatefulReplay.lean` replays the recorded actions and compares every
+from deployment. `LeanMarketStatefulParity.t.sol` adds the actual Harvester and fee controller,
+with changing source values, collateral prices, debt observations and execution costs. `StatefulReplay.lean` replays the recorded actions and compares every
 post-call snapshot and success/revert outcome. It also checks the holder, request,
 Main-cash/debt and collateral partitions and the lazy liability bound after every call.
 
@@ -20,26 +21,34 @@ From `juicer-vault/formal`, with the pinned Lean/Mathlib and Foundry toolchains:
 ```sh
 python3 check-stateful.py
 python3 check-stateful.py --seed 9 --count 8 --depth 512
+python3 check-stateful.py --fixture market --count 1
 ```
 
-The default runs eight campaigns with 192 pseudorandom actions after a deterministic
+The default runs eight campaigns per fixture with 192 pseudorandom actions after a deterministic
 prefix, then drains and claims the queues. Half of the campaigns create 71 requests
 before the first repayment, crossing both the 32-request settlement limit and the
 64-cohort source-accounting limit. Seeds and depths are configurable; a failing trace
-is saved under `.stateful/trace-<seed>.jsonl`. Run a single seed with `--count 1`;
+is saved under `.stateful/trace-<seed>.jsonl` or `.stateful/market-<seed>.jsonl`. Run a single seed with `--count 1`;
 each invocation accepts up to eight seeds. A completion marker rejects interrupted
-traces, and `coverage.json` records successful actions, revert classes and exercised
+traces, and `coverage.json` and `market-coverage.json` record successful actions, revert classes and exercised
 queue/batch/claim boundaries. Required boundary cases must actually execute.
 `check-runtime.py` includes the default campaigns and their Lean replay.
 
-The default seeds 1–8 pass 2,419 recorded steps and 596 expected reverts. Seeds 9–16 with
-`--depth 512` pass another 5,005 recorded steps and 1,640 expected reverts, with sequences up
-to 696 steps. Both runs pass their coverage gates and 48 corrupted-output checks
-each. The combined 7,424 steps include 5,745 vault calls and 1,679 environment
-actions (clock advances, funded recovery and mock controls). An incomplete trace
-is also rejected. Longer standalone campaigns use a
-higher test gas budget for snapshot instrumentation; this is not a gas estimate
-for the public vault calls.
+The checked corpus contains 32 campaigns and 15,216 recorded steps per branch, including
+10,241 vault calls, 605 Harvester/fee-controller calls and 4,370 environment actions. The longest
+sequence has 720 steps. The same corpus passes on the original and allowance-fixed Solidity;
+the fixed branch rejects one additional `transferFrom` call with `InexactShares` (baseline seed 9, step 596).
+
+| fixture | seeds | random depth | recorded steps | expected reverts |
+| --- | --- | --- | --- | --- |
+| baseline | 1–8 | 192 | 2,419 | 596 |
+| baseline | 9–16 | 512 | 5,005 | 1,640 original / 1,641 allowance-fixed |
+| market | 1–8 | 192 | 2,598 | 463 |
+| market | 9–16 | 512 | 5,194 | 1,034 |
+
+All campaigns pass coverage gates and 304 corrupted-output checks per branch. Incomplete traces
+are also rejected. Longer campaigns use a higher test gas budget for snapshot instrumentation;
+these gas totals are not estimates for public vault calls.
 
 Each campaign exercises deposits, deferred borrowing, external Main repayment, sync,
 fund donations, approvals, direct/delegated transfers, partial/full/delegated requests,
@@ -55,24 +64,55 @@ or impersonates a vault-only caller. The existing fingerprint/layout checks pin 
 read. Each replay also rejects deliberate changes to supply, escrow, reward units,
 holder balance, allowance and outcome fields, guarding against a disabled comparison.
 
+## market campaigns
+
+The market fixture exercises nonzero protocol fees, harvests that mint funded reward shares,
+caller-funded compounding, source execution costs and fee claims. Debt accrual changes the
+observed debt and normalized variable-debt index; borrowing and repayment independently lose
+small debt-token amounts to rounding. The snapshot includes a pool repayment counter, so a
+retry must execute twice to satisfy its coverage gate. Collateral-price drops start active
+Main deleveraging, block deposits, and settle across partial receipts and pauses. Source-price
+losses and recoveries interleave with allocations, transfers, waiting requests and exits.
+
+The model composes the existing allocation, harvest split, fee vesting/settlement, Main cohort,
+source batch and claim functions. It separately predicts oracle quotes, servicing sales,
+protocol reserve draws/returns, fee custody, synthetic top-ups and the public guards. The
+fee/cash/source partitions and source custody backing are checked after every successful step.
+The extended snapshot includes source NAV/custody, fee balances, normalized debt index, active
+source claims, costs, protocol reserves, the delever target, harvest time and all frozen batch
+fields. Private batch fields are read with `vm.load`, protected by layout and fingerprint checks.
+
+Coverage gates require successful harvests, reward mints, interest servicing, repayment retries,
+peg top-ups, source costs, source/harvest fee collection, price-driven delever starts/completions,
+source losses and protocol fee claims. Rejected harvest minima and deposits during deleveraging
+must also occur. Corruption checks cover the additional custody, index, cost, fee, target and
+repayment-counter fields. Genesis selects a fixed fixture configuration from the action header;
+no observed Solidity state initializes the prediction.
+
 ## fixture boundary
 
-The closed environment uses the existing `MockPool`, `MockERC20` and `MockYieldSource`:
-18-decimal assets at a fixed one-dollar price, 75% collateral LTV, 98% synthetic LT,
-exact token transfers, fixed debt index, zero protocol fees and zero source execution
-cost. Four public actors receive fixed collateral funding. The mock source custodies
-HOLLAR at par; source release and pool repayment can be limited independently.
-Minting HOLLAR for an outside repayment represents explicitly funded recovery, not
-yield or profit. Time advances and mock liquidity controls are recorded actions too.
+Both environments use 18-decimal mock tokens, 75% collateral LTV, 98% synthetic LT, exact token
+transfers and four funded public actors. The baseline uses `MockYieldSource` at par, fixed
+one-dollar prices, a fixed debt index and zero fees/costs. The market fixture uses
+`StatefulYieldSource`: source shares price a funded HOLLAR pool, and revaluation explicitly
+mints/burns mock HOLLAR to back the new NAV. It releases unwind claims synchronously, with
+independently limited pulls and recorded execution costs. The real Harvester calls its
+`harvestFor`, the vault's `burnYieldShares` and `compound`, and the real fee controller collects
+fees. `MockSwapper` uses the pool's oracle prices with a bounded execution haircut.
 
-The corpus deliberately stays below rescale thresholds and checks `unitScale == 0`.
-Rescale reachability/impact is a separate investigation. Price-driven deleveraging is
-outside this fixture machine; reaching that branch fails replay instead of silently
-skipping it. Harvests, nonzero fees/costs, interest accrual, debt-index rounding, external
-protocol behavior and reentrancy require other fixtures and retain their existing
-proof/test boundaries. The bounded trace inputs do not replace the separate checked
-uint256 arithmetic tests.
+The pool accrual action increases debt using the new index and an explicit rounding rule.
+Separate borrow/repay loss controls exercise observed-debt accounting and the index-dependent
+rounding quantum. This is a controlled external-observation fixture, not Aave's complete scaled
+token implementation. Outside repayments, reserve deposits and Main funding are explicitly
+funded environment actions, not trading profit. Market changes, time advances and liquidity
+controls are also recorded actions.
 
-This is differential execution evidence for the exercised public control flow. The
-new machine reuses proved arithmetic transitions, but its correspondence to arbitrary
-Solidity executions is not a kernel proof or compiled-bytecode equivalence result.
+The corpus stays below rescale thresholds and checks `unitScale == 0`. The separate rescale
+investigation has bounded reachability/economics evidence, not a general unreachability proof.
+Live Aave/SubLoop execution, ICE/solver routes, multi-vault harvest allocation, malicious tokens,
+reentrancy, arbitrary oracle/configuration changes and full uint256 input space remain outside
+these fixtures. Existing component and regression coverage for those boundaries remains separate.
+
+This is differential execution evidence for the exercised public control flow. The machine
+reuses proved arithmetic transitions, but its correspondence to arbitrary Solidity executions
+is not a kernel proof or compiled-bytecode equivalence result.

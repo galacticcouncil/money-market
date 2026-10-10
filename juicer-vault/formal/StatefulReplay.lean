@@ -32,7 +32,7 @@ def checkPartitions (s : State) : Except String Unit := do
   let wallets := s.wallets.foldl (· + ·) 0
   let mainUnits := s.positions.foldl (fun n p => n + p.units) 0
   let cash := s.positions.foldl (fun n p => n + p.cash) s.unallocated
-  let outstanding := s.positions.foldl (fun n p => n + p.remaining) 0
+  let outstanding := s.positions.foldl (fun n p => n + p.remaining) s.activeRemaining
   let mut queued := 0
   let mut owed := 0
   let mut debt := 0
@@ -57,6 +57,12 @@ def checkPartitions (s : State) : Except String Unit := do
       let owned := if r.account.epoch == s.book.epoch then r.account.units else 0
       let index := if r.account.epoch == s.book.epoch then r.account.index else 0
       liability := liability + owned * Runtime.ray + r.claim.shares * (s.book.index - index)
+  if s.freed + s.unallocated + s.unallocatedCost != s.outstanding then throw "source receipt partition"
+  if s.sourceFees.size != s.positions.size then throw "source fee partition size"
+  if s.feeReserve != s.sourceFees.foldl (fun n f => n + f.feeLeft) 0 then throw "source fee reserve partition"
+  for f in s.sourceFees do
+    if f.feeLeft > f.yieldLeft then throw "source fee exceeds junior yield"
+  if s.expanded && s.sourceCash < sourceValue s s.held + s.freed then throw "source custody shortfall"
   if s.supply != wallets || s.mainUnits != mainUnits || s.ownedCash != cash || s.outstanding != outstanding then
     throw "holder/Main partition failed"
   if s.queued != queued || s.owed != owed || s.queuedDebt != debt || s.pending != waiting then
@@ -71,7 +77,7 @@ def checkRow (s : State) (j : Json) (genesis : Bool) : Except String State := do
   let status ← numbers j "status"
   let actual ← numbers j "state"
   if genesis then
-    if a != #[999, 0, 0, 0, 0] || status != #[0, 0] then throw "missing genesis"
+    if a != #[999, 0, 0, 0, s.expanded.toNat] || status != #[0, 0] then throw "missing genesis"
     compare (snapshot s) actual
     return s
   if a[0]! == 999 then throw "unexpected state reset"
@@ -101,7 +107,11 @@ def main (args : List String) : IO Unit := do
       throw (IO.userError s!"{path}: missing or invalid completion marker")
     if completion[2]! < 192 || completion[2]! + 20 > completion[4]! then
       throw (IO.userError s!"{path}: truncated campaign")
-    let mut state : State := {}
+    let first ← IO.ofExcept (Json.parse lines.head!)
+    let genesis ← IO.ofExcept (numbers first "action")
+    if genesis.size != 5 || genesis[4]! > 1 then throw (IO.userError "unknown fixture")
+    let expanded := genesis[4]! == 1
+    let mut state : State := { expanded, feeBps := if expanded then 1000 else 0 }
     let mut row := 0
     for line in lines do
       let j ← IO.ofExcept (Json.parse line)
@@ -113,7 +123,11 @@ def main (args : List String) : IO Unit := do
       | .ok next =>
         if row == 1 then
           let actual ← IO.ofExcept (numbers j "state")
-          for field in #[0, 12, 20, 34, 98] do
+          let baseFields := #[0, 12, 20, 34, 98]
+          let extra := 114 + next.requests.size * 15 + next.positions.size * 5
+          let fields := if expanded then baseFields ++ #[extra + 1, extra + 5, extra + 10,
+            extra + 12, extra + 14, extra + 16, extra + 25] else baseFields
+          for field in fields do
             let changed := actual.set! field (actual[field]! + 1)
             let corrupt := Json.mkObj [("action", ← IO.ofExcept (j.getObjVal? "action")),
               ("status", ← IO.ofExcept (j.getObjVal? "status")), ("state", toJson changed)]
@@ -129,5 +143,5 @@ def main (args : List String) : IO Unit := do
       row := row + 1
     if row < 193 then throw (IO.userError s!"{path}: truncated campaign")
     steps := steps + row - 2
-    IO.println s!"PASS {path}: {row - 2} sequential calls"
-  IO.println s!"stateful replay passed: {steps} calls, {failed} expected reverts, {mutationChecks} mutation checks"
+    IO.println s!"PASS {path}: {row - 2} recorded steps"
+  IO.println s!"stateful replay passed: {steps} recorded steps, {failed} expected reverts, {mutationChecks} mutation checks"
