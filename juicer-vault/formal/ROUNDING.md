@@ -2,6 +2,8 @@
 
 this fixes the allowance mismatch found at `juicer-next` commit `ddf8186`. the implementation
 and executable Lean model now require the sender's displayed funded debit to equal the request.
+the result is reviewed on the allowance-fixed branch based on `juicer-next` at `21f5aa7`,
+10 october 2026.
 
 ## exact sender debit
 
@@ -84,10 +86,10 @@ zero; the two previous indices also round to zero. the resulting sum of unit bal
 `totalUnits + 1`, including after both holders settle. `runtime_rescale_unit_excess` checks the
 same initial state and executable allocation in Lean.
 
-this is a seeded arithmetic counterexample, not a public-call reachability proof or a production
-loss estimate. the excess is one **reward unit**, not one vault share. it invalidates an exact
-aggregate unit-conservation claim across every lazy rescale; displayed funded claims also depend
-on the fund's shares-per-unit ratio. it is separate from the allowance mismatch fixed above.
+this is a seeded arithmetic counterexample, not a public-call reproduction of excess or a
+production loss estimate. the excess is one **reward unit**, not one vault share. it invalidates
+an exact aggregate unit-conservation claim across every lazy rescale; displayed funded claims also
+depend on the fund's shares-per-unit ratio. it is separate from the allowance mismatch fixed above.
 
 ### investigation of the rescale excess (item 1, october 2026)
 
@@ -117,14 +119,24 @@ accumulation. empirical seeded-state runs in `RescaleAmplification.t.sol`:
   above the stale-holder count, and the aggregate never exceeded `3 * totalUnits + holders`
   (the per-account cap envelope).
 
-public-call reachability. `RescaleReachability.t.sol` drives the deployed vault, SubLoop and
-accounting through deposits, `rebalance`, `pokeBorrow`, loss/refill cycles on the mocked prime
-position, wallet transfers and account splitting. across 24 deep loss/refill rounds and a
-60-round approach test, `totalUnits` tracked roughly one third of `totalAssets` and
-`unitScale` never left zero. these bounded searches establish no public path to the seeded
-counterexample. the write-off branch resets units, index and epoch when pre-allocation value
-reaches zero, but this observation is not an invariant excluding all other loss/refill, deposit
-and exit histories. general public-call unreachability remains unproved.
+public-call reachability. `RescaleReachability.t.sol` first drove the deployed vault, SubLoop and
+accounting through deposits, `rebalance`, `pokeBorrow`, broad loss/refill cycles on the mocked
+prime position, wallet transfers and account splitting. across 24 deep rounds and a 60-round
+approach test, `totalUnits` tracked roughly one third of `totalAssets` and `unitScale` stayed zero;
+losses that reached zero took the write-off branch.
+
+`test_positiveResidualLossRefillsReachRescale` then targets a strictly positive residual with a
+binary search over the external mock aPRIME balance. four loss/refill cycles followed by public
+`sync` calls reach `unitScale == 64` without changing the epoch. the fixture mints and burns mock
+tokens to control external source value; it does not write accounting storage. this proves that
+the rescale control flow is reachable in the controlled public fixture and corrects the earlier
+bounded-search conclusion. it does not establish that the required value swings are economically
+reachable against a deployed market.
+
+`test_multiplePublicHoldersStayWithinTotalAtReachableRescale` repeats the path with three public
+depositors. their aggregate claims finish two units below `totalUnits`; the seeded one-unit excess
+is not reproduced. public reachability of a rescale and public reachability of the seeded excess
+state are therefore separate questions.
 
 measured impact. `RescaleEconomics.t.sol` runs actual `settle`, transfer and `startExit` calls
 on the post-rescale state:
@@ -137,11 +149,22 @@ on the post-rescale state:
 - with concentrated wallet weight the per-account cap activates and reduces the aggregate
   excess instead of growing it.
 
+proof bound. `RescaleBounds.lean` proves the tighter one-step slack recurrence
+
+```
+E' <= ((T mod 2^k) * R + E) / 2^k + W
+```
+
+and a uniform arbitrary-history bound `E <= 2 * (R + cap)` when every rescale has positive shift
+and tracked weight at most `cap`. it derives funded-claim bounds from that slack and proves no
+aggregate funded overclaim when the resulting grain is smaller than `totalUnits`. the displayed
+share bound remains ratio-dependent:
+`F + floor(F * floor(E / RAY) / T)`. converting it to a sub-share impact requires a separate bound
+on `F/T`; total share conservation alone does not establish fairness between holders.
+
 verdict. the finding is a real arithmetic counterexample to exact aggregate unit conservation.
-no public-call exploit or implementation correction is established by this investigation.
-the second-allocation fixture remains at `unitScale == 64`; it does not exercise a second
-rescale or prove general non-amplification. the displayed-share bound is ratio-dependent:
-`F + floor(F * floor(E / RAY) / T)` under the hypotheses of `lazy_funded_claims_bound`.
-converting it to a sub-share impact requires a separate bound on `F/T`; total share
-conservation alone does not establish fairness between holders. the tighter one-rescale
-slack proof attempted during this investigation is unfinished.
+the public fixture reaches the rescale branch, but it does not reproduce the excess. no public-call
+exploit or implementation correction is established. the second-allocation seeded fixture remains
+at `unitScale == 64`; it does not exercise a second rescale or prove general non-amplification.
+the arbitrary-history theorem bounds slack under an explicit weight cap; it does not make the
+controlled mock-value path economically feasible on a deployed market.

@@ -60,6 +60,17 @@ def main():
     subprocess.run(lean + ["--run", "StatefulReplay.lean"] +
                    [str(path) for path in traces],
                    cwd=formal, check=True)
+    subprocess.run(lean + ["--run", "ScaledDebtReplay.lean",
+                           str(formal / ".stateful" / "scaled-debt.jsonl")],
+                   cwd=formal, check=True)
+    for contract, test in [
+        ("SharedHarvestFormalHarness", "test_repeatedTwoVaultHarvestHistory"),
+        ("IceSequenceFormalHarness", "test_longEntryExpiryReconcileAndExitHistory"),
+    ]:
+        subprocess.run(["forge", "test", "--offline", "--match-path",
+                        "test/formal/SharedFlowHarness.t.sol", "--match-contract", contract,
+                        "--match-test", test, "--gas-limit", str(2**40), "-vv"],
+                       cwd=vault, env=env, check=True)
     check_coverage(traces[:8])
     check_coverage(traces[8:])
     print("Lean/Solidity runtime comparisons passed; source fingerprints and vector regeneration match")

@@ -18,6 +18,7 @@ import JuicerLean.FixedPoint.Runtime
 import JuicerLean.FixedPoint.Rounding
 import JuicerLean.FixedPoint.YieldTransitions
 import JuicerLean.FixedPoint.LazyOwnership
+import JuicerLean.FixedPoint.RescaleBounds
 import JuicerLean.FixedPoint.LazyRefinement
 import JuicerLean.FixedPoint.MainDebt
 import JuicerLean.FixedPoint.PolicyQueue
@@ -30,3 +31,5 @@ import JuicerLean.FixedPoint.QueueHistories
 import JuicerLean.FixedPoint.Checked
 import JuicerLean.FixedPoint.CheckedRefinement
 import JuicerLean.FixedPoint.PublicCalls
+import JuicerLean.FixedPoint.PublicInvariants
+import JuicerLean.FixedPoint.ScaledDebt
