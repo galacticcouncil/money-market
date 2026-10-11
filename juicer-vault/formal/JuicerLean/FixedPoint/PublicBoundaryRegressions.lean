@@ -43,4 +43,24 @@ set_option maxRecDepth 20000 in
 set_option maxHeartbeats 2000000 in
 theorem future_epoch_not_valid : ¬ ValidSolidityAction epochBoundaryState epochBoundaryAction := by decide
 
+def initialMintBoundaryState : State := { book := { index := ray } }
+
+def initialMintBoundaryAction : Action := ⟨0,0,0,0,1001⟩
+
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 2000000 in
+theorem nonzero_empty_index_breaks_initial_mint :
+    PublicInvariant initialMintBoundaryState ∧ PublicMetadata initialMintBoundaryState ∧
+      FixtureAction initialMintBoundaryAction ∧
+      (rawRunCall initialMintBoundaryState initialMintBoundaryAction).isOk = true ∧
+      ¬ PublicInvariant (rawExecute initialMintBoundaryState initialMintBoundaryAction).1 := by
+  decide
+
+theorem nonzero_empty_index_not_initialMintSafe : ¬ InitialMintSafe initialMintBoundaryState := by decide
+
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 2000000 in
+theorem nonzero_empty_index_not_valid :
+    ¬ ValidSolidityAction initialMintBoundaryState initialMintBoundaryAction := by decide
+
 end Juicer.PublicCalls
