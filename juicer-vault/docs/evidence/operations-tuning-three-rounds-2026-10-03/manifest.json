@@ -1,0 +1,374 @@
+{
+  "contractBaseCommit": "e51a07672b0f2dbe20a5bbd41fde602886d19a8a",
+  "productionContractsAndKeeperUnchanged": true,
+  "toolchain": {
+    "forge": "forge Version: 1.5.1-stable\nCommit SHA: b0a9dd9ceda36f63e2326ce530c10e6916f4b8a2\nBuild Timestamp: 2025-12-22T11:39:01.425730780Z (1766403541)\nBuild Profile: maxperf",
+    "node": "v25.7.0",
+    "solc": "0.8.22",
+    "evmVersion": "london",
+    "viaIR": true,
+    "optimizerRuns": 200,
+    "dynamicTestLinking": true
+  },
+  "validation": {
+    "optimizationRounds": 3,
+    "contractScenarios": 64,
+    "simulatedDays": 24090,
+    "modelTestsPassed": 14,
+    "productionArtifactMatches": 10,
+    "failed": 0,
+    "stressCasesMayHaveUnpaidBackingDeficits": true
+  },
+  "sources": {
+    "propeller-vault/test/OperationsTuning.t.sol": "eebbe6e8aa1e1fc23cb26a4ec81f0c81a66ac9b106f02c691628f328463326c6",
+    "scripts/propeller/tune-operations.mjs": "91045475bae8f5bf80372499074dd98bf01930be8e3f6bad119d56a1daa017bd",
+    "scripts/propeller/tune-operations.test.mjs": "093f0ed2d1169954b9e82150f2d3ae42636e120bd0dd6d09db55e6e2f37deca2",
+    "scripts/propeller/summarize-operations-tuning.mjs": "15b6c9edc74f13e0181483bb78c79e43baa1edb1b11daa204f648ec762d394a6",
+    "scripts/propeller/probe-controlled-gas.mjs": "b03306d285a4abb75cf90921ba32795e4633e590c92daaba20d8ef2856e8c7eb",
+    "scripts/propeller/market-snapshot.mjs": "3025fa90521180474a63dd9b3950d0c47f85d57b35919826e92fa129a512b9a6",
+    "scripts/propeller/tuning-routes.mjs": "0d9f935ee6245bef3fe45488d82370b4eb6b51772063474c7f2065670306f637",
+    "propeller-vault/docs/operations-tuning-three-rounds-2026-10-03.md": "057e53f4bfc11dc5829e6bde74729706820339ad35ca85315faae3663e4ad1cc",
+    "propeller-vault/src/ExecutionController.sol": "2e87a44bea4dd31119ad8dd6378ad22bb3075ea4aee6463d5622b455711dff9d",
+    "propeller-vault/src/PropellerYieldAccounting.sol": "4cccc974de1fb8de8da5d7e916b64c58ad51caebe665644bea0a111d5919a32a",
+    "propeller-vault/src/SubLoop.sol": "9b1f99f43e6f6d0aeab3fe4bc1b53519b2da1ad03593b531bc74846424077ee4",
+    "propeller-vault/src/PropellerFeeController.sol": "984ffed716231212dd409d444d5fb4302792ba88f4b5bff7d43cbc900f386052",
+    "propeller-vault/src/Harvester.sol": "d24cda0705c654122b88a34e0938b932cc1d51a6d635fd14d6d61f4cfc50680c",
+    "propeller-vault/src/CollateralVault.sol": "923f0301b09025a1a650adb819e77ffcf74fe526fd9aecf8b18aee537b0a4cd7",
+    "propeller-vault/src/SyntheticToken.sol": "d429ec73e0379b4fddbfcb27c94d38e6e1ca88b4736c33279c4496def179ee07",
+    "propeller-vault/src/PropellerMainDebt.sol": "4a44492f6bf0748401a81a3c71b862f6057aecdd6bd59e1daf6028be80045ab3",
+    "propeller-vault/src/PropellerDiscount.sol": "aee101868f612e77dda4291f48b4e0ff54a1842b480cb77bc599edb536809f56",
+    "propeller-vault/src/lib/DcaDispatch.sol": "705d55724ae7f61f27079daf4558b9e31fe6f54a57085471187e068508414a1c",
+    "propeller-vault/src/lib/CompoundLogic.sol": "dafee5e9ee559d036494c5ff24e14473314cb6c518281477a4542eed3cbadeb6",
+    "propeller-vault/src/interfaces/IYieldSource.sol": "b2afc98425222c5754905cce6efe190b40ed3bc07e9a2ae9c962870f67b23b08",
+    "propeller-vault/src/interfaces/IPropellerFeeController.sol": "30238b01625d365ec62935b402228f33dc82e6e69de970f8d1e4a5b81f2afde8",
+    "propeller-vault/src/interfaces/ISyntheticToken.sol": "c1753bd8c2f86c959efd5b8ead8c96fdea7d3e461fbd2247c1fc39b4910afa00",
+    "propeller-vault/src/interfaces/ISwapper.sol": "bfee02ccfd61bbc85c9c02279423be2bd9b10f0a7b0dddcadd416a39b1b460e0",
+    "propeller-vault/src/interfaces/ISubLoop.sol": "dbff17c76fbd028cd3e0d86a9cff4a0c4554c6bf5afaaaed9934d8b6d39fd30e",
+    "propeller-vault/src/interfaces/IPropellerDiscount.sol": "acc6d8c987884127614c4905cbf44ac1b2caaf520083284fc459b97798ff3d2a",
+    "propeller-vault/src/interfaces/IMainDebt.sol": "a283cc417482a2ace94d02eada8a06b3a2a100270dc24b352b839e45a798fced",
+    "propeller-vault/src/interfaces/IAavePool.sol": "668abed1251b5a5f56a3f7a85866a56cb8574bbdbe6f4b83dc1d1b6fd6334225"
+  },
+  "externalEvidence": {
+    "propeller-vault/docs/evidence/execution-controls-2026-10-03/native-controls.json": "bac0c87aadd1792f7fcaae5a21499ecbf03efdcdb3465dd98f701ad924741683",
+    "propeller-vault/docs/evidence/execution-controls-2026-10-03/manifest.json": "da6586327ba3fb58a339fab584b0428eaf6a496983090bd9666cf562f279934f",
+    "propeller-vault/docs/evidence/mainnet-tuning-five-rounds-2026-10-02/holdout-routes.json": "e7fc8d1d64f6f3abfbe3c4c91e41a2dfdc2390a5651367124cbb8b8b3bbe3e1d"
+  },
+  "files": {
+    "artifact-parity.json": {
+      "sha256": "432ade344096a458b618f47b8873f876ef0784b8149c6369ddee5e244b7f478d",
+      "bytes": 2380
+    },
+    "comparison.csv": {
+      "sha256": "e617af0a625f447a92f0731131fb8cb0aa18d1d6d1a3b212a2c0864ad56ae880",
+      "bytes": 18896
+    },
+    "controlled-gas.json": {
+      "sha256": "22cc9ef3e6322e1c8b38559d3f79e26d626303899c682177a5158283ddaf691c",
+      "bytes": 4125
+    },
+    "controlled-gas.log": {
+      "sha256": "246f7e6f853f0d26d361169af10f24c68b246dd7d08315d6ff28fb9e74d5854c",
+      "bytes": 254
+    },
+    "gas-price.json": {
+      "sha256": "2763d5435422f748d6338e9bbc0957485351b8e07191ebe9336e113b1ea6fb9e",
+      "bytes": 140
+    },
+    "hastra-por.json": {
+      "sha256": "c3d6f2957b09e5bd133ea955613834d1e0edfd59c0cb47f9d74c4ec6158585e8",
+      "bytes": 4478
+    },
+    "holdout-gas-5x-BTC.log": {
+      "sha256": "8f3c78d0986b804092d44c83ed66c0c0f03c19f350018606dc5b8ac205151203",
+      "bytes": 1571
+    },
+    "holdout-gas-5x-ETH.log": {
+      "sha256": "b6532eb90572474c7f5a70c0499c927cb56f56700707c7fc0d48d229b46e10cc",
+      "bytes": 1573
+    },
+    "holdout-large-vault-BTC.log": {
+      "sha256": "72fb994983a42e13ae84cd7afd757a14790b84f546d4b76bd6fc42d00fb191c1",
+      "bytes": 1595
+    },
+    "holdout-large-vault-ETH.log": {
+      "sha256": "99286d563139223b0ed85568ac68b5a30d07926b8bbc61babaee6ea548ee7391",
+      "bytes": 1595
+    },
+    "holdout-negative-spread-BTC.log": {
+      "sha256": "e51eb171b59175c67c46778825d277514f79ee970a19b2ea24b2cd8b2ec0a8e8",
+      "bytes": 1574
+    },
+    "holdout-negative-spread-ETH.log": {
+      "sha256": "a2555188b854acb38b0c20e74389dd12c0c2263f0ae0f34ee8cefc486bbcd203",
+      "bytes": 1576
+    },
+    "holdout-no-refill-BTC.log": {
+      "sha256": "79dc9bef19653a9e79905b6fa4b60e707601e5df222ff3ca9def434887b29c0a",
+      "bytes": 1538
+    },
+    "holdout-no-refill-ETH.log": {
+      "sha256": "b336be2d449247ead71ff8472ce356b5fe08a19c2695f631687e53dac06eab0b",
+      "bytes": 1537
+    },
+    "holdout-outage-14d-BTC.log": {
+      "sha256": "f0816563941ae634e7051d65df11e3c866a0bec3b1fde40b5a07338f872c744b",
+      "bytes": 1571
+    },
+    "holdout-outage-14d-ETH.log": {
+      "sha256": "9f4f9e64f0930532e3a03eedd350f3ad5bf614a66a39b3d29bc8cdfd55d65eb0",
+      "bytes": 1573
+    },
+    "holdout-prime-gap-3pct-BTC.log": {
+      "sha256": "ecb134f20a26ade21ff9c975049143c5da1ac6ee4d1678d48f322a68f514c501",
+      "bytes": 1557
+    },
+    "holdout-prime-gap-3pct-ETH.log": {
+      "sha256": "7253a33033bab1beeab18a080a3cbfaa409420c550f4d2bd5f8c939552b9c43b",
+      "bytes": 1559
+    },
+    "holdout-small-vault-BTC.log": {
+      "sha256": "ceb9a0544925faabdf18a7acbab0db52875a5e417ab0c401cfb1c43337968c10",
+      "bytes": 1556
+    },
+    "holdout-small-vault-ETH.log": {
+      "sha256": "22fa6bdcb671a0ceab5633c50943837c56ccadfb33b1f198eff49222996ea1d2",
+      "bytes": 1556
+    },
+    "holdout-two-years-BTC.log": {
+      "sha256": "7dd8de4ca944d4833ad0816d7871ad77f8afef5382e7d7b716e639c2547c159d",
+      "bytes": 1573
+    },
+    "holdout-two-years-ETH.log": {
+      "sha256": "ec45bf57eae2991ef5a2aac6f5189c15ae0eb092563a3e70641f768808831f84",
+      "bytes": 1575
+    },
+    "holdout-worse-fills-BTC.log": {
+      "sha256": "5f9fd25576deb5abae4e602f23594996b74513a9afa24226ad3822b15f085418",
+      "bytes": 1571
+    },
+    "holdout-worse-fills-ETH.log": {
+      "sha256": "c810b0cfdecc7979d08d39c879b4f658de3db318fcb1e7e77920142935ebc246",
+      "bytes": 1572
+    },
+    "holdouts.json": {
+      "sha256": "bf1c9854b71d35a716bf6a53f24afe569cc808d7b2e0fd887d6ab9c45988b0e9",
+      "bytes": 109758
+    },
+    "market.json": {
+      "sha256": "babbc5c4d9de05c7465ef81668195837bff78718a9b2020c2171c353b596de67",
+      "bytes": 28602
+    },
+    "model-tests.log": {
+      "sha256": "3e2aaad62a6c6c1b758a48f7a4f1b92776ace6cf7321656cb6f3fb146c464e88",
+      "bytes": 1404
+    },
+    "r1-threshold-1-BTC.log": {
+      "sha256": "5e309b351de241487ef54602ba800a961cda66dcfe93bc2f3c46363b131b562c",
+      "bytes": 1581
+    },
+    "r1-threshold-1-ETH.log": {
+      "sha256": "2c8aa753561a5205b55eb833bb2447307e73557704dfd2bc8ff181238bd59812",
+      "bytes": 1581
+    },
+    "r1-threshold-10-BTC.log": {
+      "sha256": "98c605396bbda5992d28704f82451f53b0837bd03a98a471296d35e8e82e0707",
+      "bytes": 1575
+    },
+    "r1-threshold-10-ETH.log": {
+      "sha256": "2fef080c66938d1c1063e4fe1c7cfc7155f125ce205d7ae83641d67fd2d5ce79",
+      "bytes": 1575
+    },
+    "r1-threshold-25-BTC.log": {
+      "sha256": "28bf8187be8f159acd1fa97e5bb0326b0f0fcfdbf180670ab705062140bbc01f",
+      "bytes": 1629
+    },
+    "r1-threshold-25-ETH.log": {
+      "sha256": "5035b9d60296f6647beeee2f085519ae26c5424abae3ebddb51d7bba5d68b063",
+      "bytes": 1629
+    },
+    "r1-threshold-5-BTC.log": {
+      "sha256": "4452e2f0ae0b0fb863daeda6753ac93690b49e6ff3a0e6d3dc29030100606d46",
+      "bytes": 1578
+    },
+    "r1-threshold-5-ETH.log": {
+      "sha256": "1876b8ddfd350a92a65bb5493a63ed9b9d12b95cb47ec5d8869ea78c9c5b9e9c",
+      "bytes": 1578
+    },
+    "r1-threshold-50-BTC.log": {
+      "sha256": "ca0dee1cae220dc3d02086ef2623ed9072283b4dc0b95a675f49d7f3260c9198",
+      "bytes": 1575
+    },
+    "r1-threshold-50-ETH.log": {
+      "sha256": "93c4cfe87d868eba774d8bfc3c8662c7eaf73ae43ce0bc45ff8c55f80d9ca81c",
+      "bytes": 1575
+    },
+    "r2-trade-2500-daily-1000-BTC.log": {
+      "sha256": "6b3d5d84a571233749c9c671cf14d8bbbc9687ee198500d173bf29b1e51290d7",
+      "bytes": 1576
+    },
+    "r2-trade-2500-daily-1000-ETH.log": {
+      "sha256": "e98dcb7a0b9dafbdbc0ee8c6e198e4632e8e4e29d9d5345f214b424d00445314",
+      "bytes": 1579
+    },
+    "r2-trade-2500-daily-250-BTC.log": {
+      "sha256": "bbdbe6f66a705c8643469262fe4e04c3d0afe0a51cdd11899a051a754bd52db3",
+      "bytes": 1578
+    },
+    "r2-trade-2500-daily-250-ETH.log": {
+      "sha256": "52398c28953743675c0174fc48af636c4ade8966ded7f3baf8ab4c19b89a6840",
+      "bytes": 1581
+    },
+    "r2-trade-2500-daily-5000-BTC.log": {
+      "sha256": "cff013d0ae02645c5354fdfba3f152837d65b72193357a45b189b7316f89eb5a",
+      "bytes": 1575
+    },
+    "r2-trade-2500-daily-5000-ETH.log": {
+      "sha256": "3385d8f40c48b6ecf0609732a8d3a7e0f9868cf9f025b96817acba9004a75d37",
+      "bytes": 1578
+    },
+    "r2-trade-5000-daily-1000-BTC.log": {
+      "sha256": "11389a0a51c47b2d716565fe5e987851b459e7d8d6ed1eeccd63d5efb3885939",
+      "bytes": 1576
+    },
+    "r2-trade-5000-daily-1000-ETH.log": {
+      "sha256": "44492c8c8ba6c51e3152332f9eea857ba7b24d51a0e8d67e67c001833d71fc76",
+      "bytes": 1576
+    },
+    "r2-trade-5000-daily-250-BTC.log": {
+      "sha256": "6b3adec574eb0dc02eafcd49dd22d0686cfdae70dc6de9ba9d328fd8a10737c3",
+      "bytes": 1578
+    },
+    "r2-trade-5000-daily-250-ETH.log": {
+      "sha256": "3f2063c45042a9c489704c7152e7cc1e14410a2891612340507b219ce5185524",
+      "bytes": 1578
+    },
+    "r2-trade-5000-daily-5000-BTC.log": {
+      "sha256": "09e752e23a54e44bad62d97cc345b0ae41910a34644edb865b68d99f994b33bd",
+      "bytes": 1575
+    },
+    "r2-trade-5000-daily-5000-ETH.log": {
+      "sha256": "5c462d590491609724fb94172efda4d264a379665e53c5cbe28116752089f91b",
+      "bytes": 1575
+    },
+    "r2-trade-8000-daily-1000-BTC.log": {
+      "sha256": "d6599071a67a0dd5c85f1efe30033968f69d3b2bce508739d8d1cbd5207686cb",
+      "bytes": 1574
+    },
+    "r2-trade-8000-daily-1000-ETH.log": {
+      "sha256": "a079389454f1ccb5dfc6ee4c94490dd606db4df62577533b8d18db163b4e70a6",
+      "bytes": 1574
+    },
+    "r2-trade-8000-daily-250-BTC.log": {
+      "sha256": "d528acd3b0f9dc50b1ed3db2fd80873a828ea0c028fbbc4fd1660c040ff604c8",
+      "bytes": 1574
+    },
+    "r2-trade-8000-daily-250-ETH.log": {
+      "sha256": "12d2aa5627afd12f576a6a54e34d6b5da79ada24b0bdced6ac031259e4b72e78",
+      "bytes": 1574
+    },
+    "r2-trade-8000-daily-5000-BTC.log": {
+      "sha256": "4017f973cd11cbe252ebbe4c3ed969e6c14d7bb0f665785f8162cd73918a7971",
+      "bytes": 1573
+    },
+    "r2-trade-8000-daily-5000-ETH.log": {
+      "sha256": "27d0a37ed2c41dff19bbc0c936efcb9ed1866e19a411fe88b02a90cdf3b590f8",
+      "bytes": 1573
+    },
+    "r3-inherited-BTC.log": {
+      "sha256": "1778a4e22168b18e51c26aa16b3c01cd55b1ffeeef033339a03fe4930bf37c97",
+      "bytes": 1573
+    },
+    "r3-inherited-ETH.log": {
+      "sha256": "048b149986579586bdc53a3b7a08088709f07a0836c794f131609c0201581317",
+      "bytes": 1573
+    },
+    "r3-threshold-20-ramp-1h-BTC.log": {
+      "sha256": "5c1f0cfbc5d2eb18540431849bb27e9e14e74da3d50ef64991089fdbb89a8814",
+      "bytes": 1573
+    },
+    "r3-threshold-20-ramp-1h-ETH.log": {
+      "sha256": "23adb7762117739b8579ee3ffa6edf05eed45e33ed8b5b918335ca3433fd010d",
+      "bytes": 1573
+    },
+    "r3-threshold-20-ramp-24h-BTC.log": {
+      "sha256": "8d3beb817bda1716485b16aab202472a8d1e6f31b760400bf9c508200352310a",
+      "bytes": 1571
+    },
+    "r3-threshold-20-ramp-24h-ETH.log": {
+      "sha256": "710abf3a946311be390992dbc01fae102925f96cf504aa8755e451d852e6f4dc",
+      "bytes": 1571
+    },
+    "r3-threshold-20-ramp-6h-BTC.log": {
+      "sha256": "736af2197a54fc66b6cfd8ad57f3e24686248ff78bf18cdb83a0c5de7febe225",
+      "bytes": 1572
+    },
+    "r3-threshold-20-ramp-6h-ETH.log": {
+      "sha256": "680368b317aac3157486a2b708eeda3b0306fc30afb43abf23d2c3b41c0ff5be",
+      "bytes": 1588
+    },
+    "r3-threshold-25-ramp-24h-BTC.log": {
+      "sha256": "13e0972282859c8e1f9fe829a030e40140853c427955e7b9956b30322b2d2c40",
+      "bytes": 1572
+    },
+    "r3-threshold-25-ramp-24h-ETH.log": {
+      "sha256": "ee642066139984fd3b997dcda950b1be9eae75fdcd7e0d03b2a56bab912fceb1",
+      "bytes": 1572
+    },
+    "r3-threshold-25-ramp-6h-BTC.log": {
+      "sha256": "a806b894381a1f4e7f7a104c07ea75c19276d86df8f2b1b78818fea06d1cce0a",
+      "bytes": 1572
+    },
+    "r3-threshold-25-ramp-6h-ETH.log": {
+      "sha256": "2d692b4f3d10416ca47226e1585ec03873264a7c453d216ba8ac4c4acbf54f6e",
+      "bytes": 1572
+    },
+    "r3-threshold-30-ramp-1h-BTC.log": {
+      "sha256": "8664217862046c2ba8a6e5d44f68b9f9a3bc45d8e0822985b2fbae12cda0d0a6",
+      "bytes": 1571
+    },
+    "r3-threshold-30-ramp-1h-ETH.log": {
+      "sha256": "d98bd0234a7c0a2ab4f98464beaa2513866400477090c3f5bae6d5926895a2e2",
+      "bytes": 1573
+    },
+    "r3-threshold-30-ramp-24h-BTC.log": {
+      "sha256": "e1d609b3b34c93f11896da3aab095a090c99ebda034e5ff67ea0da28154630cc",
+      "bytes": 1570
+    },
+    "r3-threshold-30-ramp-24h-ETH.log": {
+      "sha256": "48c829e97b450d2d14d91799760047d259741c5d573f6d6c3de5135f3f3f1861",
+      "bytes": 1572
+    },
+    "r3-threshold-30-ramp-6h-BTC.log": {
+      "sha256": "53119aabdc3970875500f7ef2f585dbac049a3b73932ab18a9b9a3b81ae7cfeb",
+      "bytes": 1571
+    },
+    "r3-threshold-30-ramp-6h-ETH.log": {
+      "sha256": "82336e5018f0fa3957dd075244328e150ead4aa3ed7d72a562b646fbc6e2a4b0",
+      "bytes": 1572
+    },
+    "round-1.json": {
+      "sha256": "9b43402b85df8fa48317d0a14a6d8c6cc07982743e57477103301cfd988f2af9",
+      "bytes": 63609
+    },
+    "round-2.json": {
+      "sha256": "e2f385f9ede680588f4309ad0687343999fceb024ce621d78e4a013543c91173",
+      "bytes": 113905
+    },
+    "round-3.json": {
+      "sha256": "d1cc846437863efee1dab9d62c422a00d7aaf2b586082f4dfecd5443e1c50dba",
+      "bytes": 113839
+    },
+    "routes.json": {
+      "sha256": "47a35d5efba0fb786d253e9f651d726b1d32f65e571adab033fb5ba9e7e80740",
+      "bytes": 5520
+    },
+    "summary.json": {
+      "sha256": "f47a853372a7fcc5ebf78dc8ec82bb325ad6231a1d36f575bc6e745726281013",
+      "bytes": 176300
+    },
+    "summary.log": {
+      "sha256": "b42bf1cb529ceac0e5d168584761236f661af58d2f117f6e18cdf59f539b4c80",
+      "bytes": 1048
+    }
+  }
+}

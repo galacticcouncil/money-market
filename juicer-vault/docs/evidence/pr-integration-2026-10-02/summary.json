@@ -1,0 +1,95 @@
+{
+  "date": "2026-10-02",
+  "testedContractCommit": "b8732994dd7e1fc75c71f4f52caf9d6b34a420c0",
+  "currentHead": "f6053eac0461c439ead14e3a6537e4204fbee6fe",
+  "settings": {
+    "solc": "0.8.22",
+    "optimizerRuns": 200,
+    "viaIR": true,
+    "evmVersion": "london"
+  },
+  "solidity": {
+    "passed": 297,
+    "failed": 0,
+    "skipped": 11
+  },
+  "focused": {
+    "passed": 33,
+    "failed": 0,
+    "skipped": 0
+  },
+  "keeper": {
+    "passed": 19,
+    "failed": 0,
+    "build": "passed"
+  },
+  "runtimeTemplates": [
+    {
+      "contract": "CollateralVault",
+      "runtimeBytes": 24438,
+      "headroomBytes": 138,
+      "runtimeTemplateSha256": "1b421876213723bd4c29f538de125854c69e44937956b7c41ef17f3688361a05"
+    },
+    {
+      "contract": "SubLoop",
+      "runtimeBytes": 21327,
+      "headroomBytes": 3249,
+      "runtimeTemplateSha256": "26dfff976b35926b7745b0ff90fb9660303d637db8ffeeb62c7a4ae1aa9c90c8"
+    },
+    {
+      "contract": "PropellerMainDebt",
+      "runtimeBytes": 14279,
+      "headroomBytes": 10297,
+      "runtimeTemplateSha256": "f887533db1551de6a77dcfe8817db68a854b35db317a92958533cf7bb3411a18"
+    },
+    {
+      "contract": "PropellerFeeController",
+      "runtimeBytes": 8052,
+      "headroomBytes": 16524,
+      "runtimeTemplateSha256": "3f1301c75c1f7b306b7961fb7c0e207ee1a377f9d2704c00b64c76dd2bd625b8"
+    },
+    {
+      "contract": "Harvester",
+      "runtimeBytes": 7042,
+      "headroomBytes": 17534,
+      "runtimeTemplateSha256": "72157ce32b5a478b26771151fe267feb0e80dd4a49f74e40043894669b7f5c96"
+    },
+    {
+      "contract": "CompoundLogic",
+      "runtimeBytes": 4974,
+      "headroomBytes": 19602,
+      "runtimeTemplateSha256": "348f327f9dd1d5631b15c2defe21e3797154aa3b2c798096da6ff648026f9878"
+    },
+    {
+      "contract": "PropellerDiscount",
+      "runtimeBytes": 6740,
+      "headroomBytes": 17836,
+      "runtimeTemplateSha256": "cef69453934c118b274776b931b9ec36866966159f93870a28cf776cebf82cb2"
+    }
+  ],
+  "logs": {
+    "solidity.log": {
+      "sha256": "d5af3ab70738ed50591484d945ea7f081e39196429ca0df98cb7fea7ee9c6e15"
+    },
+    "focused.log": {
+      "sha256": "0e9a6915ae875f4c9df062c1eec470762d1cf72c5dd186688d1ee7c8b32ed25b"
+    },
+    "keeper-tests.log": {
+      "sha256": "853490913d1ccc654cce55f326f7e2717e95aa9d44bec0103891c08a93668f68"
+    },
+    "keeper-build.log": {
+      "sha256": "629da133fd59012c7e5f97c21ad9dbf874436cd572d9b4d7c32f97e2b8bc7731"
+    }
+  },
+  "limits": [
+    "Mock and local regression evidence; no fresh production/native deployment or activation.",
+    "Optional fork/campaign setups remain skipped.",
+    "PR #62 ownership implementation and execution-control policy remain open."
+  ],
+  "commands": {
+    "solidity": "forge test --offline --evm-version london",
+    "keeperTests": "npm test",
+    "keeperBuild": "npm run build"
+  },
+  "subsequentChanges": "f6053ea adds a test-comment-only merge; the evidence commit adds documentation."
+}

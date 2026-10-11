@@ -1,0 +1,150 @@
+{
+  "monthlyBudgetUsd": 10,
+  "sourcePool": {
+    "poolId": 143,
+    "feePpm": 400,
+    "nominalFeeBps": 4,
+    "hundredDollarOutputWithFeeUsd": 99.9669668948274,
+    "hundredDollarOutputWithoutFeeUsd": 100.00696931238392
+  },
+  "roundWinnersWithoutGas": [
+    {
+      "round": 1,
+      "original": "threshold-25",
+      "rescored": "threshold-1"
+    },
+    {
+      "round": 2,
+      "original": "trade-8000-daily-5000",
+      "rescored": "trade-8000-daily-5000"
+    },
+    {
+      "round": 3,
+      "original": "threshold-30-ramp-1h",
+      "rescored": "threshold-30-ramp-1h"
+    }
+  ],
+  "bestPreviouslyTested": {
+    "round": 3,
+    "candidate": "threshold-30-ramp-1h",
+    "meanUserReturnPct": 3.6415159153150123,
+    "cases": [
+      {
+        "id": "r3-threshold-30-ramp-1h-BTC",
+        "asset": "BTC",
+        "tvlUsd": 10000,
+        "userReturnPct": 3.7387923268524856,
+        "fundedCryptoUsd": 373.8792326852486,
+        "unconvertedUserUsd": 48.414400340860205,
+        "tradingLossUsd": 35.80797448257652,
+        "estimatedEntryLossUsd": 24.390133863205,
+        "remainingTradingLossUsd": 11.417840619371518,
+        "externalCostsUsd": 130.84263308921092,
+        "monthlyBudgetUsd": 10,
+        "strategyReturnAfterExternalCostsPct": 2.430365995960377,
+        "harvests": 32,
+        "gasGateSkips": 0,
+        "firstCryptoDay": 88.04166666666667
+      },
+      {
+        "id": "r3-threshold-30-ramp-1h-ETH",
+        "asset": "ETH",
+        "tvlUsd": 10000,
+        "userReturnPct": 3.544239503777539,
+        "fundedCryptoUsd": 354.4239503777539,
+        "unconvertedUserUsd": 45.57130414065649,
+        "tradingLossUsd": 29.260482063241646,
+        "estimatedEntryLossUsd": 22.853700154475,
+        "remainingTradingLossUsd": 6.406781908766646,
+        "externalCostsUsd": 129.9283217151519,
+        "monthlyBudgetUsd": 10,
+        "strategyReturnAfterExternalCostsPct": 2.24495628662602,
+        "harvests": 32,
+        "gasGateSkips": 0,
+        "firstCryptoDay": 88.04166666666667
+      }
+    ]
+  },
+  "slices": [
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 100,
+      "calls": 80,
+      "refillBetweenSlices": false,
+      "lossUsd": 3.8113798697704624,
+      "averageLossBps": 4.764224837213078,
+      "maximumSliceLossBps": 6.225240092879725,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 100,
+      "calls": 80,
+      "refillBetweenSlices": true,
+      "lossUsd": 2.6426484138073647,
+      "averageLossBps": 3.303310517259206,
+      "maximumSliceLossBps": 3.303310517260849,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 1000,
+      "calls": 8,
+      "refillBetweenSlices": false,
+      "lossUsd": 3.8113309956343073,
+      "averageLossBps": 4.764163744542884,
+      "maximumSliceLossBps": 6.0587174128368115,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 1000,
+      "calls": 8,
+      "refillBetweenSlices": true,
+      "lossUsd": 2.775747559946467,
+      "averageLossBps": 3.4696844499330837,
+      "maximumSliceLossBps": 3.469684449932675,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 2500,
+      "calls": 4,
+      "refillBetweenSlices": false,
+      "lossUsd": 3.811366057514533,
+      "averageLossBps": 4.7642075718931665,
+      "maximumSliceLossBps": 6.151206402166265,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 2500,
+      "calls": 4,
+      "refillBetweenSlices": true,
+      "lossUsd": 2.9792042118115205,
+      "averageLossBps": 3.7240052647644006,
+      "maximumSliceLossBps": 3.747125918375227,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 8000,
+      "calls": 1,
+      "refillBetweenSlices": false,
+      "lossUsd": 3.81153074210215,
+      "averageLossBps": 4.764413427627687,
+      "maximumSliceLossBps": 4.7644134276281225,
+      "withinTenBpWithTwoBpMargin": true
+    },
+    {
+      "totalUsd": 8000,
+      "chunkUsd": 8000,
+      "calls": 1,
+      "refillBetweenSlices": true,
+      "lossUsd": 3.81153074210215,
+      "averageLossBps": 4.764413427627687,
+      "maximumSliceLossBps": 4.7644134276281225,
+      "withinTenBpWithTwoBpMargin": true
+    }
+  ]
+}

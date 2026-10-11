@@ -1,0 +1,119 @@
+{
+  "date": "2026-10-02",
+  "scope": "Draft #62: atomic source harvest and a separate, unimplemented ownership design.",
+  "contractRegressionCommit": "f424b08aa2ac2f928d7aacc2affc7ceac9aa9dfd",
+  "finalArtifactCommit": "e319b4c068a21a9ba735ff9c4865d525a8f9d762",
+  "subsequentSourceChanges": "Comments only in SubLoop and SettleBatch; readiness output text updated. No Solidity behavior change.",
+  "settings": {
+    "solc": "0.8.22",
+    "optimizerRuns": 200,
+    "viaIR": true,
+    "evmVersion": "london"
+  },
+  "model": {
+    "passed": 8,
+    "failed": 0,
+    "scope": "Exact-rational ownership examples, not production-contract capture prevention."
+  },
+  "solidity": {
+    "passed": 297,
+    "failed": 0,
+    "skipped": 11,
+    "suites": 42,
+    "total": 308
+  },
+  "productionBuild": "passed",
+  "runtimeTemplates": [
+    {
+      "contract": "CollateralVault",
+      "runtimeBytes": 24438,
+      "headroomBytes": 138,
+      "runtimeTemplateSha256": "a6274b9ca923c3c2b73a88f0c53336bc82c77d346eaaea223f3384c231511469"
+    },
+    {
+      "contract": "SubLoop",
+      "runtimeBytes": 21328,
+      "headroomBytes": 3248,
+      "runtimeTemplateSha256": "439afb8cae26a3b10721f819fc23c528862e8bdec01100e3d20103c026919b35"
+    },
+    {
+      "contract": "PropellerMainDebt",
+      "runtimeBytes": 14279,
+      "headroomBytes": 10297,
+      "runtimeTemplateSha256": "b38bd76cd96c926e2b525cf3726cf2940553b83605bd4ebe20aed7432fb6d85f"
+    },
+    {
+      "contract": "PropellerFeeController",
+      "runtimeBytes": 8052,
+      "headroomBytes": 16524,
+      "runtimeTemplateSha256": "c2e6495501ea95a6faf6ba264bbe949e50a3cc47f9c0da8c28f32acc7205c3c4"
+    },
+    {
+      "contract": "Harvester",
+      "runtimeBytes": 7042,
+      "headroomBytes": 17534,
+      "runtimeTemplateSha256": "28cef0e28d1325de019e9375c965ffbaa6b9bd235bfd4adb4e763249b6537f40"
+    },
+    {
+      "contract": "CompoundLogic",
+      "runtimeBytes": 4974,
+      "headroomBytes": 19602,
+      "runtimeTemplateSha256": "479707471bc51ae3a7a2ab493d0662bf11adf059184b8ef369cb84a3f833f3cb"
+    },
+    {
+      "contract": "PropellerDiscount",
+      "runtimeBytes": 6740,
+      "headroomBytes": 17836,
+      "runtimeTemplateSha256": "353d401b70d8757e3e76d85f7195c29248619aef6b222a0d571b34ca5dd78ff3"
+    }
+  ],
+  "commands": {
+    "solidity": "forge test --offline --evm-version london",
+    "model": "node --test-reporter=tap scripts/propeller/yield-ownership-study.test.mjs",
+    "example": "node scripts/propeller/yield-ownership-study.mjs",
+    "build": "forge build --offline --evm-version london --skip test --skip script --out /tmp/propeller-pr62-final-artifacts-20261002 --cache-path /tmp/propeller-pr62-final-cache-20261002"
+  },
+  "logs": {
+    "build.log": {
+      "sha256": "3c625fc284a1a01a3766c19ae20fbff025ee50be7f0c52bf89c0746e9c72e535"
+    },
+    "example.json": {
+      "sha256": "86d2ba33285076c52b3e25ad2fdfe657bd45aaeb67574b47f7a8a1bb5b2dfacc"
+    },
+    "model-tests.log": {
+      "sha256": "fd81c1583cdf3c52b93e71435ce7e1af177ee9f742133dcfec07ee00e6b557a8"
+    },
+    "solidity.log": {
+      "sha256": "515bbea1d189873b00033ce404bbf755d89f42d60b22f2298a2210aeda8d5798"
+    }
+  },
+  "limits": [
+    "No production ownership ledger or prevention fix for deposits capturing pre-entry source yield.",
+    "No transfer/exit implementation in the ownership model; no storage, gas, leverage or price-change model.",
+    "No fresh native acceptance run, independent audit, production deployment or activation.",
+    "Deposit/harvest size and rate controls remain unimplemented."
+  ],
+  "unchangedExecutableRuntimeFromPr63": {
+    "contracts": [
+      "CollateralVault",
+      "PropellerMainDebt",
+      "PropellerFeeController",
+      "Harvester",
+      "CompoundLogic",
+      "PropellerDiscount"
+    ],
+    "method": "Compared compiler runtime templates with trailing Solidity CBOR metadata excluded; no deployment/immutable substitution."
+  },
+  "regressionToFinalRuntimeComparison": {
+    "matched": [
+      "CollateralVault",
+      "SubLoop",
+      "PropellerMainDebt",
+      "PropellerFeeController",
+      "Harvester",
+      "CompoundLogic",
+      "PropellerDiscount"
+    ],
+    "method": "Executable runtime templates match after excluding trailing Solidity CBOR metadata; final source changes are comments only."
+  }
+}

@@ -1,0 +1,1093 @@
+{
+  "timestamp": "2026-10-02T22:25:03.004Z",
+  "upstream": "hdx.tarn.hydration.cloud",
+  "block": "15318402",
+  "hash": "0xb2c6a669fdfd35820496781cb8fa92b343b1f913dec57d717eb5f918e2d4aaab",
+  "runtime": {
+    "specName": "hydradx",
+    "implName": "hydradx",
+    "authoringVersion": 1,
+    "specVersion": 447,
+    "implVersion": 0,
+    "apis": [
+      [
+        "0xdf6acb689907609b",
+        5
+      ],
+      [
+        "0x37e397fc7c91f5e4",
+        2
+      ],
+      [
+        "0x40fe3ad401f8959a",
+        6
+      ],
+      [
+        "0xd2bc9897eed08f15",
+        3
+      ],
+      [
+        "0xf78b278be53f454c",
+        2
+      ],
+      [
+        "0xab3c0572291feb8b",
+        1
+      ],
+      [
+        "0xdd718d5cc53262d4",
+        1
+      ],
+      [
+        "0xea93e3f16f3d6962",
+        3
+      ],
+      [
+        "0x695c80446b8b3d4e",
+        1
+      ],
+      [
+        "0x9af86751b70c112d",
+        1
+      ],
+      [
+        "0xbc9d89904f5b923f",
+        1
+      ],
+      [
+        "0x37c8bb1350a9a2a8",
+        4
+      ],
+      [
+        "0x582211f65bb14b89",
+        6
+      ],
+      [
+        "0xe65b00e46cedd0aa",
+        2
+      ],
+      [
+        "0x0bb67a52fcd040ff",
+        1
+      ],
+      [
+        "0x34a3d488166b5a55",
+        1
+      ],
+      [
+        "0x542334fe4fd7cada",
+        1
+      ],
+      [
+        "0x6ff52ee858e6c5bd",
+        1
+      ],
+      [
+        "0xd7bdd8a272ca0d65",
+        2
+      ],
+      [
+        "0x04e70521a0d3d2f8",
+        1
+      ],
+      [
+        "0x91b1c8b16328eb92",
+        2
+      ],
+      [
+        "0x9ffb505aa738d69c",
+        1
+      ],
+      [
+        "0x2b5f5bcd2460e4f0",
+        1
+      ],
+      [
+        "0xa2b2b484fcb86943",
+        1
+      ],
+      [
+        "0x75fc5fbf0e9c71bc",
+        1
+      ],
+      [
+        "0x6aa673a4e69ae9a5",
+        1
+      ],
+      [
+        "0xfbc577b9d747efd6",
+        1
+      ]
+    ],
+    "transactionVersion": 1,
+    "stateVersion": 1
+  },
+  "markets": {
+    "ETH": {
+      "id": 34,
+      "address": "0x0000000000000000000000000000000100000022",
+      "reserve": {
+        "configuration": {
+          "data": "1128142248241326473780495042057667409306201823124812"
+        },
+        "liquidityIndex": "1003950708413824351681447820",
+        "currentLiquidityRate": "114747842334965470259471",
+        "variableBorrowIndex": "1021639261036511627863784166",
+        "currentVariableBorrowRate": "3658858875716941094294637",
+        "currentStableBorrowRate": "93658858875716941094294637",
+        "lastUpdateTimestamp": 1790967330,
+        "id": 8,
+        "aTokenAddress": "0x11a8f7fFbB7e0fbEd88BC20179Dd45B4Bd6874ff",
+        "stableDebtTokenAddress": "0x35a8157404876a98e202318897A187b85BC6E76E",
+        "variableDebtTokenAddress": "0xa8733d52C53ec96E44Dd171Dc6c2bFF4f8132947",
+        "interestRateStrategyAddress": "0x5383a606ECe147e94C1fA0b7375bc778f132b832",
+        "accruedToTreasury": "4805308559892396",
+        "unbacked": "0",
+        "isolationModeTotalDebt": "0"
+      },
+      "decimals": 18,
+      "ltvBps": 7500,
+      "ltBps": 8500,
+      "borrowCap": "2222",
+      "supplyCap": "4444",
+      "debtCeiling": "0",
+      "price": "265821456299",
+      "supply": "1076324066390805929183",
+      "variableDebt": "42194368871015341563",
+      "availableLiquidity": "1034134544396902361830",
+      "asset": {
+        "name": "0x457468657265756d",
+        "assetType": "Token",
+        "existentialDeposit": 5373455131650,
+        "symbol": "0x455448",
+        "decimals": 18,
+        "xcmRateLimit": "0x000000000000000821ab0d4414980000",
+        "isSufficient": true
+      }
+    },
+    "tBTC": {
+      "id": 1000765,
+      "address": "0x00000000000000000000000000000001000f453d",
+      "reserve": {
+        "configuration": {
+          "data": "5708990770827993361719995955311050782214444031808"
+        },
+        "liquidityIndex": "1001768931102292322439651269",
+        "currentLiquidityRate": "31029309921337534472655",
+        "variableBorrowIndex": "1011358050469469938215878483",
+        "currentVariableBorrowRate": "2456313687041816944723947",
+        "currentStableBorrowRate": "92456313687041816944723947",
+        "lastUpdateTimestamp": 1790979048,
+        "id": 5,
+        "aTokenAddress": "0x69003a65189f6Ed993D3bD3E2B74f1Db39F405ce",
+        "stableDebtTokenAddress": "0xe18b4FC62e8fC42c81BAaC713026fBE98D477D66",
+        "variableDebtTokenAddress": "0x6efd31920F48d9e82aE262C9c6BD7660Fb807a8A",
+        "interestRateStrategyAddress": "0x28cc3980bdfa1cb78EBFF4A990A139E53bF3d3F2",
+        "accruedToTreasury": "30532088718039",
+        "unbacked": "0",
+        "isolationModeTotalDebt": "0"
+      },
+      "decimals": 18,
+      "ltvBps": 8000,
+      "ltBps": 8500,
+      "borrowCap": "20",
+      "supplyCap": "50",
+      "debtCeiling": "0",
+      "price": "8438927019765",
+      "supply": "32722307042268025493",
+      "variableDebt": "516704985796497691",
+      "availableLiquidity": "32205632797851471719",
+      "asset": {
+        "name": "0x5468726573686f6c6420425443",
+        "assetType": "Token",
+        "existentialDeposit": 106803374987,
+        "symbol": "0x74425443",
+        "decimals": 18,
+        "xcmRateLimit": "0x000000000000000014d1120d7b160000",
+        "isSufficient": true
+      }
+    },
+    "PRIME": {
+      "id": 43,
+      "address": "0x000000000000000000000000000000010000002b",
+      "reserve": {
+        "configuration": {
+          "data": "7898421875141789002343857785267299399002708373593404198910575983634424116"
+        },
+        "liquidityIndex": "1000011436000013351802355153",
+        "currentLiquidityRate": "357603428002358711848728",
+        "variableBorrowIndex": "1000343183945369536951433253",
+        "currentVariableBorrowRate": "3452551848523826353457221",
+        "currentStableBorrowRate": "52083931469833392237100273",
+        "lastUpdateTimestamp": 1790923500,
+        "id": 16,
+        "aTokenAddress": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+        "stableDebtTokenAddress": "0x8F99D9F57677B77d9e8e180bcd22AC4067E75B31",
+        "variableDebtTokenAddress": "0xe3A3b04d701B965c77bA903376B7F92c83c866C5",
+        "interestRateStrategyAddress": "0x747611Fdfb7868cFC7BDBac1934bD5cEA111F3e9",
+        "accruedToTreasury": "13723660",
+        "unbacked": "0",
+        "isolationModeTotalDebt": "727843412"
+      },
+      "decimals": 6,
+      "ltvBps": 8500,
+      "ltBps": 8800,
+      "borrowCap": "3000000",
+      "supplyCap": "15000000",
+      "debtCeiling": "1200000000",
+      "price": "106248121",
+      "supply": "8921060855201",
+      "variableDebt": "1155024107390",
+      "availableLiquidity": "7766051895606",
+      "asset": {
+        "name": "0x5052494d45",
+        "assetType": "Token",
+        "existentialDeposit": 9901,
+        "symbol": "0x5052494d45",
+        "decimals": 6,
+        "xcmRateLimit": 449016984704,
+        "isSufficient": true
+      }
+    },
+    "HOLLAR": {
+      "id": 222,
+      "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+      "reserve": {
+        "configuration": {
+          "data": "2671197528984125440"
+        },
+        "liquidityIndex": "1000000000000000000000000000",
+        "currentLiquidityRate": "0",
+        "variableBorrowIndex": "1048515904283383088467919618",
+        "currentVariableBorrowRate": "44016888917752794000000000",
+        "currentStableBorrowRate": "0",
+        "lastUpdateTimestamp": 1790979108,
+        "id": 10,
+        "aTokenAddress": "0x8C0f3b9602374198974d2B2679d14a386f5b108e",
+        "stableDebtTokenAddress": "0xD95d27688F028AdDBe93Fa0e19FB095eE1111Dd1",
+        "variableDebtTokenAddress": "0x342923782cCaEBf9c38DD9cb40436e82C42c73B5",
+        "interestRateStrategyAddress": "0x39DfB27D814DB32F904a17560837c9Be8BF1B761",
+        "accruedToTreasury": "0",
+        "unbacked": "0",
+        "isolationModeTotalDebt": "0"
+      },
+      "decimals": 18,
+      "ltvBps": 0,
+      "ltBps": 0,
+      "borrowCap": "0",
+      "supplyCap": "0",
+      "debtCeiling": "0",
+      "price": "100000000",
+      "supply": "0",
+      "variableDebt": "11939457929574062699790403",
+      "availableLiquidity": "30882449074803802624818",
+      "asset": {
+        "name": "0x487964726174656420446f6c6c6172",
+        "assetType": "Erc20",
+        "existentialDeposit": "0x000000000000000000470de4df820000",
+        "symbol": "0x484f4c4c4152",
+        "decimals": 18,
+        "xcmRateLimit": null,
+        "isSufficient": true
+      }
+    }
+  },
+  "hsm": {
+    "minArbitrageAmount": "1000000000000000000",
+    "account": "13UVJyLnbVp7o9NMXo37cG6SBTTvyDYLAxjVg94wxjT4A5f1",
+    "collaterals": [
+      {
+        "id": 1002,
+        "config": {
+          "poolId": 111,
+          "purchaseFee": 0,
+          "maxBuyPriceCoefficient": "0x00000000000000000dd99bb65dd70000",
+          "buybackRate": 100000,
+          "buyBackFee": 100,
+          "maxInHolding": 8000000000000
+        },
+        "info": {
+          "name": "0x6155534454",
+          "assetType": "Erc20",
+          "existentialDeposit": 22409,
+          "symbol": "0x6155534454",
+          "decimals": 6,
+          "xcmRateLimit": null,
+          "isSufficient": true
+        },
+        "location": {
+          "parents": 0,
+          "interior": {
+            "x1": [
+              {
+                "accountKey20": {
+                  "network": null,
+                  "key": "0xc64980e4eaf9a1151bd21712b9946b81e41e2b92"
+                }
+              }
+            ]
+          }
+        },
+        "balance": "115797565556",
+        "underlying": {
+          "address": "0x000000000000000000000000000000010000000A",
+          "cashAtAToken": "358952543259",
+          "decimals": 6,
+          "aTokenTotalSupply": "1604765004979"
+        }
+      },
+      {
+        "id": 1003,
+        "config": {
+          "poolId": 110,
+          "purchaseFee": 0,
+          "maxBuyPriceCoefficient": "0x00000000000000000dd99bb65dd70000",
+          "buybackRate": 100000,
+          "buyBackFee": 100,
+          "maxInHolding": 8000000000000
+        },
+        "info": {
+          "name": "0x6155534443",
+          "assetType": "Erc20",
+          "existentialDeposit": 22409,
+          "symbol": "0x6155534443",
+          "decimals": 6,
+          "xcmRateLimit": null,
+          "isSufficient": true
+        },
+        "location": {
+          "parents": 0,
+          "interior": {
+            "x1": [
+              {
+                "accountKey20": {
+                  "network": null,
+                  "key": "0x2ec4884088d84e5c2970a034732e5209b0acfa93"
+                }
+              }
+            ]
+          }
+        },
+        "balance": "428436055011",
+        "underlying": {
+          "address": "0x0000000000000000000000000000000100000016",
+          "cashAtAToken": "641243300872",
+          "decimals": 6,
+          "aTokenTotalSupply": "1580715208717"
+        }
+      }
+    ]
+  },
+  "pools": {
+    "105": {
+      "info": {
+        "assets": [
+          21,
+          23,
+          222
+        ],
+        "initialAmplification": 222,
+        "finalAmplification": 222,
+        "initialBlock": 9846902,
+        "finalBlock": 9846902,
+        "fee": 200
+      },
+      "poolAccount": "1AKwNesUqsukuQZhAKUgPKXxuKbDBdHgQ45TxqM4tiGo1As",
+      "reserves": [
+        {
+          "id": 21,
+          "balance": "164976984224",
+          "info": {
+            "name": "0x555344432028576f726d686f6c6529",
+            "assetType": "Token",
+            "existentialDeposit": 10000,
+            "symbol": "0x55534443",
+            "decimals": 6,
+            "xcmRateLimit": 683479992232,
+            "isSufficient": true
+          }
+        },
+        {
+          "id": 23,
+          "balance": "172810790445",
+          "info": {
+            "name": "0x5465746865722028576f726d686f6c6529",
+            "assetType": "Token",
+            "existentialDeposit": 10000,
+            "symbol": "0x55534454",
+            "decimals": 6,
+            "xcmRateLimit": 229994157802,
+            "isSufficient": true
+          }
+        },
+        {
+          "id": 222,
+          "balance": "265798109072773963232926",
+          "info": {
+            "name": "0x487964726174656420446f6c6c6172",
+            "assetType": "Erc20",
+            "existentialDeposit": "0x000000000000000000470de4df820000",
+            "symbol": "0x484f4c4c4152",
+            "decimals": 18,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        }
+      ],
+      "pegs": null
+    },
+    "110": {
+      "info": {
+        "assets": [
+          222,
+          1003
+        ],
+        "initialAmplification": 222,
+        "finalAmplification": 222,
+        "initialBlock": 9333143,
+        "finalBlock": 9333143,
+        "fee": 200
+      },
+      "poolAccount": "1J2pTUxZES4HfS6TPJTPkgGfFLaWEm44iNk9YpNTCTL2c1x",
+      "reserves": [
+        {
+          "id": 222,
+          "balance": "768837003405671531505245",
+          "info": {
+            "name": "0x487964726174656420446f6c6c6172",
+            "assetType": "Erc20",
+            "existentialDeposit": "0x000000000000000000470de4df820000",
+            "symbol": "0x484f4c4c4152",
+            "decimals": 18,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        },
+        {
+          "id": 1003,
+          "balance": "485180985258",
+          "info": {
+            "name": "0x6155534443",
+            "assetType": "Erc20",
+            "existentialDeposit": 22409,
+            "symbol": "0x6155534443",
+            "decimals": 6,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        }
+      ],
+      "pegs": null
+    },
+    "111": {
+      "info": {
+        "assets": [
+          222,
+          1002
+        ],
+        "initialAmplification": 222,
+        "finalAmplification": 222,
+        "initialBlock": 9333143,
+        "finalBlock": 9333143,
+        "fee": 200
+      },
+      "poolAccount": "14gLeWdkhdPPkc7xjvALhrdjzoRrNpYGDmfKWr3R71iph8Cy",
+      "reserves": [
+        {
+          "id": 222,
+          "balance": "871983687405086429974658",
+          "info": {
+            "name": "0x487964726174656420446f6c6c6172",
+            "assetType": "Erc20",
+            "existentialDeposit": "0x000000000000000000470de4df820000",
+            "symbol": "0x484f4c4c4152",
+            "decimals": 18,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        },
+        {
+          "id": 1002,
+          "balance": "547555541299",
+          "info": {
+            "name": "0x6155534454",
+            "assetType": "Erc20",
+            "existentialDeposit": 22409,
+            "symbol": "0x6155534454",
+            "decimals": 6,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        }
+      ],
+      "pegs": null
+    },
+    "112": {
+      "info": {
+        "assets": [
+          222,
+          1000745
+        ],
+        "initialAmplification": 111,
+        "finalAmplification": 111,
+        "initialBlock": 9333143,
+        "finalBlock": 9333143,
+        "fee": 400
+      },
+      "poolAccount": "16dQS5BgwPi1k8Sr9S1pD7H4Q6q2QDQxMzxu1vpTK7UvhqTH",
+      "reserves": [
+        {
+          "id": 222,
+          "balance": "81307941180464717968436",
+          "info": {
+            "name": "0x487964726174656420446f6c6c6172",
+            "assetType": "Erc20",
+            "existentialDeposit": "0x000000000000000000470de4df820000",
+            "symbol": "0x484f4c4c4152",
+            "decimals": 18,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        },
+        {
+          "id": 1000745,
+          "balance": "49526740156644992481056",
+          "info": {
+            "name": "0x73555344532028576f726d686f6c6529",
+            "assetType": "Token",
+            "existentialDeposit": "0x0000000000000000002335d296d8248c",
+            "symbol": "0x7355534453",
+            "decimals": 18,
+            "xcmRateLimit": "0x000000000000065a4da25d3016c00000",
+            "isSufficient": true
+          }
+        }
+      ],
+      "pegs": {
+        "source": [
+          {
+            "value": [
+              1,
+              1
+            ]
+          },
+          {
+            "mmOracle": "0x4b32bffc6acd751446e79e8687ef3815fd7924fd"
+          }
+        ],
+        "updatedAt": 15291541,
+        "maxPegUpdate": 6,
+        "current": [
+          [
+            1,
+            1
+          ],
+          [
+            "0xc4f18ce1d95814ac005eca068d7de765",
+            "0xb15ee2deeae38a58cc193ba68d12e99c"
+          ]
+        ]
+      }
+    },
+    "113": {
+      "info": {
+        "assets": [
+          222,
+          1000625
+        ],
+        "initialAmplification": 111,
+        "finalAmplification": 111,
+        "initialBlock": 9333143,
+        "finalBlock": 9333143,
+        "fee": 400
+      },
+      "poolAccount": "14KtqiNxbRpbFXvbfSQfUWjXZaXnJAx3deTL2gCTNkzo934H",
+      "reserves": [
+        {
+          "id": 222,
+          "balance": "56151095896892745569678",
+          "info": {
+            "name": "0x487964726174656420446f6c6c6172",
+            "assetType": "Erc20",
+            "existentialDeposit": "0x000000000000000000470de4df820000",
+            "symbol": "0x484f4c4c4152",
+            "decimals": 18,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        },
+        {
+          "id": 1000625,
+          "balance": "39959743230868477630115",
+          "info": {
+            "name": "0x457468656e61205374616b65642055534465",
+            "assetType": "Token",
+            "existentialDeposit": "0x0000000000000000001fb87d085a0926",
+            "symbol": "0x7355534465",
+            "decimals": 18,
+            "xcmRateLimit": "0x0000000000001d6f34815a6fe0e00000",
+            "isSufficient": true
+          }
+        }
+      ],
+      "pegs": {
+        "source": [
+          {
+            "value": [
+              1,
+              1
+            ]
+          },
+          {
+            "mmOracle": "0x22cdea305cee63d082e79f8c5db939eecd0265d0"
+          }
+        ],
+        "updatedAt": 15178807,
+        "maxPegUpdate": 6,
+        "current": [
+          [
+            1,
+            1
+          ],
+          [
+            "0xf672b6c0850f202206adb01a7fecc5c0",
+            "0xc534e1e40bccab0f2c116f92a2f56353"
+          ]
+        ]
+      }
+    },
+    "143": {
+      "info": {
+        "assets": [
+          43,
+          222
+        ],
+        "initialAmplification": 100,
+        "finalAmplification": 100,
+        "initialBlock": 11434337,
+        "finalBlock": 11434337,
+        "fee": 400
+      },
+      "poolAccount": "15cqL5UTRvGRi7suPi9YCzbhJFrcDF1zJn2GiM9tjAqQZM8Y",
+      "reserves": [
+        {
+          "id": 43,
+          "balance": "505448618056",
+          "info": {
+            "name": "0x5052494d45",
+            "assetType": "Token",
+            "existentialDeposit": 9901,
+            "symbol": "0x5052494d45",
+            "decimals": 6,
+            "xcmRateLimit": 449016984704,
+            "isSufficient": true
+          }
+        },
+        {
+          "id": 222,
+          "balance": "533162446505107232531935",
+          "info": {
+            "name": "0x487964726174656420446f6c6c6172",
+            "assetType": "Erc20",
+            "existentialDeposit": "0x000000000000000000470de4df820000",
+            "symbol": "0x484f4c4c4152",
+            "decimals": 18,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        }
+      ],
+      "pegs": {
+        "source": [
+          {
+            "mmOracle": "0x09221057cf7e75953d199fb319e606972a6a82cd"
+          },
+          {
+            "value": [
+              1,
+              1
+            ]
+          }
+        ],
+        "updatedAt": 15318380,
+        "maxPegUpdate": 40,
+        "current": [
+          [
+            "0x9fb5c149d8a152d77eedb220ccdf4710",
+            "0x9651642280041a0a4290c9cd4ca5151f"
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    "146": {
+      "info": {
+        "assets": [
+          46,
+          222
+        ],
+        "initialAmplification": 100,
+        "finalAmplification": 100,
+        "initialBlock": 12561497,
+        "finalBlock": 12561497,
+        "fee": 400
+      },
+      "poolAccount": "18pZT5R8s7sR9jDTrCpf9Spa1JgjJT7MJBoQk4Pq7UVkLHs",
+      "reserves": [
+        {
+          "id": 46,
+          "balance": "141398656698843098907637",
+          "info": {
+            "name": "0x4170797820617079555344",
+            "assetType": "Token",
+            "existentialDeposit": "0x000000000000000000343eec0dc17890",
+            "symbol": "0x617079555344",
+            "decimals": 18,
+            "xcmRateLimit": "0x00000000000069e10de76676d0800000",
+            "isSufficient": true
+          }
+        },
+        {
+          "id": 222,
+          "balance": "809126052781582551423441",
+          "info": {
+            "name": "0x487964726174656420446f6c6c6172",
+            "assetType": "Erc20",
+            "existentialDeposit": "0x000000000000000000470de4df820000",
+            "symbol": "0x484f4c4c4152",
+            "decimals": 18,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        }
+      ],
+      "pegs": {
+        "source": [
+          {
+            "mmOracle": "0x80faac4da72fccabda5b276d9a931252d6242caf"
+          },
+          {
+            "value": [
+              1,
+              1
+            ]
+          }
+        ],
+        "updatedAt": 15312866,
+        "maxPegUpdate": 40,
+        "current": [
+          [
+            136723180,
+            100000000
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    "10044": {
+      "info": {
+        "assets": [
+          222,
+          1044
+        ],
+        "initialAmplification": 50,
+        "finalAmplification": 50,
+        "initialBlock": 11926917,
+        "finalBlock": 11926917,
+        "fee": 500
+      },
+      "poolAccount": "14NwjBZMMgGxaZeDMiZnB48qFdPLTetYUnw8qFCFhNc1XE3E",
+      "reserves": [
+        {
+          "id": 222,
+          "balance": "554339764399034027944300",
+          "info": {
+            "name": "0x487964726174656420446f6c6c6172",
+            "assetType": "Erc20",
+            "existentialDeposit": "0x000000000000000000470de4df820000",
+            "symbol": "0x484f4c4c4152",
+            "decimals": 18,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        },
+        {
+          "id": 1044,
+          "balance": "459462207299",
+          "info": {
+            "name": "0x6145555243",
+            "assetType": "Erc20",
+            "existentialDeposit": 17241,
+            "symbol": "0x6145555243",
+            "decimals": 6,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        }
+      ],
+      "pegs": {
+        "source": [
+          {
+            "value": [
+              1,
+              1
+            ]
+          },
+          {
+            "mmOracle": "0xaa47a5662269270d3df33ae08f806e383611575c"
+          }
+        ],
+        "updatedAt": 15318313,
+        "maxPegUpdate": 3333,
+        "current": [
+          [
+            1,
+            1
+          ],
+          [
+            "0xed13a80544aa93ebc5a3959ddf617ee3",
+            "0xd2bf7ef613516190ac85b3c023164701"
+          ]
+        ]
+      }
+    },
+    "10055": {
+      "info": {
+        "assets": [
+          55,
+          222
+        ],
+        "initialAmplification": 50,
+        "finalAmplification": 50,
+        "initialBlock": 13410995,
+        "finalBlock": 13410995,
+        "fee": 1000
+      },
+      "poolAccount": "1UnMVq6hqDD4vubAwJKo6VuVssY4XBajyHn6pocebRgj9mH",
+      "reserves": [
+        {
+          "id": 55,
+          "balance": "284850902339073418193525",
+          "info": {
+            "name": "0x42494c",
+            "assetType": "Erc20",
+            "existentialDeposit": "0x000000000000000000470de4df820000",
+            "symbol": "0x42494c",
+            "decimals": 18,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        },
+        {
+          "id": 222,
+          "balance": "314862730378514586679094",
+          "info": {
+            "name": "0x487964726174656420446f6c6c6172",
+            "assetType": "Erc20",
+            "existentialDeposit": "0x000000000000000000470de4df820000",
+            "symbol": "0x484f4c4c4152",
+            "decimals": 18,
+            "xcmRateLimit": null,
+            "isSufficient": true
+          }
+        }
+      ],
+      "pegs": {
+        "source": [
+          {
+            "mmOracle": "0xb9947cacebd0f23de3b59c369cd710137739cd83"
+          },
+          {
+            "value": [
+              1,
+              1
+            ]
+          }
+        ],
+        "updatedAt": 15310470,
+        "maxPegUpdate": 66,
+        "current": [
+          [
+            "0xd1cb3b5316d247220d3b63362352d81a",
+            "0xcb8503853b8fd23b8effedc5736a4792"
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      }
+    }
+  },
+  "facilitators": [
+    {
+      "address": "0x8C0f3b9602374198974d2B2679d14a386f5b108e",
+      "bucketCapacity": "13000000000000000000000000",
+      "bucketLevel": "11816691778391815935087363",
+      "label": "Hydration Market"
+    },
+    {
+      "address": "0xb3282DB2fB01A9305B753eccA09bF68C45428CF4",
+      "bucketCapacity": "100000000000000000000000",
+      "bucketLevel": "0",
+      "label": "HOLLAR FlashMinter"
+    },
+    {
+      "address": "0x6D6f646C70792F68736D6F640000000000000000",
+      "bucketCapacity": "18000000000000000000000000",
+      "bucketLevel": "540630164470200441773972",
+      "label": "HOLLAR Stability Module"
+    },
+    {
+      "address": "0x116D7Bb8E4e2a4C932B4d36c115D4122dc360462",
+      "bucketCapacity": "572221500000000000000000",
+      "bucketLevel": "572221500000000000000000",
+      "label": "GIGAHDX"
+    },
+    {
+      "address": "0xEf313C2baf19cE58eEB6Df9c82aE41C7387AFE3E",
+      "bucketCapacity": "950000000000000000000000",
+      "bucketLevel": "786883044655815383651815",
+      "label": "BIL"
+    }
+  ],
+  "blockTimestampMs": "1790979852000",
+  "observedBlockSeconds": 2.07,
+  "hollarTotalSupply": "13716426487517831760513150",
+  "runtimeApis": {
+    "core": [
+      "version",
+      "executeBlock",
+      "initializeBlock"
+    ],
+    "metadata": [
+      "metadata",
+      "metadataAtVersion",
+      "metadataVersions"
+    ],
+    "blockBuilder": [
+      "applyExtrinsic",
+      "finalizeBlock",
+      "inherentExtrinsics",
+      "checkInherents"
+    ],
+    "taggedTransactionQueue": [
+      "validateTransaction"
+    ],
+    "offchainWorkerApi": [
+      "offchainWorker"
+    ],
+    "sessionKeys": [
+      "generateSessionKeys",
+      "decodeSessionKeys"
+    ],
+    "auraApi": [
+      "slotDuration",
+      "authorities"
+    ],
+    "collectCollationInfo": [
+      "collectCollationInfo"
+    ],
+    "getCoreSelectorApi": [
+      "coreSelector"
+    ],
+    "currenciesApi": [
+      "account",
+      "accounts",
+      "freeBalance",
+      "minimumBalance"
+    ],
+    "accountNonceApi": [
+      "accountNonce"
+    ],
+    "transactionPaymentApi": [
+      "queryInfo",
+      "queryFeeDetails",
+      "queryWeightToFee",
+      "queryLengthToFee"
+    ],
+    "ethereumRuntimeRPCApi": [
+      "chainId",
+      "accountBasic",
+      "gasPrice",
+      "accountCodeAt",
+      "author",
+      "storageAt",
+      "call",
+      "create",
+      "currentBlock",
+      "currentReceipts",
+      "currentTransactionStatuses",
+      "currentAll",
+      "extrinsicFilter",
+      "elasticity",
+      "gasLimitMultiplierSupport",
+      "pendingBlock",
+      "initializePendingBlock"
+    ],
+    "convertTransactionRuntimeApi": [
+      "convertTransaction"
+    ],
+    "evmAccountsApi": [
+      "evmAddress",
+      "boundAccountId",
+      "accountId"
+    ],
+    "dusterApi": [
+      "isWhitelisted"
+    ],
+    "erc20MappingApi": [
+      "assetAddress",
+      "addressToAsset"
+    ],
+    "xcmPaymentApi": [
+      "queryAcceptablePaymentAssets",
+      "queryXcmWeight",
+      "queryWeightToAssetFee",
+      "queryDeliveryFees"
+    ],
+    "auraUnincludedSegmentApi": [
+      "canBuildUpon"
+    ],
+    "relayParentOffsetApi": [
+      "relayParentOffset"
+    ],
+    "dryRunApi": [
+      "dryRunCall",
+      "dryRunXcm"
+    ],
+    "locationToAccountApi": [
+      "convertLocation"
+    ],
+    "chainlinkAdapterApi": [
+      "encodeOracleAddress",
+      "decodeOracleAddress"
+    ],
+    "aaveTradeExecutor": [
+      "pairs",
+      "liquidityDepth",
+      "pool",
+      "pools"
+    ],
+    "iceSolverApi": [
+      "solverInput"
+    ],
+    "uniswapV3Api": [
+      "pool",
+      "quoteSell",
+      "quoteBuy",
+      "liquidityDepth"
+    ],
+    "genesisBuilder": [
+      "buildState",
+      "getPreset",
+      "presetNames"
+    ]
+  }
+}

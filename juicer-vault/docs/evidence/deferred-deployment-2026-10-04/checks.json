@@ -1,0 +1,29 @@
+{
+  "solidity": {
+    "passed": 367,
+    "failed": 0,
+    "skipped": 13
+  },
+  "keeper": {
+    "passed": 48,
+    "failed": 0,
+    "typescriptBuild": "passed"
+  },
+  "sourceStorage": {
+    "testsPassed": 8,
+    "preservedEntries": 43,
+    "appendedEntries": 2,
+    "limitation": "conservative storage prefix only"
+  },
+  "readiness": "TypeScript syntax checked; not a complete native readiness approval",
+  "ui": {
+    "commit": "4d238aab93671e7e91e85177af4c55466cc3ee20",
+    "testsPassed": 66,
+    "propellerTestsPassed": 32,
+    "abiFunctions": 45,
+    "abiEvents": 4,
+    "rounds": 5,
+    "remoteChecks": "all green per companion agent"
+  },
+  "productionActivation": false
+}

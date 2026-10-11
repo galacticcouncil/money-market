@@ -1,0 +1,336 @@
+Verifying Propeller readiness
+  WS   : wss://4.lark.hydration.cloud
+  RPC  : https://4.lark.hydration.cloud
+  synth: 0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5
+  loop : 0x7016805f0f1ab369a1e308038db22eefe3d4b49f
+  harv : 0xb7b759dbfe611c61d456f3d4c670a74b79853213
+  vaults: 0x40cca3da6cead6dada9e9ffc4c06e9039791876a, 0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd
+
+
+
+========================================================================
+  E. Execution budgets and quotes
+========================================================================
+  ✓ PASS  0x7016805f0f1ab369a1e308038db22eefe3d4b49f: shared controller
+  ✓ PASS  0xb7b759dbfe611c61d456f3d4c670a74b79853213: shared controller
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: shared controller
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: shared controller
+  ✓ PASS  governance administrator
+  ✓ PASS  approved quote age
+  ✓ PASS  approved quote blocks
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: deposit defers all deployment
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: deposit defers all deployment
+  ✓ PASS  0xa47564651b7764271ede81ced599aac091a04ee55f50b20be9fda57ce905d843: approved size
+  ✓ PASS  0xa47564651b7764271ede81ced599aac091a04ee55f50b20be9fda57ce905d843: approved active budget
+  ✓ PASS  0xa47564651b7764271ede81ced599aac091a04ee55f50b20be9fda57ce905d843: approved total MM-oracle shortfall
+  ✓ PASS  0xa47564651b7764271ede81ced599aac091a04ee55f50b20be9fda57ce905d843: approved minimum spacing
+  ✓ PASS  0xa47564651b7764271ede81ced599aac091a04ee55f50b20be9fda57ce905d843: safety only for source repayment
+  ✓ PASS  0x50e54d5376cf64274a26c7a0165a6b8f82d0acdc98cb93612f5b321e5252875e: approved size
+  ✓ PASS  0x50e54d5376cf64274a26c7a0165a6b8f82d0acdc98cb93612f5b321e5252875e: approved active budget
+  ✓ PASS  0x50e54d5376cf64274a26c7a0165a6b8f82d0acdc98cb93612f5b321e5252875e: approved total MM-oracle shortfall
+  ✓ PASS  0x50e54d5376cf64274a26c7a0165a6b8f82d0acdc98cb93612f5b321e5252875e: approved minimum spacing
+  ✓ PASS  0x50e54d5376cf64274a26c7a0165a6b8f82d0acdc98cb93612f5b321e5252875e: safety only for source repayment
+  ✓ PASS  0x8fa896c4455f3dcff3c7e6c8ee1703db1192e299a51d59c6e98d55b73335e133: approved size
+  ✓ PASS  0x8fa896c4455f3dcff3c7e6c8ee1703db1192e299a51d59c6e98d55b73335e133: approved active budget
+  ✓ PASS  0x8fa896c4455f3dcff3c7e6c8ee1703db1192e299a51d59c6e98d55b73335e133: approved total MM-oracle shortfall
+  ✓ PASS  0x8fa896c4455f3dcff3c7e6c8ee1703db1192e299a51d59c6e98d55b73335e133: approved minimum spacing
+  ✓ PASS  0x8fa896c4455f3dcff3c7e6c8ee1703db1192e299a51d59c6e98d55b73335e133: safety only for source repayment
+  ✓ PASS  0x791f40efc082776f2e9941ee9a1255e8c6f69a6e15401676ba31d8d90b576549: approved size
+  ✓ PASS  0x791f40efc082776f2e9941ee9a1255e8c6f69a6e15401676ba31d8d90b576549: approved active budget
+  ✓ PASS  0x791f40efc082776f2e9941ee9a1255e8c6f69a6e15401676ba31d8d90b576549: approved total MM-oracle shortfall
+  ✓ PASS  0x791f40efc082776f2e9941ee9a1255e8c6f69a6e15401676ba31d8d90b576549: approved minimum spacing
+  ✓ PASS  0x791f40efc082776f2e9941ee9a1255e8c6f69a6e15401676ba31d8d90b576549: safety only for source repayment
+  ✓ PASS  0xf3243209af0db096ae755016ddbd5700613158cfc47a8c6aab7ff5f03df1537b: approved size
+  ✓ PASS  0xf3243209af0db096ae755016ddbd5700613158cfc47a8c6aab7ff5f03df1537b: approved active budget
+  ✓ PASS  0xf3243209af0db096ae755016ddbd5700613158cfc47a8c6aab7ff5f03df1537b: approved total MM-oracle shortfall
+  ✓ PASS  0xf3243209af0db096ae755016ddbd5700613158cfc47a8c6aab7ff5f03df1537b: approved minimum spacing
+  ✓ PASS  0xf3243209af0db096ae755016ddbd5700613158cfc47a8c6aab7ff5f03df1537b: safety only for source repayment
+  ✓ PASS  0x03d1700fb9edefc559eaedf7fa7acd7d4627f994c6869a1d33a2ce164353c9bd: approved size
+  ✓ PASS  0x03d1700fb9edefc559eaedf7fa7acd7d4627f994c6869a1d33a2ce164353c9bd: approved active budget
+  ✓ PASS  0x03d1700fb9edefc559eaedf7fa7acd7d4627f994c6869a1d33a2ce164353c9bd: approved total MM-oracle shortfall
+  ✓ PASS  0x03d1700fb9edefc559eaedf7fa7acd7d4627f994c6869a1d33a2ce164353c9bd: approved minimum spacing
+  ✓ PASS  0x03d1700fb9edefc559eaedf7fa7acd7d4627f994c6869a1d33a2ce164353c9bd: safety only for source repayment
+  ✓ PASS  harvests share the PRIME route budget
+  ✓ PASS  0x7016805f0f1ab369a1e308038db22eefe3d4b49f: pokeBorrow() quote entrypoint
+  ✓ PASS  0x7016805f0f1ab369a1e308038db22eefe3d4b49f: pokeRepay() quote entrypoint
+  ✓ PASS  0xb7b759dbfe611c61d456f3d4c670a74b79853213: harvest(uint256[]) quote entrypoint
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: rebalance() quote entrypoint
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: rebalance() quote entrypoint
+
+========================================================================
+  O. Main debt settlement
+========================================================================
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: bound ledger
+          0x59BA6340a85e311f8f43071372De1d0f5fB90dc4
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: ledger backed
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: active debt backed
+          pending source=2048169491708270923
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: dust protected
+          12ZuLmUYuUTTVD4Uk6KJ6tGreyZJVU67D6gGsfaFFzXn78V3
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: bound yield ownership
+          0xb81692C656BE4dEFC91CC18d6B3E99834FED13ae
+  ✓ PASS  0x59BA6340a85e311f8f43071372De1d0f5fB90dc4: deployed size
+          17488 bytes
+  ✓ PASS  0xb81692C656BE4dEFC91CC18d6B3E99834FED13ae: deployed size
+          12230 bytes
+  ✓ PASS  0xbaec9f3E7e68b4C4D7D0834291F3D7104CD3c5D0: deployed size
+          15780 bytes
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: bound ledger
+          0xe0983CeDD797b38090E6dcde54Af88aA6eB22EDc
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: ledger backed
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: active debt backed
+          pending source=692807892993929311
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: dust protected
+          12ZuLmV1vqwkYb3xTFQx7DFM7vHss4cC61Zt7NYvGgDmgwhR
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: bound yield ownership
+          0x1D451d873bf53DAebF78b91b25E5FCCcEaC7965b
+  ✓ PASS  0xe0983CeDD797b38090E6dcde54Af88aA6eB22EDc: deployed size
+          17488 bytes
+  ✓ PASS  0x1D451d873bf53DAebF78b91b25E5FCCcEaC7965b: deployed size
+          12230 bytes
+  ✓ PASS  0xbaec9f3E7e68b4C4D7D0834291F3D7104CD3c5D0: deployed size
+          15780 bytes
+
+========================================================================
+  R. Custody dust protection
+========================================================================
+  ✓ PASS  0x7016805f0f1ab369a1e308038db22eefe3d4b49f
+          12ZuLmUdPLCebXpMfUnQk8dd1ZABaBVnFgdj9VdMWuMafYB7
+  ✓ PASS  0xb7b759dbfe611c61d456f3d4c670a74b79853213
+          12ZuLmUsjmcknypQM6ZuXVC7Tk29ZQ21LkW7ihFMxtm4VNm8
+  ✓ PASS  0x71ef432a9bdb258732972e86427b42853e238f6a
+          12ZuLmUdknzbPaduEMSJKHJcJSvARBwffrujEHJq1UCoMs6K
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a
+          12ZuLmUTum9LhW3vrp9mdYE5Et8reDAVymmhaYvE6GMGd9RX
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd
+          12ZuLmUZBDifn7RDLCRMdiSmSST1vdfpcb4yJ4Ly1uXDY1jM
+  ✓ PASS  0x195c5efaa658ac3c40df6138f1c3b948ed2c83d7
+          12ZuLmUL1RQ3CbxLFTNGZo5tkwaQUYtQtsbpmstuqBFQahAF
+
+========================================================================
+  A. Runtime
+========================================================================
+  ✓ PASS  connected
+          hydradx v443
+  ✓ PASS  Router pallet index == 67 (pinned in DcaDispatch)
+          got 67
+  ✓ PASS  DCA pallet index == 66 (pinned in DcaDispatch)
+          got 66
+
+========================================================================
+  B. Substrate registry
+========================================================================
+  ✓ PASS  assets(5551) exists
+          {"name":"Propeller October HOLLAR","assetType":"Erc20","existentialDeposit":"10,000,000,000,000,000","symbol":"psHOL-OCT","decimals":"18","xcmRateLimit":null,"isSufficient":true}
+  ✓ PASS  synthetic assetType == Erc20
+          got Erc20
+  ✓ PASS  synthetic decimals == 18
+          got 18
+  ✓ PASS  synthetic location → deployed SyntheticToken
+          {"parents":"0","interior":{"x1":[{"accountkey20":{"network":null,"key":"0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5"}}]}}
+
+========================================================================
+  C. EVM bytecode
+========================================================================
+  ✓ PASS  SyntheticToken has code
+          0x2bc4bda66711b1cec35ac6492ec2d8d90a17d6e5 (9656 chars)
+  ✓ PASS  SubLoop has code
+          0x7016805f0f1ab369a1e308038db22eefe3d4b49f (420 chars)
+  ✓ PASS  Harvester has code
+          0xb7b759dbfe611c61d456f3d4c670a74b79853213 (18296 chars)
+  ✓ PASS  ExecutionController has code
+          0x7e7a0e795e14a11e62b20efaec48407003bfdc8f (26020 chars)
+  ✓ PASS  FeeController has code
+          0x71ef432a9bdb258732972e86427b42853e238f6a (17922 chars)
+  ✓ PASS  DiscountController has code
+          0x79b41c78a2b5ac1ddc3c80877449b1cc8f850c46 (13482 chars)
+  ✓ PASS  Pool has code
+          0x1b02E051683b5cfaC5929C25E84adb26ECf87B38 (4668 chars)
+  ✓ PASS  CollateralVault[0] has code
+          0x40cca3da6cead6dada9e9ffc4c06e9039791876a (420 chars)
+  ✓ PASS  CollateralVault[1] has code
+          0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd (420 chars)
+  ✓ PASS  Swapper has code
+          0x195c5efaa658ac3c40df6138f1c3b948ed2c83d7 (9932 chars)
+
+========================================================================
+  D. Synthetic reserve
+========================================================================
+  ✓ PASS  listed in Pool.getReservesList()
+          25 reserves
+  ✓ PASS  LT == 9800 bps
+          got 9800 — the vault divides by this LIVE
+  ✓ PASS  LTV == 100 bps (must be > 0)
+          got 100
+  ✓ PASS  liquidation bonus > 1e4
+          got 10100
+  ✓ PASS  decimals == 18
+          got 18
+  ✓ PASS  active
+  ✓ PASS  not frozen
+  ✓ PASS  borrowing DISABLED
+          synth must grant no borrow power
+  ✓ PASS  oracle prices synthetic at $1
+          got 100000000 (8dp)
+
+========================================================================
+  E. Roles
+========================================================================
+  ✓ PASS  synth MINTER_ROLE -> 0x40cca3da6cead6dada9e9ffc4c06e9039791876a
+  ✓ PASS  subLoop VAULT_ROLE -> 0x40cca3da6cead6dada9e9ffc4c06e9039791876a
+  ✓ PASS  synth MINTER_ROLE -> 0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd
+  ✓ PASS  subLoop VAULT_ROLE -> 0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd
+  ✓ PASS  subLoop ADMIN_ROLE -> governance
+  ✓ PASS  subLoop UPGRADER_ROLE -> governance
+  ✓ PASS  subLoop GUARDIAN_ROLE -> tech committee
+          0x146a5e57fa0b8b1e13c53bcf1d05183b1c02b51b
+
+========================================================================
+  F. Wiring
+========================================================================
+  ✓ PASS  subLoop.harvester is set (only the configured Harvester can pull yield)
+          got 0xB7B759dBFE611c61d456F3D4C670a74b79853213, expected 0xb7b759dbfe611c61d456f3d4c670a74b79853213
+  ✓ PASS  subLoop.deployTranche != 0 (0 = unbounded per-poke borrow)
+          50000000000000000000
+  ✓ PASS  subLoop.unwindTranche != 0
+          50000000
+  ✓ PASS  route ids == 222/43/1043 via pool 143
+          {"hollarId":222,"primeId":43,"aPrimeId":1043,"poolId":143}
+  ✓ PASS  route slippage matches explicitly approved policy
+          got 600, approved 600 ppm
+  ✓ PASS  harvester.subLoop == deployed SubLoop
+  ✓ PASS  harvester yield asset matches source
+  ✓ PASS  harvester fee controller
+  ✓ PASS  harvester registry has 2 vault(s)
+          got 2
+  ✓ PASS  harvester registered 0x40cca3da6cead6dada9e9ffc4c06e9039791876a
+  ✓ PASS  harvester registered 0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd
+  ✓ PASS  registeredShares == subLoop.totalShares (Harvester.harvest requires this)
+          registered=49050134023894724122 total=49050134023894724122
+
+========================================================================
+  G. Vault pETH-OCT
+========================================================================
+  ✓ PASS  yieldSource == deployed SubLoop
+  ✓ PASS  synthetic == deployed SyntheticToken
+  ✓ PASS  synthLtBps() reads 9800 live
+          got 9800
+  ✓ PASS  compound oracle floor permits approved lane limit
+          0 bps
+  ✓ PASS  compoundSlippageBps between 0 and 500
+          0 bps
+  ✓ PASS  swapper is not the governance placeholder
+          got 0x195C5EFAa658Ac3C40DF6138F1C3B948Ed2C83D7
+  ✓ PASS  swapper == expected HydraAugustus
+          got 0x195C5EFAa658Ac3C40DF6138F1C3B948Ed2C83D7
+  ✓ PASS  ADMIN_ROLE -> governance
+  ✓ PASS  UPGRADER_ROLE -> governance
+  ✓ PASS  GUARDIAN_ROLE -> tech committee
+  ✓ PASS  not paused
+  ✓ PASS  withdrawal cooldown matches approved duration
+          60 seconds; expected 60
+  ✓ PASS  rounding reserve meets approved alert threshold
+          reserve=53735551316497; minimum=10746910264300; target=53735551316500; ED=5373455131650
+  ✓ PASS  rounding reserve held in idle collateral
+          53735551316500
+  ✓ PASS  vault protected from dust removal
+          12ZuLmUTum9LhW3vrp9mdYE5Et8reDAVymmhaYvE6GMGd9RX
+  ✓ PASS  deposits not paused
+  ✓ PASS  tvlCap > 0
+          10000000000000000000
+  ✓ PASS  exchangeRate >= 1.0 (share price never below par)
+          1000000080615786474
+  ✓ PASS  redemption queue not backed up
+          head=1 tail=2
+
+========================================================================
+  G. Vault pTBTC-OCT
+========================================================================
+  ✓ PASS  yieldSource == deployed SubLoop
+  ✓ PASS  synthetic == deployed SyntheticToken
+  ✓ PASS  synthLtBps() reads 9800 live
+          got 9800
+  ✓ PASS  compound oracle floor permits approved lane limit
+          0 bps
+  ✓ PASS  compoundSlippageBps between 0 and 500
+          0 bps
+  ✓ PASS  swapper is not the governance placeholder
+          got 0x195C5EFAa658Ac3C40DF6138F1C3B948Ed2C83D7
+  ✓ PASS  swapper == expected HydraAugustus
+          got 0x195C5EFAa658Ac3C40DF6138F1C3B948Ed2C83D7
+  ✓ PASS  ADMIN_ROLE -> governance
+  ✓ PASS  UPGRADER_ROLE -> governance
+  ✓ PASS  GUARDIAN_ROLE -> tech committee
+  ✓ PASS  not paused
+  ✓ PASS  withdrawal cooldown matches approved duration
+          60 seconds; expected 60
+  ✓ PASS  rounding reserve meets approved alert threshold
+          reserve=1069033749867; minimum=213606750974; target=1069033749870; ED=106803374987
+  ✓ PASS  rounding reserve held in idle collateral
+          1069033749870
+  ✓ PASS  vault protected from dust removal
+          12ZuLmUZBDifn7RDLCRMdiSmSST1vdfpcb4yJ4Ly1uXDY1jM
+  ✓ PASS  deposits not paused
+  ✓ PASS  tvlCap > 0
+          500000000000000000
+  ✓ PASS  exchangeRate >= 1.0 (share price never below par)
+          1000000003028933334
+  ✓ PASS  redemption queue not backed up
+          head=1 tail=2
+
+========================================================================
+  H. Loop health
+========================================================================
+  ✓ PASS  subLoop not paused
+  ✓ PASS  source-wide emergency freeze inactive
+  ✓ PASS  targetHf > 1.0
+          1.0500
+  ✓ PASS  deployHfFloor >= targetHf
+          floor=1.0500 target=1.0500
+  ✓ PASS  deLeverTrigger > targetHf
+          trigger=1.1000
+  ✓ PASS  live HF >= targetHf (below it, deLever() is armed)
+          hf=1.1209 target=1.0500 trigger=1.1000
+  ✓ PASS  live HF above Aave's liquidation boundary with margin (>= 1.02)
+          hf=1.1209 — below 1.02 the unwind spiral's sell gate never opens
+  ✓ PASS  no negative carry
+          negativeCarryBps=0
+
+========================================================================
+  J. Fees and discount
+========================================================================
+  ✓ PASS  fee owner is governance
+  ✓ PASS  treasury recipient
+  ✓ PASS  discount enrollment owner is governance
+  ✓ PASS  committee has rate authority
+  ✓ PASS  committee has no enrollment authority
+  ✓ PASS  committee has no fee authority
+  ✓ PASS  discount synthetic
+  ✓ PASS  explicitly approved discount rate
+  ✓ PASS  exact approved discount participant set
+  ✓ PASS  SubLoop is not discounted
+  ✓ PASS  HOLLAR discount token installed
+  ✓ PASS  HOLLAR discount strategy installed
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: fee pointer
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: initial 5% fee
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: binding validates
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: discount pointer
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: same HOLLAR debt token
+  ✓ PASS  0x40cca3da6cead6dada9e9ffc4c06e9039791876a: not underfunded
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: fee pointer
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: initial 5% fee
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: binding validates
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: discount pointer
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: same HOLLAR debt token
+  ✓ PASS  0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd: not underfunded
+
+========================================================================
+  I. Keeper
+========================================================================
+  ✓ PASS  looper has gas
+          0.999979342106220485
+  ✓ PASS  looper holds NO role (pokes are permissionless)
+
+========================================================================
+  184/184 checks passed
+========================================================================

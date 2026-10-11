@@ -1,0 +1,264 @@
+round 1 complete
+round 2 complete {
+  label: 'baseline-training',
+  policy: {
+    size: 8000,
+    daily: 5000,
+    burst: 8000,
+    sourceLimitBps: 8,
+    sourceReserveBps: 10,
+    thresholdBps: 30,
+    minHarvest: 1,
+    maxHarvest: 200,
+    harvestDaily: 1000,
+    harvestEveryHours: 0,
+    entryEveryHours: 0,
+    adaptive: false,
+    feeBps: 500,
+    cryptoLimitBps: 100,
+    tailBps: null,
+    serviceBps: null
+  },
+  score: -0.2676356386655665,
+  unconvertedTieBreaker: 0,
+  meanFundedPct: 0
+}
+round 3 complete {
+  label: 'baseline-training',
+  policy: {
+    size: 8000,
+    daily: 5000,
+    burst: 8000,
+    sourceLimitBps: 8,
+    sourceReserveBps: 10,
+    thresholdBps: 30,
+    minHarvest: 1,
+    maxHarvest: 200,
+    harvestDaily: 1000,
+    harvestEveryHours: 0,
+    entryEveryHours: 0,
+    adaptive: false,
+    feeBps: 500,
+    cryptoLimitBps: 100,
+    tailBps: null,
+    serviceBps: null
+  },
+  score: -0.2676356386655665,
+  unconvertedTieBreaker: 0,
+  meanFundedPct: 0
+}
+round 4 complete 140 independent asset scenarios
+{
+  "points": 3809,
+  "from": "2026-07-04",
+  "toExclusive": "2026-10-02",
+  "firstObservation": 1783124940,
+  "lastObservation": 1790898720,
+  "trainingEndExclusive": "2026-09-02T00:00:00.000Z",
+  "maxObservationGapMinutes": 83.45,
+  "primeOracleChangePct": 2.4417897782063713,
+  "primeSupplyIndexChangePct": 0.0007268209283317617,
+  "borrowIndexChangePct": 1.0909459714992797,
+  "entryQuoteCoverage": [
+    {
+      "size": 100,
+      "observations": 3809,
+      "within8Bps": 267,
+      "medianLossBps": 78.61725070000047,
+      "minLossBps": -9.88012139590877,
+      "maxLossBps": 141.48106550000094
+    },
+    {
+      "size": 1000,
+      "observations": 3809,
+      "within8Bps": 258,
+      "medianLossBps": 78.90193620000096,
+      "minLossBps": -9.604254652910704,
+      "maxLossBps": 141.98918513000035
+    },
+    {
+      "size": 8000,
+      "observations": 3809,
+      "within8Bps": 220,
+      "medianLossBps": 81.15450627937393,
+      "minLossBps": -7.422965298751194,
+      "maxLossBps": 146.03845495250067
+    }
+  ],
+  "oracleUpdates": [
+    {
+      "block": 13392600,
+      "t": 1785466797,
+      "previous": 1.037,
+      "price": 1.0505
+    },
+    {
+      "block": 15022800,
+      "t": 1790343786,
+      "previous": 1.0505,
+      "price": 1.0612116
+    },
+    {
+      "block": 15032400,
+      "t": 1790365746,
+      "previous": 1.0612116,
+      "price": 1.06125658
+    },
+    {
+      "block": 15042000,
+      "t": 1790388162,
+      "previous": 1.06125658,
+      "price": 1.06130388
+    },
+    {
+      "block": 15051000,
+      "t": 1790409312,
+      "previous": 1.06130388,
+      "price": 1.06134758
+    },
+    {
+      "block": 15060600,
+      "t": 1790431014,
+      "previous": 1.06134758,
+      "price": 1.06139334
+    },
+    {
+      "block": 15069600,
+      "t": 1790451894,
+      "previous": 1.06139334,
+      "price": 1.06143892
+    },
+    {
+      "block": 15079800,
+      "t": 1790473980,
+      "previous": 1.06143892,
+      "price": 1.0614846
+    },
+    {
+      "block": 15088800,
+      "t": 1790495118,
+      "previous": 1.0614846,
+      "price": 1.06153044
+    },
+    {
+      "block": 15098400,
+      "t": 1790516892,
+      "previous": 1.06153044,
+      "price": 1.06157645
+    },
+    {
+      "block": 15107400,
+      "t": 1790538222,
+      "previous": 1.06157645,
+      "price": 1.06162061
+    },
+    {
+      "block": 15117000,
+      "t": 1790560152,
+      "previous": 1.06162061,
+      "price": 1.0616682
+    },
+    {
+      "block": 15127200,
+      "t": 1790581410,
+      "previous": 1.0616682,
+      "price": 1.06171393
+    },
+    {
+      "block": 15137400,
+      "t": 1790603238,
+      "previous": 1.06171393,
+      "price": 1.0617594
+    },
+    {
+      "block": 15147600,
+      "t": 1790624760,
+      "previous": 1.0617594,
+      "price": 1.06180466
+    },
+    {
+      "block": 15157800,
+      "t": 1790646492,
+      "previous": 1.06180466,
+      "price": 1.06184963
+    },
+    {
+      "block": 15168000,
+      "t": 1790667924,
+      "previous": 1.06184963,
+      "price": 1.06189459
+    },
+    {
+      "block": 15178200,
+      "t": 1790689308,
+      "previous": 1.06189459,
+      "price": 1.06193781
+    },
+    {
+      "block": 15189000,
+      "t": 1790712012,
+      "previous": 1.06193781,
+      "price": 1.06198459
+    },
+    {
+      "block": 15199200,
+      "t": 1790732952,
+      "previous": 1.06198459,
+      "price": 1.06202881
+    },
+    {
+      "block": 15210000,
+      "t": 1790755398,
+      "previous": 1.06202881,
+      "price": 1.06207278
+    },
+    {
+      "block": 15220200,
+      "t": 1790776662,
+      "previous": 1.06207278,
+      "price": 1.06211689
+    },
+    {
+      "block": 15230400,
+      "t": 1790797896,
+      "previous": 1.06211689,
+      "price": 1.06216074
+    },
+    {
+      "block": 15241200,
+      "t": 1790820066,
+      "previous": 1.06216074,
+      "price": 1.06220074
+    },
+    {
+      "block": 15251400,
+      "t": 1790841396,
+      "previous": 1.06220074,
+      "price": 1.06224245
+    },
+    {
+      "block": 15261600,
+      "t": 1790862372,
+      "previous": 1.06224245,
+      "price": 1.06228112
+    },
+    {
+      "block": 15271800,
+      "t": 1790883894,
+      "previous": 1.06228112,
+      "price": 1.06232136
+    }
+  ],
+  "missingCandles": {
+    "ETH": [],
+    "BTC": [
+      1783382400,
+      1783386000,
+      1783389600,
+      1783393200,
+      1783396800,
+      1783400400,
+      1783404000
+    ]
+  }
+}

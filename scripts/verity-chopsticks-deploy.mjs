@@ -1,4 +1,4 @@
-// Deploy the Verity-emitted Propeller bytecode to a chopsticks lark2 fork and smoke-test it.
+// Deploy the Verity-emitted Juicer bytecode to a chopsticks lark2 fork and smoke-test it.
 //
 // Hydration's call filter blocks `evm.create` from signed origins, so EVM ops must go through
 // Frontier's unsigned `Ethereum::transact` — i.e. the `eth_sendRawTransaction` path (the handler

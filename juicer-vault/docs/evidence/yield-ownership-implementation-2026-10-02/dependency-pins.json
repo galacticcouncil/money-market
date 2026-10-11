@@ -1,0 +1,22 @@
+[
+  {
+    "dependency": "forge-std",
+    "commit": "0844d7e1fc5e60d77b68e469bff60265f236c398",
+    "solidityFilesMatched": 50
+  },
+  {
+    "dependency": "openzeppelin-contracts",
+    "commit": "dc44c9f1a4c3b10af99492eed84f83ed244203f6",
+    "solidityFilesMatched": 285
+  },
+  {
+    "dependency": "openzeppelin-contracts-upgradeable",
+    "commit": "2d081f24cac1a867f6f73d512f2022e1fa987854",
+    "solidityFilesMatched": 281
+  },
+  {
+    "dependency": "solmate",
+    "commit": "89365b880c4f3c786bdd453d4b8e8fe410344a69",
+    "solidityFilesMatched": 59
+  }
+]

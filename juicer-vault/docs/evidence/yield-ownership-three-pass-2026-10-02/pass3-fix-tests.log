@@ -1,0 +1,82 @@
+Missing dependencies found. Installing now...
+
+Warning: Your project has missing dependencies that could not be installed.
+Compiling 94 files with Solc 0.8.22
+Solc 0.8.22 finished in 186.71s
+Compiler run successful!
+
+Ran 6 tests for test/HarvestMainDebt.t.sol:HarvestMainDebtTest
+[PASS] test_feeThenInterestThenCollateralWithoutPrefunding() (gas: 8979369)
+[PASS] test_harvestCompoundsYieldIntoSharePrice() (gas: 9165007)
+[PASS] test_harvestSkipsInFlightUnwindEquity() (gas: 13416204)
+[PASS] test_insufficientYieldNeverPullsPreviouslyCompoundedCollateral() (gas: 8916494)
+[PASS] test_ownedIncomePaysBothSwapCostsAndRetainsUnusedAllowance() (gas: 10636483)
+[PASS] test_primePriceAppreciationCompoundsToDeposit() (gas: 9181941)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 158.86ms (155.99ms CPU time)
+
+Ran 28 tests for test/YieldEntryFairness.t.sol:YieldEntryFairnessTest
+[PASS] testFuzz_transferAndPartialClaimsConserveOwnership(uint16) (runs: 64, μ: 10800262, ~: 10800210)
+[PASS] test_btcEightDecimalsPreservesEntryOwnership() (gas: 26564315)
+[PASS] test_dustRemainingAfterLossRescalesUnitsWithoutChangingOwnership() (gas: 17792309)
+[PASS] test_entryRejectsMainInterestCoveredOnlyBeforeFees() (gas: 8543840)
+[PASS] test_exitFeeUsesActualYieldAndLockedRateAcrossPartialReceipts() (gas: 9779415)
+[PASS] test_feeOwnershipSurvivesLaterRateChange() (gas: 9834028)
+[PASS] test_fullFeeRequiresNetFundingForMainInterestBeforeEntry() (gas: 9262832)
+[PASS] test_fullyCashBackedExitNeedsNoActiveSourceSlice() (gas: 9630325)
+[PASS] test_harvestCompoundsYieldIntoSharePrice() (gas: 9165216)
+[PASS] test_harvestSkipsInFlightUnwindEquity() (gas: 13416296)
+[PASS] test_lateExecutionCostReducesReservedFeeAfterPartialSurplus() (gas: 8974172)
+[PASS] test_mainRecoveryCannotMakeHarvesterWithdrawPastHealthFloor() (gas: 9420830)
+[PASS] test_newcomerCannotCaptureEarlierCarryAtHarvest() (gas: 10058384)
+[PASS] test_newcomerCannotCaptureEarlierCarryByExitingBeforeHarvest() (gas: 11164988)
+[PASS] test_newcomerDoesNotReceiveOldMainInterestReserve() (gas: 10367861)
+[PASS] test_ownedFeeAndYieldBearExitExecutionCostsTogether() (gas: 190601880)
+[PASS] test_partialRewardClaimPreservesUnconvertedValue() (gas: 10502980)
+[PASS] test_primePriceAppreciationCompoundsToDeposit() (gas: 9182232)
+[PASS] test_recoveryCashIsNotTaxedOrGivenToNewEntrant() (gas: 10652940)
+[PASS] test_repeatedYieldWriteOffDoesNotInflateAccountingUnits() (gas: 13731632)
+[PASS] test_rewardCollateralCompoundsBeforeOwnerClaims() (gas: 11644952)
+[PASS] test_smallHarvestReborrowsWithoutFivePointLtvDrift() (gas: 9761876)
+[PASS] test_transferDuringMainResizeKeepsEarlierYieldOwnership() (gas: 11285388)
+[PASS] test_transferRetainsPreviouslyEarnedYieldWithSender() (gas: 9935531)
+[PASS] test_unconvertedEarningsAreNotLeveredAgain() (gas: 22264708)
+[PASS] test_unrealizedYieldAbsorbsLossBeforeMainRecovery() (gas: 8890054)
+[PASS] test_vestedExitRewardsKeepEarningAndRemainClaimable() (gas: 13784634)
+[PASS] test_waitingWithdrawalKeepsEarningUntilUnwindStarts() (gas: 9461748)
+Suite result: ok. 28 passed; 0 failed; 0 skipped; finished in 3.60s (3.80s CPU time)
+
+Ran 7 tests for test/YieldValidation.t.sol:YieldValidationTest
+[PASS] testFuzz_rewardFundConservesOwnershipAcrossMixedActions(uint256) (runs: 257, μ: 42805495, ~: 43445337)
+[PASS] test_harvestCompoundsYieldIntoSharePrice() (gas: 9164989)
+[PASS] test_harvestSkipsInFlightUnwindEquity() (gas: 13416238)
+[PASS] test_negativeSpreadCannotFabricateHarvestedCollateral() (gas: 15069010)
+Logs:
+  first realized collateral day: 0
+  first source harvest day: 0
+  days from first to second harvest: 0
+  harvests in 180 days: 0
+  peak modeled harvest gas: 0
+  collateral earned in 180 days (wei): 0
+
+[PASS] test_primePriceAppreciationCompoundsToDeposit() (gas: 9181984)
+[PASS] test_realizationDelayWithFivePercentPrimeAndTwoPercentBorrow() (gas: 73760464)
+Logs:
+  first realized collateral day: 123
+  first source harvest day: 113
+  days from first to second harvest: 2
+  harvests in 180 days: 34
+  peak modeled harvest gas: 1344217
+  collateral earned in 180 days (wei): 20192029758242216
+
+[PASS] test_realizationWithTenBpsExecutionReserveIsStillNotImmediate() (gas: 169488600)
+Logs:
+  first realized collateral day: 13
+  first source harvest day: 13
+  days from first to second harvest: 2
+  harvests in 180 days: 84
+  peak modeled harvest gas: 1428984
+  collateral earned in 180 days (wei): 61482886102620942
+
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 45.21s (46.24s CPU time)
+
+Ran 3 test suites in 45.37s (48.97s CPU time): 41 tests passed, 0 failed, 0 skipped (41 total tests)

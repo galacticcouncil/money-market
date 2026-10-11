@@ -1,0 +1,13 @@
+direct-deposit gas estimate 11976587 with margin 14371905
+direct-deposit 568361
+local-zero-delay gas estimate 270646 with margin 324776
+local-zero-delay 30699
+pre-deploy-request gas estimate 7254482 with margin 8705379
+pre-deploy-request 369486
+pre-deploy-start gas estimate 10773572 with margin 12928287
+pre-deploy-start 434424
+pre-deploy-settle gas estimate 10590565 with margin 12708678
+pre-deploy-settle 432685
+pre-deploy-claim gas estimate 1529270 with margin 1835124
+pre-deploy-claim 114826
+deferred-deposit-and-pre-deployment-withdrawal-passed strict oracle quotes available: false

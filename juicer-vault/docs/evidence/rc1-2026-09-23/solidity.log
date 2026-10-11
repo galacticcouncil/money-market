@@ -1,0 +1,667 @@
+Missing dependencies found. Installing now...
+
+Warning: Your project has missing dependencies that could not be installed.
+No files changed, compilation skipped
+
+Ran 1 test for test/formal/VerityParity.t.sol:VerityParityTest
+[SKIP: skipped] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 1.07ms (0.00ns CPU time)
+
+Ran 1 test for test/ProtocolFeesFork.t.sol:ProtocolFeesForkTest
+[SKIP: skipped] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 1.11ms (0.00ns CPU time)
+
+Ran 1 test for test/PropellerDiscountFork.t.sol:PropellerDiscountForkTest
+[SKIP: skipped] setUp() (gas: 0)
+Suite result: ok. 0 passed; 0 failed; 1 skipped; finished in 253.06µs (0.00ns CPU time)
+
+Ran 1 test for test/PluggableYieldSource.t.sol:PluggableYieldSourceTest
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1707680)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 4.83ms (2.80ms CPU time)
+
+Ran 5 tests for test/PermissionlessKeeper.t.sol:PermissionlessKeeperTest
+[PASS] test_compoundEnforcesOracleFloor() (gas: 627888)
+[PASS] test_harvestConfiguredAsHarvester() (gas: 15325)
+[PASS] test_harvesterDistributesParkedBalance() (gas: 1570923)
+[PASS] test_keeperOpsCallableByAnyone() (gas: 443744)
+[PASS] test_pauseMatrix() (gas: 310453)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 6.46ms (3.41ms CPU time)
+
+Ran 4 tests for test/InterestPolicyEvidence.t.sol:InterestPolicyEvidenceTest
+[PASS] test_compoundedYieldDoesNotSatisfyCurrentHollarBackingCheck() (gas: 927136)
+[PASS] test_currentExitPreservesGrossYieldPromiseButNeedsInterestFunding() (gas: 2079876)
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1707776)
+[PASS] test_reborrowSubtractsAccruedMainInterest() (gas: 1267364)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 9.41ms (7.34ms CPU time)
+
+Ran 2 tests for test/CollateralVaultDeposit.t.sol:CollateralVaultDepositTest
+[PASS] test_baselineWithoutSynthIsLiquidatable() (gas: 330392)
+[PASS] test_depositOpensMainLegAndSynthFloorsHf() (gas: 1158526)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 18.36ms (3.71ms CPU time)
+
+Ran 2 tests for test/SynthLtvZero.t.sol:SynthLtvZeroTest
+[PASS] test_governanceLtvBumpPlusNextSupplyRecovers() (gas: 1889686)
+[PASS] test_ltvZeroSynthRejectsDepositAtomically() (gas: 792837)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 19.73ms (4.81ms CPU time)
+
+Ran 12 tests for test/AccountingSafety.t.sol:VaultAccountingSafetyTest
+[PASS] test_deleverThenRedeemDoesNotCountDebtTwice() (gas: 2074143)
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1707760)
+[PASS] test_idleCollateralDonationCanBeRedeemed() (gas: 1701514)
+[PASS] test_newDepositBlockedWhenMainDebtOutgrowsSource() (gas: 887950)
+[PASS] test_partialClaimsUseCumulativeSettlementRounding() (gas: 2052955)
+[PASS] test_publicDepositorCannotPayBootstrapCost() (gas: 160672)
+[PASS] test_publicDepositorRecoversExactPrincipalAfterGovernanceBootstrap() (gas: 1973216)
+[PASS] test_rebalanceDoesNotAddDebtDuringExit() (gas: 1296088)
+[PASS] test_settlementCreditsActualRepaymentOnly() (gas: 1876070)
+[PASS] test_shortfallPreservesPrincipalClaimAfterPartialPayment() (gas: 2149205)
+[PASS] test_twoQueuedHalvesReturnAllPrincipal() (gas: 2184024)
+[PASS] test_unclaimedSettlementDoesNotHaircutNextRedeemer() (gas: 2404357)
+Suite result: ok. 12 passed; 0 failed; 0 skipped; finished in 25.22ms (22.99ms CPU time)
+
+Ran 10 tests for test/AdminConfig.t.sol:AdminConfigTest
+[PASS] test_addVaultRejectsDuplicates() (gas: 90263)
+[PASS] test_depositFailsClosedBeforeSynthReserveIsListed() (gas: 11566945)
+[PASS] test_harvestFailsClosedWhileHarvesterUnset() (gas: 7700795)
+[PASS] test_registryIsAdminOnly() (gas: 140350)
+[PASS] test_removeVaultKeepsRegistryConsistent() (gas: 150847)
+[PASS] test_removeVaultRejectsUnregistered() (gas: 20418)
+[PASS] test_setHarvesterRejectsZero() (gas: 43485)
+[PASS] test_setSwapperRejectsZeroAndStrangers() (gas: 517094)
+[PASS] test_setSwapperRepointsWithoutUpgrade() (gas: 527610)
+[PASS] test_synthLtFollowsGovernance() (gas: 1170783)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 31.91ms (29.07ms CPU time)
+
+Ran 1 test for test/SubLoopDeploy.t.sol:SubLoopDeployTest
+[PASS] test_deployRampReachesTargetHf() (gas: 6412450)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 17.30ms (16.52ms CPU time)
+
+Ran 8 tests for test/CollateralVaultDiscount.t.sol:CollateralVaultDiscountTest
+[PASS] test_committeeCannotChangeVaultControllerOrEligibility() (gas: 266171)
+[PASS] test_detachImmediatelyClearsDiscountAndExitsStillWork() (gas: 1871084)
+[PASS] test_firstDepositRefreshesAfterSynthSupply() (gas: 1060396)
+[PASS] test_incrementalDepositAndPegMaintenanceRefreshBacking() (gas: 1289476)
+[PASS] test_legacyVaultWithoutControllerRemainsUndiscounted() (gas: 872602)
+[PASS] test_settleRefreshesAfterSyntheticWithdrawal() (gas: 1867569)
+[PASS] test_unregisterLeavesRepaymentAndPegMaintenanceAvailable() (gas: 1877342)
+[PASS] test_upRebalanceRefreshesAfterNewSynthetic() (gas: 1205757)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 38.22ms (27.43ms CPU time)
+
+Ran 1 test for test/UnwindSellPricing.t.sol:UnwindSellPricingTest
+[PASS] test_unwindSellSurvivesPrimeAppreciation() (gas: 8378771)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 55.55ms (38.02ms CPU time)
+
+Ran 5 tests for test/KeeperOps.t.sol:KeeperOpsTest
+[PASS] test_maintainPegOnInterestAccrual() (gas: 126753)
+[PASS] test_rebalanceDeLeverIdempotent_noRedemptionDoS() (gas: 11693310)
+[PASS] test_rebalanceDownOnDrop() (gas: 11540724)
+[PASS] test_rebalanceFollowsGovernanceLtvChange() (gas: 604883)
+[PASS] test_rebalanceUpOnAppreciation() (gas: 603124)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 89.51ms (88.20ms CPU time)
+
+Ran 2 tests for test/ExchangeRateSettleWindow.t.sol:ExchangeRateSettleWindowTest
+[PASS] test_depositInSettleWindowIsNotMisMinted() (gas: 13208878)
+[PASS] test_settleDoesNotDepressSharePrice() (gas: 12717465)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 93.13ms (90.70ms CPU time)
+
+Ran 4 tests for test/GuardianPause.t.sol:GuardianPauseTest
+[PASS] test_adminCanDelegateGuardianToTechCommittee() (gas: 147945)
+[PASS] test_freshDeployIsPausableByAdmin() (gas: 83139)
+[PASS] test_nonGuardianCannotPause() (gas: 58791)
+[PASS] test_pauseIsReversible() (gas: 97059)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 2.52ms (565.57µs CPU time)
+
+Ran 3 tests for test/Harvest.t.sol:HarvestTest
+[PASS] test_harvestCompoundsYieldIntoSharePrice() (gas: 8078526)
+[PASS] test_harvestSkipsInFlightUnwindEquity() (gas: 11700865)
+[PASS] test_primePriceAppreciationCompoundsToDeposit() (gas: 8110523)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 100.42ms (118.69ms CPU time)
+
+Ran 4 tests for test/SyntheticToken.t.sol:SyntheticTokenTest
+[PASS] testFuzz_mintBurnRoundTrips(uint128) (runs: 256, μ: 48543, ~: 48548)
+[PASS] test_decimals() (gas: 5888)
+[PASS] test_minterCanMintAndBurn() (gas: 66188)
+[PASS] test_nonMinterCannotMint() (gas: 37330)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 109.18ms (109.25ms CPU time)
+
+Ran 4 tests for test/MultiVaultFlow.t.sol:MultiVaultFlowTest
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 12078747)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 9556353)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 104839)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 10936848)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 81.70ms (115.83ms CPU time)
+
+Ran 5 tests for test/HarvestMainDebt.t.sol:HarvestMainDebtTest
+[PASS] test_feeThenInterestThenCollateralWithoutPrefunding() (gas: 8198978)
+[PASS] test_harvestCompoundsYieldIntoSharePrice() (gas: 8078544)
+[PASS] test_harvestSkipsInFlightUnwindEquity() (gas: 11700883)
+[PASS] test_insufficientYieldNeverPullsPreviouslyCompoundedCollateral() (gas: 8151985)
+[PASS] test_primePriceAppreciationCompoundsToDeposit() (gas: 8110558)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 164.53ms (153.80ms CPU time)
+
+Ran 3 tests for test/NegativeCarryView.t.sol:NegativeCarryViewTest
+[PASS] test_recoversToZeroWhenPriceReturns() (gas: 7568787)
+[PASS] test_reportsDrawdownWhenUnderwater() (gas: 7570404)
+[PASS] test_zeroWhenHealthy() (gas: 7545655)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 131.72ms (95.19ms CPU time)
+
+Ran 1 test for test/IntegrationWithdraw.t.sol:IntegrationWithdrawTest
+[PASS] test_depositRampWithdrawReturnsPrincipal() (gas: 69379262)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 312.61ms (308.13ms CPU time)
+
+Ran 1 test for test/PartialClaim.t.sol:PartialClaimTest
+[PASS] test_partialClaimKeepsRequestActiveAndReturnsRemainder() (gas: 70685464)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 330.78ms (328.85ms CPU time)
+
+Ran 16 tests for test/MainDebt.t.sol:MainDebtTest
+[PASS] testFuzz_partialRepaymentsAndPostStartInterest(uint96,uint96) (runs: 64, μ: 2446781, ~: 2113986)
+[PASS] test_boundedSourceBatchExcludesNewExitsAndConservesRounding() (gas: 6183798)
+[PASS] test_costAndCashBatchesRemainProportionalAcrossBoundedCalls() (gas: 6610344)
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1707718)
+[PASS] test_directMainRepaymentBenefitsAllDebtCohorts() (gas: 1531979)
+[PASS] test_earlyRepaymentRetainsLaterSourceRecoveryForOriginalOwner() (gas: 1902654)
+[PASS] test_exitInterestRemainsUnpaidUntilRecoveryWithoutHaircut() (gas: 2076350)
+[PASS] test_noLiveLedgerReplacement() (gas: 3787491)
+[PASS] test_noSponsoredCashOrDepositCyclingReward() (gas: 3975049)
+[PASS] test_partialSourceCreditsAreProportionalNotFirstCome() (gas: 2346512)
+[PASS] test_pauseBlocksSurplusButAllowsTargetedRecovery() (gas: 1794910)
+[PASS] test_scaledBorrowRoundingRecordsObservedDebt() (gas: 850202)
+[PASS] test_scaledExitRepaymentClearsDebtUnitsAndPreservesCollateral() (gas: 1847041)
+[PASS] test_scaledRepaymentTailUsesOnlyExplicitlyFundedCash() (gas: 1124345)
+[PASS] test_unfundedInterestPreservesPrincipalAndBlocksDeposits() (gas: 1131583)
+[PASS] test_wiringRequiredButNoPrefundingOrPolicyRequired() (gas: 10314533)
+Suite result: ok. 16 passed; 0 failed; 0 skipped; finished in 417.37ms (438.46ms CPU time)
+
+Ran 3 tests for test/SubLoopUnwind.t.sol:SubLoopUnwindTest
+[PASS] test_deLeverRestoresTargetHf() (gas: 7773152)
+[PASS] test_fullUnwindFreesSeedEquity() (gas: 60803726)
+[PASS] test_unwinderPrunedAfterFullPull() (gas: 64213711)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 831.38ms (564.27ms CPU time)
+
+Ran 10 tests for test/PrincipalRounding.t.sol:PrincipalRoundingTest
+[PASS] testFuzz_depositSplitExitPreservesPrincipalAndOtherHolder(uint96,uint96,uint96) (runs: 256, μ: 2462016, ~: 2462044)
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1707757)
+[PASS] test_exhaustedBufferCannotHaircutSettlement() (gas: 2543175)
+[PASS] test_exhaustedBufferPreservesWaitingRequestUntilRefilled() (gas: 2208804)
+[PASS] test_insufficientBufferRevertsDepositAtomically() (gas: 1208152)
+[PASS] test_oddDepositAtTwoToOnePriceCannotLosePrincipalOrDiluteHolder() (gas: 2001513)
+[PASS] test_poolSupplyAndWithdrawalRoundingIsPaidByBuffer() (gas: 2030240)
+[PASS] test_roundingBufferIsNotShareBackingOrDepositorFunds() (gas: 891859)
+[PASS] test_splitRequestsCannotConsumeMoreThanFundedRounding() (gas: 16264238)
+[PASS] test_splitTransferredSharesAndPartialClaimsKeepAllPrincipal() (gas: 3154585)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 870.98ms (923.21ms CPU time)
+
+Ran 5 tests for test/DcaDispatch.t.sol:DcaDispatchTest
+[PASS] test_encodeMatchesPolkadotJsReference() (gas: 24312)
+[PASS] test_ownerDerivation() (gas: 582)
+[PASS] test_routerPalletIndexIsPinned() (gas: 2128)
+[PASS] test_routerSellDeployLegMatchesRuntimeMetadata() (gas: 19495)
+[PASS] test_routerSellUnwindLegMatchesRuntimeMetadata() (gas: 19608)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 977.02ms (414.54µs CPU time)
+
+Ran 13 tests for test/WithdrawalCooldown.t.sol:WithdrawalCooldownTest
+[PASS] test_defaultWaitsTwelveHoursBeforeAnyUnwind() (gas: 1788016)
+[PASS] test_delayChangesOnlyAffectFutureRequestsAndPreserveFifo() (gas: 1608298)
+[PASS] test_delegatedAndSplitRequestsCannotReuseAnOldTimer() (gas: 1418883)
+[PASS] test_depositDuringWaitDoesNotDilutePendingShares() (gas: 1976036)
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1707694)
+[PASS] test_freezeBlocksMatureStartTransfersAndNewRequests() (gas: 1411672)
+[PASS] test_freezeKeepsPegAndCommittedMainRepaymentAvailable() (gas: 1460850)
+[PASS] test_freezeStopsFifoAndAlreadySettledClaims() (gas: 2448055)
+[PASS] test_fundingCannotBypassCooldown() (gas: 1122914)
+[PASS] test_governanceCanDisableDelayButStillRequiresExplicitStart() (gas: 1750193)
+[PASS] test_onlyGovernanceChangesDelayOrReopensAfterGuardianFreeze() (gas: 81012)
+[PASS] test_sourceFreezeCannotBeBypassedByLocalUnpause() (gas: 1738219)
+[PASS] test_waitingSharesKeepTheirYieldAndDebtUntilStart() (gas: 1311206)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 978.43ms (19.43ms CPU time)
+
+Ran 6 tests for test/WithdrawalCooldown.t.sol:SourceEmergencyPauseTest
+[PASS] test_deLeverRestoresTargetHf() (gas: 7773219)
+[PASS] test_emergencyAllowsSafetyRepaymentWithoutExitAllocation() (gas: 6823870)
+[PASS] test_emergencyStopsExistingUnwindAndNewRisk() (gas: 6819226)
+[PASS] test_fullUnwindFreesSeedEquity() (gas: 60803753)
+[PASS] test_onlyGuardianFreezesAndOnlyGovernanceReopensSource() (gas: 118373)
+[PASS] test_unwinderPrunedAfterFullPull() (gas: 64213756)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 1.07s (659.30ms CPU time)
+
+Ran 11 tests for test/SourceUpgradeCompatibility.t.sol:SourceUpgradeCompatibilityTest
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 12078879)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 9556475)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 105003)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 10937049)
+[PASS] test_upgradeCannotHideAnUnderfundedOldPosition() (gas: 15175219)
+[PASS] test_upgradeLateRecoveryStillPaysOriginalExitOwner() (gas: 17205352)
+[PASS] test_upgradeLiveSourcePreservesPartialExitAndWaitingRequest() (gas: 22804072)
+[PASS] test_upgradePendingCostsAndReceiptsAreCreditedExactlyOnce() (gas: 15527497)
+[PASS] test_upgradePreservesEmergencyAndLocalPauses() (gas: 18743308)
+[PASS] test_upgradeRequiresAuthorityAndCannotReinitializeExistingState() (gas: 9553156)
+[PASS] test_upgradeResettingCostCounterBreaksSettlementWithoutErasingClaims() (gas: 15032384)
+Suite result: ok. 11 passed; 0 failed; 0 skipped; finished in 1.16s (382.92ms CPU time)
+
+Ran 4 tests for test/DeleverQueueInterference.t.sol:DeleverQueueInterferenceTest
+[PASS] test_rebalanceWaitsForQueuedExit() (gas: 54250028)
+[PASS] test_requestRedeemBeforeRampHasRecognizedBacking() (gas: 1728375)
+[PASS] test_subLoopPreservesSharesAtZeroEquity() (gas: 1138018)
+[PASS] test_unwindSpiralTailRemainsClaimableUntilRecovery() (gas: 554553570)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 1.84s (1.99s CPU time)
+
+Ran 18 tests for test/PropellerDiscount.t.sol:PropellerDiscountTest
+[PASS] testFuzz_discountNeverExceedsConfiguredRate(uint256,uint256) (runs: 256, μ: 45151, ~: 45131)
+[PASS] test_committeeCanDisableEvenWithBrokenVaultGetter() (gas: 283258)
+[PASS] test_committeeCanIncreaseReduceDisableAndRestore() (gas: 388734)
+[PASS] test_committeeCannotEnrollBorrowersOrGrantRoles() (gas: 68117)
+[PASS] test_constructorRejectsWrongMarketAndZeroAuthority() (gas: 791544)
+[PASS] test_constructorRejectsWrongSyntheticDecimals() (gas: 1365956)
+[PASS] test_dustBackingOnlyDiscountsProportionalDebt() (gas: 48375)
+[PASS] test_governanceCanRevokeCommitteeRateAuthority() (gas: 81191)
+[PASS] test_invalidRateAndUninstalledPolicyRevert() (gas: 51164)
+[PASS] test_outsiderCannotSetRateButCanRefresh() (gas: 360156)
+[PASS] test_rateChangeRefreshesAllIncludingLostEligibility() (gas: 964698)
+[PASS] test_rawSyntheticIsNotEligibility() (gas: 391752)
+[PASS] test_receiptOrMinterRoleAloneCannotUnlockDiscount() (gas: 268659)
+[PASS] test_refreshFailureRollsBackRateAndEveryBorrower() (gas: 668662)
+[PASS] test_registrationRequiresMinterCorrectMarketAndRefreshHook() (gas: 418705)
+[PASS] test_registryIsBoundedAndCanReuseRemovedSlots() (gas: 4507912)
+[PASS] test_startsAtZeroWithoutDeployerPrivileges() (gas: 1525664)
+[PASS] test_unregisterClearsCacheWithoutRevokingMintPermission() (gas: 279544)
+Suite result: ok. 18 passed; 0 failed; 0 skipped; finished in 1.86s (1.86s CPU time)
+
+Ran 5 tests for test/AdminSourceControl.t.sol:AdminSourceControlTest
+[PASS] test_onlyAdminControls() (gas: 420321)
+[PASS] test_setYieldSourceGuardsInFlightUnwind() (gas: 8361486)
+[PASS] test_setYieldSourceOnFreshVault() (gas: 430406)
+[PASS] test_setYieldSourceRevertsWhileFunded() (gas: 7845880)
+[PASS] test_setYieldSourceUnreachableOnceFunded() (gas: 554330473)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 1.93s (1.92s CPU time)
+
+Ran 16 tests for test/MainDebtCampaign.t.sol:MainDebtCampaignTest
+[PASS] testFuzz_recoveryFundingAndProcessingOrder(bool,bool,uint16) (runs: 256, μ: 14372823, ~: 14372873)
+[SKIP] test_campaign100k() (gas: 0)
+[SKIP] test_campaign100m() (gas: 0)
+[SKIP] test_campaign10m() (gas: 0)
+[SKIP] test_campaign1m() (gas: 0)
+[SKIP] test_campaign500k() (gas: 0)
+[SKIP] test_campaign50m() (gas: 0)
+[SKIP] test_campaignSensitivity100k() (gas: 0)
+[SKIP] test_campaignSensitivity1m() (gas: 0)
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 12086191)
+[PASS] test_lossFreezeStagedFundingAndFullRecovery() (gas: 14372481)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 9562476)
+[PASS] test_reverseVaultAndClaimOrderPreservesAllPrincipal() (gas: 14373143)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 105981)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 10944147)
+[PASS] test_zeroEquityCannotStartUnwindOrEraseWaitingShares() (gas: 8901120)
+Suite result: ok. 8 passed; 0 failed; 8 skipped; finished in 9.94s (10.16s CPU time)
+
+Ran 35 tests for test/Market90Days.t.sol:Market90DaysTest
+[PASS] testFuzz_recoveryFundingAndProcessingOrder(bool,bool,uint16) (runs: 256, μ: 14370644, ~: 14370704)
+[PASS] test_90Day100kBear() (gas: 81882778)
+[PASS] test_90Day100kBull() (gas: 87118751)
+[PASS] test_90Day100kSeesaw() (gas: 179139161)
+[PASS] test_90Day100mBear() (gas: 93325060)
+[PASS] test_90Day100mBull() (gas: 111749552)
+[PASS] test_90Day100mSeesaw() (gas: 248105512)
+[PASS] test_90Day10mBear() (gas: 82046300)
+[PASS] test_90Day10mBull() (gas: 87118399)
+[PASS] test_90Day10mSeesaw() (gas: 214429734)
+[PASS] test_90Day1mBear() (gas: 81982696)
+[PASS] test_90Day1mBull() (gas: 87120260)
+[PASS] test_90Day1mSeesaw() (gas: 196784117)
+[PASS] test_90Day500kBear() (gas: 81980975)
+[PASS] test_90Day500kBull() (gas: 87118707)
+[PASS] test_90Day500kSeesaw() (gas: 191490339)
+[PASS] test_90Day50mBear() (gas: 82212452)
+[PASS] test_90Day50mBull() (gas: 95037115)
+[PASS] test_90Day50mSeesaw() (gas: 193461975)
+[PASS] test_90DayBear() (gas: 81815128)
+[PASS] test_90DayBearFullMainDiscount() (gas: 72113263)
+[PASS] test_90DayBearKeeperOutage() (gas: 63384845)
+[PASS] test_90DayBull() (gas: 87115721)
+[PASS] test_90DayBullFullMainDiscount() (gas: 75162787)
+[PASS] test_90DayBullKeeperOutage() (gas: 72264824)
+[PASS] test_90DaySeesaw() (gas: 157974217)
+[PASS] test_90DaySeesawFullMainDiscount() (gas: 96350569)
+[PASS] test_90DaySeesawKeeperOutage() (gas: 142263007)
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 12085227)
+[PASS] test_lossFreezeStagedFundingAndFullRecovery() (gas: 14370364)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 9561940)
+[PASS] test_reverseVaultAndClaimOrderPreservesAllPrincipal() (gas: 14371255)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 105988)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 10943064)
+[PASS] test_zeroEquityCannotStartUnwindOrEraseWaitingShares() (gas: 8900428)
+Suite result: ok. 35 passed; 0 failed; 0 skipped; finished in 9.98s (21.30s CPU time)
+
+Ran 15 tests for test/YieldFundedExecution.t.sol:YieldFundedExecutionTest
+[PASS] testFuzz_recoveryFundingAndProcessingOrder(bool,bool,uint16) (runs: 256, μ: 14359644, ~: 14359724)
+[PASS] test_costHoldbackNeverCreatesOrRequiresStartupCapital() (gas: 8735978)
+[PASS] test_directPrimeRepaymentBecomesNetCollateralYieldWithoutChangingBasis() (gas: 9545341)
+[PASS] test_earnedCostAllowanceProtectsAllThreeExitsWithoutRecovery() (gas: 374015928)
+[PASS] test_earnedPrimePaysResizeFrictionWithoutSellingUserCollateral() (gas: 11492441)
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 12078932)
+[PASS] test_lossFreezeStagedFundingAndFullRecovery() (gas: 14359446)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 9556520)
+[PASS] test_realizedCostsCannotWriteOffSourcePrincipalWithoutYield() (gas: 9836912)
+[PASS] test_reverseVaultAndClaimOrderPreservesAllPrincipal() (gas: 14359916)
+[PASS] test_slippageFailureRollsBackBorrowAndUnwindWithoutWidening() (gas: 9373206)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 105056)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 10937116)
+[PASS] test_tbtcFallShrinksPrimeLoopToRepayMainWithoutSponsoredCash() (gas: 11418974)
+[PASS] test_zeroEquityCannotStartUnwindOrEraseWaitingShares() (gas: 8894839)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 10.29s (11.72s CPU time)
+
+Ran 7 tests for test/AccountingSafety.t.sol:SourceAccountingSafetyTest
+[PASS] test_backToBackVaultUnwindsDoNotOverbookEquity() (gas: 6804136)
+[PASS] test_deLeverRestoresTargetHf() (gas: 7773245)
+[PASS] test_depositDuringPendingUnwindIsPricedOnLiveBacking() (gas: 6927390)
+[PASS] test_fullUnwindFreesSeedEquity() (gas: 60803762)
+[PASS] test_unleveredExitSellsCollateralWithoutDebt() (gas: 743808)
+[PASS] test_unwinderPrunedAfterFullPull() (gas: 64213747)
+[PASS] test_zeroProgressCannotWriteOffUnpaidClaims() (gas: 6527908)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 16.17s (629.54ms CPU time)
+
+Ran 36 tests for test/ProtocolFees.t.sol:ProtocolFeesTest
+[PASS] testFuzz_accrualClaimAndRotationConserveFees(uint256) (runs: 256, μ: 902927, ~: 894013)
+[PASS] testFuzz_feeConservesGross(uint16,uint96) (runs: 256, μ: 174202, ~: 181921)
+[PASS] test_actualOutputUsedInsteadOfSwapperReturn() (gas: 8387242)
+[PASS] test_claimCannotReenterOrChangeRecipientDuringTransfer() (gas: 9306418)
+[PASS] test_claimTransferMismatchRetainsLedger() (gas: 7988060)
+[PASS] test_directDonationNotTaxedAndSameTokenSkipsSwap() (gas: 662015)
+[PASS] test_directSourceHarvestStillPaysFeeOnLaterDistribution() (gas: 8096662)
+[PASS] test_failedClaimRetainsLedgerAndRecipientCanRecover() (gas: 8034127)
+[PASS] test_feeBoundsAndUnknownVault() (gas: 61715)
+[PASS] test_feeTransferMismatchRollsBackHarvest() (gas: 7823555)
+[PASS] test_feeWithFullBorrowingDiscount() (gas: 10776589)
+[PASS] test_feeWithPartialBorrowingDiscount() (gas: 10776818)
+[PASS] test_feeWithZeroBorrowingDiscount() (gas: 10710764)
+[PASS] test_fullFeeDoesNotCallZeroSupply() (gas: 7927850)
+[PASS] test_governanceControlsAllPolicy() (gas: 223702)
+[PASS] test_grossMinOutAppliedBeforeFee() (gas: 7973075)
+[PASS] test_harvestCompoundsYieldIntoSharePrice() (gas: 8078771)
+[PASS] test_harvestSkipsInFlightUnwindEquity() (gas: 11700976)
+[PASS] test_initialFivePercentAndIdleCollateralExcluded() (gas: 8003025)
+[PASS] test_laterVaultRateChangeDuringSwapRollsBackBatch() (gas: 17584115)
+[PASS] test_lyingSwapperCannotSpendIdleCollateral() (gas: 8180093)
+[PASS] test_minOutFailureRollsBackHarvestAndAccrual() (gas: 7771643)
+[PASS] test_missingOrMismatchedWiringFailsClosed() (gas: 8791078)
+[PASS] test_paidFeesUnaffectedByRecipientRotation() (gas: 8024220)
+[PASS] test_partialInputConsumptionRejected() (gas: 8184051)
+[PASS] test_permissionlessClaimPaysOnlyCurrentRecipient() (gas: 8047158)
+[PASS] test_policyChangeAndRestorationStillReverts() (gas: 8431348)
+[PASS] test_primePriceAppreciationCompoundsToDeposit() (gas: 8111032)
+[PASS] test_rebindingPreservesExplicitZeroRate() (gas: 111145)
+[PASS] test_rejectsZeroAndKnownCustodyRecipients() (gas: 93441)
+[PASS] test_runtimeSizesRemainDeployable() (gas: 5983562)
+[PASS] test_settledWithdrawalIsNotUsedForFee() (gas: 13228212)
+[PASS] test_sharedAssetDifferentRatesUseOneClaimLedger() (gas: 16939943)
+[PASS] test_treasuryMayDepositPaidCollateralNormally() (gas: 8522634)
+[PASS] test_zeroActualOutputRejectedEvenWhenFloorRoundsZero() (gas: 8185416)
+[PASS] test_zeroFeeSuppliesAllHarvest() (gas: 7947471)
+Suite result: ok. 36 passed; 0 failed; 0 skipped; finished in 16.17s (1.62s CPU time)
+
+Ran 8 tests for test/RecoveryE2E.t.sol:RecoveryE2ETest
+[PASS] testFuzz_recoveryFundingAndProcessingOrder(bool,bool,uint16) (runs: 33, μ: 14359524, ~: 14359588)
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 12078808)
+[PASS] test_lossFreezeStagedFundingAndFullRecovery() (gas: 14359276)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 9556397)
+[PASS] test_reverseVaultAndClaimOrderPreservesAllPrincipal() (gas: 14359659)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 104952)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 10937051)
+[PASS] test_zeroEquityCannotStartUnwindOrEraseWaitingShares() (gas: 8894748)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 17.71s (1.45s CPU time)
+
+Ran 9 tests for test/invariant/PropellerInvariant.t.sol:PropellerInvariantTest
+[PASS] invariant_escrow() (runs: 256, calls: 12800, reverts: 1067)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1177  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1157  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1205  | 21      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1127  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1169  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1168  | 341     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1175  | 705     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1192  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1141  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1154  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1135  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_freedBacked() (runs: 256, calls: 12800, reverts: 1032)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1132  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1184  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1144  | 25      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1163  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1160  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1139  | 315     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1137  | 692     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1216  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1206  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1134  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1185  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_mainCashDebtAndSourceClaimsConserved() (runs: 256, calls: 12800, reverts: 1041)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1159  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1117  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1157  | 29      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1196  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1243  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1142  | 324     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1137  | 688     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1149  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1209  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1088  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1203  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_noSynthBorrow() (runs: 256, calls: 12800, reverts: 1090)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1171  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1162  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1132  | 19      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1205  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1214  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1173  | 335     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1180  | 736     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1135  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1174  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1149  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1105  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_principalClaimsPreserved() (runs: 256, calls: 12800, reverts: 1073)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1175  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1192  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1141  | 21      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1134  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1174  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1126  | 318     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1165  | 734     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1140  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1189  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1270  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1094  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_principalFloored() (runs: 256, calls: 12800, reverts: 1062)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1164  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1156  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1151  | 21      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1152  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1170  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1163  | 333     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1173  | 708     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1173  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1111  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1187  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1200  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_roundingReserveIsRingFenced() (runs: 256, calls: 12800, reverts: 1027)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1160  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1163  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1181  | 26      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1173  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1190  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1155  | 327     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1122  | 674     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1126  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1193  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1162  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1175  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_shareConservation() (runs: 256, calls: 12800, reverts: 1051)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1186  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1157  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1195  | 15      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1197  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1131  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1153  | 387     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1090  | 649     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1205  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1128  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1192  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1166  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+[PASS] invariant_synthConserved() (runs: 256, calls: 12800, reverts: 1044)
+
+╭----------+-----------------------------+-------+---------+----------╮
+| Contract | Selector                    | Calls | Reverts | Discards |
++=====================================================================+
+| Handler  | accrueMainInterest          | 1208  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | accruePrimeAndExecutionCost | 1201  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | advanceAndStart             | 1161  | 36      | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | churnUnwind                 | 1187  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claim                       | 1113  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | claimMainSurplus            | 1183  | 333     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | deposit                     | 1159  | 675     | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | externalRepayment           | 1142  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | ramp                        | 1154  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | requestRedeem               | 1159  | 0       | 0        |
+|----------+-----------------------------+-------+---------+----------|
+| Handler  | settle                      | 1133  | 0       | 0        |
+╰----------+-----------------------------+-------+---------+----------╯
+
+Suite result: ok. 9 passed; 0 failed; 0 skipped; finished in 17.71s (106.30s CPU time)
+
+Ran 40 test suites in 17.71s (111.57s CPU time): 287 tests passed, 0 failed, 11 skipped (298 total tests)
