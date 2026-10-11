@@ -48,7 +48,8 @@ Initialize the pinned `bil-vault/lib` dependencies and build with the
 [documented settings](README.md#build-and-test). Run serially against the same
 artifact directory. Recheck EIP-170 against the exact final artifacts; the
 [current validation record](docs/pr62-completion-2026-10-02.md) supersedes earlier
-runtime sizes.
+runtime sizes. Deploy from the checkout you will [verify](#verify-on-neckwork)
+from, and keep its `broadcast/` run files: they are the deployment record.
 
 From `juicer-vault`, the core deployment order is:
 
@@ -92,6 +93,57 @@ Missing roles or ledger/reserve bindings can make deposits revert. Other unset
 parameters are unsafe rather than inert: zero tranche values disable caps, and
 zero compound slippage means exact oracle-relative execution, not a universal
 revert. Verify all settings explicitly.
+
+### Verify on Neckwork
+
+Before submitting the governance proposal, verify every deployed contract on the
+[Neckwork explorer](https://hydration-explorer.neckwork.net), which indexes
+Hydration mainnet (chain 222222) only. In the deploy checkout, at the deploy
+commit (`commit` in each broadcast run file), rebuild the production artifacts
+with build-info, then the proxy into the same directory:
+
+```sh
+forge build --offline --evm-version london --skip test --skip script --sizes \
+  --out out-production --cache-path cache-production --build-info
+forge build ../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol \
+  --offline --evm-version london --out out-production --cache-path cache-production --build-info
+```
+
+`foundry.toml` supplies Solc 0.8.22, via IR and optimizer 200; the London
+override is required. From the same checkout these builds are byte-identical to
+what `forge script` deploys. Forge auto-detects remappings for `../bil-vault/lib`
+as absolute paths and every contract's metadata hash covers them, so only the
+deploy checkout's path and submodule layout reproduce the deployed bytecode
+exactly. Neckwork publishes those paths with the source: deploy from a neutral
+path that names no person.
+
+From the repository root, review the dry run, submit, then confirm:
+
+```sh
+node scripts/juicer/verify-contracts.mjs juicer-vault/broadcast
+node scripts/juicer/verify-contracts.mjs juicer-vault/broadcast --live
+node scripts/juicer/verify-contracts.mjs juicer-vault/broadcast --check
+```
+
+The script reads every chain-222222 run file and the contracts their constructors
+created (Forge records them; `--rpc` reads the getters otherwise). It compares each
+creation input with `out-production` (`exact`, `partial` when only the metadata
+hash differs, or `mismatch`) and submits the contract's own source closure,
+compiler version and creation transaction. `--live` skips verified addresses,
+stays within Neckwork's ten submissions a minute, polls every job and resumes when
+rerun. It exits nonzero until every contract verifies.
+
+Proxies and implementations are verified separately: each `ERC1967Proxy` against
+the proxy build, each implementation against the production build. The vault
+implementation's `CompoundLogic` and each Main ledger's `JuicerYieldAccounting`
+are created in constructors. Neckwork rejects the parent's creation transaction
+for them, so they match on runtime code alone.
+
+On `mismatch` or a failed job, stop before the proposal. Rebuild from the deploy
+commit into clean `out-production` and `cache-production`; check the EVM version,
+via IR, optimizer runs and Solc version against the manifest; check
+`git submodule status` and the checkout path. A `partial` result verifies the code
+but not its metadata; only a rebuild in the deploy checkout matches exactly.
 
 ## 3. Generate and Rehearse Governance Wiring
 
