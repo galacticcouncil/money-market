@@ -40,16 +40,16 @@
     "formal/JuicerLean/FixedPoint/PublicCertificates.lean": "5d46d711959887516914a2dc9a5e52be814c0835f4f44137aa2dad8aa0592742",
     "formal/JuicerLean/FixedPoint/PublicPreservation.lean": "3522de37d9d36743e80417fe0bd43e8d017e704f29eaba0c2448d7ed1fe4eb67",
     "formal/JuicerLean/FixedPoint/SolidityDispatch.lean": "c64cbb0e8e9199a6b65be859e5a44153f4cefd95888e2af81dd485db37047511",
-    "formal/JuicerLean/FixedPoint/PublicReachability.lean": "7cb46cf123f07bffa9038c80b28a2b3acd8c3be4da0e8d207699364bda7efcb1",
+    "formal/JuicerLean/FixedPoint/PublicReachability.lean": "b160650d08686d1fae86b8f66a2c9de5583026b168da1612bcc6d1932db8b992",
     "formal/JuicerLean/FixedPoint/PublicStateProofs.lean": "e5877765986a5d17595ef2265b64b68a28ca03d3561c2d7426ca2a3b0bf2a9e9",
     "formal/JuicerLean/FixedPoint/PublicTransferProofs.lean": "d99b6c5cdd99a76bf23abaed2a67e2e605bebd9276ada4b44f203fecf6985e0d",
     "formal/JuicerLean/FixedPoint/PublicClaimProofs.lean": "c07f7a66aa4b7d2b7a7dde1a28a7fad18e6e5b2db77a869ef78f878728eef233",
-    "formal/JuicerLean/FixedPoint/PublicBoundaryRegressions.lean": "07ec150862fbbdeda099e0f24747e77fecf6814d919f518b84c317fc26f67926",
+    "formal/JuicerLean/FixedPoint/PublicBoundaryRegressions.lean": "aa86beef347ece8eeeba8938d773fc13559c5935165fc399ca7170c0fed33ded",
     "formal/JuicerLean/FixedPoint/RescaleBounds.lean": "8cd65dd1114ff28b0f35137873f064aa69703580ce52894c3f2bbe4661b27aa0",
     "formal/JuicerLean/FixedPoint/RoundingResidue.lean": "01c790e7bf737c322e10f4ca10289c0a40bc507071b94bd54c3afa377b5a5ca2",
     "formal/JuicerLean/FixedPoint/ScaledDebt.lean": "83973a56f3dadcd1e9a2c40febc20b7199aa5d1b1952880884352cd5656a9608",
     "formal/ScaledDebtReplay.lean": "5546be223b87959389ce2977ce9a21986e56571297785960b21cd521ec9f35a8",
-    "formal/StatefulReplay.lean": "cbb726fbb1680db690770afafe8e388d28033add5e8328e98af8fb2063d9ac60",
+    "formal/StatefulReplay.lean": "ae8385ccee8fc259c992aa53d2cf392f141cd5dc964f8bc32984f867af0b79c1",
     "formal/check-stateful.py": "d83b5625a5c0a32fd2f03a6bfc4a17cc2a47bacf83f98a36eaebfcc7677baffd",
     "formal/stateful_coverage.py": "85fec43faf528c416a1660727bb411da869e59454559b1d205527ccf907bdb25",
     "test/formal/LeanStatefulParity.t.sol": "b8b9382ddd1531de1bbbbe19221610cffb622a27bf931ce8e3b8487682b5d734",
@@ -94,6 +94,9 @@
     "../node_modules/@aave/core-v3/contracts/dependencies/openzeppelin/contracts/SafeCast.sol": "ce6241ee801233bca40aa81549fe7015d3da662e2b9824560523f92e7362f07d",
     "test/formal/LeanLazyHistoryParity.t.sol": "1c36e32c0e4b872d5aa7985b4a1c986e60127dd2a9d48ff1fa663b47ad089b29",
     "test/formal/LeanLifecycleParity.t.sol": "28cb045622dced3c4ee3b60ab8c010a0bed8896498b943ae998aad9864f75bce",
-    "test/formal/RescaleCeilIndexAudit.t.sol": "f486170df7396b0da2c42f2251e59ad34ecd7d4c23e1c21c917d00117471c3a6"
+    "test/formal/RescaleCeilIndexAudit.t.sol": "f486170df7396b0da2c42f2251e59ad34ecd7d4c23e1c21c917d00117471c3a6",
+    "formal/JuicerLean/FixedPoint/PublicMetadataProofs.lean": "28d8ff400a026b987614d4ae111120d1591a6c597dc866286694213c3426f24a",
+    "formal/JuicerLean/FixedPoint/PublicAllocationProofs.lean": "1e181a8311991d042cd9fba773939007f582ed90b1b33a2d35388faa082664be",
+    "formal/JuicerLean/FixedPoint/PublicCheckpointProofs.lean": "2f2ebd10bc0d3f5da6146b1e041e60f2ef80b693a7452bec1a588900b60eb446"
   }
 }

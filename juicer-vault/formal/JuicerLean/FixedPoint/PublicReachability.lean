@@ -2,6 +2,7 @@ import JuicerLean.FixedPoint.PublicCertificates
 import JuicerLean.FixedPoint.PublicPreservation
 import JuicerLean.FixedPoint.PublicTransferProofs
 import JuicerLean.FixedPoint.PublicClaimProofs
+import JuicerLean.FixedPoint.PublicCheckpointProofs
 import JuicerLean.FixedPoint.SolidityDispatch
 
 set_option maxRecDepth 4000
@@ -316,9 +317,16 @@ theorem structural_action_admissible (s : State) (action : Action)
   · subst op
     exact transferFrom_admissible s caller a b n h holder target
 
+def StateStructuralAction (s : State) (a : Action) : Prop :=
+  (a.op = 7 ∧ a.amount < s.unwind) ∨ (a.op = 8 ∧ PublicMetadata s)
+
+instance (s : State) (a : Action) : Decidable (StateStructuralAction s a) := by
+  unfold StateStructuralAction
+  infer_instance
+
 def ValidSolidityAction (s : State) (a : Action) : Prop :=
   FixtureAction a ∧ (StructuralAction a ∨
-    (a.op = 7 ∧ a.amount < s.unwind) ∨ InvariantAdmissible s a)
+    StateStructuralAction s a ∨ InvariantAdmissible s a)
 
 instance (s : State) (a : Action) : Decidable (ValidSolidityAction s a) := by
   unfold ValidSolidityAction
@@ -339,7 +347,11 @@ theorem transferFrom_action_valid {s : State} {a : Action} (fixture : FixtureAct
 
 theorem claim_action_valid {s : State} {a : Action} (fixture : FixtureAction a)
     (op : a.op = 7) (started : a.amount < s.unwind) : ValidSolidityAction s a :=
-  ⟨fixture, .inr (.inl ⟨op,started⟩)⟩
+  ⟨fixture, .inr (.inl (.inl ⟨op,started⟩))⟩
+
+theorem sync_action_valid {s : State} {a : Action} (fixture : FixtureAction a)
+    (op : a.op = 8) (metadata : PublicMetadata s) : ValidSolidityAction s a :=
+  ⟨fixture, .inr (.inl (.inr ⟨op,metadata⟩))⟩
 
 theorem claim_admissible (s : State) (a : Action) (h : PublicInvariant s)
     (hop : a.op = 7) (started : a.amount < s.unwind) : InvariantAdmissible s a := by
@@ -348,13 +360,22 @@ theorem claim_admissible (s : State) (a : Action) (h : PublicInvariant s)
   subst op
   exact raw_claim_public s caller a b n h started
 
+theorem state_structural_admissible (s : State) (a : Action) (h : PublicInvariant s)
+    (input : StateStructuralAction s a) : InvariantAdmissible s a := by
+  rcases input with ⟨hop,started⟩ | ⟨hop,metadata⟩
+  · exact claim_admissible s a h hop started
+  · rcases a with ⟨op,caller,a,b,n⟩
+    change op = 8 at hop
+    subst op
+    exact raw_sync_public s caller a b n h metadata
+
 theorem rawRunCall_success_preserves_of_valid {s next : State} {a : Action} {value : Nat}
     (current : PublicInvariant s) (valid : ValidSolidityAction s a)
     (h : rawRunCall s a = .ok (next, value)) :
     PublicInvariant next := by
   have admissible : InvariantAdmissible s a := valid.2.elim
     (structural_action_admissible s a current)
-    (fun rest => rest.elim (fun claim => claim_admissible s a current claim.1 claim.2) id)
+    (fun rest => rest.elim (state_structural_admissible s a current) id)
   simpa [InvariantAdmissible, OnSuccess, h] using admissible
 
 theorem rawRunCall_error_admissible {s : State} {a : Action} {code : Nat}

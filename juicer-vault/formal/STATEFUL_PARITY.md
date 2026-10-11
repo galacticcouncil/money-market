@@ -173,5 +173,7 @@ preservation over unrestricted states and is excluded by the domain.
 the typed opcode theorem and source checker establish fixture-dispatch correspondence.
 `check-bytecode.py` separately binds 11 reproducibly compiled production artifacts and the relevant
 ABI selectors to reviewed hashes. it does not prove the internal contract bodies equivalent to
-`rawRunCall`. proving structural admission for the remaining eight opcodes, and semantic equivalence
+`rawRunCall`. sync now has structural preservation under account/request metadata consistent with
+the book history; replay checks that premise throughout all 7,338 steps. proving structural
+admission for the remaining seven opcodes, and semantic equivalence
 from compiled bytecode to the Lean transitions, remains outside this result.

@@ -179,8 +179,12 @@ projection. `check-dispatch.py` checks the map against both pinned Solidity `per
 the raw Lean dispatcher for every action. `PublicReachability.lean` proves 20 opcodes
 preserve `PublicInvariant` from the current state alone. `PublicTransferProofs.lean` adds transfer
 and transferFrom for ordinary holders and bounded destinations; `PublicClaimProofs.lean` adds
-claims of started requests. `ValidSolidityAction` accepts these 23 structural cases from their
-inputs and requires the successful-post-state certificate for the other eight opcodes.
+claims of started requests. `PublicMetadataProofs.lean`, `PublicAllocationProofs.lean` and
+`PublicCheckpointProofs.lean` prove sync/checkpoint preservation from bounded account/request
+epochs and scales, including allocation, write-off and all four rescale steps.
+`ValidSolidityAction` accepts these 24 structural cases from their inputs and requires the
+successful-post-state certificate for the other seven opcodes. replay checks the metadata premise
+at genesis and before and after every call, using the predicted state compared with Solidity storage.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` carry that certificate through
 arbitrary finite raw traces from any certified fixture genesis. the orphan-claim regression records
 the necessary boundary: a fabricated raw storage state can contain a settled claim without any
@@ -253,8 +257,8 @@ replays.
 
 ## verification
 
-737 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 1,549 kernel theorem
+784 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 1,619 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.

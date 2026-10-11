@@ -37,4 +37,10 @@ theorem future_epoch_breaks_checkpoint :
       ¬ PublicInvariant (rawExecute epochBoundaryState epochBoundaryAction).1 := by
   decide
 
+theorem future_epoch_not_metadata : ¬ PublicMetadata epochBoundaryState := by decide
+
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 2000000 in
+theorem future_epoch_not_valid : ¬ ValidSolidityAction epochBoundaryState epochBoundaryAction := by decide
+
 end Juicer.PublicCalls

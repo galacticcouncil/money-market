@@ -84,6 +84,7 @@ def checkCertificateParts (s : State) : Except String Unit := do
   unless decide (p := (publicProjection s).valid) do throw "certificate lifecycle"
   unless decide (p := publicSlack s < Runtime.ray) do throw "certificate slack"
   unless decide (p := OperationalInvariant s) do throw "certificate operational"
+  unless decide (p := PublicMetadata s) do throw "account metadata history"
 
 def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Except String State := do
   let a ← numbers j "action"
@@ -93,6 +94,7 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
   if genesis then
     if a != #[999, 0, 0, 0, fixture] || status != #[0, 0] then throw "missing genesis"
     if (certify s).isNone then throw "genesis invariant certificate rejected"
+    unless decide (p := PublicMetadata s) do throw "genesis metadata history rejected"
     compare (snapshot s) actual
     return s
   if a[0]! == 999 then throw "unexpected state reset"
@@ -101,6 +103,7 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
     compare (snapshot s) actual
     return s
   let action := Juicer.PublicCalls.Action.mk a[0]! a[1]! a[2]! a[3]! a[4]!
+  unless decide (p := PublicMetadata s) do throw "input metadata history rejected"
   unless decide (p := FixtureAction action) do throw "action outside source-pinned fixture domain"
   unless decide (p := ValidSolidityAction s action) do
     checkPartitions (rawExecute s action).1
@@ -108,6 +111,7 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
     throw "raw public-call invariant certificate rejected"
   let (next, code, value) := solidityExecute s action
   if (certify next).isNone then throw "reachable raw state lost its certificate"
+  unless decide (p := PublicMetadata next) do throw "reachable raw state lost its metadata history"
   if code == 99 then throw "trace reached an unsupported fixture branch"
   if status != #[code, value] then throw s!"outcome: Lean {[code, value]}, Solidity {status.toList}"
   compare (snapshot next) actual
