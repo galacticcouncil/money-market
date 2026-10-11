@@ -39,7 +39,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       # This exact revision must be present in the repository Actions allowlist.
-      # Match the toolchain used for the recorded Propeller regression artifacts.
+      # Match the toolchain used for the recorded Juicer regression artifacts.
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
         with:
@@ -48,8 +48,8 @@ jobs:
       - name: Run tests
         run: forge test --use 0.8.22 -vvv
 
-  propeller:
-    name: Propeller contracts
+  juicer:
+    name: Juicer contracts
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -57,7 +57,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Initialize Propeller libraries
+      - name: Initialize Juicer libraries
         run: >-
           git submodule update --init --depth 1
           bil-vault/lib/forge-std
@@ -81,16 +81,16 @@ jobs:
       # London matches the native deployment evidence. Separate output trees
       # keep dynamically linked test artifacts out of the production build.
       - name: Build production contracts and check sizes
-        working-directory: propeller-vault
+        working-directory: juicer-vault
         run: >-
           forge build --evm-version london --skip test --skip script --sizes
           --out out-production --cache-path cache-production
 
       - name: Run contract regression
-        working-directory: propeller-vault
+        working-directory: juicer-vault
         run: forge test --evm-version london --dynamic-test-linking -vv
 
       - name: Test and check source storage compatibility
         run: |
-          node --test scripts/propeller/source-storage.test.mjs
-          node scripts/propeller/check-source-storage.mjs --artifact propeller-vault/out-production/SubLoop.sol/SubLoop.json
+          node --test scripts/juicer/source-storage.test.mjs
+          node scripts/juicer/check-source-storage.mjs --artifact juicer-vault/out-production/SubLoop.sol/SubLoop.json

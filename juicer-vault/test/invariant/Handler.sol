@@ -1,0 +1,149 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.22;
+
+import {Test} from "forge-std/Test.sol";
+import {CollateralVault} from "../../src/CollateralVault.sol";
+import {SubLoop} from "../../src/SubLoop.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
+import {MockPool} from "../mocks/MockPool.sol";
+import {JuicerMainDebt} from "../../src/JuicerMainDebt.sol";
+import {MockDispatch} from "../mocks/MockDispatch.sol";
+import {DcaDispatch} from "../../src/lib/DcaDispatch.sol";
+
+/// @notice single-actor fuzz driver for the invariant suite; ghost vars track what
+/// the invariants compare against
+contract Handler is Test {
+    CollateralVault public vault;
+    SubLoop public loop;
+    MockPool public pool;
+    MockERC20 public eth;
+    MockERC20 public prime;
+
+    uint256 public ghostEscrowed; // jShares escrowed in open redemptions
+    uint256 public successfulDeposits;
+    uint256 public ghostRequested;
+    uint256 public ghostClaimed;
+    uint256[] public reqIds;
+
+    constructor(
+        CollateralVault _vault,
+        SubLoop _loop,
+        MockPool _pool,
+        MockERC20 _eth,
+        MockERC20 _prime
+    ) {
+        vault = _vault;
+        loop = _loop;
+        pool = _pool;
+        eth = _eth;
+        prime = _prime;
+    }
+
+    function deposit(uint256 amt) external {
+        uint256 cap = vault.tvlCap();
+        uint256 used = vault.totalAssets();
+        if (used >= cap) return;
+        amt = bound(amt, 1e15, cap - used);
+        eth.mint(address(this), amt);
+        eth.approve(address(vault), amt);
+        vault.deposit(amt, address(this));
+        successfulDeposits++;
+    }
+
+    function ramp(uint256 n) external {
+        n = bound(n, 1, 8);
+        vault.rebalance();
+        for (uint256 i = 0; i < n; i++) {
+            loop.pokeBorrow();
+        }
+    }
+
+    function requestRedeem(uint256 seed) external {
+        uint256 bal = vault.balanceOf(address(this));
+        if (bal == 0) return;
+        uint256 shares = bound(seed, 1, bal);
+        uint256 escrowBefore = vault.balanceOf(address(vault));
+        uint256 id = vault.requestRedeem(shares, address(this));
+        reqIds.push(id);
+        // beyond the wallet the funded slice is folded in at the start, not now
+        ghostEscrowed += vault.balanceOf(address(vault)) - escrowBefore;
+    }
+
+    function advanceAndStart(uint256 secondsForward, uint256 count) external {
+        vm.warp(block.timestamp + bound(secondsForward, 0, 24 hours));
+        uint256 before = vault.queueUnwind();
+        uint256 escrowBefore = vault.balanceOf(address(vault));
+        vault.startUnwinds(bound(count, 1, 8));
+        ghostEscrowed += vault.balanceOf(address(vault)) - escrowBefore;
+        for (uint256 id = before; id < vault.queueUnwind(); ++id) {
+            (, , uint256 owed, , , , , , ) = vault.redemptions(id);
+            ghostRequested += owed;
+        }
+    }
+
+    function churnUnwind(uint256 n) external {
+        if (loop.unwindTargetEquity() == 0) return;
+        n = bound(n, 1, 12);
+        for (uint256 i = 0; i < n; i++) {
+            if (loop.unwindTargetEquity() == 0) break;
+            loop.pokeRepay();
+        }
+    }
+
+    function settle() external {
+        vault.pokeSettle();
+    }
+
+    function accrueMainInterest(uint256 seed) external {
+        MockERC20 debt = MockERC20(address(vault.hollarDebtToken()));
+        uint256 balance = debt.balanceOf(address(vault));
+        if (balance == 0) return;
+        debt.mint(address(vault), bound(seed, 1, balance / 100_000 + 1));
+        vault.maintainPeg();
+    }
+
+    function accruePrimeAndExecutionCost(uint256 seed, uint16 costBps) external {
+        MockERC20 aPrime = MockERC20(address(loop.primeAToken()));
+        uint256 earned = bound(seed, 1, aPrime.balanceOf(address(loop)) / 20 + 1);
+        aPrime.mint(address(loop), earned);
+        prime.mint(address(pool), earned);
+        MockDispatch(payable(DcaDispatch.DISPATCH)).setFeeBps(uint16(bound(costBps, 0, 10)));
+    }
+
+    function externalRepayment(uint256 seed) external {
+        uint256 balance = vault.hollarDebtToken().balanceOf(address(vault));
+        if (balance == 0) return;
+        uint256 amount = bound(seed, 1, balance);
+        MockERC20 cash = MockERC20(address(vault.hollar()));
+        cash.mint(address(this), amount);
+        cash.approve(address(pool), amount);
+        pool.repay(address(cash), amount, 2, address(vault));
+    }
+
+    function claimMainSurplus(uint256 seed) external {
+        if (vault.queueUnwind() == 0) return;
+        JuicerMainDebt(address(vault.mainDebt())).claimSurplus(seed % vault.queueUnwind());
+    }
+
+    function claim(uint256 seed) external {
+        uint256 len = reqIds.length;
+        if (len == 0) return;
+        uint256 id = reqIds[bound(seed, 0, len - 1)];
+        (
+            , // owner
+            , // shares
+            , // collateralOwed
+            , // debtShare
+            , // synthShare
+            , // repaid
+            uint256 settled,
+            , // sharesBurned
+            bool active
+        ) = vault.redemptions(id);
+        if (!active || settled == 0) return;
+        // claims can be partial, so track the actual escrow burn
+        uint256 escrowBefore = vault.balanceOf(address(vault));
+        ghostClaimed += vault.claim(id, address(this));
+        ghostEscrowed -= (escrowBefore - vault.balanceOf(address(vault)));
+    }
+}
