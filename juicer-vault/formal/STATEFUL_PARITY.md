@@ -18,9 +18,10 @@ post-call snapshot and success/revert outcome. it also checks the holder, reques
 Main-cash/debt and collateral partitions and the lazy liability bound after every call. its
 computed certificate also carries proofs of collateral custody, source/cash partitions and the
 combined holder/waiting-request lifecycle and operational request/array partitions for every
-accepted post-state. each row must satisfy `FixtureAction` and `ValidSolidityAction`; 20 opcodes
+accepted post-state. each row must satisfy `FixtureAction` and `ValidSolidityAction`; 21 opcodes
 satisfy the latter from the certified pre-state alone, transfers additionally require ordinary
-holders and bounded destinations, and claims require started requests. the other eight require a
+holders and bounded destinations, claims require started requests, and sync requires consistent
+account/request epochs and scales. the other six require a
 successful-post-state certificate. the replay still certifies every resulting state and advances
 with the raw typed dispatcher, so no checked-call guard can hide a raw transition mismatch.
 
@@ -175,5 +176,6 @@ the typed opcode theorem and source checker establish fixture-dispatch correspon
 ABI selectors to reviewed hashes. it does not prove the internal contract bodies equivalent to
 `rawRunCall`. sync now has structural preservation under account/request metadata consistent with
 the book history; replay checks that premise throughout all 7,338 steps. proving structural
-admission for the remaining seven opcodes, and semantic equivalence
+admission for the remaining six opcodes (deposit, requestRedeem, startUnwinds, pokeSettle, rebalance
+and harvest), and semantic equivalence
 from compiled bytecode to the Lean transitions, remains outside this result.

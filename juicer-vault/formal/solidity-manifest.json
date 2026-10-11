@@ -40,7 +40,7 @@
     "formal/JuicerLean/FixedPoint/PublicCertificates.lean": "5d46d711959887516914a2dc9a5e52be814c0835f4f44137aa2dad8aa0592742",
     "formal/JuicerLean/FixedPoint/PublicPreservation.lean": "3522de37d9d36743e80417fe0bd43e8d017e704f29eaba0c2448d7ed1fe4eb67",
     "formal/JuicerLean/FixedPoint/SolidityDispatch.lean": "c64cbb0e8e9199a6b65be859e5a44153f4cefd95888e2af81dd485db37047511",
-    "formal/JuicerLean/FixedPoint/PublicReachability.lean": "b160650d08686d1fae86b8f66a2c9de5583026b168da1612bcc6d1932db8b992",
+    "formal/JuicerLean/FixedPoint/PublicReachability.lean": "1c2103d4efa649fc1cd793b30e123d83ac920fa910d1ad50ac4264b871d95f87",
     "formal/JuicerLean/FixedPoint/PublicStateProofs.lean": "e5877765986a5d17595ef2265b64b68a28ca03d3561c2d7426ca2a3b0bf2a9e9",
     "formal/JuicerLean/FixedPoint/PublicTransferProofs.lean": "d99b6c5cdd99a76bf23abaed2a67e2e605bebd9276ada4b44f203fecf6985e0d",
     "formal/JuicerLean/FixedPoint/PublicClaimProofs.lean": "c07f7a66aa4b7d2b7a7dde1a28a7fad18e6e5b2db77a869ef78f878728eef233",
@@ -97,6 +97,9 @@
     "test/formal/RescaleCeilIndexAudit.t.sol": "f486170df7396b0da2c42f2251e59ad34ecd7d4c23e1c21c917d00117471c3a6",
     "formal/JuicerLean/FixedPoint/PublicMetadataProofs.lean": "28d8ff400a026b987614d4ae111120d1591a6c597dc866286694213c3426f24a",
     "formal/JuicerLean/FixedPoint/PublicAllocationProofs.lean": "1e181a8311991d042cd9fba773939007f582ed90b1b33a2d35388faa082664be",
-    "formal/JuicerLean/FixedPoint/PublicCheckpointProofs.lean": "2f2ebd10bc0d3f5da6146b1e041e60f2ef80b693a7452bec1a588900b60eb446"
+    "formal/JuicerLean/FixedPoint/PublicCheckpointProofs.lean": "2f2ebd10bc0d3f5da6146b1e041e60f2ef80b693a7452bec1a588900b60eb446",
+    "formal/JuicerLean/FixedPoint/PublicPaymentProofs.lean": "4f6d4f50f88d9bd80c78b1d0f64df66540728ffdcfbeb924fcf6f6ea143379e4",
+    "formal/JuicerLean/FixedPoint/PublicCompoundProofs.lean": "f4d8e7e836177f204b75ee311b5453f8411bf03598da81d8cdacd27e5bdb0917",
+    "formal/JuicerLean/FixedPoint/PublicRequestPreparation.lean": "4a600b1c08b9d01409f2a598987ebf5006fe14e8097c9503f84d2e7609d6c164"
   }
 }

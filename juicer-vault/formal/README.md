@@ -188,10 +188,10 @@ The old Verity bridge remains a separate simplified reference model; see [bridge
 from fixture genesis. The checker compares state and outcomes after every step, enforces accounting
 partitions and rejects incomplete traces. every action is decoded through the typed Solidity map,
 checked against the fixture domain and executed by `rawRunCall`; every successful post-state must
-carry the combined certificate. twenty opcodes are admitted from their pre-state
+carry the combined certificate. twenty-one opcodes, including compound, are admitted from their pre-state
 invariant alone; transfer and transferFrom additionally require ordinary holders and bounded
 destinations, claim requires a started request, and sync requires account/request epochs and scales
-consistent with the book's history. these 24 opcodes have input-based preservation
+consistent with the book's history. these 25 opcodes have input-based preservation
 proofs without using the post-state certificate to establish domain membership.
 the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and

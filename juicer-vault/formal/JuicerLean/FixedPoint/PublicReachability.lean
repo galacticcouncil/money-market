@@ -3,6 +3,8 @@ import JuicerLean.FixedPoint.PublicPreservation
 import JuicerLean.FixedPoint.PublicTransferProofs
 import JuicerLean.FixedPoint.PublicClaimProofs
 import JuicerLean.FixedPoint.PublicCheckpointProofs
+import JuicerLean.FixedPoint.PublicCompoundProofs
+import JuicerLean.FixedPoint.PublicRequestPreparation
 import JuicerLean.FixedPoint.SolidityDispatch
 
 set_option maxRecDepth 4000
@@ -19,7 +21,7 @@ instance (s : State) (a : Action) : Decidable (InvariantAdmissible s a) := by
 
 def StructuralOpcode (op : Nat) : Prop :=
   op = 1 ∨ op = 10 ∨ op = 11 ∨ op = 12 ∨ op = 13 ∨ op = 14 ∨ op = 15 ∨
-  op = 16 ∨ op = 17 ∨ op = 18 ∨ op = 19 ∨ op = 20 ∨ op = 21 ∨ op = 22 ∨
+  op = 16 ∨ op = 17 ∨ op = 18 ∨ op = 19 ∨ op = 20 ∨ op = 21 ∨ op = 22 ∨ op = 24 ∨
   op = 25 ∨ op = 26 ∨ op = 27 ∨ op = 28 ∨ op = 29 ∨ op = 30
 
 instance (op : Nat) : Decidable (StructuralOpcode op) := by
@@ -234,7 +236,7 @@ theorem structural_opcode_admissible (s : State) (action : Action)
   rcases action with ⟨op, caller, a, b, n⟩
   simp only [StructuralOpcode] at hop
   rcases hop with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-    rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · exact approve_admissible s caller a b n h
   · exact warp_admissible s caller a b n h
   · exact repay_admissible s caller a b n h
@@ -249,6 +251,7 @@ theorem structural_opcode_admissible (s : State) (action : Action)
   · exact accrue_admissible s caller a b n h
   · exact price_admissible s caller a b n h
   · exact peg_admissible s caller a b n h
+  · exact raw_compound_public s caller a b n h
   · exact rounding_admissible s caller a b n h
   · exact reserve_admissible s caller a b n h
   · exact feeClaim_admissible s caller a b n h
