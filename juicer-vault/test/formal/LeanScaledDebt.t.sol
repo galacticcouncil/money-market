@@ -54,6 +54,7 @@ contract LeanScaledDebtTest is Test {
         debt = new VariableDebtToken(IPool(address(this)));
         debt.initialize(IPool(address(this)), address(0x222), IAaveIncentivesController(address(0)),
             18, "variable debt", "vd", "");
+        vm.createDir("formal/.stateful", true);
         vm.writeFile(TRACE, "");
         _record(999, 0, 0, true);
         uint256 reverts;
