@@ -91,6 +91,7 @@ def checkCertificateParts (s : State) : Except String Unit := do
   unless decide (p := CreditReady s) do throw "source-credit readiness"
   unless decide (p := SourcePullBounds s) do throw "source pull bounds"
   unless decide (p := HarvestBound s) do throw "harvest source capacity"
+  unless decide (p := UnwindReady s) do throw "unwind readiness"
 
 def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Except String State := do
   let a ← numbers j "action"
@@ -107,6 +108,7 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
     unless decide (p := CreditReady s) do throw "genesis source-credit readiness rejected"
     unless decide (p := SourcePullBounds s) do throw "genesis source pull bounds rejected"
     unless decide (p := HarvestBound s) do throw "genesis harvest capacity rejected"
+    unless decide (p := UnwindReady s) do throw "genesis unwind readiness rejected"
     compare (snapshot s) actual
     return s
   if a[0]! == 999 then throw "unexpected state reset"
@@ -122,11 +124,12 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
   unless decide (p := CreditReady s) do throw "input source-credit readiness rejected"
   unless decide (p := SourcePullBounds s) do throw "input source pull bounds rejected"
   unless decide (p := HarvestBound s) do throw "input harvest capacity rejected"
+  unless decide (p := UnwindReady s) do throw "input unwind readiness rejected"
   unless decide (p := FixtureAction action) do throw "action outside source-pinned fixture domain"
   unless decide (p := ValidSolidityAction s action) do
     checkPartitions (rawExecute s action).1
     checkCertificateParts (rawExecute s action).1
-    throw "raw public-call invariant certificate rejected"
+    throw "raw public-call input domain rejected"
   let (next, code, value) := solidityExecute s action
   if (certify next).isNone then throw "reachable raw state lost its certificate"
   unless decide (p := PublicMetadata next) do throw "reachable raw state lost its metadata history"
@@ -136,6 +139,7 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
   unless decide (p := CreditReady next) do throw "reachable raw state lost its source-credit readiness"
   unless decide (p := SourcePullBounds next) do throw "reachable raw state lost its source pull bounds"
   unless decide (p := HarvestBound next) do throw "reachable raw state lost its harvest capacity bound"
+  unless decide (p := UnwindReady next) do throw "reachable raw state lost its unwind readiness"
   if code == 99 then throw "trace reached an unsupported fixture branch"
   if status != #[code, value] then throw s!"outcome: Lean {[code, value]}, Solidity {status.toList}"
   compare (snapshot next) actual

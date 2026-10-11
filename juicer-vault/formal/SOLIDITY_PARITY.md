@@ -207,9 +207,14 @@ fresh batches, resumed batches and receipts arriving during an unfinished batch.
 reward/protocol reservation release and compounding. its capacity premise requires the
 post-checkpoint harvestable amount to fit the held source shares. Solidity caps burns by source
 capacity; the raw fixture model currently implements the case where that cap does not bind.
-`ValidSolidityAction` accepts these 30 structural cases from their inputs and still requires the
-successful-post-state certificate for `startUnwinds`. replay checks metadata, initialization,
-active-fee, queue-backing, credit-readiness, pull/cost-rate and harvest-capacity premises at genesis
+the unwind proofs connect lazy-account consumption, source/Main splitting, rounding coverage and
+request activation to the exact raw `startOne` body. `startMany_preserves` covers arbitrary loop
+lengths with a proof cursor that agrees with the final stored cursor. `startUnwinds` requires
+consistent metadata, queue backing, ordinary waiting owners and a fee rate at most 10000 basis points.
+`ValidSolidityAction` accepts all 31 structural cases from their inputs or a raw revert. it no
+longer accepts successful calls by computing their post-state certificate; `valid_success_input`
+proves every admitted success has a structural input rule. replay checks metadata, initialization,
+active-fee, queue-backing, credit-readiness, pull/cost-rate, harvest-capacity and unwind premises at genesis
 and before and after every call, using the predicted state compared with Solidity storage.
 these extra input premises have not yet been proved inductive across every raw public call.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` carry that certificate through
@@ -284,8 +289,8 @@ replays.
 
 ## verification
 
-958 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 1,946 kernel theorem
+1,028 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 2,077 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.
@@ -348,7 +353,7 @@ model: universal acceptance of its successful results is false over arbitrary fa
 as the orphan-claim regression demonstrates.
 
 `ValidSolidityAction` therefore combines the source-pinned fixture constraints with either a
-proved structural call or a decidable successful-post-state certificate. the unconditional set is
+proved structural input rule or a raw revert. the unconditional set is
 approve, warp, repay, pull/repay-limit controls, vault/deposit/source pause controls, source
 repricing, fee/cost controls, interest and price observations, peg maintenance, debt-rounding
 controls, reserve/position funding, protocol-fee claims, haircut, tvl-cap changes and compound. transfer
@@ -359,14 +364,14 @@ account/request epochs and scales. requestRedeem requires an ordinary owner; dep
 bounded receiver and zero reward index at zero supply. rebalance requires consistent metadata and
 zero fee remainder at zero active source remainder. pokeSettle requires queue backing, consistent
 batch weights/budgets, backed fees and bounded pull/cost rates; harvest requires the
-post-checkpoint harvestable amount to fit the held source shares. all preservation results require the certified
+post-checkpoint harvestable amount to fit the held source shares. startUnwinds requires queue
+backing, consistent metadata, ordinary waiting owners and bounded fee rates. all preservation results require the certified
 input invariant; in particular, the orphan claim's fabricated input is not reachable.
 `validSolidityTrace_invariant` proves every arbitrary finite raw
 trace in that domain preserves `PublicInvariant`; `validSolidityReachable_invariant` gives the
 equivalent inductive reachability result. the stateful runner now advances through the raw typed
-dispatcher and checked all 7,338 default actions for domain membership. proving that every possible
-Solidity startUnwinds execution is a domain member without computing its post-state certificate,
-and proving all additional input premises inductive across every raw call, remain open.
+dispatcher and checked all 7,338 default actions for domain membership using input rules or
+reverts. proving all additional input premises inductive across every raw call remains open.
 liability slots must represent
 distinct holders or disjoint
 waiting requests; all liabilities must be included in the initial representation. The new genesis

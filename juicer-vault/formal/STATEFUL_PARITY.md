@@ -21,8 +21,9 @@ combined holder/waiting-request lifecycle and operational request/array partitio
 accepted post-state. each row must satisfy `FixtureAction` and `ValidSolidityAction`; 21 opcodes
 satisfy the latter from the certified pre-state alone, transfers additionally require ordinary
 holders and bounded destinations, claims require started requests, and sync requires consistent
-account/request epochs and scales. the other six require a
-successful-post-state certificate. the replay still certifies every resulting state and advances
+account/request epochs and scales. the remaining opcodes have the input conditions described
+below, including queue backing, batch budgets and source capacity. all 31 have structural rules;
+the only fallback admits raw reverts. the replay still certifies every resulting state and advances
 with the raw typed dispatcher, so no checked-call guard can hide a raw transition mismatch.
 
 Lean starts with the fixture's known genesis configuration and keeps its own predicted
@@ -165,7 +166,8 @@ these fixtures. the integration checks are bounded executable comparisons, not l
 this is differential execution evidence for the exercised public control flow. the checked
 machine has universal preservation theorems for successful calls and arbitrary finite action
 lists from a certified input. `ValidSolidityTrace` defines the raw domain as source-pinned fixture
-actions admitted either by a structural opcode theorem or by the combined invariant certificate.
+actions admitted by a structural input theorem or a raw revert. successful post-state certificates
+are checked separately and are no longer an admission fallback.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` prove preservation through
 arbitrary finite traces in that domain, while the default replay checks membership for all 7,338
 recorded actions. a fabricated orphan-claim storage state is a concrete counterexample to raw
@@ -183,6 +185,8 @@ invariant for any iteration count under backed owed collateral and a Main positi
 to the unwind cursor plus one. pokeSettle composes source pulls, fee-backed batch credits, Main
 payments and settlement; its additional premises constrain source rates, batch weights and
 remaining budgets. harvest preserves the invariant when its post-checkpoint amount fits source
-capacity. replay checks these premises too. structural admission for startUnwinds, inductive
-preservation of all additional input premises, and semantic equivalence from compiled bytecode
+capacity. startUnwinds preserves the invariant over arbitrary loop lengths under consistent
+metadata, queue backing, ordinary waiting owners and fee rates at most 10000 basis points.
+its exact raw-body correspondence includes the deferred cursor update. replay checks these
+premises too. inductive preservation of all additional input premises and semantic equivalence from compiled bytecode
 to the Lean transitions remain outside this result.

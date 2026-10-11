@@ -196,8 +196,10 @@ an ordinary owner; deposit requires a bounded receiver and a zero reward index w
 rebalance additionally requires zero fee remainder when the active source remainder is zero.
 pokeSettle requires backed queue collateral, consistent batch weights/budgets, backed fees and
 source pull/cost rates at most 10000 basis points. harvest requires its post-checkpoint amount to
-fit source capacity. these 30 opcodes have preservation proofs based on inputs, without using the
-post-state certificate to establish domain membership. startUnwinds remains; the additional
+fit source capacity. startUnwinds requires consistent metadata, queue backing, ordinary waiting
+owners and a fee rate at most 10000 basis points; its proof covers arbitrary loop lengths.
+all 31 opcodes now have preservation proofs based on inputs. domain admission uses those rules
+or a raw revert, with no successful post-state certificate fallback. the additional
 input premises are replay-checked but not yet proved inductive across every raw call.
 the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
