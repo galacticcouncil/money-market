@@ -386,6 +386,12 @@ def harvestAll (s : State) (minimum : Nat) : Except Nat (State × Nat) := do
   s ← compoundFunds s out reward service feeAmount
   return ({ s with lastHarvest := s.time }, amount)
 
+def maintainPegState (s : State) : State × Nat :=
+  if ceilDiv (s.debt * 10000 * 10025) (9800 * 10000) ≤ s.synth then (s, 0)
+  else
+    let add := buffered s.debt 9800 - s.synth
+    ({ s with synth := s.synth + add }, add)
+
 structure Action where
   op : Nat
   caller : Nat := 0
@@ -563,10 +569,7 @@ def rawRunCall (input : State) (action : Action) : Result := do
     let index := ceilDiv (s.debtIndex * (10000 + n)) 10000
     return ({ s with debt := ceilDiv (s.debt * index) s.debtIndex, debtIndex := index }, 0)
   else if op == 21 then return ({ s with price := n }, 0)
-  else if op == 22 then
-    if ceilDiv (s.debt * 10000 * 10025) (9800 * 10000) ≤ s.synth then return (s, 0)
-    let add := buffered s.debt 9800 - s.synth
-    return ({ s with synth := s.synth + add }, add)
+  else if op == 22 then return maintainPegState s
   else if op == 23 then harvestAll s n
   else if op == 24 then
     if n == 0 then throw 2

@@ -38,6 +38,8 @@ def main():
                     "--extra-output", "storageLayout", "--out", str(layout_out),
                     "--cache-path", str(formal / ".stateful" / "layout-cache")],
                    cwd=vault, env=env, check=True)
+    subprocess.run([sys.executable, str(formal / "check-bytecode.py"),
+                    "--artifacts", str(layout_out)], cwd=vault, check=True)
     layout = json.loads((layout_out / "JuicerYieldAccounting.sol" /
                          "JuicerYieldAccounting.json").read_text())["storageLayout"]
     slots = {entry["label"]: int(entry["slot"]) for entry in layout["storage"]}

@@ -100,7 +100,7 @@ JuicerLean/
 aligned with the allowance-fixed Solidity based on `juicer-next` at `21f5aa7` on 10 october. the real-number models prove ideal accounting
 properties; `FixedPoint/Runtime.lean` adds current integer arithmetic, epoch and rescale behavior.
 Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 1,430 Lean cases with the
-actual Solidity, and detect source or storage-layout drift. Same integrity bar: 0 `sorry`, axioms
+actual Solidity, and detect source, compiled-artifact or storage-layout drift. Same integrity bar: 0 `sorry`, axioms
 `propext`/`Classical.choice`/`Quot.sound` only.
 
 The integer lazy-account model proves aggregate bounds through settlement, wallet-weight changes,
@@ -111,9 +111,11 @@ aggregate funded claims cannot exceed their respective totals.
 The lifecycle layer includes waiting requests' committed units and accrual weights. Its share
 partition derives the allocation weight premise from genesis. Resumable source batches, retries,
 partial/final claim histories and selected checked-arithmetic failures have separate executable
-models and proofs. These are integer transition proofs with explicit environmental boundaries;
-the fixture dispatcher map is complete and source-checked, while full compiled-Solidity body
-equivalence remains outside this project. The table below
+models and proofs. These are integer transition proofs with explicit environmental boundaries.
+the fixture dispatcher map is complete and source-checked. `check-bytecode.py` reproducibly pins
+creation bytecode, runtime templates, compiler settings, immutable/link references and method ids
+for 11 production contracts; it detects artifact drift but does not prove semantic equivalence
+between contract bodies and Lean. The table below
 describes the separate ideal-arithmetic models.
 
 | Theorem | Claim |
@@ -182,7 +184,9 @@ The old Verity bridge remains a separate simplified reference model; see [bridge
 from fixture genesis. The checker compares state and outcomes after every step, enforces accounting
 partitions and rejects incomplete traces. every action is decoded through the typed Solidity map,
 checked against the fixture domain and executed by `rawRunCall`; every successful post-state must
-carry the combined certificate. the baseline covers vault/Main queues and claims; the
+carry the combined certificate. twenty opcodes are admitted from their pre-state
+invariant by theorem, without using the post-state certificate to establish domain membership.
+the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
 price-driven deleveraging. the rescale fixture keeps ray-scale holders and a waiting request stale
 across four 64-bit shifts, then settles, starts, claims, writes off and refills. larger campaigns
@@ -194,6 +198,11 @@ boundaries. `check-runtime.py` includes all three default fixtures.
 against the pinned Solidity `perform` functions. `solidity_dispatch_corresponds` and
 `solidity_execute_corresponds` then prove the typed dispatcher equals the raw Lean public-call
 machine for every action, including unsupported opcodes.
+
+`check-bytecode.py` rebuilds and hashes the production creation bytecode and runtime templates at
+the pinned solc 0.8.22, optimizer-200, via-ir, Paris settings. it also checks the ABI selectors used
+by the production-target fixture branches. constructor immutables remain template references, so
+this is an artifact-identity check rather than a deployed-address or semantic-equivalence proof.
 
 the stateful rescale campaigns and focused integration checks reach 64-bit and cumulative 256-bit
 accounting scales through public vault calls in controlled loss/refill environments, including a

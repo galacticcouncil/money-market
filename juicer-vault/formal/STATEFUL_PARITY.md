@@ -18,9 +18,10 @@ post-call snapshot and success/revert outcome. it also checks the holder, reques
 Main-cash/debt and collateral partitions and the lazy liability bound after every call. its
 computed certificate also carries proofs of collateral custody, source/cash partitions and the
 combined holder/waiting-request lifecycle and operational request/array partitions for every
-accepted post-state. each row must satisfy `FixtureAction` and `ValidSolidityAction`; the latter
-requires every successful raw result to satisfy `PublicInvariant`. the replay advances with the
-raw typed dispatcher, so no checked-call guard can hide a raw transition mismatch.
+accepted post-state. each row must satisfy `FixtureAction` and `ValidSolidityAction`; 20 opcodes
+satisfy the latter from the certified pre-state by theorem, while the other 11 require a
+successful-post-state certificate. the replay still certifies every resulting state and advances
+with the raw typed dispatcher, so no checked-call guard can hide a raw transition mismatch.
 
 Lean starts with the fixture's known genesis configuration and keeps its own predicted
 state throughout a campaign. Solidity snapshots are comparison outputs only; they never
@@ -162,13 +163,14 @@ these fixtures. the integration checks are bounded executable comparisons, not l
 this is differential execution evidence for the exercised public control flow. the checked
 machine has universal preservation theorems for successful calls and arbitrary finite action
 lists from a certified input. `ValidSolidityTrace` defines the raw domain as source-pinned fixture
-actions whose successful results carry the combined invariant certificate.
+actions admitted either by a structural opcode theorem or by the combined invariant certificate.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` prove preservation through
 arbitrary finite traces in that domain, while the default replay checks membership for all 7,338
 recorded actions. a fabricated orphan-claim storage state is a concrete counterexample to raw
 preservation over unrestricted states and is excluded by the domain.
 
-the typed opcode theorem and source checker establish fixture-dispatch correspondence. they do
-not prove compiled bytecode or the internal contract bodies equivalent to `rawRunCall`. proving
-that every possible Solidity execution belongs to `ValidSolidityAction` without computing the
-post-state certificate remains outside this result.
+the typed opcode theorem and source checker establish fixture-dispatch correspondence.
+`check-bytecode.py` separately binds 11 reproducibly compiled production artifacts and the relevant
+ABI selectors to reviewed hashes. it does not prove the internal contract bodies equivalent to
+`rawRunCall`. proving structural admission for the remaining 11 opcodes, and semantic equivalence
+from compiled bytecode to the Lean transitions, remains outside this result.

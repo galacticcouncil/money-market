@@ -7,8 +7,9 @@ accounting rejects unrepresentable funded debits and preserves the requested all
 bound; [rounding evidence](ROUNDING.md) records the remaining recipient display rounding.
 the common formal update is based on `juicer-next` at
 `21f5aa7b203d0ae79f44e05c87ed75f8d242a1ef`.
-`solidity-manifest.json` pins source/model inputs, integration fixtures and the math implementations;
-the check fails if they change without a new comparison.
+`solidity-manifest.json` pins source/model inputs, integration fixtures and the math implementations.
+`bytecode-manifest.json` pins creation bytecode, runtime templates, compiler settings, immutable/link
+references and method ids for 11 production contracts; the checks fail if either layer drifts.
 
 | implementation | current Lean model | evidence |
 | --- | --- | --- |
@@ -175,8 +176,9 @@ call and every finite checked-call list from a certified input.
 `SolidityDispatch.lean` gives every fixture opcode 0–30 a typed target, selector and action-argument
 projection. `check-dispatch.py` checks the map against both pinned Solidity `perform` functions;
 `solidity_dispatch_corresponds` and `solidity_execute_corresponds` prove that the typed map equals
-the raw Lean dispatcher for every action. `PublicReachability.lean` defines `ValidSolidityAction`
-as a source-pinned fixture action whose successful raw result satisfies `PublicInvariant`.
+the raw Lean dispatcher for every action. `PublicReachability.lean` proves 20 opcodes
+preserve `PublicInvariant` from the current state alone. `ValidSolidityAction` accepts those
+structural cases directly and requires the successful-post-state certificate for the other opcodes.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` carry that certificate through
 arbitrary finite raw traces from any certified fixture genesis. the orphan-claim regression records
 the necessary boundary: a fabricated raw storage state can contain a settled claim without any
@@ -273,9 +275,10 @@ python3 check-runtime.py
 ```
 
 this builds the proofs, regenerates and compares 1,430 cases across three datasets, checks source
-fingerprints and storage slots, then runs the comparison suites, 512 transfer-bound fuzz cases,
-the allowance, rounding and corrected account/request rescale regressions, the 516-call Aave scaled-debt replay and both
-shared-flow histories. after a reviewed model change, regenerate with:
+fingerprints, compiled production artifacts and storage slots, then runs the comparison suites,
+512 transfer-bound fuzz cases, the allowance, rounding and corrected account/request rescale
+regressions, the 516-call Aave scaled-debt replay and both shared-flow histories. after a reviewed
+model change, regenerate with:
 
 ```sh
 lake build
@@ -287,6 +290,8 @@ lake env lean --run MachineVectors.lean > machine-vectors.json
 Update the manifest after reviewing corresponding source/model changes. Fingerprints detect drift;
 they are not correctness proofs. `--compiled` uses previously compiled modules from `LEAN_PATH`
 for isolated verification.
+
+`python3 check-bytecode.py` runs the production build and checks the artifact manifest on its own.
 
 ## proof boundary
 
@@ -305,12 +310,17 @@ arbitrary finite action lists from a certified input. `rawRunCall` remains the d
 model: universal acceptance of its successful results is false over arbitrary fabricated storage,
 as the orphan-claim regression demonstrates.
 
-`ValidSolidityAction` therefore combines the source-pinned fixture constraints with a decidable
-successful-post-state certificate. `validSolidityTrace_invariant` proves every arbitrary finite raw
+`ValidSolidityAction` therefore combines the source-pinned fixture constraints with either a
+proved structural opcode or a decidable successful-post-state certificate. the structural set is
+approve, warp, repay, pull/repay-limit controls, vault/deposit/source pause controls, source
+repricing, fee/cost controls, interest and price observations, peg maintenance, debt-rounding
+controls, reserve/position funding, protocol-fee claims, haircut and tvl-cap changes.
+`validSolidityTrace_invariant` proves every arbitrary finite raw
 trace in that domain preserves `PublicInvariant`; `validSolidityReachable_invariant` gives the
 equivalent inductive reachability result. the stateful runner now advances through the raw typed
 dispatcher and checked all 7,338 default actions for domain membership. proving that every possible
-Solidity execution is a domain member without computing its post-state certificate remains open.
+Solidity execution for the other 11 opcodes is a domain member without computing its post-state
+certificate remains open.
 liability slots must represent
 distinct holders or disjoint
 waiting requests; all liabilities must be included in the initial representation. The new genesis
@@ -330,8 +340,9 @@ Aave/token observations must be truthful, oracle prices/configuration valid, and
 successful where their results are model inputs. Matching ICE's half-minimum arrival heuristic
 does not prove an arrival came from the intended solver; it also does not imply that the stricter
 minimum required by an authenticated callback was received. Keeper/solver liveness, bounded market
-losses and solvency cannot be derived from these arithmetic results. No deployed bytecode or
-live-chain state was checked in this update.
+losses and solvency cannot be derived from these arithmetic results. the reproducible compiler
+templates are checked, but no deployed address or live-chain state was checked in this update.
 
 The [older Verity bridge](bridge/PARITY.md) remains a simplified reference model. Neither its two
-mock tests nor these comparisons establish deployed-bytecode equivalence or a live-Aave run.
+mock tests nor the artifact fingerprints establish bytecode-to-Lean semantic equivalence or a
+live-Aave run.
