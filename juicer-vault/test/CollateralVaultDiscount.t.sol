@@ -2,7 +2,6 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {JuicerDiscount} from "../src/JuicerDiscount.sol";
@@ -11,6 +10,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockYieldSource} from "./mocks/MockYieldSource.sol";
 import {MockDiscountAToken, MockDiscountDebtToken} from "./mocks/MockDiscount.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 contract CollateralVaultDiscountTest is Test {
     address constant COMMITTEE = address(0xC011);
@@ -29,7 +29,7 @@ contract CollateralVaultDiscountTest is Test {
         MockERC20 aCollateral = new MockERC20("atBTC", "atBTC", 18);
         hollar = new MockERC20("HOLLAR", "HOLLAR", 18);
         debt = new MockDiscountDebtToken(address(pool));
-        synth = new SyntheticToken("Synthetic", "jsHOLLAR", address(this));
+        synth = SyntheticToken(Artifacts.syntheticToken("Synthetic", "jsHOLLAR", address(this)));
         aSynth = new MockDiscountAToken(address(pool), address(synth));
         pool.initReserve(
             address(collateral),
@@ -44,32 +44,32 @@ contract CollateralVaultDiscountTest is Test {
         pool.initReserve(address(synth), address(aSynth), address(new MockERC20("dS", "dS", 18)), 9_800, 100, 18, 1e18);
         MockYieldSource source = new MockYieldSource(address(hollar));
         vault = CollateralVault(
-            address(
-                new ERC1967Proxy(
-                    address(new CollateralVault()),
-                    abi.encodeCall(
-                        CollateralVault.initialize,
-                        (
-                            "Juicer tBTC",
-                            "jtBTC",
-                            address(collateral),
-                            address(pool),
-                            address(source),
-                            address(0),
-                            address(hollar),
-                            address(synth),
-                            address(aCollateral),
-                            address(debt),
-                            100e18,
-                            address(this)
-                        )
+            Artifacts.proxy(
+                Artifacts.collateralVault(),
+                abi.encodeCall(
+                    CollateralVault.initialize,
+                    (
+                        "Juicer tBTC",
+                        "jtBTC",
+                        address(collateral),
+                        address(pool),
+                        address(source),
+                        address(0),
+                        address(hollar),
+                        address(synth),
+                        address(aCollateral),
+                        address(debt),
+                        100e18,
+                        address(this)
                     )
                 )
             )
         );
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
         RoundingReserveFixture.fund(vault);
-        discount = new JuicerDiscount(address(debt), address(synth), address(aSynth), address(this), COMMITTEE);
+        discount = JuicerDiscount(
+            Artifacts.discount(address(debt), address(synth), address(aSynth), address(this), COMMITTEE)
+        );
         debt.setPolicy(address(discount));
         collateral.mint(address(this), 10e18);
         collateral.approve(address(vault), type(uint256).max);

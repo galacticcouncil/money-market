@@ -7,6 +7,7 @@ import {JuicerDiscount} from "../src/JuicerDiscount.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {IHollarDiscountDebtToken} from "../src/interfaces/IJuicerDiscount.sol";
 import {MockDiscountAToken, MockDiscountVault} from "./mocks/MockDiscount.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 interface IGhoDebtActions {
     function mint(address caller, address onBehalfOf, uint256 amount, uint256 index) external returns (bool, uint256);
@@ -38,9 +39,9 @@ contract JuicerDiscountForkTest is Test {
         if (forkBlock == 0) vm.createSelectFork(rpc);
         else vm.createSelectFork(rpc, forkBlock);
         _setIndex(RAY);
-        synth = new SyntheticToken("Synthetic", "jsHOLLAR", address(this));
+        synth = SyntheticToken(Artifacts.syntheticToken("Synthetic", "jsHOLLAR", address(this)));
         aSynth = new MockDiscountAToken(POOL, address(synth));
-        discount = new JuicerDiscount(DEBT, address(synth), address(aSynth), address(this), COMMITTEE);
+        discount = JuicerDiscount(Artifacts.discount(DEBT, address(synth), address(aSynth), address(this), COMMITTEE));
         vm.startPrank(GOVERNANCE);
         debt.updateDiscountToken(address(discount));
         debt.updateDiscountRateStrategy(address(discount));

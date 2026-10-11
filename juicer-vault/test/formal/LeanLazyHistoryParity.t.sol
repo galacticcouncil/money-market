@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 import {ParityVault} from "./LeanRuntimeParity.t.sol";
+import {Artifacts} from "../helpers/Artifacts.t.sol";
 
 contract LeanLazyHistoryParityTest is Test {
     address constant OLD = address(0xa11ce);
@@ -16,7 +17,7 @@ contract LeanLazyHistoryParityTest is Test {
 
     function test_rescaleCeilIndexPreventsLazyUnitExcess() public {
         ParityVault v = new ParityVault();
-        JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+        JuicerYieldAccounting y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
         uint256 divisor = 1 << 64;
         uint256 equity = 2e38;
         uint256[] memory input = new uint256[](14);

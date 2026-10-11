@@ -7,10 +7,10 @@ import {CollateralVault} from "../src/CollateralVault.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {Harvester} from "../src/Harvester.sol";
 import {JuicerMainDebt} from "../src/JuicerMainDebt.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 contract ExecutionControlsTest is HarvestTest {
     ExecutionController control;
@@ -21,7 +21,7 @@ contract ExecutionControlsTest is HarvestTest {
     bytes32 constant QUOTED_HASH = keccak256("quoted block");
 
     function _enable() private {
-        control = new ExecutionController(address(this), 60, 5);
+        control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         vm.roll(100);
         vm.setBlockhash(99, QUOTED_HASH);
         control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18, uint64(block.timestamp + 30 days));
@@ -241,10 +241,10 @@ contract ExecutionControlsTest is HarvestTest {
     }
 
     function test_controlsSecondVaultCannotObtainAnotherAdmissionBudget() public {
-        CollateralVault second = CollateralVault(address(new ERC1967Proxy(address(new CollateralVault()),
+        CollateralVault second = CollateralVault(Artifacts.proxy(Artifacts.collateralVault(),
             abi.encodeCall(CollateralVault.initialize, ("Second ETH", "jETH2", address(eth), address(pool),
                 address(loop), address(swapper), address(hollar), address(synth), address(aEth),
-                address(hollarDebt), 1000e18, address(this))))));
+                address(hollarDebt), 1000e18, address(this)))));
         synth.grantRole(synth.MINTER_ROLE(), address(second));
         RoundingReserveFixture.fund(second);
         loop.registerVault(address(second));

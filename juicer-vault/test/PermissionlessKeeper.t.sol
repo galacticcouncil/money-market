@@ -2,7 +2,6 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
@@ -14,7 +13,7 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {MockSwapper} from "./mocks/MockSwapper.sol";
-import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice keeper ops are callable by anyone; compound enforces an oracle floor, the
 ///         harvester distributes parked balance and the pause matrix holds.
@@ -50,7 +49,7 @@ contract PermissionlessKeeperTest is Test {
         prime = new MockERC20("PRIME", "PRIME", 6);
         aPrime = new MockERC20("aPRIME", "aPRIME", 6);
         primeDebt = new MockERC20("dPRIME", "dPRIME", 6);
-        synth = new SyntheticToken("Juicer Synthetic", "jsHOLLAR", address(this));
+        synth = SyntheticToken(Artifacts.syntheticToken("Juicer Synthetic", "jsHOLLAR", address(this)));
         aSynth = new MockERC20("aSYNTH", "aSYNTH", 18);
         synthDebt = new MockERC20("dSYNTH", "dSYNTH", 18);
 
@@ -63,35 +62,31 @@ contract PermissionlessKeeperTest is Test {
         swapper = new MockSwapper(address(pool));
 
         loop = SubLoop(
-            address(
-                new ERC1967Proxy(
-                    address(new SubLoop(address(new SubLoopLogic()))),
-                    abi.encodeCall(
-                        SubLoop.initialize,
-                        (
-                            address(pool), address(hollar), address(prime),
-                            address(aPrime), 1.05e18, 1.10e18, address(this)
-                        )
+            Artifacts.proxy(
+                Artifacts.subLoop(),
+                abi.encodeCall(
+                    SubLoop.initialize,
+                    (
+                        address(pool), address(hollar), address(prime),
+                        address(aPrime), 1.05e18, 1.10e18, address(this)
                     )
                 )
             )
         );
         vault = CollateralVault(
-            address(
-                new ERC1967Proxy(
-                    address(new CollateralVault()),
-                    abi.encodeCall(
-                        CollateralVault.initialize,
-                        (
-                            "Juicer ETH", "jETH", address(eth), address(pool), address(loop),
-                            address(swapper), address(hollar), address(synth), address(aEth),
-                            address(hollarDebt), 1_000e18, address(this)
-                        )
+            Artifacts.proxy(
+                Artifacts.collateralVault(),
+                abi.encodeCall(
+                    CollateralVault.initialize,
+                    (
+                        "Juicer ETH", "jETH", address(eth), address(pool), address(loop),
+                        address(swapper), address(hollar), address(synth), address(aEth),
+                        address(hollarDebt), 1_000e18, address(this)
                     )
                 )
             )
         );
-        harvester = new Harvester(address(loop), address(prime), address(this));
+        harvester = Harvester(Artifacts.harvester(address(loop), address(prime), address(this)));
 
         vm.etch(DcaDispatch.DISPATCH, address(new MockDispatch()).code);
         MockDispatch(payable(DcaDispatch.DISPATCH)).configure(
@@ -105,7 +100,7 @@ contract PermissionlessKeeperTest is Test {
         loop.setHarvester(address(harvester));
         loop.setTranches(10_000_000e18, 10_000_000e6);
         vault.setCompoundSlippageBps(100); // 1% vs oracle-fair
-        JuicerFeeController fees = new JuicerFeeController(address(this), address(0xFEE));
+        JuicerFeeController fees = JuicerFeeController(Artifacts.feeController(address(this), address(0xFEE)));
         harvester.setFeeController(address(fees));
         vault.setFeeController(address(fees));
         fees.registerVault(address(vault), address(harvester));

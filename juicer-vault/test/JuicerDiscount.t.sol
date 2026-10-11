@@ -6,6 +6,7 @@ import {JuicerDiscount} from "../src/JuicerDiscount.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {MockDiscountAToken, MockDiscountDebtToken, MockDiscountVault} from "./mocks/MockDiscount.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 contract JuicerDiscountTest is Test {
     address constant POOL = address(0xAA0E);
@@ -18,7 +19,7 @@ contract JuicerDiscountTest is Test {
     MockDiscountVault vault;
 
     function setUp() public {
-        synth = new SyntheticToken("Synthetic", "jsHOLLAR", address(this));
+        synth = SyntheticToken(Artifacts.syntheticToken("Synthetic", "jsHOLLAR", address(this)));
         aSynth = new MockDiscountAToken(POOL, address(synth));
         debt = new MockDiscountDebtToken(POOL);
         discount = new JuicerDiscount(address(debt), address(synth), address(aSynth), address(this), COMMITTEE);

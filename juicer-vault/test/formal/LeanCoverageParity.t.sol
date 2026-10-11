@@ -8,6 +8,7 @@ import {CollateralVault} from "../../src/CollateralVault.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {IYieldSource} from "../../src/interfaces/IYieldSource.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Artifacts} from "../helpers/Artifacts.t.sol";
 
 contract ParityFeeSink {
     IERC20 immutable token;
@@ -79,7 +80,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
         for (uint256 i; i < _count("main"); ++i) {
             uint256 snap = vm.snapshotState();
             uint256[] memory r = _row("main", i);
-            JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+            JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
             hollarDebt.mint(address(vault), r[0]);
             vm.prank(address(vault)); ledger.borrowed(0);
             hollarDebt.mint(address(vault), r[1]);
@@ -98,7 +99,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
         for (uint256 i; i < _count("batch"); ++i) {
             uint256 snap = vm.snapshotState();
             uint256[] memory r = _row("batch", i);
-            JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+            JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
             vm.startPrank(address(vault));
             ledger.startExit(0, OWNER, 1, 2, r[0], r[0], 0);
             ledger.startExit(1, RECEIVER, 1, 1, r[1], r[1], 0);
@@ -120,7 +121,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
             uint256[] memory r = _row("fees", i);
             ParityFeeSink sink = new ParityFeeSink(IERC20(address(hollar)));
             vm.mockCall(address(vault), abi.encodeWithSelector(vault.feeController.selector), abi.encode(address(sink)));
-            JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+            JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
             vm.prank(address(vault)); ledger.startExit(0, OWNER, 1, 1, r[0], r[1], r[2]);
             (uint256 yieldLeft, uint256 feeLeft) = ledger.sourceFees(1);
             assertEq(yieldLeft, r[4]); assertEq(feeLeft, r[5]);
@@ -148,7 +149,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
     function test_leanQuoteTightensOracleFloor() public {
         for (uint256 i; i < _count("prices"); ++i) {
             uint256[] memory r = _row("prices", i);
-            ExecutionController c = new ExecutionController(address(this), 60, 5);
+            ExecutionController c = ExecutionController(Artifacts.executionController(address(this), 60, 5));
             ParityConsumer consumer = new ParityConsumer(c);
             vm.roll(100); vm.setBlockhash(99, keccak256("quote"));
             c.configureBudget(bytes32(uint256(1)), address(1), 1000, 0, uint64(block.timestamp + 100));

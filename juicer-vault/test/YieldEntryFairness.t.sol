@@ -4,13 +4,13 @@ pragma solidity ^0.8.22;
 import {HarvestTest} from "./Harvest.t.sol";
 import {JuicerMainDebt} from "../src/JuicerMainDebt.sol";
 import {JuicerYieldAccounting} from "../src/JuicerYieldAccounting.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {Deficit} from "./helpers/Deficit.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice new capital must not receive carry earned before entry, even if it exits
 /// before the harvest runs
@@ -521,10 +521,10 @@ contract YieldEntryFairnessTest is HarvestTest {
         aEth = new MockERC20("aBTC", "aBTC", 8);
         ethDebt = new MockERC20("dBTC", "dBTC", 8);
         pool.initReserve(address(eth), address(aEth), address(ethDebt), 8500, 7500, 8, 60_000e18);
-        vault = CollateralVault(address(new ERC1967Proxy(address(new CollateralVault()),
+        vault = CollateralVault(Artifacts.proxy(Artifacts.collateralVault(),
             abi.encodeCall(CollateralVault.initialize, ("Juicer BTC", "jBTC", address(eth), address(pool),
                 address(loop), address(swapper), address(hollar), address(synth), address(aEth),
-                address(hollarDebt), 1_000e8, address(this))))));
+                address(hollarDebt), 1_000e8, address(this)))));
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
         RoundingReserveFixture.fund(vault);
         loop.registerVault(address(vault));

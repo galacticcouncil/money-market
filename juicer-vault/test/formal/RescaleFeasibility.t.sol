@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 import {ParityVault} from "./LeanRuntimeParity.t.sol";
+import {Artifacts} from "../helpers/Artifacts.t.sol";
 
 /// @notice feasibility boundary for the original seeded rescale counterexample: which
 /// arithmetic preconditions contradict what public vault operations can produce, and which
@@ -22,7 +23,7 @@ contract RescaleFeasibilityTest is Test {
 
     function _seed(uint256 total, uint256 index) internal returns (JuicerYieldAccounting y, ParityVault v) {
         v = new ParityVault();
-        y = new JuicerYieldAccounting(address(v));
+        y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
         uint256[] memory input = new uint256[](14);
         input[6] = 2e38; // held
         input[7] = 2e38; // equity
