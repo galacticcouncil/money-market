@@ -80,6 +80,7 @@ structure State where
   lastHarvest : Nat := 1000
   treasuryCash : Nat := 0
   repayCalls : Nat := 0
+  tvlCap : Nat := 1000 * wad
 
 def wallet (s : State) (i : Nat) := s.wallets[i]?.getD 0
 def account (s : State) (i : Nat) := s.accounts[i]?.getD {}
@@ -393,7 +394,7 @@ structure Action where
   amount : Nat := 0
   deriving Repr
 
-def runCall (input : State) (action : Action) : Result := do
+def rawRunCall (input : State) (action : Action) : Result := do
   let ⟨op, caller, a, b, n⟩ := action
   let mut s := input
   if [0, 4, 5, 7, 8, 9, 23, 24].contains op && (s.paused || s.sourcePaused) then throw 1
@@ -409,7 +410,7 @@ def runCall (input : State) (action : Action) : Result := do
     s := { s with synth := oldSynth }
     s := checkpoint s zeroId b
     if s.supply == 0 && caller != 0 then throw 5
-    if s.assets + n > 1000 * wad then throw 6
+    if s.assets + n > s.tvlCap then throw 6
     let supply := activeSupply s
     if supply == 0 && n ≤ 1000 then throw 7
     if supply != 0 && activeAssets s == 0 then throw 8
@@ -582,19 +583,20 @@ def runCall (input : State) (action : Action) : Result := do
       collateral := s.collateral.set! 3 (s.collateral[3]! + s.feesCollateral) }, 0)
     return ({ s with feesHollar := 0, treasuryCash := s.treasuryCash + s.feesHollar }, 0)
   else if op == 28 then return ({ s with haircut := n }, 0)
+  else if op == 29 then return ({ s with tvlCap := n }, 0)
   else if op == 30 then
     s := setPosition s 0 { position s 0 with cash := (position s 0).cash + n }
     return ({ s with ownedCash := s.ownedCash + n }, 0)
   else throw 99
 
-def execute (s : State) (a : Action) : State × Nat × Nat :=
-  match runCall s a with
+def rawExecute (s : State) (a : Action) : State × Nat × Nat :=
+  match rawRunCall s a with
   | .ok (next, value) => (next, 0, value)
   | .error code => (s, code, 0)
 
-theorem failure_rolls_back (s : State) (a : Action) (code : Nat)
-    (h : runCall s a = .error code) : execute s a = (s, code, 0) := by
-  simp [execute, h]
+theorem raw_failure_rolls_back (s : State) (a : Action) (code : Nat)
+    (h : rawRunCall s a = .error code) : rawExecute s a = (s, code, 0) := by
+  simp [rawExecute, h]
 
 def snapshot (s : State) : Array Nat := Id.run do
   let mut out := #[s.supply, s.assets, s.supplied, s.liquid, s.reserve, s.debt, s.synth,
@@ -622,7 +624,7 @@ def snapshot (s : State) : Array Nat := Id.run do
       s.borrowLoss, s.repayLoss, s.activeRemaining, s.unallocatedCost, s.sourceCost,
       s.protocolReserve, s.feeReserve, s.feesHollar, s.feesCollateral, s.haircut,
       s.delever, s.lastHarvest, s.treasuryCash, s.batchAmount, s.batchCost, s.batchTotal,
-      s.batchWeight, s.batchCursor, s.batchTail, s.repayCalls]
+      s.batchWeight, s.batchCursor, s.batchTail, s.repayCalls, s.tvlCap]
     for f in s.sourceFees do out := out ++ #[f.yieldLeft, f.feeLeft]
   return out
 

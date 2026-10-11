@@ -2,6 +2,78 @@ import collections
 import json
 
 
+def check_rescale_coverage(paths):
+    campaigns = []
+    required = {"scale_64", "scale_128", "scale_192", "scale_256", "stale_holder_256",
+                "stale_request_256", "settled_stale_holder", "started_stale_request",
+                "transfer_after_rescale", "revert_after_rescale", "partial_claims", "final_claims",
+                "writeoff_after_rescale", "refill_after_writeoff", "funded_harvest_after_writeoff",
+                "ceil_account_boundary", "ceil_request_boundary"}
+    for path in paths:
+        rows = [json.loads(line) for line in path.read_text().splitlines() if line]
+        completion = list(map(int, rows[-1]["action"]))
+        if completion[0] != 998 or completion[3] != 2 or completion[4] + 2 != len(rows):
+            raise SystemExit(f"incomplete rescale trace: {path}")
+        features = collections.Counter()
+        previous = list(map(int, rows[0]["state"]))
+        for row in rows[1:-1]:
+            op, caller, owner, receiver, amount = map(int, row["action"])
+            code, _ = map(int, row["status"])
+            state = list(map(int, row["state"]))
+            if code:
+                if previous[23]:
+                    features["revert_after_rescale"] += 1
+            else:
+                if state[23] > previous[23]:
+                    for scale in (64, 128, 192, 256):
+                        if previous[23] < scale <= state[23]:
+                            features[f"scale_{scale}"] += 1
+                if state[39] == state[22] and state[38] and state[23] - state[40] >= 256:
+                    features["stale_holder_256"] += 1
+                if state[17] and not state[16] and state[127] == state[22] and state[23] - state[128] >= 256:
+                    features["stale_request_256"] += 1
+                if state[39] == state[22] and state[23] > state[40]:
+                    shift = state[23] - state[40]
+                    floor_claim = min(state[20], (state[37] >> shift) +
+                                      state[34] * (state[21] - (state[38] >> shift)) // 10**27)
+                    if floor_claim != state[36]:
+                        features["ceil_account_boundary"] += 1
+                if state[17] and not state[16] and state[127] == state[22] and state[23] > state[128]:
+                    shift = state[23] - state[128]
+                    floor_index = state[126] >> shift
+                    ceil_index = (state[126] + (1 << shift) - 1) >> shift
+                    floor_claim = min(state[20], (state[125] >> shift) +
+                                      state[115] * (state[21] - floor_index) // 10**27)
+                    ceil_claim = min(state[20], (state[125] >> shift) +
+                                     state[115] * (state[21] - min(state[21], ceil_index)) // 10**27)
+                    if floor_claim != ceil_claim:
+                        features["ceil_request_boundary"] += 1
+                if op == 2 and state[40] == state[23] and state[23] - previous[40] >= 256:
+                    features["settled_stale_holder"] += 1
+                if op == 5 and state[16] > previous[16] and previous[23] - previous[128] >= 256:
+                    features["started_stale_request"] += 1
+                if op in (2, 3) and previous[23]:
+                    features["transfer_after_rescale"] += 1
+                if op == 7:
+                    features["partial_claims" if state[114 + 15 * amount + 8] else "final_claims"] += 1
+                if state[22] > previous[22] and previous[23] >= 256:
+                    features["writeoff_after_rescale"] += 1
+                if state[22] and state[20] > previous[20]:
+                    features["refill_after_writeoff"] += 1
+                if op == 23 and state[22] and state[82] > previous[82]:
+                    features["funded_harvest_after_writeoff"] += 1
+            previous = state
+        missing = sorted(required - features.keys())
+        if missing:
+            raise SystemExit(f"missing rescale coverage in {path}: {missing}")
+        campaigns.append({"seed": completion[1], "depth": completion[2], "steps": len(rows) - 2,
+                          "features": dict(sorted(features.items()))})
+    summary = {"campaigns": campaigns, "steps": sum(c["steps"] for c in campaigns)}
+    (paths[0].parent / "rescale-coverage.json").write_text(json.dumps(summary, indent=2) + "\n")
+    print("rescale coverage: " + json.dumps(summary, sort_keys=True))
+    return summary
+
+
 def check_coverage(paths):
     actions = collections.Counter()
     reverts = collections.Counter()

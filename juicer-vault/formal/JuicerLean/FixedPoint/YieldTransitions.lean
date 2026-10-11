@@ -15,7 +15,7 @@ theorem proportional_sum_le (amount left right whole : ℕ) (h : left + right �
 
 theorem settle_idempotent (b : Book) (a : Account) (w : ℕ) :
     settle b (settle b a w) w = settle b a w := by
-  simp [settle, accountUnits]
+  simp [settle, accountUnits, ceilShift, ceilDiv]
 
 theorem old_epoch_forgets_units (b : Book) (a : Account) (w : ℕ) (h : a.epoch ≠ b.epoch) :
     accountUnits b a w = min b.total (w * b.index / ray) := by

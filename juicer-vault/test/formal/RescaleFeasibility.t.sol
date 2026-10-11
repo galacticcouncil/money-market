@@ -5,9 +5,9 @@ import {Test} from "forge-std/Test.sol";
 import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 import {ParityVault} from "./LeanRuntimeParity.t.sol";
 
-/// @notice feasibility boundary for the seeded rescale state: which arithmetic preconditions
-/// of test_rescaleCanLeaveOneExcessLazyUnit contradict what public vault operations can
-/// produce, and which are merely extreme. seeded storage; not reachability evidence.
+/// @notice feasibility boundary for the original seeded rescale counterexample: which
+/// arithmetic preconditions contradict what public vault operations can produce, and which
+/// are merely extreme. seeded storage; not reachability evidence.
 contract RescaleFeasibilityTest is Test {
     uint256 constant RAY = 1e27;
     uint256 constant D = 1 << 64;

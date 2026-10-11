@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
-from stateful_coverage import check_coverage
+from stateful_coverage import check_coverage, check_rescale_coverage
 
 
 def main():
@@ -14,6 +14,8 @@ def main():
     args = parser.parse_args()
     formal = Path(__file__).resolve().parent
     vault = formal.parent
+    env = os.environ.copy()
+    env.update(FOUNDRY_LIBS='["../bil-vault/lib","../node_modules"]')
     manifest = json.loads((formal / "solidity-manifest.json").read_text())
     for name, expected in manifest["files"].items():
         actual = hashlib.sha256((vault / name).read_bytes()).hexdigest()
@@ -32,7 +34,8 @@ def main():
     layout_out = formal / ".stateful" / "layout-out"
     subprocess.run(["forge", "build", "--offline", "--skip", "test", "--skip", "script",
                     "--extra-output", "storageLayout", "--out", str(layout_out),
-                    "--cache-path", str(formal / ".stateful" / "layout-cache")], cwd=vault, check=True)
+                    "--cache-path", str(formal / ".stateful" / "layout-cache")],
+                   cwd=vault, env=env, check=True)
     layout = json.loads((layout_out / "JuicerYieldAccounting.sol" /
                          "JuicerYieldAccounting.json").read_text())["storageLayout"]
     slots = {entry["label"]: int(entry["slot"]) for entry in layout["storage"]}
@@ -50,10 +53,9 @@ def main():
         if main_slots.get(name) != slot:
             raise SystemExit(f"Main storage layout changed: {name}")
     traces = [formal / ".stateful" / f"{prefix}-{seed}.jsonl"
-              for prefix in ("trace", "market") for seed in range(1, 9)]
+              for prefix in ("trace", "market", "rescale") for seed in range(1, 9)]
     for path in traces:
         path.unlink(missing_ok=True)
-    env = os.environ.copy()
     env.update(LEAN_STATEFUL_SEED="1", LEAN_STATEFUL_COUNT="8", LEAN_STATEFUL_DEPTH="192")
     subprocess.run(["forge", "test", "--offline", "--match-path", "test/formal/*.t.sol", "--match-contract", "^(Lean|Rescale)", "--gas-limit", str(2**40), "-vv"],
                    cwd=vault, env=env, check=True)
@@ -72,7 +74,8 @@ def main():
                         "--match-test", test, "--gas-limit", str(2**40), "-vv"],
                        cwd=vault, env=env, check=True)
     check_coverage(traces[:8])
-    check_coverage(traces[8:])
+    check_coverage(traces[8:16])
+    check_rescale_coverage(traces[16:])
     print("Lean/Solidity runtime comparisons passed; source fingerprints and vector regeneration match")
 
 

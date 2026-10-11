@@ -10,6 +10,7 @@ def ray : ℕ := 10 ^ 27
 def wad : ℕ := 10 ^ 18
 def max256 : ℕ := 2 ^ 256 - 1
 def ceilDiv (a b : ℕ) : ℕ := a ⌈/⌉ b
+def ceilShift (a shift : ℕ) : ℕ := ceilDiv a (2 ^ shift)
 
 def buffered (debt lt : ℕ) : ℕ :=
   let base := ceilDiv (debt * 10000) lt
@@ -48,7 +49,7 @@ def accountUnits (b : Book) (a : Account) (weight : ℕ) (special := false) : �
   if special then a.units else
   let current := a.epoch == b.epoch
   let shift := if current then b.scale - a.scale else 0
-  let previous := if current then a.index >>> shift else 0
+  let previous := if current then min b.index (ceilShift a.index shift) else 0
   let owned := if current then a.units >>> shift else 0
   min b.total (owned + weight * (b.index - previous) / ray)
 
@@ -173,7 +174,7 @@ structure ExitResult where
 def startExit (b : Book) (owner request : Account) (wallet shares funded : ℕ) : ExitResult :=
   let current := request.epoch == b.epoch
   let shift := if current then b.scale - request.scale else 0
-  let previous := if current then request.index >>> shift else 0
+  let previous := if current then min b.index (ceilShift request.index shift) else 0
   let committed := if current then request.units >>> shift else 0
   let owned := min b.total (accountUnits b owner wallet + shares * (b.index - previous) / ray)
   let exiting := if owned == 0 || shares == 0 then 0 else owned * shares / (wallet + shares)

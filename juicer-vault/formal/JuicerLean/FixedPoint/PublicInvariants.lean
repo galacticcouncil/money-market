@@ -145,8 +145,8 @@ theorem custody_trace_preserves {s next : State} (h : CollateralConserved s)
 inductive CertifiedCalls : State → List Action → State → Prop
   | nil (s) : CertifiedCalls s [] s
   | cons (s : State) (action : Action) (actions : List Action) (next final : State)
-      (step : CustodyStep s (execute s action).1)
-      (heq : next = (execute s action).1)
+      (step : CustodyStep s (rawExecute s action).1)
+      (heq : next = (rawExecute s action).1)
       (rest : CertifiedCalls next actions final) :
       CertifiedCalls s (action :: actions) final
 
@@ -160,9 +160,9 @@ theorem certified_calls_preserve {s final : State} {actions : List Action}
     exact ih (custody_step_preserves h step)
 
 theorem failed_call_custody_step (s : State) (action : Action) (code : Nat)
-    (h : runCall s action = .error code) : CustodyStep s (execute s action).1 := by
+    (h : rawRunCall s action = .error code) : CustodyStep s (rawExecute s action).1 := by
   apply CustodyStep.frame
-  simp [execute, h]
+  simp [rawExecute, h]
 
 theorem genesis_collateral : CollateralConserved ({} : State) := by
   rfl

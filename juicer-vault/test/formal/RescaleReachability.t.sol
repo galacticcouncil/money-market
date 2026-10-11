@@ -4,7 +4,7 @@ pragma solidity ^0.8.22;
 import {HarvestTest} from "../Harvest.t.sol";
 import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 
-/// @notice public-call reachability study for the lazy-rescale unit excess. every call below
+/// @notice public-call reachability study for lazy rescaling. every call below
 /// is a public vault/loop/harvester entry point on the standard HarvestTest deployment; no
 /// accounting storage is seeded and no vault-only call is impersonated. external token mints
 /// to the SubLoop stand in for market moves (gains or losses); each use is labeled.
@@ -84,10 +84,7 @@ contract RescaleReachabilityTest is HarvestTest {
             emit log_named_uint("unitScale", y.unitScale());
             uint256 sum = _aggregateUnits(y, holders);
             uint256 total = y.totalUnits();
-            if (sum > total) {
-                emit log_named_uint("EXCESS", sum - total);
-            }
-            assertLe(sum, total + 1, "aggregate excess bounded by one unit");
+            assertLe(sum, total, "aggregate claims stay within totalUnits");
         }
         emit log_named_uint("final unitScale", y.unitScale());
         emit log_named_uint("final totalUnits", y.totalUnits());
@@ -146,7 +143,7 @@ contract RescaleReachabilityTest is HarvestTest {
             _applyGain(6000);
             uint256 sum = _aggregateUnits(y, holders);
             uint256 total = y.totalUnits();
-            assertLe(sum, total + 1, "split holders stay within one-unit excess");
+            assertLe(sum, total, "split holders stay within totalUnits");
         }
         emit log_named_uint("final unitScale", y.unitScale());
         assertEq(y.unitScale(), 0, "no rescale observed");
