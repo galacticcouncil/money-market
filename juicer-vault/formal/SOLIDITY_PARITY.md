@@ -35,7 +35,7 @@ the check fails if they change without a new comparison.
 | controller credit, pacing, expiry and safety lanes | `Policy`, `available`, `policyCharge`, `executionMinimum` | credit/size bounds, no refill on refresh, quote only tightens oracle floor; 64 availability and 32 executed quote comparisons |
 | FIFO start and collateral claims | `queueReady`, `startQueue`, `settleRedemption`, `claimRedemption` | work/FIFO bounds, full final burn, recipient protection; 32 queue and 48 claim comparisons |
 | repeated settlement/claim histories | `RedemptionState.valid`, `settleQueue` | cumulative collateral/burn bounds, unpaid-head stop, final payout/burn; 24 three-claim histories |
-| stateful vault/Main/harvest/rescale sequences | `PublicCalls.State`, `runCall`, `certifiedExecute`, `PublicInvariant` | independent replay from fixture genesis; exact outcomes, holder/request/Main snapshots and rollback; computed kernel certificates for custody, source/cash and lifecycle invariants |
+| stateful vault/Main/harvest/rescale sequences | `PublicCalls.State`, `rawRunCall`, checked `runCall`, `PublicInvariant` | independent replay from fixture genesis; exact outcomes, holder/request/Main snapshots and rollback; computed kernel certificates for custody, source/cash, lifecycle and operational invariants |
 | shared-loop harvest and ICE histories | lifecycle and runtime projections | repeated harvests across two vaults sharing one loop; long actual-SubLoop intent expiry/reconcile/late-callback/exit sequence |
 | checked arithmetic and failure | `Checked`, checked account/backing/borrow/batch/claim/rescale operations | success refinement, exact arithmetic revert classes, atomic failure semantics; 488 primitive, 40 account and eight backing comparisons |
 | external observations | `payValid`, `exactReceipt`, `exactPayment`, callback/arrival theorems | conditional cash/debt bounds; detection threshold does not authenticate token origin |
@@ -163,13 +163,17 @@ for every machine-boundary fixture.
 `PublicInvariants.lean` proves custody conservation for checkpointing, Main payment and batch
 credit, reserve cover, settlement records and bounded settlement loops. `CustodyStep` composes
 those cases with deposits, claims and supply-to-liquid movement; `CertifiedCalls` carries the
-invariant through arbitrary lists of actual `execute` results, and failed calls automatically
-produce frame steps because `execute` rolls back. `PublicCertificates.lean` replaces hand-written
-certificates in executable histories with a decidable combined invariant over collateral custody,
-source claims, owned cash and the ordinary-holder/waiting-request lifecycle. `certifiedExecute`
-returns the exact `execute` result together with its kernel proof or rejects it; certificate
-corruption regressions cover each component. this closes the manual boundary for every replayed
-state. completeness for every possible successful `runCall` input remains outside the proof.
+invariant through arbitrary lists of hand-certified `rawExecute` results, and failed raw calls
+automatically produce frame steps because `rawExecute` rolls back. `PublicCertificates.lean`
+adds a decidable combined invariant over collateral custody, source claims, owned cash, lazy
+lifecycle accounting and the operational array/request partitions used by the dispatcher. the
+checked `runCall` preserves the raw successful result exactly when its post-state satisfies that
+invariant; otherwise it returns the model-only code 98 and `execute` rolls back. consequently
+`runCall_success_preserves`, `execute_preserves` and `certifiedReplay_total` cover every checked
+call and every finite checked-call list from a certified input. the orphan-claim regression records
+why the guard is required: a fabricated raw storage state can contain a settled claim without any
+assets or liquid collateral, and raw claim dispatch would accept it. all stateful Solidity traces
+are rejected if code 98 ever appears, so the guard was inactive throughout the recorded corpus.
 
 `LeanStatefulParity.t.sol` adds long public-call campaigns against the actual vault, accounting,
 Main and delegatecall logic, using the existing deterministic pool/token/source mocks.
@@ -233,8 +237,8 @@ replays.
 
 ## verification
 
-608 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 1,244 kernel theorem
+619 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 1,261 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its complete Solidity dispatch correspondence is tested by replay, not proved for all executions.
@@ -286,10 +290,13 @@ overflow reverts rather than silently wrapping.
 
 the 1,430 vector cases and 516 scaled-debt calls are cross-language comparisons, not a proof of
 every Solidity trace. the lifecycle and Main transition systems derive their numerical partitions
-from genesis and cover the listed call sequences. public-call custody is kernel-checked for
-certified `execute` histories. the stateful runner now computes and checks combined
-custody/source/cash/lifecycle certificates after every call; proving that this certificate accepts
-every possible successful dispatch input remains open. liability slots must represent
+from genesis and cover the listed call sequences. every successful checked `runCall` has a
+kernel proof of the combined public invariant, and checked execution and replay preserve it for
+arbitrary finite action lists from a certified input. `rawRunCall` remains the direct Solidity
+model: universal acceptance of its successful results is false over arbitrary fabricated storage,
+as the orphan-claim regression demonstrates. proving raw dispatch preserves the invariant from
+all Solidity-reachable states remains open. the stateful runner treats the checked guard as a hard
+failure and observed no guard rejection in 7,338 calls. liability slots must represent
 distinct holders or disjoint
 waiting requests; all liabilities must be included in the initial representation. The new genesis
 results remove the repeated numerical weight/partition assumptions, not that representation boundary.

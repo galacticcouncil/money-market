@@ -394,7 +394,7 @@ structure Action where
   amount : Nat := 0
   deriving Repr
 
-def runCall (input : State) (action : Action) : Result := do
+def rawRunCall (input : State) (action : Action) : Result := do
   let ⟨op, caller, a, b, n⟩ := action
   let mut s := input
   if [0, 4, 5, 7, 8, 9, 23, 24].contains op && (s.paused || s.sourcePaused) then throw 1
@@ -589,14 +589,14 @@ def runCall (input : State) (action : Action) : Result := do
     return ({ s with ownedCash := s.ownedCash + n }, 0)
   else throw 99
 
-def execute (s : State) (a : Action) : State × Nat × Nat :=
-  match runCall s a with
+def rawExecute (s : State) (a : Action) : State × Nat × Nat :=
+  match rawRunCall s a with
   | .ok (next, value) => (next, 0, value)
   | .error code => (s, code, 0)
 
-theorem failure_rolls_back (s : State) (a : Action) (code : Nat)
-    (h : runCall s a = .error code) : execute s a = (s, code, 0) := by
-  simp [execute, h]
+theorem raw_failure_rolls_back (s : State) (a : Action) (code : Nat)
+    (h : rawRunCall s a = .error code) : rawExecute s a = (s, code, 0) := by
+  simp [rawExecute, h]
 
 def snapshot (s : State) : Array Nat := Id.run do
   let mut out := #[s.supply, s.assets, s.supplied, s.liquid, s.reserve, s.debt, s.synth,

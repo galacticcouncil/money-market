@@ -77,6 +77,14 @@ def checkPartitions (s : State) : Except String Unit := do
   if liability >= (s.book.total + 1) * Runtime.ray then throw "lazy liability bound failed"
   if claims > s.book.total || funded > wallet s fundId then throw "lazy aggregate claim bound failed"
 
+def checkCertificateParts (s : State) : Except String Unit := do
+  unless decide (p := CollateralConserved s) do throw "certificate collateral"
+  unless decide (p := (sourceProjection s).valid) do throw "certificate source"
+  unless decide (p := (cashProjection s).valid) do throw "certificate cash"
+  unless decide (p := (publicProjection s).valid) do throw "certificate lifecycle"
+  unless decide (p := publicSlack s < Runtime.ray) do throw "certificate slack"
+  unless decide (p := OperationalInvariant s) do throw "certificate operational"
+
 def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Except String State := do
   let a ← numbers j "action"
   if a.size != 5 then throw "expected five action fields"
@@ -100,6 +108,10 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
       throw "public-call invariant certificate rejected"
   let next := checked.val
   if code == 99 then throw "trace reached an unsupported fixture branch"
+  if code == invariantViolationCode then
+    checkPartitions (rawExecute s action).1
+    checkCertificateParts (rawExecute s action).1
+    throw "raw public-call invariant guard rejected"
   if status != #[code, value] then throw s!"outcome: Lean {[code, value]}, Solidity {status.toList}"
   compare (snapshot next) actual
   checkPartitions next

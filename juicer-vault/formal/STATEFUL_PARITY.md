@@ -1,16 +1,21 @@
 # stateful public-call comparisons
 
 `PublicCalls.lean` composes the existing integer allocation, account, exit, Main-debt,
-source-batch and redemption models into an executable public-call machine.
+source-batch and redemption models into the raw executable public-call machine.
+`PublicCertificates.lean` wraps that machine with a decidable post-state certificate: a raw
+success is preserved exactly when it satisfies the combined invariant, while a rejected result
+rolls back with the model-only code 98.
 `LeanStatefulParity.t.sol` runs the actual vault, accounting, Main and delegatecall logic
 from deployment. `LeanMarketStatefulParity.t.sol` adds the actual Harvester and fee controller,
 with changing source values, collateral prices, debt observations and execution costs.
 `LeanRescaleStatefulParity.t.sol` drives the same public system through four lazy rescales.
 `StatefulReplay.lean` replays the recorded actions and compares every
-post-call snapshot and success/revert outcome. It also checks the holder, request,
+post-call snapshot and success/revert outcome. it also checks the holder, request,
 Main-cash/debt and collateral partitions and the lazy liability bound after every call. its
 computed certificate also carries proofs of collateral custody, source/cash partitions and the
-combined holder/waiting-request lifecycle for every accepted post-state.
+combined holder/waiting-request lifecycle and operational request/array partitions for every
+accepted post-state. the replay treats code 98 as a hard failure, so every passing row also shows
+that the raw and checked machines agree on that transition.
 
 Lean starts with the fixture's known genesis configuration and keeps its own predicted
 state throughout a campaign. Solidity snapshots are comparison outputs only; they never
@@ -149,6 +154,10 @@ the deployed Aave Pool and reserve lifecycle, live pallet/solver execution, mali
 reentrancy, arbitrary oracle/configuration changes and the full uint256 input space remain outside
 these fixtures. the integration checks are bounded executable comparisons, not live-chain tests.
 
-This is differential execution evidence for the exercised public control flow. The machine
-reuses proved arithmetic transitions, but its correspondence to arbitrary Solidity executions
-is not a kernel proof or compiled-bytecode equivalence result.
+this is differential execution evidence for the exercised public control flow. the checked
+machine has universal preservation theorems for successful calls and arbitrary finite action
+lists from a certified input. the raw machine reuses proved arithmetic transitions, but its
+correspondence to arbitrary Solidity executions is not a kernel proof or compiled-bytecode
+equivalence result. a fabricated orphan-claim storage state is a concrete counterexample to raw
+preservation over unrestricted states; it is rejected by the operational certificate and was not
+observed in any public-call trace.

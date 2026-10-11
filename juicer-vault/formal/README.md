@@ -54,10 +54,10 @@ JuicerLean/
    ├─ MainHistories.lean  reachable source-claim and cash partitions across cohort operations
    ├─ PolicyQueue.lean    controller budgets, quotes, FIFO starts and collateral claims
    ├─ QueueHistories.lean repeated settlement/claim histories and FIFO settlement work
-   ├─ PublicCalls.lean    public-call sequences, harvest/fees, debt rounding, deleveraging and rollback
+   ├─ PublicCalls.lean    raw public-call sequences, harvest/fees, debt rounding, deleveraging and rollback
    ├─ PublicInvariants.lean custody, source, cash and lifecycle invariants for public-call histories
    ├─ PublicPreservation.lean successful allowance/transfer custody preservation helpers
-   ├─ PublicCertificates.lean computed public-call certificates for the combined invariants
+   ├─ PublicCertificates.lean checked public-call semantics and combined invariant certificates
    ├─ ScaledDebt.lean     Aave half-up ray arithmetic and executable scaled-balance histories
    ├─ Checked.lean        uint256 arithmetic failures and atomic transaction semantics
    ├─ CheckedRefinement.lean successful checked operations refine the natural-number models
@@ -124,8 +124,9 @@ describes the separate ideal-arithmetic models.
 | `LazyBook.allocation_consistent` / `LazyBook.allocate_view_congr` | an event credits `m × weight/outside` on the balances standing at the event, however many transfers preceded it and whenever each holder last settled |
 | `lazy_trace_slack_lt_precision` / `lazy_genesis_funded_no_overclaim` | arbitrary lazy-ledger histories from genesis keep sub-precision slack and cannot overclaim aggregate funded shares |
 | `residue_trace_bound` / `lazy_units_residue` / `lazy_funded_residue` | an explicit cumulative budget bounds aggregate unit and funded under-credit through allocation, settlement, transfer, escrow, start, burn, repeated rescale and write-off |
-| `certified_calls_preserve` | collateral custody is conserved through any certified history of executable public-call results; failed calls supply frame certificates automatically |
-| `certifiedReplay_preserves` | the executable certificate checker establishes custody, source/cash partitions and lifecycle validity at every accepted public-call state without hand-written per-call certificates |
+| `certified_calls_preserve` | collateral custody is conserved through any hand-certified history of raw public-call results; failed raw calls supply frame certificates automatically |
+| `runCall_success_preserves` / `execute_preserves` | every successful checked public call satisfies the combined public invariant, and every checked execution preserves it from a certified input because rejected calls roll back |
+| `certifiedReplay_total` / `certifiedReplay_preserves` | every finite checked-call sequence from a certified input produces certificates, and every state in the resulting history satisfies custody, source/cash, lifecycle and operational invariants |
 | `source_partition_of_history` / `cash_partition_of_history` / `lifecycle_claim_bound_of_history` | public-state projections inherit the existing Main source, cash and lazy-liability bounds from arbitrary valid transition histories |
 | `rayMulHalf_interval` / `rayDivHalf_interval` | Aave's half-up ray multiplication and division lie in their exact quotient intervals |
 | `ShareBook.eventVsTransfer` | against the old per-transfer allocation, only the interval's pre-transfer yield on the moved shares changes hands |
