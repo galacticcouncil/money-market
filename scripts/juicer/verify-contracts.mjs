@@ -44,10 +44,8 @@ export function loadBuilds(dirs){
  return found;
 }
 
-// forge names libraries outside the project root absolutely in its input, while solc
-// imported them root-relative and read them from disk, so that input alone does not
-// compile. send the contract's metadata closure instead, every source checked against
-// the hash its deployed metadata commits to
+// forge's input lacks the out-of-root libraries solc read from disk, so send the
+// contract's metadata closure, each source checked against its metadata hash
 export function requestBody({build,path,name,c}){
  const meta=JSON.parse(c.metadata),{sources,settings,basePath}=build.input,closure={};
  for(const [unit,{keccak256}] of Object.entries(meta.sources)){
