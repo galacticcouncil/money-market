@@ -8,6 +8,8 @@ import JuicerLean.FixedPoint.PublicRequestPreparation
 import JuicerLean.FixedPoint.PublicDepositProofs
 import JuicerLean.FixedPoint.PublicRebalanceProofs
 import JuicerLean.FixedPoint.PublicSettlementProofs
+import JuicerLean.FixedPoint.PublicCreditEntryProofs
+import JuicerLean.FixedPoint.PublicHarvestProofs
 import JuicerLean.FixedPoint.SolidityDispatch
 
 set_option maxRecDepth 4000
@@ -327,7 +329,9 @@ def StateStructuralAction (s : State) (a : Action) : Prop :=
   (a.op = 7 ∧ a.amount < s.unwind) ∨ (a.op = 8 ∧ PublicMetadata s) ∨
   (a.op = 4 ∧ PublicMetadata s ∧ a.a < 5) ∨
   (a.op = 0 ∧ PublicMetadata s ∧ InitialMintSafe s ∧ a.b < actors) ∨
-  (a.op = 9 ∧ PublicMetadata s ∧ ZeroActiveFee s)
+  (a.op = 9 ∧ PublicMetadata s ∧ ZeroActiveFee s) ∨
+  (a.op = 6 ∧ CreditReady s ∧ QueueBacking s ∧ SourcePullBounds s) ∨
+  (a.op = 23 ∧ PublicMetadata s ∧ HarvestBound s)
 
 instance (s : State) (a : Action) : Decidable (StateStructuralAction s a) := by
   unfold StateStructuralAction
@@ -375,7 +379,21 @@ theorem deposit_action_valid {s : State} {a : Action} (fixture : FixtureAction a
 theorem rebalance_action_valid {s : State} {a : Action} (fixture : FixtureAction a)
     (op : a.op = 9) (metadata : PublicMetadata s) (fees : ZeroActiveFee s) :
     ValidSolidityAction s a :=
-  ⟨fixture, .inr (.inl (.inr (.inr (.inr (.inr ⟨op,metadata,fees⟩)))))⟩
+  ⟨fixture, .inr (.inl (.inr (.inr (.inr (.inr (.inl ⟨op,metadata,fees⟩))))))⟩
+
+theorem pokeSettle_action_valid {s : State} {a : Action} (fixture : FixtureAction a)
+    (op : a.op = 6) (credit : CreditReady s) (queue : QueueBacking s) (pull : SourcePullBounds s) :
+    ValidSolidityAction s a := by
+  refine ⟨fixture,.inr (.inl ?_)⟩
+  right; right; right; right; right; left
+  exact ⟨op,credit,queue,pull⟩
+
+theorem harvest_action_valid {s : State} {a : Action} (fixture : FixtureAction a)
+    (op : a.op = 23) (metadata : PublicMetadata s) (capacity : HarvestBound s) :
+    ValidSolidityAction s a := by
+  refine ⟨fixture,.inr (.inl ?_)⟩
+  right; right; right; right; right; right
+  exact ⟨op,metadata,capacity⟩
 
 theorem claim_admissible (s : State) (a : Action) (h : PublicInvariant s)
     (hop : a.op = 7) (started : a.amount < s.unwind) : InvariantAdmissible s a := by
@@ -384,10 +402,15 @@ theorem claim_admissible (s : State) (a : Action) (h : PublicInvariant s)
   subst op
   exact raw_claim_public s caller a b n h started
 
+theorem pokeSettle_admissible (s : State) (caller a b n : Nat) (h : PublicInvariant s)
+    (credit : CreditReady s) (queue : QueueBacking s) (pull : SourcePullBounds s) :
+    InvariantAdmissible s ⟨6,caller,a,b,n⟩ := raw_pokeSettle_public s caller a b n h credit queue pull
+
 theorem state_structural_admissible (s : State) (a : Action) (h : PublicInvariant s)
     (input : StateStructuralAction s a) : InvariantAdmissible s a := by
   rcases input with ⟨hop,started⟩ | ⟨hop,metadata⟩ | ⟨hop,metadata,holder⟩ |
-    ⟨hop,metadata,initial,receiver⟩ | ⟨hop,metadata,fees⟩
+    ⟨hop,metadata,initial,receiver⟩ | ⟨hop,metadata,fees⟩ |
+    ⟨hop,credit,queue,pull⟩ | ⟨hop,metadata,capacity⟩
   · exact claim_admissible s a h hop started
   · rcases a with ⟨op,caller,a,b,n⟩
     change op = 8 at hop
@@ -405,6 +428,14 @@ theorem state_structural_admissible (s : State) (a : Action) (h : PublicInvarian
     change op = 9 at hop
     subst op
     exact raw_rebalance_public s caller a b n h metadata fees
+  · rcases a with ⟨op,caller,a,b,n⟩
+    change op = 6 at hop
+    subst op
+    exact pokeSettle_admissible s caller a b n h credit queue pull
+  · rcases a with ⟨op,caller,a,b,n⟩
+    change op = 23 at hop
+    subst op
+    exact raw_harvest_public s caller a b n h metadata capacity
 
 theorem rawRunCall_success_preserves_of_valid {s next : State} {a : Action} {value : Nat}
     (current : PublicInvariant s) (valid : ValidSolidityAction s a)

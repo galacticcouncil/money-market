@@ -180,6 +180,9 @@ replay checks these input premises throughout all 7,338 steps. requestRedeem req
 owner and deposit a bounded receiver, both supplied by the fixture domain. rebalance is proved
 under a zero-fee remainder at zero active source remainder. settlement loops preserve the
 invariant for any iteration count under backed owed collateral and a Main position count equal
-to the unwind cursor plus one. replay checks these additional input premises too. proving structural
-admission for the remaining three opcodes (startUnwinds, pokeSettle and harvest), and semantic equivalence
-from compiled bytecode to the Lean transitions, remains outside this result.
+to the unwind cursor plus one. pokeSettle composes source pulls, fee-backed batch credits, Main
+payments and settlement; its additional premises constrain source rates, batch weights and
+remaining budgets. harvest preserves the invariant when its post-checkpoint amount fits source
+capacity. replay checks these premises too. structural admission for startUnwinds, inductive
+preservation of all additional input premises, and semantic equivalence from compiled bytecode
+to the Lean transitions remain outside this result.

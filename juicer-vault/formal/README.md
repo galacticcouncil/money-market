@@ -194,8 +194,11 @@ destinations, claim requires a started request, and sync, requestRedeem and depo
 account/request epochs and scales consistent with the book's history. requestRedeem also requires
 an ordinary owner; deposit requires a bounded receiver and a zero reward index when supply is zero.
 rebalance additionally requires zero fee remainder when the active source remainder is zero.
-these 28 opcodes have input-based preservation
-proofs without using the post-state certificate to establish domain membership.
+pokeSettle requires backed queue collateral, consistent batch weights/budgets, backed fees and
+source pull/cost rates at most 10000 basis points. harvest requires its post-checkpoint amount to
+fit source capacity. these 30 opcodes have preservation proofs based on inputs, without using the
+post-state certificate to establish domain membership. startUnwinds remains; the additional
+input premises are replay-checked but not yet proved inductive across every raw call.
 the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
 price-driven deleveraging. the rescale fixture keeps ray-scale holders and a waiting request stale

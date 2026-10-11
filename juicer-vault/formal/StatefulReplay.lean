@@ -88,6 +88,9 @@ def checkCertificateParts (s : State) : Except String Unit := do
   unless decide (p := InitialMintSafe s) do throw "zero-supply reward index"
   unless decide (p := ZeroActiveFee s) do throw "zero active remainder retained fees"
   unless decide (p := QueueBacking s) do throw "queue backing or position count"
+  unless decide (p := CreditReady s) do throw "source-credit readiness"
+  unless decide (p := SourcePullBounds s) do throw "source pull bounds"
+  unless decide (p := HarvestBound s) do throw "harvest source capacity"
 
 def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Except String State := do
   let a ← numbers j "action"
@@ -101,6 +104,9 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
     unless decide (p := InitialMintSafe s) do throw "genesis zero-supply reward index rejected"
     unless decide (p := ZeroActiveFee s) do throw "genesis active fees rejected"
     unless decide (p := QueueBacking s) do throw "genesis queue backing rejected"
+    unless decide (p := CreditReady s) do throw "genesis source-credit readiness rejected"
+    unless decide (p := SourcePullBounds s) do throw "genesis source pull bounds rejected"
+    unless decide (p := HarvestBound s) do throw "genesis harvest capacity rejected"
     compare (snapshot s) actual
     return s
   if a[0]! == 999 then throw "unexpected state reset"
@@ -113,6 +119,9 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
   unless decide (p := InitialMintSafe s) do throw "input zero-supply reward index rejected"
   unless decide (p := ZeroActiveFee s) do throw "input active fees rejected"
   unless decide (p := QueueBacking s) do throw "input queue backing rejected"
+  unless decide (p := CreditReady s) do throw "input source-credit readiness rejected"
+  unless decide (p := SourcePullBounds s) do throw "input source pull bounds rejected"
+  unless decide (p := HarvestBound s) do throw "input harvest capacity rejected"
   unless decide (p := FixtureAction action) do throw "action outside source-pinned fixture domain"
   unless decide (p := ValidSolidityAction s action) do
     checkPartitions (rawExecute s action).1
@@ -124,6 +133,9 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
   unless decide (p := InitialMintSafe next) do throw "reachable raw state lost its zero-supply reward index"
   unless decide (p := ZeroActiveFee next) do throw "reachable raw state lost its active fee bound"
   unless decide (p := QueueBacking next) do throw "reachable raw state lost its queue backing"
+  unless decide (p := CreditReady next) do throw "reachable raw state lost its source-credit readiness"
+  unless decide (p := SourcePullBounds next) do throw "reachable raw state lost its source pull bounds"
+  unless decide (p := HarvestBound next) do throw "reachable raw state lost its harvest capacity bound"
   if code == 99 then throw "trace reached an unsupported fixture branch"
   if status != #[code, value] then throw s!"outcome: Lean {[code, value]}, Solidity {status.toList}"
   compare (snapshot next) actual

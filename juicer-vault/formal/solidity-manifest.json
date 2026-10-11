@@ -2,7 +2,7 @@
   "baseRevision": "be5a469d2a007743b70b135a5c746f5481ff7428",
   "change": "allowance rounding, lazy-rescale correction and raw dispatch reachability proofs",
   "formalBaseRevision": "21f5aa7b203d0ae79f44e05c87ed75f8d242a1ef",
-  "reviewed": "2026-10-11",
+  "reviewed": "2026-10-12",
   "files": {
     "src/CollateralVault.sol": "d6f6105ab443f6c8abedc0740ae10279b1e7d3781865ea8cbf236afe31efbe48",
     "src/JuicerYieldAccounting.sol": "09408b0fea60155c3f39fc303f6c65bc3dc79d6a88ab5d6de5c5b0877668f8d9",
@@ -40,7 +40,7 @@
     "formal/JuicerLean/FixedPoint/PublicCertificates.lean": "5d46d711959887516914a2dc9a5e52be814c0835f4f44137aa2dad8aa0592742",
     "formal/JuicerLean/FixedPoint/PublicPreservation.lean": "3522de37d9d36743e80417fe0bd43e8d017e704f29eaba0c2448d7ed1fe4eb67",
     "formal/JuicerLean/FixedPoint/SolidityDispatch.lean": "c64cbb0e8e9199a6b65be859e5a44153f4cefd95888e2af81dd485db37047511",
-    "formal/JuicerLean/FixedPoint/PublicReachability.lean": "85f0f36d66b9e89974a2e2f5680ae4d6bc4e9624557592da264080fce66c89cb",
+    "formal/JuicerLean/FixedPoint/PublicReachability.lean": "c7ec28404b0944fbff8aa9a24f3b0613c95c714da547e24e144167f5942b3643",
     "formal/JuicerLean/FixedPoint/PublicStateProofs.lean": "e5877765986a5d17595ef2265b64b68a28ca03d3561c2d7426ca2a3b0bf2a9e9",
     "formal/JuicerLean/FixedPoint/PublicTransferProofs.lean": "d99b6c5cdd99a76bf23abaed2a67e2e605bebd9276ada4b44f203fecf6985e0d",
     "formal/JuicerLean/FixedPoint/PublicClaimProofs.lean": "c07f7a66aa4b7d2b7a7dde1a28a7fad18e6e5b2db77a869ef78f878728eef233",
@@ -49,7 +49,7 @@
     "formal/JuicerLean/FixedPoint/RoundingResidue.lean": "01c790e7bf737c322e10f4ca10289c0a40bc507071b94bd54c3afa377b5a5ca2",
     "formal/JuicerLean/FixedPoint/ScaledDebt.lean": "83973a56f3dadcd1e9a2c40febc20b7199aa5d1b1952880884352cd5656a9608",
     "formal/ScaledDebtReplay.lean": "5546be223b87959389ce2977ce9a21986e56571297785960b21cd521ec9f35a8",
-    "formal/StatefulReplay.lean": "409906901df7831a9552ddc17ed3d23888a51f7823df28b98e2278babc6774e5",
+    "formal/StatefulReplay.lean": "b8e60bbf8199f34e46c7bf7a48686cdc048057542c32fb01b7a5bdc57ac38150",
     "formal/check-stateful.py": "d83b5625a5c0a32fd2f03a6bfc4a17cc2a47bacf83f98a36eaebfcc7677baffd",
     "formal/stateful_coverage.py": "85fec43faf528c416a1660727bb411da869e59454559b1d205527ccf907bdb25",
     "test/formal/LeanStatefulParity.t.sol": "b8b9382ddd1531de1bbbbe19221610cffb622a27bf931ce8e3b8487682b5d734",
@@ -105,6 +105,10 @@
     "formal/JuicerLean/FixedPoint/PublicDepositProofs.lean": "de4246e9be8f6a9a897c3a0495268e654c0080aec31dd38c2876ff4fbb46c709",
     "formal/JuicerLean/FixedPoint/PublicSourceProofs.lean": "8189a51b28d192707e868b4ed9b29dca977f2a31fe811e7e9d59dc6a1ac050a7",
     "formal/JuicerLean/FixedPoint/PublicRebalanceProofs.lean": "70f3d58e29db0776adae5d2a72657e35fe63c62a41f55dfdcfdd3bc279a96ed6",
-    "formal/JuicerLean/FixedPoint/PublicSettlementProofs.lean": "217e2249fb0ee87a3aa9e572b93e98b58875d2793f6c306daeaa6a479b81aeac"
+    "formal/JuicerLean/FixedPoint/PublicSettlementProofs.lean": "217e2249fb0ee87a3aa9e572b93e98b58875d2793f6c306daeaa6a479b81aeac",
+    "formal/JuicerLean/FixedPoint/PublicCreditProofs.lean": "0e43bcdfdb997a57af31fefda6a66f551b482ccbdad49aa7c38bec71a18af8d8",
+    "formal/JuicerLean/FixedPoint/PublicBatchProofs.lean": "35c312f10cb5bb0d7834c408948008755f89e7b96bac7797155a668e839c220f",
+    "formal/JuicerLean/FixedPoint/PublicCreditEntryProofs.lean": "be5ffa4618cfcdb2010e66af7ab603e83f59cabb92302229fa7d0ae39797b1a1",
+    "formal/JuicerLean/FixedPoint/PublicHarvestProofs.lean": "c08f3e4620e2a92768e0d6d1c4e89728464f0c4e3cf92358ab3b823c7b22b98e"
   }
 }

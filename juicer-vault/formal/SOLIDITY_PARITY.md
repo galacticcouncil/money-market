@@ -198,10 +198,20 @@ zero active fee remainder whenever its source remainder is zero.
 `PublicSettlementProofs.lean` proves settlement records, Main payments and arbitrary-length
 settlement loops preserve the invariant when aggregate owed collateral is backed by assets and
 the Main position count matches the unwind cursor plus one.
-`ValidSolidityAction` accepts these 28 structural cases from their inputs and requires the
-successful-post-state certificate for the other three opcodes. replay checks metadata,
-initialization, active-fee and queue-backing premises at genesis and before and after every call,
-using the predicted state compared with Solidity storage.
+`PublicCreditProofs.lean`, `PublicBatchProofs.lean` and `PublicCreditEntryProofs.lean` prove
+per-position credit, fee backing, cash/cost budgets, arbitrary-length credit loops and raw
+`pokeSettle`. its input premises bound source pull/cost rates, tie the saved batch cursor to the
+remaining weights, and require fees to be backed by cash or remaining yield. the proof covers
+fresh batches, resumed batches and receipts arriving during an unfinished batch.
+`PublicHarvestProofs.lean` proves the exact raw harvest body through source withdrawal,
+reward/protocol reservation release and compounding. its capacity premise requires the
+post-checkpoint harvestable amount to fit the held source shares. Solidity caps burns by source
+capacity; the raw fixture model currently implements the case where that cap does not bind.
+`ValidSolidityAction` accepts these 30 structural cases from their inputs and still requires the
+successful-post-state certificate for `startUnwinds`. replay checks metadata, initialization,
+active-fee, queue-backing, credit-readiness, pull/cost-rate and harvest-capacity premises at genesis
+and before and after every call, using the predicted state compared with Solidity storage.
+these extra input premises have not yet been proved inductive across every raw public call.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` carry that certificate through
 arbitrary finite raw traces from any certified fixture genesis. the orphan-claim regression records
 the necessary boundary: a fabricated raw storage state can contain a settled claim without any
@@ -274,8 +284,8 @@ replays.
 
 ## verification
 
-896 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 1,799 kernel theorem
+958 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 1,946 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.
@@ -347,14 +357,16 @@ with the fixture already restricting callers and owners to its four external hol
 requires a request index below the unwind cursor; sync, requestRedeem and deposit require consistent
 account/request epochs and scales. requestRedeem requires an ordinary owner; deposit requires a
 bounded receiver and zero reward index at zero supply. rebalance requires consistent metadata and
-zero fee remainder at zero active source remainder. all preservation results require the certified
+zero fee remainder at zero active source remainder. pokeSettle requires queue backing, consistent
+batch weights/budgets, backed fees and bounded pull/cost rates; harvest requires the
+post-checkpoint harvestable amount to fit the held source shares. all preservation results require the certified
 input invariant; in particular, the orphan claim's fabricated input is not reachable.
 `validSolidityTrace_invariant` proves every arbitrary finite raw
 trace in that domain preserves `PublicInvariant`; `validSolidityReachable_invariant` gives the
 equivalent inductive reachability result. the stateful runner now advances through the raw typed
 dispatcher and checked all 7,338 default actions for domain membership. proving that every possible
-Solidity execution for the other three opcodes is a domain member without computing its post-state
-certificate remains open.
+Solidity startUnwinds execution is a domain member without computing its post-state certificate,
+and proving all additional input premises inductive across every raw call, remain open.
 liability slots must represent
 distinct holders or disjoint
 waiting requests; all liabilities must be included in the initial representation. The new genesis
