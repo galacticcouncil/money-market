@@ -136,7 +136,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
     function test_leanPolicyAvailabilityAndRefresh() public {
         for (uint256 i; i < _count("policy"); ++i) {
             uint256[] memory r = _row("policy", i);
-            ParityPolicy c = new ParityPolicy();
+            ParityPolicy c = ParityPolicy(vm.deployCode("LeanCoverageParity.t.sol:ParityPolicy"));
             c.seed(r, address(this), address(1), address(2));
             vm.warp(r[10]); vm.roll(r[11]);
             assertEq(c.available(address(this), address(1), address(2)), r[12]);
@@ -167,7 +167,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
     function test_leanPartialAndFinalClaims() public {
         for (uint256 i; i < _count("claims"); ++i) {
             uint256[] memory r = _row("claims", i);
-            ParityQueue q = new ParityQueue(); MockERC20 token = new MockERC20("c", "c", 18);
+            ParityQueue q = ParityQueue(vm.deployCode("LeanCoverageParity.t.sol:ParityQueue")); MockERC20 token = new MockERC20("c", "c", 18);
             q.seed(r, OWNER, IERC20(address(token)), address(source)); token.mint(address(q), r[4]);
             uint256 amount = q.claim(0, RECEIVER);
             (,,,,,,uint256 settled,uint256 burned,bool active) = q.redemptions(0);

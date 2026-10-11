@@ -9,13 +9,13 @@ import {JuicerYieldAccounting} from "../src/JuicerYieldAccounting.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {Deficit} from "./helpers/Deficit.sol";
-import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @dev test-only append-only upgrade, not strategy rotation
 contract SubLoopUpgradeProbe is SubLoop {
     uint256 public compatibilityMarker;
 
-    constructor() SubLoop(address(new SubLoopLogic())) {}
+    constructor() SubLoop(Artifacts.subLoopLogic()) {}
 
     function initializeProbe(uint256 marker) external reinitializer(2) onlyRole(UPGRADER_ROLE) {
         compatibilityMarker = marker;
@@ -89,7 +89,8 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
 
     function _upgrade() internal {
         bytes32 before_ = _fingerprint();
-        SubLoopUpgradeProbe next = new SubLoopUpgradeProbe();
+        SubLoopUpgradeProbe next =
+            SubLoopUpgradeProbe(vm.deployCode("SourceUpgradeCompatibility.t.sol:SubLoopUpgradeProbe"));
         loop.upgradeToAndCall(address(next), abi.encodeCall(next.initializeProbe, (7)));
         assertEq(address(uint160(uint256(vm.load(address(loop), IMPLEMENTATION_SLOT)))), address(next));
         assertEq(SubLoopUpgradeProbe(address(loop)).compatibilityMarker(), 7);
@@ -284,7 +285,8 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
     }
 
     function test_upgradeRequiresAuthorityAndCannotReinitializeExistingState() public {
-        SubLoopUpgradeProbe next = new SubLoopUpgradeProbe();
+        SubLoopUpgradeProbe next =
+            SubLoopUpgradeProbe(vm.deployCode("SourceUpgradeCompatibility.t.sol:SubLoopUpgradeProbe"));
         bytes32 oldImplementation = vm.load(address(loop), IMPLEMENTATION_SLOT);
         vm.prank(ETH_USER);
         vm.expectRevert();
@@ -304,7 +306,8 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
         _preparePartialExit();
         uint256 cost = loop.unwindExecutionCost(address(ethVault));
         bytes32 before_ = _fingerprint();
-        SubLoopBrokenCounterProbe bad = new SubLoopBrokenCounterProbe();
+        SubLoopBrokenCounterProbe bad =
+            SubLoopBrokenCounterProbe(vm.deployCode("SourceUpgradeCompatibility.t.sol:SubLoopBrokenCounterProbe"));
         loop.upgradeToAndCall(address(bad),
             abi.encodeCall(bad.overwriteCostForTest, (address(ethVault), 0)));
         bytes32 ledgerBefore = _ledgerState(ethVault);

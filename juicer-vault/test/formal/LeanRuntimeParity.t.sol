@@ -242,7 +242,7 @@ contract LeanRuntimeParityTest is Test {
             uint256[] memory r = _row("ice", i);
             MockERC20 h = new MockERC20("h", "h", 18); MockERC20 p = new MockERC20("p", "p", 6);
             ParityPool pool = new ParityPool(); pool.configure(r);
-            ParityLoop loop = new ParityLoop(); loop.seed(r, address(pool), address(h), address(p));
+            ParityLoop loop = ParityLoop(vm.deployCode("LeanRuntimeParity.t.sol:ParityLoop")); loop.seed(r, address(pool), address(h), address(p));
             h.mint(address(loop), r[0] == 1 ? r[6] : r[7]); p.mint(address(loop), r[0] == 1 ? r[7] : r[6]);
             (uint8 observed, uint256 output) = loop.observed(); assertEq(observed, r[14]); assertEq(output, r[15]);
             (uint8 kind, uint256 value) = loop.flight(); assertEq(kind, r[16]); assertEq(value, r[17]);
@@ -257,7 +257,7 @@ contract LeanRuntimeParityTest is Test {
         for (uint256 i; i < _count("callbacks"); ++i) {
             uint256[] memory r = _row("callbacks", i);
             MockERC20 h = new MockERC20("h", "h", 18); MockERC20 p = new MockERC20("p", "p", 6);
-            ParityLoop loop = new ParityLoop(); loop.seed(r, address(new ParityPool()), address(h), address(p));
+            ParityLoop loop = ParityLoop(vm.deployCode("LeanRuntimeParity.t.sol:ParityLoop")); loop.seed(r, address(new ParityPool()), address(h), address(p));
             loop.setLastNonce(uint64(r[6]));
             address caller = r[10] == 1 ? address(loop) : address(this);
             vm.prank(caller);

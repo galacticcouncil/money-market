@@ -133,7 +133,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
         uint256 count = vm.parseJsonUint(machine, ".historiesCount");
         for (uint256 i; i < count; ++i) {
             uint256[] memory r = vm.parseJsonUintArray(machine, string.concat(".histories[", vm.toString(i), "]"));
-            HistoryQueue q = new HistoryQueue();
+            HistoryQueue q = HistoryQueue(vm.deployCode("LeanMachineParity.t.sol:HistoryQueue"));
             MockERC20 token = new MockERC20("claim", "claim", 18);
             q.seed(r, OWNER, IERC20(address(token)), address(source));
             token.mint(address(q), r[1]);
@@ -149,7 +149,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
     }
 
     function test_claimOverflowRollsBackEarlierWrites() public {
-        HistoryQueue q = new HistoryQueue();
+        HistoryQueue q = HistoryQueue(vm.deployCode("LeanMachineParity.t.sol:HistoryQueue"));
         MockERC20 token = new MockERC20("claim", "claim", 18);
         uint256[] memory r = new uint256[](8);
         r[0] = type(uint256).max; r[1] = 4; r[2] = 2; r[3] = 1; r[4] = 2; r[7] = 1;
