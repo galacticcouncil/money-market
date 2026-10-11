@@ -15,7 +15,7 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
     Harvester internal harvester;
     JuicerFeeController internal fees;
 
-    function _configure() internal override {
+    function _configure() internal virtual override {
         super._configure();
         market = new StatefulYieldSource(address(hollar));
         vault.setYieldSource(address(market));
@@ -48,7 +48,7 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
     function _snapshot() internal view override returns (uint256[] memory out) {
         uint256[] memory base = super._snapshot();
         JuicerMainDebt m = JuicerMainDebt(address(vault.mainDebt()));
-        out = new uint256[](base.length + 26 + m.sourceTail() * 2);
+        out = new uint256[](base.length + 27 + m.sourceTail() * 2);
         uint256 k;
         for (; k < base.length; ++k) out[k] = base[k];
         out[k++] = market.rate(); out[k++] = hollar.balanceOf(address(market));
@@ -63,6 +63,7 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
         out[k++] = hollar.balanceOf(actors[3]);
         for (uint256 slot = 13; slot <= 18; ++slot) out[k++] = uint256(vm.load(address(m), bytes32(slot)));
         out[k++] = pool.repayCalls();
+        out[k++] = vault.tvlCap();
         for (uint256 i; i < m.sourceTail(); ++i) {
             (uint256 yield, uint256 fee) = m.sourceFees(i);
             out[k++] = yield; out[k++] = fee;
@@ -96,6 +97,7 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
         } else if (op == 27) {
             target = address(fees); data = abi.encodeCall(fees.claimProtocolFees, (a == 0 ? address(eth) : address(hollar)));
         } else if (op == 28) { target = address(swapper); data = abi.encodeCall(swapper.setHaircut, (n)); }
+        else if (op == 29) { target = address(vault); data = abi.encodeCall(vault.setTvlCap, (n)); }
         else revert("unknown market action");
         vm.prank(actors[caller]);
         (bool ok, bytes memory result) = target.call(data);
@@ -115,7 +117,7 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
         return super._error(result);
     }
 
-    function _campaign(uint256 seed, uint256 depth, bool wide) internal override {
+    function _campaign(uint256 seed, uint256 depth, bool wide) internal virtual override {
         tracePath = string.concat("formal/.stateful/market-", vm.toString(seed), ".jsonl");
         vm.writeFile(tracePath, ""); random = seed; step = 0;
         _record([uint256(999), 0, 0, 0, 1], 0, 0);

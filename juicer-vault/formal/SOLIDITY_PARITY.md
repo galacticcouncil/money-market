@@ -1,7 +1,7 @@
 # current Solidity mapping
 
 reviewed from `juicer-allowance-rounding` at
-`be5a469d2a007743b70b135a5c746f5481ff7428`, 10 october 2026, with the lazy-rescale
+`be5a469d2a007743b70b135a5c746f5481ff7428`, 11 october 2026, with the lazy-rescale
 index correction in this change.
 accounting rejects unrepresentable funded debits and preserves the requested allowance
 bound; [rounding evidence](ROUNDING.md) records the remaining recipient display rounding.
@@ -35,7 +35,7 @@ the check fails if they change without a new comparison.
 | controller credit, pacing, expiry and safety lanes | `Policy`, `available`, `policyCharge`, `executionMinimum` | credit/size bounds, no refill on refresh, quote only tightens oracle floor; 64 availability and 32 executed quote comparisons |
 | FIFO start and collateral claims | `queueReady`, `startQueue`, `settleRedemption`, `claimRedemption` | work/FIFO bounds, full final burn, recipient protection; 32 queue and 48 claim comparisons |
 | repeated settlement/claim histories | `RedemptionState.valid`, `settleQueue` | cumulative collateral/burn bounds, unpaid-head stop, final payout/burn; 24 three-claim histories |
-| stateful vault/Main/harvest sequences | `PublicCalls.State`, `runCall`, `execute`, `CertifiedCalls` | independent replay from fixture genesis; exact outcomes, holder/request/Main snapshots and rollback; kernel-checked collateral conservation across certified call histories |
+| stateful vault/Main/harvest/rescale sequences | `PublicCalls.State`, `runCall`, `certifiedExecute`, `PublicInvariant` | independent replay from fixture genesis; exact outcomes, holder/request/Main snapshots and rollback; computed kernel certificates for custody, source/cash and lifecycle invariants |
 | shared-loop harvest and ICE histories | lifecycle and runtime projections | repeated harvests across two vaults sharing one loop; long actual-SubLoop intent expiry/reconcile/late-callback/exit sequence |
 | checked arithmetic and failure | `Checked`, checked account/backing/borrow/batch/claim/rescale operations | success refinement, exact arithmetic revert classes, atomic failure semantics; 488 primitive, 40 account and eight backing comparisons |
 | external observations | `payValid`, `exactReceipt`, `exactPayment`, callback/arrival theorems | conditional cash/debt bounds; detection threshold does not authenticate token origin |
@@ -86,8 +86,10 @@ establish deployed-market economic feasibility. see `ROUNDING.md` for the exact 
 
 the ceil shift chooses downward entitlement rounding at the rescale boundary. the original seeded
 case leaves one unit unclaimed, and funded residue can remain after all represented holders exit.
-the proof establishes no-overclaim, not exact aggregate conservation or a lower fairness bound
-across arbitrary holder counts and repeated rescales.
+`RoundingResidue.lean` tracks a second ghost budget from genesis through allocation, settlement,
+movement, burn, escrow, start, repeated rescale and write-off. it bounds missing aggregate units
+and the resulting funded residue for arbitrary finite histories, including waiting-request slots.
+this is an aggregate lower bound; it does not assign rounding loss fairly to individual holders.
 
 `Lifecycle.lean` includes ordinary holders and waiting requests as disjoint liability slots.
 A waiting slot contains the request's committed units, prior index and escrowed wallet weight.
@@ -131,7 +133,8 @@ in the model; Solidity regressions also verify rollback after checkpoint, token 
 and borrow writes would otherwise have occurred.
 
 - `LeanLazyHistoryParity.t.sol`, `RescaleAmplification.t.sol`, `RescaleReachability.t.sol`,
-  `RescaleEconomics.t.sol`, `RescaleFeasibility.t.sol` and `RescaleCeilIndexAudit.t.sol` cover the
+  `RescaleEconomics.t.sol`, `RescaleFeasibility.t.sol`, `RescaleCeilIndexAudit.t.sol` and
+  `LeanRescaleStatefulParity.t.sol` cover the
   original seeded counterexample, aggregate no-overclaim, public rescale control flow, funded-share
   behavior, storage preconditions, waiting requests and cumulative scale 256. they seed accounting
   storage or drive controlled public vault calls and are not included in the comparison-vector counts.
@@ -161,10 +164,12 @@ for every machine-boundary fixture.
 credit, reserve cover, settlement records and bounded settlement loops. `CustodyStep` composes
 those cases with deposits, claims and supply-to-liquid movement; `CertifiedCalls` carries the
 invariant through arbitrary lists of actual `execute` results, and failed calls automatically
-produce frame steps because `execute` rolls back. successful dispatch branches still require the
-corresponding `CustodyStep` certificate. source-claim, cash-book and lifecycle projections connect
-public states to the existing arbitrary-history partition and lazy-liability theorems; deriving
-those projection traces from every successful `runCall` branch remains a manual mapping boundary.
+produce frame steps because `execute` rolls back. `PublicCertificates.lean` replaces hand-written
+certificates in executable histories with a decidable combined invariant over collateral custody,
+source claims, owned cash and the ordinary-holder/waiting-request lifecycle. `certifiedExecute`
+returns the exact `execute` result together with its kernel proof or rejects it; certificate
+corruption regressions cover each component. this closes the manual boundary for every replayed
+state. completeness for every possible successful `runCall` input remains outside the proof.
 
 `LeanStatefulParity.t.sol` adds long public-call campaigns against the actual vault, accounting,
 Main and delegatecall logic, using the existing deterministic pool/token/source mocks.
@@ -184,8 +189,14 @@ harvests/reward mints, fee collection, interest servicing, debt-rounding retries
 source costs/losses and completed price-driven deleveraging. Both fixtures run in the formal check.
 The larger market campaigns add 5,194 steps and 1,034 expected reverts, reaching 720 steps per
 sequence. Across both fixtures, 32 campaigns pass 15,216 recorded steps and 304 corruption checks.
-See [stateful scope and reproduction](STATEFUL_PARITY.md). These tests exercise control-flow
+`LeanRescaleStatefulParity.t.sol` adds long public-call histories crossing scales 64, 128, 192 and
+256 with ray-scale account/request weights, then settlement, start, claims, write-off and refill.
+its coverage gate requires the old floor shift to produce a different claim, so observing a scale
+change alone is insufficient. its 16 campaigns add 7,393 recorded steps, 1,198 expected reverts
+and 1,696 corruption checks. See [stateful scope and reproduction](STATEFUL_PARITY.md). These tests exercise control-flow
 correspondence for a bounded fixture environment, not every Solidity trace.
+across all three fixtures, 48 campaigns pass 22,609 recorded steps, 4,932 expected reverts and
+2,000 corruption checks.
 
 `LeanScaledDebt.t.sol` imports Aave core v3's actual `VariableDebtToken` 1.19.3 and drives it from
 a mock Pool through 516 deterministic mint, burn and monotonically increasing index calls. Lean
@@ -222,8 +233,8 @@ replays.
 
 ## verification
 
-563 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 1,155 kernel theorem
+608 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 1,244 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its complete Solidity dispatch correspondence is tested by replay, not proved for all executions.
@@ -232,8 +243,8 @@ cases. validation also includes 512 transfer-rounding fuzz cases, the public vau
 rollback regressions, the focused rescale suites, and the seeded and public-call rescale
 fixtures. all three generated datasets reproduce exactly.
 the Aave scaled-debt trace adds 516 calls with 43 expected reverts. the full formal check invokes
-106 Foundry tests with zero failures and skips, including inherited fixture regressions and the two
-targeted shared-flow histories; source fingerprints, all 17 accounting slots and the six private
+113 formal Foundry tests plus the two targeted shared-flow histories, all with zero failures and skips;
+source fingerprints, all 17 accounting slots and the six private
 Main batch slots also pass. the legacy environment-gated Verity fork suite is outside this formal gate.
 the prior allowance-fix run also passed 187 distinct targeted tests. the London build measures
 CollateralVault at 24,480 bytes and JuicerYieldAccounting at 12,652 bytes, 139 bytes above the
@@ -276,8 +287,9 @@ overflow reverts rather than silently wrapping.
 the 1,430 vector cases and 516 scaled-debt calls are cross-language comparisons, not a proof of
 every Solidity trace. the lifecycle and Main transition systems derive their numerical partitions
 from genesis and cover the listed call sequences. public-call custody is kernel-checked for
-certified `execute` histories, while mapping every successful dispatch branch to a certificate and
-to the source/cash/lifecycle transition systems is still manual. liability slots must represent
+certified `execute` histories. the stateful runner now computes and checks combined
+custody/source/cash/lifecycle certificates after every call; proving that this certificate accepts
+every possible successful dispatch input remains open. liability slots must represent
 distinct holders or disjoint
 waiting requests; all liabilities must be included in the initial representation. The new genesis
 results remove the repeated numerical weight/partition assumptions, not that representation boundary.

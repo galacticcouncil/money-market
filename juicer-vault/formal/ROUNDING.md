@@ -3,7 +3,7 @@
 this fixes the allowance mismatch found at `juicer-next` commit `ddf8186`. the implementation
 and executable Lean model now require the sender's displayed funded debit to equal the request.
 the result is reviewed on the allowance-fixed branch based on `juicer-next` at `21f5aa7`,
-10 october 2026.
+11 october 2026.
 
 ## exact sender debit
 
@@ -139,9 +139,7 @@ seeded state therefore finishes one reward unit below `totalUnits`; at funded ra
 the measured displayed headroom is one and three vault-share base units. exits conserve assets but
 can leave the corresponding funded residue behind the unclaimed unit. exact redistribution of
 every holder's discarded fraction would require aggregate holder state that this constant-cost
-lazy design does not maintain. the no-overclaim theorem is an upper bound; it does not prove exact
-aggregate conservation, a lower bound on claims, or a cumulative fairness bound for arbitrary
-holder counts and repeated rescales.
+lazy design does not maintain.
 
 ### proof boundary
 
@@ -163,6 +161,24 @@ claims is also at most `F`.
 `Rounding.lean` proves nested ceil shifts compose and proves the natural-number definition equals
 the overflow-safe Solidity expression above, including shifts of 256 or more. `Runtime.lean`,
 `Checked.lean` and their refinements use the corrected account and request semantics.
+
+`RoundingResidue.lean` supplies the complementary lower bound. for liability `L`, it tracks a
+ghost budget `B` with `T * R <= L + B`. settlement and burn add at most `R - 1`; moving two
+settled accounts or starting a waiting request adds at most `2 * (R - 1)`. request escrow adds at
+most `R - 1`. allocation charges the exact unrepresented outside weight and division remainder.
+for `N` liability slots with total weight `W`, rescale by `d` updates the conservative budget to:
+
+```
+B' = floor((B + (d - 1) * (N * R + 2 * W)) / d)
+```
+
+write-off resets it. induction over arbitrary finite histories then gives
+`T <= sum(claims) + floor((B + N * (R - 1)) / R)`. a second theorem converts that missing-unit
+bound into a funded-share residue bound, including each holder's final `F * units / T` floor.
+waiting requests use the same liability slots, and `runtime_rescale_residue` connects accumulated
+runtime account scales to the recurrence. the result is an aggregate worst-case rounding bound;
+it does not assign the residue fairly among individual holders or establish that controlled source
+losses are economically reachable in a deployed market.
 
 verdict. the original floor/floor arithmetic finding was real. the complete correction is a
 constant-cost change with no holder scan: ceil-shift both ordinary and waiting-request indices with

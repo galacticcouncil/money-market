@@ -4,9 +4,13 @@
 source-batch and redemption models into an executable public-call machine.
 `LeanStatefulParity.t.sol` runs the actual vault, accounting, Main and delegatecall logic
 from deployment. `LeanMarketStatefulParity.t.sol` adds the actual Harvester and fee controller,
-with changing source values, collateral prices, debt observations and execution costs. `StatefulReplay.lean` replays the recorded actions and compares every
+with changing source values, collateral prices, debt observations and execution costs.
+`LeanRescaleStatefulParity.t.sol` drives the same public system through four lazy rescales.
+`StatefulReplay.lean` replays the recorded actions and compares every
 post-call snapshot and success/revert outcome. It also checks the holder, request,
-Main-cash/debt and collateral partitions and the lazy liability bound after every call.
+Main-cash/debt and collateral partitions and the lazy liability bound after every call. its
+computed certificate also carries proofs of collateral custody, source/cash partitions and the
+combined holder/waiting-request lifecycle for every accepted post-state.
 
 Lean starts with the fixture's known genesis configuration and keeps its own predicted
 state throughout a campaign. Solidity snapshots are comparison outputs only; they never
@@ -22,22 +26,26 @@ From `juicer-vault/formal`, with the pinned Lean/Mathlib and Foundry toolchains:
 python3 check-stateful.py
 python3 check-stateful.py --seed 9 --count 8 --depth 512
 python3 check-stateful.py --fixture market --count 1
+python3 check-stateful.py --fixture rescale --count 1
 ```
 
 The default runs eight campaigns per fixture with 192 pseudorandom actions after a deterministic
 prefix, then drains and claims the queues. Half of the campaigns create 71 requests
 before the first repayment, crossing both the 32-request settlement limit and the
 64-cohort source-accounting limit. Seeds and depths are configurable; a failing trace
-is saved under `.stateful/trace-<seed>.jsonl` or `.stateful/market-<seed>.jsonl`. Run a single seed with `--count 1`;
+is saved under `.stateful/trace-<seed>.jsonl`, `.stateful/market-<seed>.jsonl` or
+`.stateful/rescale-<seed>.jsonl`. Run a single seed with `--count 1`;
 each invocation accepts up to eight seeds. A completion marker rejects interrupted
-traces, and `coverage.json` and `market-coverage.json` record successful actions, revert classes and exercised
+traces, and the three coverage JSON files record successful actions, revert classes and exercised
 queue/batch/claim boundaries. Required boundary cases must actually execute.
 `check-runtime.py` includes the default campaigns and their Lean replay.
 
-The checked corpus contains 32 campaigns and 15,216 recorded steps per branch, including
-10,241 vault calls, 605 Harvester/fee-controller calls and 4,370 environment actions. The longest
-sequence has 720 steps. The same corpus passes on the original and allowance-fixed Solidity;
-the fixed branch rejects one additional `transferFrom` call with `InexactShares` (baseline seed 9, step 596).
+The checked corpus contains 48 campaigns and 22,609 recorded steps, including 16,315 vault calls,
+637 Harvester/fee-controller calls and 5,657 environment actions. The longest sequence has 720
+steps. the baseline and market corpus passes on the original and allowance-fixed Solidity; the
+fixed branch rejects one additional `transferFrom` call with `InexactShares` (baseline seed 9,
+step 596). the rescale corpus targets the corrected branch and intentionally distinguishes its
+ceil-shifted result from the earlier floor behavior.
 
 | fixture | seeds | random depth | recorded steps | expected reverts |
 | --- | --- | --- | --- | --- |
@@ -45,8 +53,10 @@ the fixed branch rejects one additional `transferFrom` call with `InexactShares`
 | baseline | 9–16 | 512 | 5,005 | 1,640 original / 1,641 allowance-fixed |
 | market | 1–8 | 192 | 2,598 | 463 |
 | market | 9–16 | 512 | 5,194 | 1,034 |
+| rescale | 1–8 | 192 | 2,321 | 352 |
+| rescale | 9–16 | 512 | 5,072 | 846 |
 
-All campaigns pass coverage gates and 304 corrupted-output checks per branch. Incomplete traces
+All campaigns pass coverage gates and 2,000 corrupted-output checks. Incomplete traces
 are also rejected. Longer campaigns use a higher test gas budget for snapshot instrumentation;
 these gas totals are not estimates for public vault calls.
 
@@ -89,9 +99,25 @@ must also occur. Corruption checks cover the additional custody, index, cost, fe
 repayment-counter fields. Genesis selects a fixed fixture configuration from the action header;
 no observed Solidity state initializes the prediction.
 
+## rescale campaigns
+
+the rescale fixture lowers the funded source to a positive residual, deposits through the public
+vault at that low denominator, and obtains ray-scale shares without writing accounting storage.
+an ordinary account and waiting request then remain stale while repeated public `sync` calls cross
+scales 64, 128, 192 and 256. every campaign must settle the stale account, start the stale request,
+perform transfers and partial/final claims after a rescale, execute rejected calls without state
+changes, write off the reward epoch, refill it and mint funded rewards again.
+
+the coverage gate independently recomputes the old floor-shifted account and request claims and
+requires a state where they differ from the corrected ceil-shift result. this makes the long replay
+sensitive to the PR #74 correction, beyond merely observing a nonzero scale. rescale-step mutation
+checks alter total units, reward index, epoch, scale, stale account/request fields and the expanded
+market fields. these are controlled source repricings backed by fixture tokens, not a claim about
+the cost or feasibility of producing the same path in a live market.
+
 ## fixture boundary
 
-Both environments use 18-decimal mock tokens, 75% collateral LTV, 98% synthetic LT, exact token
+all three fixtures use 18-decimal mock tokens, 75% collateral LTV, 98% synthetic LT, exact token
 transfers and four funded public actors. The baseline uses `MockYieldSource` at par, fixed
 one-dollar prices, a fixed debt index and zero fees/costs. The market fixture uses
 `StatefulYieldSource`: source shares price a funded HOLLAR pool, and revaluation explicitly
@@ -107,10 +133,10 @@ token implementation. Outside repayments, reserve deposits and Main funding are 
 funded environment actions, not trading profit. Market changes, time advances and liquidity
 controls are also recorded actions.
 
-the corpus stays below rescale thresholds and checks `unitScale == 0`. separate controlled
-public-call fixtures reach `unitScale == 64` with ordinary holders and a waiting request, and
-cumulative `unitScale == 256` with a stale account. ceil-shifted indices keep aggregate claims
-within `totalUnits` and remain defined at the four-shift boundary.
+the baseline and market campaigns stay below rescale thresholds and require `unitScale == 0`.
+the dedicated rescale campaigns reach cumulative `unitScale == 256` with an ordinary holder and
+waiting request left stale from scale zero. ceil-shifted indices keep aggregate claims within
+`totalUnits` and remain defined at the four-shift boundary.
 
 separate integration checks cover three other fixture boundaries. `LeanScaledDebt.t.sol` runs 516
 mint, burn and index steps against Aave core v3's actual `VariableDebtToken` 1.19.3, with a mock

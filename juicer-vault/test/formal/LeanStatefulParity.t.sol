@@ -30,6 +30,8 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         revert("untracked actor");
     }
 
+    function _allowRescale() internal pure virtual returns (bool) { return false; }
+
     function _snapshot() internal view virtual returns (uint256[] memory out) {
         JuicerYieldAccounting y = vault.yieldAccounting();
         JuicerMainDebt m = JuicerMainDebt(address(vault.mainDebt()));
@@ -76,7 +78,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
             out[k++] = units_; out[k++] = principal; out[k++] = cash; out[k++] = remaining; out[k++] = _id(owner);
         }
         assertEq(k, out.length);
-        assertEq(y.unitScale(), 0, "rescale belongs to its separate investigation");
+        if (!_allowRescale()) assertEq(y.unitScale(), 0, "rescale belongs to its separate campaign");
         _checkFixture();
     }
 
