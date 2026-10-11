@@ -193,7 +193,8 @@ invariant alone; transfer and transferFrom additionally require ordinary holders
 destinations, claim requires a started request, and sync, requestRedeem and deposit require
 account/request epochs and scales consistent with the book's history. requestRedeem also requires
 an ordinary owner; deposit requires a bounded receiver and a zero reward index when supply is zero.
-these 27 opcodes have input-based preservation
+rebalance additionally requires zero fee remainder when the active source remainder is zero.
+these 28 opcodes have input-based preservation
 proofs without using the post-state certificate to establish domain membership.
 the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and

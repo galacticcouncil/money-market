@@ -177,6 +177,9 @@ ABI selectors to reviewed hashes. it does not prove the internal contract bodies
 `rawRunCall`. sync, requestRedeem and deposit have structural preservation under account/request
 metadata consistent with the book history. deposit also requires zero reward index at zero supply;
 replay checks these input premises throughout all 7,338 steps. requestRedeem requires an ordinary
-owner and deposit a bounded receiver, both supplied by the fixture domain. proving structural
-admission for the remaining four opcodes (startUnwinds, pokeSettle, rebalance and harvest), and semantic equivalence
+owner and deposit a bounded receiver, both supplied by the fixture domain. rebalance is proved
+under a zero-fee remainder at zero active source remainder. settlement loops preserve the
+invariant for any iteration count under backed owed collateral and a Main position count equal
+to the unwind cursor plus one. replay checks these additional input premises too. proving structural
+admission for the remaining three opcodes (startUnwinds, pokeSettle and harvest), and semantic equivalence
 from compiled bytecode to the Lean transitions, remains outside this result.

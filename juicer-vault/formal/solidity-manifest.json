@@ -40,7 +40,7 @@
     "formal/JuicerLean/FixedPoint/PublicCertificates.lean": "5d46d711959887516914a2dc9a5e52be814c0835f4f44137aa2dad8aa0592742",
     "formal/JuicerLean/FixedPoint/PublicPreservation.lean": "3522de37d9d36743e80417fe0bd43e8d017e704f29eaba0c2448d7ed1fe4eb67",
     "formal/JuicerLean/FixedPoint/SolidityDispatch.lean": "c64cbb0e8e9199a6b65be859e5a44153f4cefd95888e2af81dd485db37047511",
-    "formal/JuicerLean/FixedPoint/PublicReachability.lean": "9e017715a225501de857feb9ac6d299a3194bf1cb1b1a72e41365bff554aff57",
+    "formal/JuicerLean/FixedPoint/PublicReachability.lean": "85f0f36d66b9e89974a2e2f5680ae4d6bc4e9624557592da264080fce66c89cb",
     "formal/JuicerLean/FixedPoint/PublicStateProofs.lean": "e5877765986a5d17595ef2265b64b68a28ca03d3561c2d7426ca2a3b0bf2a9e9",
     "formal/JuicerLean/FixedPoint/PublicTransferProofs.lean": "d99b6c5cdd99a76bf23abaed2a67e2e605bebd9276ada4b44f203fecf6985e0d",
     "formal/JuicerLean/FixedPoint/PublicClaimProofs.lean": "c07f7a66aa4b7d2b7a7dde1a28a7fad18e6e5b2db77a869ef78f878728eef233",
@@ -49,7 +49,7 @@
     "formal/JuicerLean/FixedPoint/RoundingResidue.lean": "01c790e7bf737c322e10f4ca10289c0a40bc507071b94bd54c3afa377b5a5ca2",
     "formal/JuicerLean/FixedPoint/ScaledDebt.lean": "83973a56f3dadcd1e9a2c40febc20b7199aa5d1b1952880884352cd5656a9608",
     "formal/ScaledDebtReplay.lean": "5546be223b87959389ce2977ce9a21986e56571297785960b21cd521ec9f35a8",
-    "formal/StatefulReplay.lean": "a71ff52b93e564fad8c87bb52ac915d4f6abc723839c4ccd85bb4d50e0cc0308",
+    "formal/StatefulReplay.lean": "409906901df7831a9552ddc17ed3d23888a51f7823df28b98e2278babc6774e5",
     "formal/check-stateful.py": "d83b5625a5c0a32fd2f03a6bfc4a17cc2a47bacf83f98a36eaebfcc7677baffd",
     "formal/stateful_coverage.py": "85fec43faf528c416a1660727bb411da869e59454559b1d205527ccf907bdb25",
     "test/formal/LeanStatefulParity.t.sol": "b8b9382ddd1531de1bbbbe19221610cffb622a27bf931ce8e3b8487682b5d734",
@@ -102,6 +102,9 @@
     "formal/JuicerLean/FixedPoint/PublicCompoundProofs.lean": "f4d8e7e836177f204b75ee311b5453f8411bf03598da81d8cdacd27e5bdb0917",
     "formal/JuicerLean/FixedPoint/PublicRequestPreparation.lean": "4a600b1c08b9d01409f2a598987ebf5006fe14e8097c9503f84d2e7609d6c164",
     "formal/JuicerLean/FixedPoint/PublicRequestProofs.lean": "369d163726ed0e1225e624d8981785418123f8685ab27b5da83df8e3f3b617f6",
-    "formal/JuicerLean/FixedPoint/PublicDepositProofs.lean": "de4246e9be8f6a9a897c3a0495268e654c0080aec31dd38c2876ff4fbb46c709"
+    "formal/JuicerLean/FixedPoint/PublicDepositProofs.lean": "de4246e9be8f6a9a897c3a0495268e654c0080aec31dd38c2876ff4fbb46c709",
+    "formal/JuicerLean/FixedPoint/PublicSourceProofs.lean": "8189a51b28d192707e868b4ed9b29dca977f2a31fe811e7e9d59dc6a1ac050a7",
+    "formal/JuicerLean/FixedPoint/PublicRebalanceProofs.lean": "70f3d58e29db0776adae5d2a72657e35fe63c62a41f55dfdcfdd3bc279a96ed6",
+    "formal/JuicerLean/FixedPoint/PublicSettlementProofs.lean": "217e2249fb0ee87a3aa9e572b93e98b58875d2793f6c306daeaa6a479b81aeac"
   }
 }

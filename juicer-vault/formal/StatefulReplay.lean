@@ -86,6 +86,8 @@ def checkCertificateParts (s : State) : Except String Unit := do
   unless decide (p := OperationalInvariant s) do throw "certificate operational"
   unless decide (p := PublicMetadata s) do throw "account metadata history"
   unless decide (p := InitialMintSafe s) do throw "zero-supply reward index"
+  unless decide (p := ZeroActiveFee s) do throw "zero active remainder retained fees"
+  unless decide (p := QueueBacking s) do throw "queue backing or position count"
 
 def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Except String State := do
   let a ← numbers j "action"
@@ -97,6 +99,8 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
     if (certify s).isNone then throw "genesis invariant certificate rejected"
     unless decide (p := PublicMetadata s) do throw "genesis metadata history rejected"
     unless decide (p := InitialMintSafe s) do throw "genesis zero-supply reward index rejected"
+    unless decide (p := ZeroActiveFee s) do throw "genesis active fees rejected"
+    unless decide (p := QueueBacking s) do throw "genesis queue backing rejected"
     compare (snapshot s) actual
     return s
   if a[0]! == 999 then throw "unexpected state reset"
@@ -107,6 +111,8 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
   let action := Juicer.PublicCalls.Action.mk a[0]! a[1]! a[2]! a[3]! a[4]!
   unless decide (p := PublicMetadata s) do throw "input metadata history rejected"
   unless decide (p := InitialMintSafe s) do throw "input zero-supply reward index rejected"
+  unless decide (p := ZeroActiveFee s) do throw "input active fees rejected"
+  unless decide (p := QueueBacking s) do throw "input queue backing rejected"
   unless decide (p := FixtureAction action) do throw "action outside source-pinned fixture domain"
   unless decide (p := ValidSolidityAction s action) do
     checkPartitions (rawExecute s action).1
@@ -116,6 +122,8 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
   if (certify next).isNone then throw "reachable raw state lost its certificate"
   unless decide (p := PublicMetadata next) do throw "reachable raw state lost its metadata history"
   unless decide (p := InitialMintSafe next) do throw "reachable raw state lost its zero-supply reward index"
+  unless decide (p := ZeroActiveFee next) do throw "reachable raw state lost its active fee bound"
+  unless decide (p := QueueBacking next) do throw "reachable raw state lost its queue backing"
   if code == 99 then throw "trace reached an unsupported fixture branch"
   if status != #[code, value] then throw s!"outcome: Lean {[code, value]}, Solidity {status.toList}"
   compare (snapshot next) actual

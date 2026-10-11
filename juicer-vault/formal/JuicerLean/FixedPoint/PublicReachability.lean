@@ -6,6 +6,8 @@ import JuicerLean.FixedPoint.PublicCheckpointProofs
 import JuicerLean.FixedPoint.PublicCompoundProofs
 import JuicerLean.FixedPoint.PublicRequestPreparation
 import JuicerLean.FixedPoint.PublicDepositProofs
+import JuicerLean.FixedPoint.PublicRebalanceProofs
+import JuicerLean.FixedPoint.PublicSettlementProofs
 import JuicerLean.FixedPoint.SolidityDispatch
 
 set_option maxRecDepth 4000
@@ -324,7 +326,8 @@ theorem structural_action_admissible (s : State) (action : Action)
 def StateStructuralAction (s : State) (a : Action) : Prop :=
   (a.op = 7 ∧ a.amount < s.unwind) ∨ (a.op = 8 ∧ PublicMetadata s) ∨
   (a.op = 4 ∧ PublicMetadata s ∧ a.a < 5) ∨
-  (a.op = 0 ∧ PublicMetadata s ∧ InitialMintSafe s ∧ a.b < actors)
+  (a.op = 0 ∧ PublicMetadata s ∧ InitialMintSafe s ∧ a.b < actors) ∨
+  (a.op = 9 ∧ PublicMetadata s ∧ ZeroActiveFee s)
 
 instance (s : State) (a : Action) : Decidable (StateStructuralAction s a) := by
   unfold StateStructuralAction
@@ -367,7 +370,12 @@ theorem request_action_valid {s : State} {a : Action} (fixture : FixtureAction a
 theorem deposit_action_valid {s : State} {a : Action} (fixture : FixtureAction a)
     (op : a.op = 0) (metadata : PublicMetadata s) (initial : InitialMintSafe s) :
     ValidSolidityAction s a :=
-  ⟨fixture, .inr (.inl (.inr (.inr (.inr ⟨op,metadata,initial,(fixture.2.2.1 op).2⟩))))⟩
+  ⟨fixture, .inr (.inl (.inr (.inr (.inr (.inl ⟨op,metadata,initial,(fixture.2.2.1 op).2⟩)))))⟩
+
+theorem rebalance_action_valid {s : State} {a : Action} (fixture : FixtureAction a)
+    (op : a.op = 9) (metadata : PublicMetadata s) (fees : ZeroActiveFee s) :
+    ValidSolidityAction s a :=
+  ⟨fixture, .inr (.inl (.inr (.inr (.inr (.inr ⟨op,metadata,fees⟩)))))⟩
 
 theorem claim_admissible (s : State) (a : Action) (h : PublicInvariant s)
     (hop : a.op = 7) (started : a.amount < s.unwind) : InvariantAdmissible s a := by
@@ -378,7 +386,8 @@ theorem claim_admissible (s : State) (a : Action) (h : PublicInvariant s)
 
 theorem state_structural_admissible (s : State) (a : Action) (h : PublicInvariant s)
     (input : StateStructuralAction s a) : InvariantAdmissible s a := by
-  rcases input with ⟨hop,started⟩ | ⟨hop,metadata⟩ | ⟨hop,metadata,holder⟩ | ⟨hop,metadata,initial,receiver⟩
+  rcases input with ⟨hop,started⟩ | ⟨hop,metadata⟩ | ⟨hop,metadata,holder⟩ |
+    ⟨hop,metadata,initial,receiver⟩ | ⟨hop,metadata,fees⟩
   · exact claim_admissible s a h hop started
   · rcases a with ⟨op,caller,a,b,n⟩
     change op = 8 at hop
@@ -392,6 +401,10 @@ theorem state_structural_admissible (s : State) (a : Action) (h : PublicInvarian
     change op = 0 at hop
     subst op
     exact raw_deposit_public s caller a b n h metadata initial receiver
+  · rcases a with ⟨op,caller,a,b,n⟩
+    change op = 9 at hop
+    subst op
+    exact raw_rebalance_public s caller a b n h metadata fees
 
 theorem rawRunCall_success_preserves_of_valid {s next : State} {a : Action} {value : Nat}
     (current : PublicInvariant s) (valid : ValidSolidityAction s a)

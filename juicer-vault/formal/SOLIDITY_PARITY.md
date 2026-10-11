@@ -192,9 +192,16 @@ splitting, then compose checkpointing, allowance spending and escrow transfers i
 initialization, receiver minting and reserve cover. its additional initialization premise requires
 the reward index to be zero whenever supply is zero. a fabricated zero-supply, nonzero-index state
 passes the old certificate but breaks initial minting; a kernel-checked regression excludes it.
-`ValidSolidityAction` accepts these 27 structural cases from their inputs and requires the
-successful-post-state certificate for the other four opcodes. replay checks metadata and initialization premises
-at genesis and before and after every call, using the predicted state compared with Solidity storage.
+`PublicSourceProofs.lean` and `PublicRebalanceProofs.lean` prove source-value rounding bounds,
+Main unit minting, active-unwind booking and both raw rebalance branches. rebalance requires a
+zero active fee remainder whenever its source remainder is zero.
+`PublicSettlementProofs.lean` proves settlement records, Main payments and arbitrary-length
+settlement loops preserve the invariant when aggregate owed collateral is backed by assets and
+the Main position count matches the unwind cursor plus one.
+`ValidSolidityAction` accepts these 28 structural cases from their inputs and requires the
+successful-post-state certificate for the other three opcodes. replay checks metadata,
+initialization, active-fee and queue-backing premises at genesis and before and after every call,
+using the predicted state compared with Solidity storage.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` carry that certificate through
 arbitrary finite raw traces from any certified fixture genesis. the orphan-claim regression records
 the necessary boundary: a fabricated raw storage state can contain a settled claim without any
@@ -267,8 +274,8 @@ replays.
 
 ## verification
 
-858 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 1,736 kernel theorem
+896 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 1,799 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.
@@ -339,13 +346,14 @@ requires caller < 5 and destination < 8; transferFrom requires owner < 5 and des
 with the fixture already restricting callers and owners to its four external holders. claim
 requires a request index below the unwind cursor; sync, requestRedeem and deposit require consistent
 account/request epochs and scales. requestRedeem requires an ordinary owner; deposit requires a
-bounded receiver and zero reward index at zero supply. all preservation results require the certified
+bounded receiver and zero reward index at zero supply. rebalance requires consistent metadata and
+zero fee remainder at zero active source remainder. all preservation results require the certified
 input invariant; in particular, the orphan claim's fabricated input is not reachable.
 `validSolidityTrace_invariant` proves every arbitrary finite raw
 trace in that domain preserves `PublicInvariant`; `validSolidityReachable_invariant` gives the
 equivalent inductive reachability result. the stateful runner now advances through the raw typed
 dispatcher and checked all 7,338 default actions for domain membership. proving that every possible
-Solidity execution for the other four opcodes is a domain member without computing its post-state
+Solidity execution for the other three opcodes is a domain member without computing its post-state
 certificate remains open.
 liability slots must represent
 distinct holders or disjoint
