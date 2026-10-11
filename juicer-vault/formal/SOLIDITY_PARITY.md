@@ -177,13 +177,19 @@ call and every finite checked-call list from a certified input.
 projection. `check-dispatch.py` checks the map against both pinned Solidity `perform` functions;
 `solidity_dispatch_corresponds` and `solidity_execute_corresponds` prove that the typed map equals
 the raw Lean dispatcher for every action. `PublicReachability.lean` proves 20 opcodes
-preserve `PublicInvariant` from the current state alone. `ValidSolidityAction` accepts those
-structural cases directly and requires the successful-post-state certificate for the other opcodes.
+preserve `PublicInvariant` from the current state alone. `PublicTransferProofs.lean` adds transfer
+and transferFrom for ordinary holders and bounded destinations; `PublicClaimProofs.lean` adds
+claims of started requests. `ValidSolidityAction` accepts these 23 structural cases from their
+inputs and requires the successful-post-state certificate for the other eight opcodes.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` carry that certificate through
 arbitrary finite raw traces from any certified fixture genesis. the orphan-claim regression records
 the necessary boundary: a fabricated raw storage state can contain a settled claim without any
-assets or liquid collateral, and raw claim dispatch would accept it, while the certified domain
-excludes the action.
+assets or liquid collateral, and raw claim dispatch would accept it, while the certified
+reachability theorem excludes that input state. `PublicBoundaryRegressions.lean` also records
+a fabricated future account epoch that breaks raw checkpointing and a vault-impersonation call
+that removes waiting-request escrow. the former lacks a reachable metadata history; the latter
+falls outside the ordinary-holder transfer premise. these are proof-boundary regressions, not
+public Solidity exploit claims.
 
 `LeanStatefulParity.t.sol` adds long public-call campaigns against the actual vault, accounting,
 Main and delegatecall logic, using the existing deterministic pool/token/source mocks.
@@ -247,8 +253,8 @@ replays.
 
 ## verification
 
-635 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 1,402 kernel theorem
+737 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 1,549 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.
@@ -311,15 +317,19 @@ model: universal acceptance of its successful results is false over arbitrary fa
 as the orphan-claim regression demonstrates.
 
 `ValidSolidityAction` therefore combines the source-pinned fixture constraints with either a
-proved structural opcode or a decidable successful-post-state certificate. the structural set is
+proved structural call or a decidable successful-post-state certificate. the unconditional set is
 approve, warp, repay, pull/repay-limit controls, vault/deposit/source pause controls, source
 repricing, fee/cost controls, interest and price observations, peg maintenance, debt-rounding
-controls, reserve/position funding, protocol-fee claims, haircut and tvl-cap changes.
+controls, reserve/position funding, protocol-fee claims, haircut and tvl-cap changes. transfer
+requires caller < 5 and destination < 8; transferFrom requires owner < 5 and destination < 8,
+with the fixture already restricting callers and owners to its four external holders. claim
+requires a request index below the unwind cursor. all preservation results require the certified
+input invariant; in particular, the orphan claim's fabricated input is not reachable.
 `validSolidityTrace_invariant` proves every arbitrary finite raw
 trace in that domain preserves `PublicInvariant`; `validSolidityReachable_invariant` gives the
 equivalent inductive reachability result. the stateful runner now advances through the raw typed
 dispatcher and checked all 7,338 default actions for domain membership. proving that every possible
-Solidity execution for the other 11 opcodes is a domain member without computing its post-state
+Solidity execution for the other eight opcodes is a domain member without computing its post-state
 certificate remains open.
 liability slots must represent
 distinct holders or disjoint

@@ -37,4 +37,5 @@ import JuicerLean.FixedPoint.PublicPreservation
 import JuicerLean.FixedPoint.PublicCertificates
 import JuicerLean.FixedPoint.SolidityDispatch
 import JuicerLean.FixedPoint.PublicReachability
+import JuicerLean.FixedPoint.PublicBoundaryRegressions
 import JuicerLean.FixedPoint.ScaledDebt

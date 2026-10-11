@@ -1,5 +1,7 @@
 import JuicerLean.FixedPoint.PublicCertificates
 import JuicerLean.FixedPoint.PublicPreservation
+import JuicerLean.FixedPoint.PublicTransferProofs
+import JuicerLean.FixedPoint.PublicClaimProofs
 import JuicerLean.FixedPoint.SolidityDispatch
 
 set_option maxRecDepth 4000
@@ -253,8 +255,70 @@ theorem structural_opcode_admissible (s : State) (action : Action)
   · exact cap_admissible s caller a b n h
   · exact fundPosition_admissible s caller a b n h
 
+theorem transfer_result_public (s : State) (a b n : Nat)
+    (h : PublicInvariant s) (ha : a < 5) (hb : b < actors) :
+    OnSuccess (fun result : State × Nat => PublicInvariant result.1)
+      (do let next ← transfer s a b n; pure (next,1)) := by
+  rw [onSuccess_bind]
+  intro next heq
+  change PublicInvariant next
+  exact onSuccess_of_eq (transfer_public s a b n h ha hb) heq
+
+theorem transfer_admissible (s : State) (caller a b n : Nat)
+    (h : PublicInvariant s) (ha : caller < 5) (hb : b < actors) :
+    InvariantAdmissible s ⟨2,caller,a,b,n⟩ := by
+  change OnSuccess (fun result : State × Nat => PublicInvariant result.1)
+    (do let next ← transfer s caller b n; pure (next,1))
+  exact transfer_result_public s caller b n h ha hb
+
+theorem rawRunCall_transferFrom (s : State) (caller a b n : Nat) :
+    rawRunCall s ⟨3,caller,a,b,n⟩ = (
+      let allowed := s.approvals[a*4+caller]?.getD 0
+      if allowed != Runtime.max256 then
+        if allowed < n then .error 16
+        else do
+          let next ← transfer { s with approvals := s.approvals.set! (a*4+caller) (allowed-n) } a b n
+          pure (next,1)
+      else do let next ← transfer s a b n; pure (next,1)) := by
+  rfl
+
+theorem transferFrom_admissible (s : State) (caller a b n : Nat)
+    (h : PublicInvariant s) (ha : a < 5) (hb : b < actors) :
+    InvariantAdmissible s ⟨3,caller,a,b,n⟩ := by
+  unfold InvariantAdmissible
+  rw [rawRunCall_transferFrom]
+  dsimp only
+  split
+  · split
+    · trivial
+    · exact transfer_result_public _ a b n (approvals_public s _ _ h) ha hb
+  · exact transfer_result_public s a b n h ha hb
+
+
+def StructuralAction (a : Action) : Prop :=
+  StructuralOpcode a.op ∨
+    (a.op = 2 ∧ a.caller < 5 ∧ a.b < actors) ∨
+    (a.op = 3 ∧ a.a < 5 ∧ a.b < actors)
+
+instance (a : Action) : Decidable (StructuralAction a) := by
+  unfold StructuralAction
+  infer_instance
+
+theorem structural_action_admissible (s : State) (action : Action)
+    (h : PublicInvariant s) (ha : StructuralAction action) : InvariantAdmissible s action := by
+  rcases action with ⟨op,caller,a,b,n⟩
+  change StructuralOpcode op ∨ (op = 2 ∧ caller < 5 ∧ b < actors) ∨
+    (op = 3 ∧ a < 5 ∧ b < actors) at ha
+  rcases ha with hop | ⟨hop,holder,target⟩ | ⟨hop,holder,target⟩
+  · exact structural_opcode_admissible s ⟨op,caller,a,b,n⟩ h hop
+  · subst op
+    exact transfer_admissible s caller a b n h holder target
+  · subst op
+    exact transferFrom_admissible s caller a b n h holder target
+
 def ValidSolidityAction (s : State) (a : Action) : Prop :=
-  FixtureAction a ∧ (StructuralOpcode a.op ∨ InvariantAdmissible s a)
+  FixtureAction a ∧ (StructuralAction a ∨
+    (a.op = 7 ∧ a.amount < s.unwind) ∨ InvariantAdmissible s a)
 
 instance (s : State) (a : Action) : Decidable (ValidSolidityAction s a) := by
   unfold ValidSolidityAction
@@ -262,14 +326,35 @@ instance (s : State) (a : Action) : Decidable (ValidSolidityAction s a) := by
 
 theorem structural_action_valid {s : State} {a : Action}
     (fixture : FixtureAction a) (structural : StructuralOpcode a.op) :
-    ValidSolidityAction s a := ⟨fixture, .inl structural⟩
+    ValidSolidityAction s a := ⟨fixture, .inl (.inl structural)⟩
+
+theorem transfer_action_valid {s : State} {a : Action} (fixture : FixtureAction a)
+    (op : a.op = 2) (holder : a.caller < 5) : ValidSolidityAction s a := by
+  exact ⟨fixture, .inl (.inr (.inl ⟨op,holder,fixture.2.2.2.2.1 op⟩))⟩
+
+theorem transferFrom_action_valid {s : State} {a : Action} (fixture : FixtureAction a)
+    (op : a.op = 3) : ValidSolidityAction s a := by
+  have hf := fixture.2.2.2.2.2.1 op
+  exact ⟨fixture, .inl (.inr (.inr ⟨op,hf.2.1.trans (by decide),hf.2.2⟩))⟩
+
+theorem claim_action_valid {s : State} {a : Action} (fixture : FixtureAction a)
+    (op : a.op = 7) (started : a.amount < s.unwind) : ValidSolidityAction s a :=
+  ⟨fixture, .inr (.inl ⟨op,started⟩)⟩
+
+theorem claim_admissible (s : State) (a : Action) (h : PublicInvariant s)
+    (hop : a.op = 7) (started : a.amount < s.unwind) : InvariantAdmissible s a := by
+  rcases a with ⟨op,caller,a,b,n⟩
+  change op = 7 at hop
+  subst op
+  exact raw_claim_public s caller a b n h started
 
 theorem rawRunCall_success_preserves_of_valid {s next : State} {a : Action} {value : Nat}
     (current : PublicInvariant s) (valid : ValidSolidityAction s a)
     (h : rawRunCall s a = .ok (next, value)) :
     PublicInvariant next := by
   have admissible : InvariantAdmissible s a := valid.2.elim
-    (structural_opcode_admissible s a current) id
+    (structural_action_admissible s a current)
+    (fun rest => rest.elim (fun claim => claim_admissible s a current claim.1 claim.2) id)
   simpa [InvariantAdmissible, OnSuccess, h] using admissible
 
 theorem rawRunCall_error_admissible {s : State} {a : Action} {code : Nat}
@@ -347,7 +432,11 @@ theorem reachable_dispatch_success_preserves {initial s next : State}
 
 set_option maxRecDepth 10000 in
 set_option maxHeartbeats 1000000 in
-theorem orphan_claim_not_valid :
-    ¬ ValidSolidityAction orphanClaimState orphanClaimAction := by decide
+theorem orphan_claim_not_certified : ¬ PublicInvariant orphanClaimState := by decide
+
+theorem orphan_claim_not_reachable (initial : State) :
+    ¬ ValidSolidityReachable initial orphanClaimState := by
+  intro h
+  exact orphan_claim_not_certified (validSolidityReachable_invariant h)
 
 end Juicer.PublicCalls

@@ -57,9 +57,13 @@ JuicerLean/
    ├─ PublicCalls.lean    raw public-call sequences, harvest/fees, debt rounding, deleveraging and rollback
    ├─ PublicInvariants.lean custody, source, cash and lifecycle invariants for public-call histories
    ├─ PublicPreservation.lean successful allowance/transfer custody preservation helpers
+   ├─ PublicStateProofs.lean concrete settlement and normalized liability preservation
+   ├─ PublicTransferProofs.lean wallet, funded-unit and allowance preservation
+   ├─ PublicClaimProofs.lean started-request claims and concrete queue partitions
    ├─ PublicCertificates.lean checked public-call semantics and combined invariant certificates
    ├─ SolidityDispatch.lean typed 31-opcode fixture dispatcher and universal raw-call correspondence
    ├─ PublicReachability.lean certified raw-call domain and arbitrary finite trace preservation
+   ├─ PublicBoundaryRegressions.lean fabricated future epochs and vault impersonation boundaries
    ├─ ScaledDebt.lean     Aave half-up ray arithmetic and executable scaled-balance histories
    ├─ Checked.lean        uint256 arithmetic failures and atomic transaction semantics
    ├─ CheckedRefinement.lean successful checked operations refine the natural-number models
@@ -185,7 +189,9 @@ from fixture genesis. The checker compares state and outcomes after every step, 
 partitions and rejects incomplete traces. every action is decoded through the typed Solidity map,
 checked against the fixture domain and executed by `rawRunCall`; every successful post-state must
 carry the combined certificate. twenty opcodes are admitted from their pre-state
-invariant by theorem, without using the post-state certificate to establish domain membership.
+invariant alone; transfer and transferFrom additionally require ordinary holders and bounded
+destinations, and claim requires a started request. these 23 opcodes have input-based preservation
+proofs without using the post-state certificate to establish domain membership.
 the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
 price-driven deleveraging. the rescale fixture keeps ray-scale holders and a waiting request stale

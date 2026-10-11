@@ -19,7 +19,8 @@ Main-cash/debt and collateral partitions and the lazy liability bound after ever
 computed certificate also carries proofs of collateral custody, source/cash partitions and the
 combined holder/waiting-request lifecycle and operational request/array partitions for every
 accepted post-state. each row must satisfy `FixtureAction` and `ValidSolidityAction`; 20 opcodes
-satisfy the latter from the certified pre-state by theorem, while the other 11 require a
+satisfy the latter from the certified pre-state alone, transfers additionally require ordinary
+holders and bounded destinations, and claims require started requests. the other eight require a
 successful-post-state certificate. the replay still certifies every resulting state and advances
 with the raw typed dispatcher, so no checked-call guard can hide a raw transition mismatch.
 
@@ -172,5 +173,5 @@ preservation over unrestricted states and is excluded by the domain.
 the typed opcode theorem and source checker establish fixture-dispatch correspondence.
 `check-bytecode.py` separately binds 11 reproducibly compiled production artifacts and the relevant
 ABI selectors to reviewed hashes. it does not prove the internal contract bodies equivalent to
-`rawRunCall`. proving structural admission for the remaining 11 opcodes, and semantic equivalence
+`rawRunCall`. proving structural admission for the remaining eight opcodes, and semantic equivalence
 from compiled bytecode to the Lean transitions, remains outside this result.
