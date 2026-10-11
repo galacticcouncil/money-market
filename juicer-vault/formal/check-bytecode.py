@@ -2,9 +2,9 @@
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import subprocess
+from compiler_environment import compiler_environment, compiler_cache_path
 
 
 def canonical_hash(value):
@@ -52,12 +52,11 @@ def artifact_summary(path, source, contract):
 
 
 def build(vault, formal, artifacts):
-    env = os.environ.copy()
-    env.update(FOUNDRY_LIBS='["../bil-vault/lib","../node_modules"]')
+    env = compiler_environment()
     subprocess.run(
         [
             "forge", "build", "--offline", "--skip", "test", "--skip", "script",
-            "--out", str(artifacts), "--cache-path", str(formal / ".stateful/bytecode-cache"),
+            "--out", str(artifacts), "--cache-path", str(compiler_cache_path("bytecode-cache")),
         ],
         cwd=vault,
         env=env,

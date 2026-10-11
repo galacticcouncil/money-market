@@ -2,11 +2,11 @@
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import subprocess
 import sys
 from stateful_coverage import check_coverage, check_rescale_coverage
+from compiler_environment import compiler_environment, compiler_cache_path
 
 
 def main():
@@ -15,8 +15,7 @@ def main():
     args = parser.parse_args()
     formal = Path(__file__).resolve().parent
     vault = formal.parent
-    env = os.environ.copy()
-    env.update(FOUNDRY_LIBS='["../bil-vault/lib","../node_modules"]')
+    env = compiler_environment()
     subprocess.run([sys.executable, str(formal / "check-dispatch.py")], cwd=formal, check=True)
     manifest = json.loads((formal / "solidity-manifest.json").read_text())
     for name, expected in manifest["files"].items():
@@ -35,11 +34,15 @@ def main():
             raise SystemExit(f"{artifact} changed; regenerate it with {source}")
     layout_out = formal / ".stateful" / "layout-out"
     subprocess.run(["forge", "build", "--offline", "--skip", "test", "--skip", "script",
-                    "--extra-output", "storageLayout", "--out", str(layout_out),
-                    "--cache-path", str(formal / ".stateful" / "layout-cache")],
+                    "--extra-output", "storageLayout", "--ast", "--out", str(layout_out),
+                    "--cache-path", str(compiler_cache_path("layout-cache"))],
                    cwd=vault, env=env, check=True)
     subprocess.run([sys.executable, str(formal / "check-bytecode.py"),
                     "--artifacts", str(layout_out)], cwd=vault, check=True)
+    subprocess.run([sys.executable, str(formal / "solidity_bodies.py"),
+                    "--artifacts", str(layout_out)], cwd=formal, check=True)
+    subprocess.run([sys.executable, str(formal / "test_solidity_bodies.py"), "--artifact",
+                    str(layout_out / "JuicerYieldAccounting.sol/JuicerYieldAccounting.json")], cwd=formal, check=True)
     layout = json.loads((layout_out / "JuicerYieldAccounting.sol" /
                          "JuicerYieldAccounting.json").read_text())["storageLayout"]
     slots = {entry["label"]: int(entry["slot"]) for entry in layout["storage"]}

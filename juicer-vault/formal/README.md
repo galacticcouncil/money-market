@@ -219,6 +219,12 @@ the pinned solc 0.8.22, optimizer-200, via-ir, Paris settings. it also checks th
 by the production-target fixture branches. constructor immutables remain template references, so
 this is an artifact-identity check rather than a deployed-address or semantic-equivalence proof.
 
+`solidity_bodies.py` additionally extracts the actual solc AST for `_shiftIndex`. a typed,
+checked uint256 interpreter proves this body equals `Runtime.ceilShift` for all uint256 inputs,
+including shifts of at least 256 bits. unsupported syntax is rejected. the formal build uses
+fixed relative remappings and cache keys that change with them. see [body proof scope](SOLIDITY_BODIES.md)
+for the extractor, arithmetic semantics and compiler/EVM trust boundary.
+
 the stateful rescale campaigns and focused integration checks reach 64-bit and cumulative 256-bit
 accounting scales through public vault calls in controlled loss/refill environments, including a
 waiting request, and replay 516

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import argparse
-import os
 from pathlib import Path
 import subprocess
 from stateful_coverage import check_coverage, check_rescale_coverage
+from compiler_environment import compiler_environment
 
 
 def main():
@@ -19,9 +19,8 @@ def main():
     formal = Path(__file__).resolve().parent
     if not args.compiled:
         subprocess.run(["lake", "build"], cwd=formal, check=True)
-    env = os.environ.copy()
-    env.update(FOUNDRY_LIBS='["../bil-vault/lib","../node_modules"]',
-               LEAN_STATEFUL_SEED=str(args.seed), LEAN_STATEFUL_COUNT=str(args.count),
+    env = compiler_environment()
+    env.update(LEAN_STATEFUL_SEED=str(args.seed), LEAN_STATEFUL_COUNT=str(args.count),
                LEAN_STATEFUL_DEPTH=str(args.depth))
     lean = ["lean"] if args.compiled else ["lake", "env", "lean"]
     for fixture, contract, prefix in [("baseline", "LeanStatefulParityTest", "trace"),

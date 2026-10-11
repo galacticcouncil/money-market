@@ -289,12 +289,15 @@ replays.
 
 ## verification
 
-1,028 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 2,077 kernel theorem
+1,034 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 2,125 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.
-the individual contract bodies remain differential execution comparisons.
+`Solidity/BodyProofs.lean` also proves the extracted solc AST of `_shiftIndex` equals
+`Runtime.ceilShift` for every uint256 input pair, including arithmetic checks and shifts beyond
+the word width. the extractor and compiler remain trusted; see [body proof scope](SOLIDITY_BODIES.md).
+the remaining contract bodies rely on differential execution comparisons.
 the comparison datasets contain 1,430 rows: the previous 826 plus 604 machine-boundary and history
 cases. validation also includes 512 transfer-rounding fuzz cases, the public vault lifecycle,
 rollback regressions, the focused rescale suites, and the seeded and public-call rescale
@@ -303,6 +306,9 @@ the Aave scaled-debt trace adds 516 calls with 43 expected reverts. the full for
 113 formal Foundry tests plus the two targeted shared-flow histories, all with zero failures and skips;
 source fingerprints, all 17 accounting slots and the six private
 Main batch slots also pass. the legacy environment-gated Verity fork suite is outside this formal gate.
+the gate includes source-body extraction and 14 rejection/mutation tests for its supported AST
+boundary. formal compiler remappings are fixed and relative, with automatic discovery disabled;
+the resulting artifact refresh changes only compiler CBOR metadata, including embedded artifacts.
 the prior allowance-fix run also passed 187 distinct targeted tests. the London build measures
 CollateralVault at 24,480 bytes and JuicerYieldAccounting at 12,652 bytes, 139 bytes above the
 PR 73 baseline and below the 24,576-byte deployment limit. the complete offline Foundry run passes
@@ -380,7 +386,7 @@ The real-valued index proofs remain ideal arithmetic; exact integer equivalence 
 the checked rescale counterexample.
 Main arithmetic, fee vesting, controller policies, source orchestration, retries and queue histories
 have the coverage above. the source checker and universal theorem cover fixture target/selector
-dispatch, but contract-body equivalence, arithmetic outside the listed checked operations, upgrades
+dispatch, but full contract-body equivalence, arithmetic outside the listed checked operations, upgrades
 and reentrancy remain outside the kernel proof. Access control and
 trusted administrative configuration are not replaced
 by the arithmetic models. protocol fee-controller binding/custody and the deployed Aave Pool remain
