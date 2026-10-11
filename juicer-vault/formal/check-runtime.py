@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 from stateful_coverage import check_coverage, check_rescale_coverage
 
 
@@ -16,6 +17,7 @@ def main():
     vault = formal.parent
     env = os.environ.copy()
     env.update(FOUNDRY_LIBS='["../bil-vault/lib","../node_modules"]')
+    subprocess.run([sys.executable, str(formal / "check-dispatch.py")], cwd=formal, check=True)
     manifest = json.loads((formal / "solidity-manifest.json").read_text())
     for name, expected in manifest["files"].items():
         actual = hashlib.sha256((vault / name).read_bytes()).hexdigest()

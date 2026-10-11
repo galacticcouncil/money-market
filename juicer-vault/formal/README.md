@@ -58,6 +58,8 @@ JuicerLean/
    ├─ PublicInvariants.lean custody, source, cash and lifecycle invariants for public-call histories
    ├─ PublicPreservation.lean successful allowance/transfer custody preservation helpers
    ├─ PublicCertificates.lean checked public-call semantics and combined invariant certificates
+   ├─ SolidityDispatch.lean typed 31-opcode fixture dispatcher and universal raw-call correspondence
+   ├─ PublicReachability.lean certified raw-call domain and arbitrary finite trace preservation
    ├─ ScaledDebt.lean     Aave half-up ray arithmetic and executable scaled-balance histories
    ├─ Checked.lean        uint256 arithmetic failures and atomic transaction semantics
    ├─ CheckedRefinement.lean successful checked operations refine the natural-number models
@@ -82,6 +84,9 @@ JuicerLean/
 | `principalFloored_refines` | the on-chain integer floor guard conservatively implies the real floor |
 | `run_LoopSafe` / `run_SafeBacked` | the full `LoopSafe`/`Safe`/`freedBacked` bundle is closed under **any** trace of ops (deposit, tick, repay, deLever, accrueLoop, redemption) |
 | `genesis_run_mainHF` | `mainHF ≥ 1` from genesis (deposit) through any subsequent valid op trace |
+| `solidity_dispatch_corresponds` | the complete source-pinned 31-opcode fixture dispatcher selects the same raw model call for every action |
+| `validSolidityTrace_invariant` | every arbitrary finite raw trace in the certified Solidity action domain preserves the combined public invariant |
+| `validSolidityReachable_invariant` | every state reachable through certified raw fixture transitions satisfies the combined public invariant |
 | `agg_synthConserved` | no over-mint of the synthetic across the **whole book** of positions at once |
 | `agg_collateral_out_ge_in` | portfolio-wide redemption solvency: aggregate collateral out ≥ in, under `freedBacked` |
 | `deposit_conserved` / `deposit_isolation` | shared-loop deposit conserves total shares and cannot move another vault's balance |
@@ -107,7 +112,8 @@ The lifecycle layer includes waiting requests' committed units and accrual weigh
 partition derives the allocation weight premise from genesis. Resumable source batches, retries,
 partial/final claim histories and selected checked-arithmetic failures have separate executable
 models and proofs. These are integer transition proofs with explicit environmental boundaries;
-full compiled-Solidity trace equivalence remains outside this project. The table below
+the fixture dispatcher map is complete and source-checked, while full compiled-Solidity body
+equivalence remains outside this project. The table below
 describes the separate ideal-arithmetic models.
 
 | Theorem | Claim |
@@ -174,13 +180,20 @@ The old Verity bridge remains a separate simplified reference model; see [bridge
 
 `python3 check-stateful.py` runs public-call campaigns in three fixtures and replays them in Lean
 from fixture genesis. The checker compares state and outcomes after every step, enforces accounting
-partitions and rejects incomplete traces. the baseline covers vault/Main queues and claims; the
+partitions and rejects incomplete traces. every action is decoded through the typed Solidity map,
+checked against the fixture domain and executed by `rawRunCall`; every successful post-state must
+carry the combined certificate. the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
 price-driven deleveraging. the rescale fixture keeps ray-scale holders and a waiting request stale
 across four 64-bit shifts, then settles, starts, claims, writes off and refills. larger campaigns
 are configurable. the default 24 campaigns cover 7,338 recorded steps, 1,411 expected reverts and
 1,072 corrupted-output checks. see [stateful parity](STATEFUL_PARITY.md) for coverage gates and external mock
 boundaries. `check-runtime.py` includes all three default fixtures.
+
+`check-dispatch.py` independently checks all 31 target, selector and action-argument mappings
+against the pinned Solidity `perform` functions. `solidity_dispatch_corresponds` and
+`solidity_execute_corresponds` then prove the typed dispatcher equals the raw Lean public-call
+machine for every action, including unsupported opcodes.
 
 the stateful rescale campaigns and focused integration checks reach 64-bit and cumulative 256-bit
 accounting scales through public vault calls in controlled loss/refill environments, including a

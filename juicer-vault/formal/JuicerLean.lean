@@ -35,4 +35,6 @@ import JuicerLean.FixedPoint.PublicCalls
 import JuicerLean.FixedPoint.PublicInvariants
 import JuicerLean.FixedPoint.PublicPreservation
 import JuicerLean.FixedPoint.PublicCertificates
+import JuicerLean.FixedPoint.SolidityDispatch
+import JuicerLean.FixedPoint.PublicReachability
 import JuicerLean.FixedPoint.ScaledDebt

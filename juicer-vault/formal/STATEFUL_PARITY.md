@@ -5,6 +5,10 @@ source-batch and redemption models into the raw executable public-call machine.
 `PublicCertificates.lean` wraps that machine with a decidable post-state certificate: a raw
 success is preserved exactly when it satisfies the combined invariant, while a rejected result
 rolls back with the model-only code 98.
+`SolidityDispatch.lean` maps every fixture opcode 0–30 to a typed target, selector and action
+argument projection. `check-dispatch.py` checks that table against both Solidity `perform`
+functions, and the universal `solidity_dispatch_corresponds` theorem equates the typed dispatcher
+with `rawRunCall` for every action.
 `LeanStatefulParity.t.sol` runs the actual vault, accounting, Main and delegatecall logic
 from deployment. `LeanMarketStatefulParity.t.sol` adds the actual Harvester and fee controller,
 with changing source values, collateral prices, debt observations and execution costs.
@@ -14,8 +18,9 @@ post-call snapshot and success/revert outcome. it also checks the holder, reques
 Main-cash/debt and collateral partitions and the lazy liability bound after every call. its
 computed certificate also carries proofs of collateral custody, source/cash partitions and the
 combined holder/waiting-request lifecycle and operational request/array partitions for every
-accepted post-state. the replay treats code 98 as a hard failure, so every passing row also shows
-that the raw and checked machines agree on that transition.
+accepted post-state. each row must satisfy `FixtureAction` and `ValidSolidityAction`; the latter
+requires every successful raw result to satisfy `PublicInvariant`. the replay advances with the
+raw typed dispatcher, so no checked-call guard can hide a raw transition mismatch.
 
 Lean starts with the fixture's known genesis configuration and keeps its own predicted
 state throughout a campaign. Solidity snapshots are comparison outputs only; they never
@@ -156,8 +161,14 @@ these fixtures. the integration checks are bounded executable comparisons, not l
 
 this is differential execution evidence for the exercised public control flow. the checked
 machine has universal preservation theorems for successful calls and arbitrary finite action
-lists from a certified input. the raw machine reuses proved arithmetic transitions, but its
-correspondence to arbitrary Solidity executions is not a kernel proof or compiled-bytecode
-equivalence result. a fabricated orphan-claim storage state is a concrete counterexample to raw
-preservation over unrestricted states; it is rejected by the operational certificate and was not
-observed in any public-call trace.
+lists from a certified input. `ValidSolidityTrace` defines the raw domain as source-pinned fixture
+actions whose successful results carry the combined invariant certificate.
+`validSolidityTrace_invariant` and `validSolidityReachable_invariant` prove preservation through
+arbitrary finite traces in that domain, while the default replay checks membership for all 7,338
+recorded actions. a fabricated orphan-claim storage state is a concrete counterexample to raw
+preservation over unrestricted states and is excluded by the domain.
+
+the typed opcode theorem and source checker establish fixture-dispatch correspondence. they do
+not prove compiled bytecode or the internal contract bodies equivalent to `rawRunCall`. proving
+that every possible Solidity execution belongs to `ValidSolidityAction` without computing the
+post-state certificate remains outside this result.

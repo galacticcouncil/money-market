@@ -35,7 +35,7 @@ the check fails if they change without a new comparison.
 | controller credit, pacing, expiry and safety lanes | `Policy`, `available`, `policyCharge`, `executionMinimum` | credit/size bounds, no refill on refresh, quote only tightens oracle floor; 64 availability and 32 executed quote comparisons |
 | FIFO start and collateral claims | `queueReady`, `startQueue`, `settleRedemption`, `claimRedemption` | work/FIFO bounds, full final burn, recipient protection; 32 queue and 48 claim comparisons |
 | repeated settlement/claim histories | `RedemptionState.valid`, `settleQueue` | cumulative collateral/burn bounds, unpaid-head stop, final payout/burn; 24 three-claim histories |
-| stateful vault/Main/harvest/rescale sequences | `PublicCalls.State`, `rawRunCall`, checked `runCall`, `PublicInvariant` | independent replay from fixture genesis; exact outcomes, holder/request/Main snapshots and rollback; computed kernel certificates for custody, source/cash, lifecycle and operational invariants |
+| stateful vault/Main/harvest/rescale sequences | `PublicCalls.State`, `SolidityDispatch`, `ValidSolidityTrace`, `PublicInvariant` | complete source-checked 31-opcode fixture map; arbitrary finite certified raw-trace preservation; independent replay from fixture genesis with exact outcomes, snapshots and rollback |
 | shared-loop harvest and ICE histories | lifecycle and runtime projections | repeated harvests across two vaults sharing one loop; long actual-SubLoop intent expiry/reconcile/late-callback/exit sequence |
 | checked arithmetic and failure | `Checked`, checked account/backing/borrow/batch/claim/rescale operations | success refinement, exact arithmetic revert classes, atomic failure semantics; 488 primitive, 40 account and eight backing comparisons |
 | external observations | `payValid`, `exactReceipt`, `exactPayment`, callback/arrival theorems | conditional cash/debt bounds; detection threshold does not authenticate token origin |
@@ -170,10 +170,18 @@ lifecycle accounting and the operational array/request partitions used by the di
 checked `runCall` preserves the raw successful result exactly when its post-state satisfies that
 invariant; otherwise it returns the model-only code 98 and `execute` rolls back. consequently
 `runCall_success_preserves`, `execute_preserves` and `certifiedReplay_total` cover every checked
-call and every finite checked-call list from a certified input. the orphan-claim regression records
-why the guard is required: a fabricated raw storage state can contain a settled claim without any
-assets or liquid collateral, and raw claim dispatch would accept it. all stateful Solidity traces
-are rejected if code 98 ever appears, so the guard was inactive throughout the recorded corpus.
+call and every finite checked-call list from a certified input.
+
+`SolidityDispatch.lean` gives every fixture opcode 0–30 a typed target, selector and action-argument
+projection. `check-dispatch.py` checks the map against both pinned Solidity `perform` functions;
+`solidity_dispatch_corresponds` and `solidity_execute_corresponds` prove that the typed map equals
+the raw Lean dispatcher for every action. `PublicReachability.lean` defines `ValidSolidityAction`
+as a source-pinned fixture action whose successful raw result satisfies `PublicInvariant`.
+`validSolidityTrace_invariant` and `validSolidityReachable_invariant` carry that certificate through
+arbitrary finite raw traces from any certified fixture genesis. the orphan-claim regression records
+the necessary boundary: a fabricated raw storage state can contain a settled claim without any
+assets or liquid collateral, and raw claim dispatch would accept it, while the certified domain
+excludes the action.
 
 `LeanStatefulParity.t.sol` adds long public-call campaigns against the actual vault, accounting,
 Main and delegatecall logic, using the existing deterministic pool/token/source mocks.
@@ -198,7 +206,7 @@ sequence. Across both fixtures, 32 campaigns pass 15,216 recorded steps and 304 
 its coverage gate requires the old floor shift to produce a different claim, so observing a scale
 change alone is insufficient. its 16 campaigns add 7,393 recorded steps, 1,198 expected reverts
 and 1,696 corruption checks. See [stateful scope and reproduction](STATEFUL_PARITY.md). These tests exercise control-flow
-correspondence for a bounded fixture environment, not every Solidity trace.
+body correspondence for a bounded fixture environment; the opcode map itself is checked exhaustively.
 across all three fixtures, 48 campaigns pass 22,609 recorded steps, 4,932 expected reverts and
 2,000 corruption checks.
 
@@ -237,11 +245,12 @@ replays.
 
 ## verification
 
-619 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 1,261 kernel theorem
+635 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 1,402 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
-its complete Solidity dispatch correspondence is tested by replay, not proved for all executions.
+its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.
+the individual contract bodies remain differential execution comparisons.
 the comparison datasets contain 1,430 rows: the previous 826 plus 604 machine-boundary and history
 cases. validation also includes 512 transfer-rounding fuzz cases, the public vault lifecycle,
 rollback regressions, the focused rescale suites, and the seeded and public-call rescale
@@ -294,17 +303,24 @@ from genesis and cover the listed call sequences. every successful checked `runC
 kernel proof of the combined public invariant, and checked execution and replay preserve it for
 arbitrary finite action lists from a certified input. `rawRunCall` remains the direct Solidity
 model: universal acceptance of its successful results is false over arbitrary fabricated storage,
-as the orphan-claim regression demonstrates. proving raw dispatch preserves the invariant from
-all Solidity-reachable states remains open. the stateful runner treats the checked guard as a hard
-failure and observed no guard rejection in 7,338 calls. liability slots must represent
+as the orphan-claim regression demonstrates.
+
+`ValidSolidityAction` therefore combines the source-pinned fixture constraints with a decidable
+successful-post-state certificate. `validSolidityTrace_invariant` proves every arbitrary finite raw
+trace in that domain preserves `PublicInvariant`; `validSolidityReachable_invariant` gives the
+equivalent inductive reachability result. the stateful runner now advances through the raw typed
+dispatcher and checked all 7,338 default actions for domain membership. proving that every possible
+Solidity execution is a domain member without computing its post-state certificate remains open.
+liability slots must represent
 distinct holders or disjoint
 waiting requests; all liabilities must be included in the initial representation. The new genesis
 results remove the repeated numerical weight/partition assumptions, not that representation boundary.
 The real-valued index proofs remain ideal arithmetic; exact integer equivalence would contradict
 the checked rescale counterexample.
 Main arithmetic, fee vesting, controller policies, source orchestration, retries and queue histories
-have the coverage above. Cross-contract control-flow equivalence, arithmetic outside the listed
-checked operations, upgrades and reentrancy remain outside the kernel proof. Access control and
+have the coverage above. the source checker and universal theorem cover fixture target/selector
+dispatch, but contract-body equivalence, arithmetic outside the listed checked operations, upgrades
+and reentrancy remain outside the kernel proof. Access control and
 trusted administrative configuration are not replaced
 by the arithmetic models. protocol fee-controller binding/custody and the deployed Aave Pool remain
 fixture boundaries rather than formalized external protocol implementations. the scaled-debt model
