@@ -84,7 +84,7 @@ jobs:
         working-directory: juicer-vault
         run: >-
           forge build --evm-version london --skip test --skip script --sizes
-          --out out-production --cache-path cache-production
+          --out out-production --cache-path cache-production --build-info
 
       - name: Run contract regression
         working-directory: juicer-vault
