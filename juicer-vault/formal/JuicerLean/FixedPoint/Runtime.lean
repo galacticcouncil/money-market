@@ -10,6 +10,7 @@ def ray : ℕ := 10 ^ 27
 def wad : ℕ := 10 ^ 18
 def max256 : ℕ := 2 ^ 256 - 1
 def ceilDiv (a b : ℕ) : ℕ := a ⌈/⌉ b
+def ceilShift (a shift : ℕ) : ℕ := ceilDiv a (2 ^ shift)
 
 def buffered (debt lt : ℕ) : ℕ :=
   let base := ceilDiv (debt * 10000) lt
@@ -48,7 +49,7 @@ def accountUnits (b : Book) (a : Account) (weight : ℕ) (special := false) : �
   if special then a.units else
   let current := a.epoch == b.epoch
   let shift := if current then b.scale - a.scale else 0
-  let previous := if current then a.index >>> shift else 0
+  let previous := if current then min b.index (ceilShift a.index shift) else 0
   let owned := if current then a.units >>> shift else 0
   min b.total (owned + weight * (b.index - previous) / ray)
 
@@ -61,8 +62,10 @@ def fundedOf (funded total owned : ℕ) : ℕ :=
 def take (funded total owned shares : ℕ) : Option (ℕ × ℕ) :=
   let slice := if owned == 0 then 0 else fundedOf funded total owned
   if slice == 0 || slice < shares then none else
-  let taken := min owned (ceilDiv (owned * shares) slice)
-  some (taken, owned - taken)
+  let remaining := ceilDiv ((slice - shares) * total) funded
+  let taken := min (owned - remaining) (ceilDiv (owned * shares) slice)
+  if fundedOf funded total (owned - taken) != slice - shares then none
+  else some (taken, owned - taken)
 
 theorem accountUnits_le (b : Book) (a : Account) (w : ℕ) :
     accountUnits b a w ≤ b.total := by
@@ -83,7 +86,7 @@ theorem take_conserves (f t u s x left : ℕ) (h : take f t u s = some (x, left)
   all_goals
     rcases h with ⟨hx, hl⟩
     rw [← hx, ← hl]
-    exact Nat.add_sub_of_le (min_le_left _ _)
+    exact Nat.add_sub_of_le ((min_le_left _ _).trans (Nat.sub_le _ _))
 
 def requiredBacking (debt principal cash fee : ℕ) : ℕ :=
   let required := debt - cash
@@ -103,7 +106,9 @@ theorem rescale_four_suffices (b : Book) (limit : ℕ) (h : b.total < 2 ^ 256) :
   split_ifs <;> simp_all [Nat.shiftRight_eq_div_pow]
   all_goals omega
 
-theorem take_rounding_example : take 10 3 2 1 = some (1, 1) := by decide
+theorem take_rounding_example : take 10 3 2 1 = none := by decide
+
+theorem take_fine_rounding_example : take 2 3 3 1 = some (1, 2) := by decide
 
 theorem funded_rounding_example : fundedOf 10 3 2 - fundedOf 10 3 1 = 3 := by decide
 
@@ -169,7 +174,7 @@ structure ExitResult where
 def startExit (b : Book) (owner request : Account) (wallet shares funded : ℕ) : ExitResult :=
   let current := request.epoch == b.epoch
   let shift := if current then b.scale - request.scale else 0
-  let previous := if current then request.index >>> shift else 0
+  let previous := if current then min b.index (ceilShift request.index shift) else 0
   let committed := if current then request.units >>> shift else 0
   let owned := min b.total (accountUnits b owner wallet + shares * (b.index - previous) / ray)
   let exiting := if owned == 0 || shares == 0 then 0 else owned * shares / (wallet + shares)

@@ -88,7 +88,7 @@ theorem checkedAccountUnits_refines (b : Book) (a : Account) (weight result : �
       checked_pure, Except.ok.injEq] at h
     simp only [accountUnits, Bool.false_eq_true, ↓reduceIte, he, beq_iff_eq]
     rcases h with ⟨shift, hshift, delta, hdelta, pending, hpending, all, hall, hr⟩
-    simp_all [checkedShift]
+    simp_all [checkedShift, checkedCeilShift_refines]
 
 theorem checkedBatchSegment_refines (a c t w shares : ℕ) (result : ℕ × ℕ × ℕ)
     (h : checkedBatchSegment a c t w shares = .ok result) :

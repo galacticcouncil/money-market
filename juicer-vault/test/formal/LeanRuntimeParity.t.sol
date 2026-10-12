@@ -9,6 +9,7 @@ import {SubLoopLogic, SubLoopStorage} from "../../src/lib/SubLoopLogic.sol";
 import {IAavePool} from "../../src/interfaces/IAavePool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract ParityVault is MockERC20 {
     address public yieldSource = address(this);
@@ -147,15 +148,28 @@ contract LeanRuntimeParityTest is Test {
     /// forge-config: default.fuzz.runs = 512
     function testFuzz_leanTransferDisplayBounds(uint128 fSeed, uint96 tSeed, uint96 uSeed, uint128 sSeed) public {
         uint256 t = bound(tSeed, 1, type(uint96).max);
-        uint256 f = bound(fSeed, t, type(uint128).max);
+        uint256 f = fSeed % 2 == 0 ? bound(fSeed, 1, t) : bound(fSeed, t, type(uint128).max);
         uint256 u = bound(uSeed, 1, t);
         uint256 vUnits = (t - u) / 2;
         uint256 slice = f * u / t;
-        uint256 shares = bound(sSeed, 1, slice);
+        uint256 shares = slice == 0 ? 1 : sSeed % 4 == 0 ? slice : bound(sSeed, 1, slice);
         ParityVault v = new ParityVault(); JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
         v.mint(address(y), f); _store(y, 2, t);
         _map(y, 4, uint160(OWNER), u); _map(y, 4, uint160(RECEIVER), vUnits);
         uint256 recipientBefore = y.fundedOf(RECEIVER);
+        if (slice == 0) {
+            vm.prank(address(v)); vm.expectRevert(JuicerYieldAccounting.ExceedsBalance.selector);
+            y.settle(OWNER, RECEIVER, shares);
+            return;
+        }
+        uint256 minimumLeft = Math.ceilDiv((slice - shares) * t, f);
+        if (f * minimumLeft / t != slice - shares) {
+            vm.prank(address(v)); vm.expectRevert(JuicerYieldAccounting.InexactShares.selector);
+            y.settle(OWNER, RECEIVER, shares);
+            assertEq(y.balanceOf(OWNER), u);
+            assertEq(y.balanceOf(RECEIVER), vUnits);
+            return;
+        }
         vm.prank(address(v)); y.settle(OWNER, RECEIVER, shares);
         uint256 moved = u - y.balanceOf(OWNER);
         uint256 debit = slice - y.fundedOf(OWNER);
@@ -164,9 +178,19 @@ contract LeanRuntimeParityTest is Test {
         uint256 upper = (f * moved + t - 1) / t;
         assertGe(debit, lower); assertLe(debit, upper);
         assertGe(credit, lower); assertLe(credit, upper);
+        assertEq(debit, shares);
         assertLe(debit, credit + 1); assertLe(credit, debit + 1);
         assertEq(y.balanceOf(OWNER) + y.balanceOf(RECEIVER), u + vUnits);
         assertEq(y.totalUnits(), t);
+    }
+
+    function test_fineUnitsCapProportionalRounding() public {
+        ParityVault v = new ParityVault(); JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+        v.mint(address(y), 2); _store(y, 2, 3); _map(y, 4, uint160(OWNER), 3);
+        vm.prank(address(v)); y.settle(OWNER, RECEIVER, 1);
+        assertEq(y.fundedOf(OWNER), 1);
+        assertEq(y.balanceOf(OWNER), 2);
+        assertEq(y.balanceOf(RECEIVER), 1);
     }
 
     function test_leanAccountEpochAndRescale() public {

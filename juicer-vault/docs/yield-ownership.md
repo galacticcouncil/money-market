@@ -65,7 +65,7 @@ losses that leave only dust use lazy unit rescaling, avoiding unbounded growth
 in accounting units without scanning holders or changing the underlying assets.
 Shifting a holder's previous index can round pending accrual upward. The integer proofs track an
 aggregate rounding budget; a seeded allocation produces one excess reward unit after rescaling.
-This is not a demonstrated public-call loss; see `formal/ROUNDING.md` for the state and bounds.
+This is not a demonstrated public-call loss; see [rounding evidence](../formal/ROUNDING.md) for the state and bounds.
 
 A lazy index awards reward-fund units to wallet-share holders at each
 allocation. Deposits allocate before they mint and start at the current index,
@@ -121,13 +121,14 @@ shares `S` not yet harvested.
   request holds units committed beyond its wallet (below): their funded slice
   shows in no balance until the unwind starts and folds it into the escrow.
 - A transfer up to the sender's wallet moves wallet shares only. Beyond the
-  wallet it also moves the units whose funded slice covers the rest, rounded up,
-  together with their part of `S`, and emits a separate `Transfer` for that
-  part. No third party's balance changes. More than `balanceOf` reverts
-  `ExceedsBalance`. Allowances are charged for the requested amount.
-  The [formal rounding investigation](../formal/ROUNDING.md) reproduces a transferFrom
-  allowance mismatch after a public fund donation: one requested base unit can debit more
-  displayed balance. Exact-amount behavior is an open implementation finding.
+  wallet it moves reward units and their part of `S`, with a separate `Transfer`
+  event for the funded part. The sender's displayed balance decreases by exactly
+  the requested amount; unrepresentable funded amounts revert `InexactShares`.
+  No third party's balance changes. More than `balanceOf` reverts `ExceedsBalance`.
+  Allowances are charged for the requested amount and restored on a revert.
+  Within the settled unit bound, the recipient's credit can differ by one base unit.
+  Full funded transfers remain available, and self-transfers preserve balances.
+  See the [rounding proofs and donation regressions](../formal/ROUNDING.md).
 
 - `earnedAssets(a)` values everything the holder's units own in collateral: the
   funded slice already in the balance plus the pending source part. The UI shows
@@ -147,8 +148,9 @@ of exited owners are gone.
 ## Withdrawals and fee consistency
 
 `requestRedeem(x)` escrows up to `x` wallet shares. Beyond the wallet it commits
-to the request the owner's units whose funded slice covers the rest, capped at
-the slice the owner has; a larger `x` does not revert. Only the owner can call
+to the request the owner's units for the remaining amount, using the same exact
+sender-debit guard as transfers. Amounts above the balance revert `ExceedsBalance`;
+unrepresentable funded amounts revert `InexactShares`. Only the owner can call
 `requestRedeem(type(uint256).max, owner)`, which takes the wallet and every unit.
 
 At unwind start the owner receives the units the escrowed shares earned while
