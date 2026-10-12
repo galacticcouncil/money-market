@@ -20,6 +20,23 @@ via_ir = true
 # read access for the verity forktest harness (reads bridge/forktest/bytecode/*.bin).
 fs_permissions = [{ access = "read", path = "./formal" }, { access = "read-write", path = "./formal/.stateful" }]
 
+# iteration only, never a deployable build. own out/cache so switching profiles keeps both caches.
+[profile.fast]
+via_ir = false
+evm_version = "london"
+dynamic_test_linking = true
+out = "out-fast"
+cache_path = "cache-fast"
+additional_compiler_profiles = [{ name = "via-ir", via_ir = true }]
+# stack too deep without via-ir; forge also compiles every file importing these with via-ir
+compilation_restrictions = [
+    { paths = "src/JuicerYieldAccounting.sol", via_ir = true },
+    { paths = "src/Harvester.sol", via_ir = true },
+    { paths = "src/lib/CompoundLogic.sol", via_ir = true },
+    { paths = "src/lib/SubLoopLogic.sol", via_ir = true },
+    { paths = "test/DcaDispatch.t.sol", via_ir = true },
+]
+
 [invariant]
 runs = 256
 depth = 50
