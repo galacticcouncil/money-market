@@ -52,7 +52,7 @@ def artifact_summary(path, source, contract):
 
 
 def build(vault, formal, artifacts):
-    env = compiler_environment()
+    env = compiler_environment("bytecode-cache")
     subprocess.run(
         [
             "forge", "build", "--offline", "--skip", "test", "--skip", "script",

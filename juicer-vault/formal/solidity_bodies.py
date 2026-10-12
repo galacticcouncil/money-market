@@ -125,7 +125,7 @@ def generated_module(artifact):
 
 
 def build(vault, artifacts):
-    environment = compiler_environment()
+    environment = compiler_environment("ast-cache")
     subprocess.run(["forge", "build", "--offline", "--skip", "test", "--skip", "script", "--ast",
                     "--out", str(artifacts), "--cache-path", str(compiler_cache_path("ast-cache"))],
                    cwd=vault, env=environment, stdout=sys.stderr, check=True)

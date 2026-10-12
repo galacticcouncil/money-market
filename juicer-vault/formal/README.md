@@ -3,10 +3,11 @@
 Formal verification of **Juicer** — a protocol-managed leveraged-yield product on
 Hydration — in **Lean 4**. Contains conditional mathematical proofs and executable integer models checked against Solidity.
 [Current implementation mapping and limits](SOLIDITY_PARITY.md) is the coverage record.
+[Source-body and guard-prefix proofs](SOLIDITY_BODIES.md) record the compiled AST bindings and their trust boundary.
 [Funded-transfer rounding](ROUNDING.md) records the allowance fix and a separate seeded
 counterexample to exact aggregate unit conservation across lazy rescales.
 
-Lives beside the contracts it models: `juicer-vault/{src,test,formal}` (branch `juicer-next`).
+Lives beside the contracts it models: `juicer-vault/{src,test,formal}`.
 A self-contained Lake project; `check-runtime.py` builds Lean and runs the Foundry comparisons.
 Strategy: Path C.
 
@@ -99,10 +100,11 @@ JuicerLean/
 | `buggy_over_credits` / `buggy_strictly_over` | the REJECTED requested-weighted alternative provably over-credits — this is bug G, kept as a negative result so the fix's rationale is machine-checked too |
 | `accrueLoop_restores_freedBacked` | modeling loop yield: equity growth raises `subHF` and restores `freedBacked` after redemption pressure |
 
-## Next version (`juicer-next`, plan §2–§4, §7)
+## Runtime correspondence
 
-aligned with the allowance-fixed Solidity based on `juicer-next` at `21f5aa7` on 10 october. the real-number models prove ideal accounting
-properties; `FixedPoint/Runtime.lean` adds current integer arithmetic, epoch and rescale behavior.
+aligned with the checked-in allowance and ceil-rescale fixes. `solidity-manifest.json` records the
+exact source snapshot. the real-number models prove ideal accounting properties;
+`FixedPoint/Runtime.lean` adds current integer arithmetic, epoch and rescale behavior.
 Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 1,430 Lean cases with the
 actual Solidity, and detect source, compiled-artifact or storage-layout drift. Same integrity bar: 0 `sorry`, axioms
 `propext`/`Classical.choice`/`Quot.sound` only.
@@ -224,6 +226,11 @@ checked uint256 interpreter proves this body equals `Runtime.ceilShift` for all 
 including shifts of at least 256 bits. unsupported syntax is rejected. the formal build uses
 fixed relative remappings and cache keys that change with them. see [body proof scope](SOLIDITY_BODIES.md)
 for the extractor, arithmetic semantics and compiler/EVM trust boundary.
+
+`solidity_guards.py` checks compiled authorization and reentrancy guard bodies, 32 leading
+entrypoint prefixes and the explicit transfer check. the proofs cover rejection, lock reset and
+composition with the raw public invariant. role administration, upgrades and whole-protocol
+callback safety remain outside this coverage.
 
 the stateful rescale campaigns and focused integration checks reach 64-bit and cumulative 256-bit
 accounting scales through public vault calls in controlled loss/refill environments, including a

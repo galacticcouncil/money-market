@@ -39,4 +39,5 @@ import JuicerLean.FixedPoint.SolidityDispatch
 import JuicerLean.FixedPoint.PublicReachability
 import JuicerLean.FixedPoint.PublicBoundaryRegressions
 import JuicerLean.Solidity.BodyProofs
+import JuicerLean.Solidity.GuardProofs
 import JuicerLean.FixedPoint.ScaledDebt

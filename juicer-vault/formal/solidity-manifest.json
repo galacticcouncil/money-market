@@ -34,7 +34,7 @@
     "formal/JuicerLean/FixedPoint/CheckedRefinement.lean": "28ac7a13ac770fa304b13e3c7a680761a8eac4d0e39bb6b429d93db71ac778f9",
     "formal/MachineVectors.lean": "b3e18d157c04ba57c0e2a4caa326cc5aba1f3b372d71494a37b8696560c8642f",
     "../bil-vault/lib/openzeppelin-contracts/contracts/utils/math/Math.sol": "85a2caf3bd06579fb55236398c1321e15fd524a8fe140dff748c0f73d7a52345",
-    "formal/JuicerLean.lean": "4df0e214e84d776390c2d6114e3ef73f6fb776cc1b6de7d6f508fbf98b141e17",
+    "formal/JuicerLean.lean": "87da2f462bb01bda9569d73accab8f9cf4234d230954f6d89b2c3fc922d2bc3a",
     "formal/JuicerLean/FixedPoint/PublicCalls.lean": "20eccaff65dc596d36a69574cd4343a42b3779fd23de05da63f8988a770ec33d",
     "formal/JuicerLean/FixedPoint/PublicInvariants.lean": "22c88068358f1d874f6a80ed945ff040249ab4d7489b26a7066f452d2f764c1c",
     "formal/JuicerLean/FixedPoint/PublicCertificates.lean": "5d46d711959887516914a2dc9a5e52be814c0835f4f44137aa2dad8aa0592742",
@@ -68,8 +68,8 @@
     "test/mocks/StatefulYieldSource.sol": "c76df6893d40a2167c66719973a3490322b2b277e5591b6d77e55081b9cd81c9",
     "test/mocks/MockSwapper.sol": "b3031758599a1f3b8cd955a0a2b367c35c47d0a741b8627d8dc5600dd894e4ce",
     "formal/check-dispatch.py": "184dae768d89652c53000bd7ac982928a4403d690970c69b66b4c457580f76f0",
-    "formal/check-runtime.py": "36a00510697cddf758cb9f217902a2bc9ff8ebe0ce1193c89b9b323bd8d6350d",
-    "formal/check-bytecode.py": "26c5206c51e81a3334aac2013b653d47394edaffdb82c610e372a226decbc56d",
+    "formal/check-runtime.py": "6a8c6d8c9fdad40c1400c3b8b99c39fa394d00cc295267939aec07df3f539c78",
+    "formal/check-bytecode.py": "6a0ef8c648c2d7e084336a54d2e9f5b59a6bdef9a79e7a22bbfd898337a281fa",
     "formal/bytecode-manifest.json": "62172ca78fb3fa1cf583a42c08d7afd00e5331f9cbe46f748868934f14232987",
     "test/formal/RescaleAmplification.t.sol": "e6df0ef988d474445ffa4412ac8c9974c7158ef06fa9b377a790ebbf3404cb9c",
     "test/formal/RescaleEconomics.t.sol": "9a9d704b29684a4292b26eaf2fa7c093fa42d9aba6b88d0a8fb7a37a8cf02f9d",
@@ -122,8 +122,14 @@
     "formal/JuicerLean/Solidity/GeneratedBodies.lean": "e753d6cea14d0adc637bdac9e6af803adb3124546a536c8da50654c7b62907b7",
     "formal/JuicerLean/Solidity/BodyProofs.lean": "debcef9b270c0bfecc975b422c9e72a91a5397d24f8bbfaf2f7651a9ccbf7395",
     "formal/compiler-remappings.json": "9fab42846b3280e7b6af65ca9335eb0c611d3477e0407efc9d95fef3c4c05ebd",
-    "formal/compiler_environment.py": "c17479ba5aa710f6749cc82e9b7968c07b9b95570c7c965e85401643d5d7045c",
-    "formal/solidity_bodies.py": "f7c75df8e3d62d12769c0f273c83a2fb0c37c872e4b8f6a5887b696e45c4c3b7",
-    "formal/test_solidity_bodies.py": "10b421fbc67beb64f9a5bcda9ccb008ab70b452ff2864f1d13179629cce46b29"
+    "formal/compiler_environment.py": "50e7d83f724ecd350b652f58f853cc3a26661a2cc26b66639f877422f1bc5cf3",
+    "formal/solidity_bodies.py": "138b67d1a3c15bf7b2720ec54c68192fd10cfc8024334a8638d8db5a840c158e",
+    "formal/test_solidity_bodies.py": "10b421fbc67beb64f9a5bcda9ccb008ab70b452ff2864f1d13179629cce46b29",
+    "formal/JuicerLean/Solidity/Guards.lean": "e6a608aa97fa5ba0f1f09830fd57ca4c0daf605e705a3ba5dbdc360418b52f14",
+    "formal/JuicerLean/Solidity/GeneratedGuards.lean": "2a6fa3a901a058017e8b66475dbfb5dab93b60b06c453a406a89de673e987117",
+    "formal/JuicerLean/Solidity/GuardProofs.lean": "a0a886ee3da4e1125773a1f876c601c9628a537bcb278846684010fe2f4d7a2a",
+    "formal/solidity_guards.py": "c7112bcf07913c092af47a994019cb73f26ada9bcb8ff06ee849c4fdfc68a4d3",
+    "formal/test_solidity_guards.py": "2a73e0fa5f2fb2d6f891058c6128ac197d30c0970202e29f019cb3288acb9e91",
+    "../bil-vault/lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol": "fa97ea556c990ee44f2ef4c80d4ef7d0af3f5f9b33a02142911140688106f5a9"
   }
 }

@@ -36,13 +36,17 @@ def main():
     subprocess.run(["forge", "build", "--offline", "--skip", "test", "--skip", "script",
                     "--extra-output", "storageLayout", "--ast", "--out", str(layout_out),
                     "--cache-path", str(compiler_cache_path("layout-cache"))],
-                   cwd=vault, env=env, check=True)
+                   cwd=vault, env=compiler_environment("layout-cache"), check=True)
     subprocess.run([sys.executable, str(formal / "check-bytecode.py"),
                     "--artifacts", str(layout_out)], cwd=vault, check=True)
     subprocess.run([sys.executable, str(formal / "solidity_bodies.py"),
                     "--artifacts", str(layout_out)], cwd=formal, check=True)
     subprocess.run([sys.executable, str(formal / "test_solidity_bodies.py"), "--artifact",
                     str(layout_out / "JuicerYieldAccounting.sol/JuicerYieldAccounting.json")], cwd=formal, check=True)
+    subprocess.run([sys.executable, str(formal / "solidity_guards.py"),
+                    "--artifacts", str(layout_out)], cwd=formal, check=True)
+    subprocess.run([sys.executable, str(formal / "test_solidity_guards.py"),
+                    "--artifacts", str(layout_out)], cwd=formal, check=True)
     layout = json.loads((layout_out / "JuicerYieldAccounting.sol" /
                          "JuicerYieldAccounting.json").read_text())["storageLayout"]
     slots = {entry["label"]: int(entry["slot"]) for entry in layout["storage"]}
