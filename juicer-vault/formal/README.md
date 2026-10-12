@@ -64,6 +64,17 @@ JuicerLean/
    ├─ PublicCertificates.lean checked public-call semantics and combined invariant certificates
    ├─ SolidityDispatch.lean typed 31-opcode fixture dispatcher and universal raw-call correspondence
    ├─ PublicReachability.lean certified raw-call domain and arbitrary finite trace preservation
+   ├─ PublicMetadataTransitions.lean account/request epoch and scale preservation through helpers and loops
+   ├─ PublicMetadataReachability.lean metadata preservation for every raw call and arbitrary finite history
+   ├─ PublicCallBounds.lean source/fee rate and stored-request owner preservation through helpers and loops
+   ├─ PublicReadyReachability.lean joint induction for financial and auxiliary invariants on ordinary histories
+   ├─ PublicInitialization*.lean locked-share initialization preservation and caller restriction
+   ├─ PublicActiveFee*.lean zero fee at zero active remainder across all raw calls
+   ├─ PublicQueue*.lean queue collateral and position backing across public histories
+   ├─ PublicCredit*.lean persistent batch readiness, prefix, fee backing and public-call induction
+   ├─ PublicHarvestCapacityProofs.lean capped burns and partial reserve-slice bounds
+   ├─ PublicInductionRegressions.lean harvest, locked-address and missing-collateral regressions
+   ├─ PublicCallBoundsReachability.lean bounded rates and request owners across arbitrary fixture-call histories
    ├─ PublicBoundaryRegressions.lean fabricated future epochs and vault impersonation boundaries
    ├─ ScaledDebt.lean     Aave half-up ray arithmetic and executable scaled-balance histories
    ├─ Checked.lean        uint256 arithmetic failures and atomic transaction semantics
@@ -92,6 +103,7 @@ JuicerLean/
 | `solidity_dispatch_corresponds` | the complete source-pinned 31-opcode fixture dispatcher selects the same raw model call for every action |
 | `validSolidityTrace_invariant` | every arbitrary finite raw trace in the certified Solidity action domain preserves the combined public invariant |
 | `validSolidityReachable_invariant` | every state reachable through certified raw fixture transitions satisfies the combined public invariant |
+| `ordinaryTrace_genesis_ready` | arbitrary finite ordinary fixture histories preserve the financial invariant and derive initialization, active-fee, queue and credit conditions jointly; capped-harvest safety holds for every state |
 | `agg_synthConserved` | no over-mint of the synthetic across the **whole book** of positions at once |
 | `agg_collateral_out_ge_in` | portfolio-wide redemption solvency: aggregate collateral out ≥ in, under `freedBacked` |
 | `deposit_conserved` / `deposit_isolation` | shared-loop deposit conserves total shares and cannot move another vault's balance |
@@ -197,19 +209,41 @@ account/request epochs and scales consistent with the book's history. requestRed
 an ordinary owner; deposit requires a bounded receiver and a zero reward index when supply is zero.
 rebalance additionally requires zero fee remainder when the active source remainder is zero.
 pokeSettle requires backed queue collateral, consistent batch weights/budgets, backed fees and
-source pull/cost rates at most 10000 basis points. harvest requires its post-checkpoint amount to
-fit source capacity. startUnwinds requires consistent metadata, queue backing, ordinary waiting
+source pull/cost rates at most 10000 basis points. harvest burns the minimum of its quote and
+the single-vault fixture's held-share capacity; the bound is unconditional. startUnwinds requires consistent metadata, queue backing, ordinary waiting
 owners and a fee rate at most 10000 basis points; its proof covers arbitrary loop lengths.
 all 31 opcodes now have preservation proofs based on inputs. domain admission uses those rules
-or a raw revert, with no successful post-state certificate fallback. the additional
-input premises are replay-checked but not yet proved inductive across every raw call.
+or a raw revert, with no successful post-state certificate fallback. account/request metadata
+is now proved inductive across every raw call, including reverts and unsupported opcodes, without
+financial or fixture-domain premises. arbitrary finite histories from genesis therefore have
+consistent epochs and scales. `PublicCallBounds` proves that source pull/cost rates and fee rates
+stay at most 10000 basis points and every stored request retains an ordinary owner across arbitrary
+finite fixture-call histories, including rollback. these proofs need initial bounds and the existing
+fixture restrictions on setters and request creation, without financial invariants or post-state
+certificates. `PublicReadyReachability` now closes initialization, active-fee, queue-backing,
+credit-readiness and capped-harvest premises together with the financial invariant. `OrdinaryAction`
+retains the fixture restrictions, limits direct transfer callers to the four external holders,
+and requires a started claim or a raw revert. it contains none of the five accounting premises.
+`ordinaryTrace_genesis_ready` derives them for arbitrary finite ordinary histories without
+post-state certificates. credit readiness includes an empty source prefix even during suspended
+batches, and preserves fee backing through repayments and appended exits.
+
+negative regressions make the domain and model corrections explicit. the permissive old
+fixture domain can impersonate the locked-share address, drain supply to zero, and retain a
+nonzero reward index; the initialization theorem excludes that caller. a public harvest history
+quotes `750000000000000002` source shares while holding `750000000000000000`. Solidity already
+caps the burn. the model now applies that cap and consumes only the realized source/protocol
+reserve slice, preserving the two remaining reward units until the next checkpoint.
+deposits also now reject collateral amounts above the caller's balance before consuming it;
+raising the TVL cap previously exposed a successful model deposit where ERC20 transfer reverts.
+Solidity rollback regressions and kernel-checked model cases cover both fixture balance scales.
 the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
 price-driven deleveraging. the rescale fixture keeps ray-scale holders and a waiting request stale
 across four 64-bit shifts, then settles, starts, claims, writes off and refills. larger campaigns
 are configurable. the default 24 campaigns cover 7,338 recorded steps, 1,411 expected reverts and
 1,072 corrupted-output checks. see [stateful parity](STATEFUL_PARITY.md) for coverage gates and external mock
-boundaries. `check-runtime.py` includes all three default fixtures.
+boundaries. `check-runtime.py` includes all three default fixtures plus two focused ten-call harvest-capacity replays.
 
 `check-dispatch.py` independently checks all 31 target, selector and action-argument mappings
 against the pinned Solidity `perform` functions. `solidity_dispatch_corresponds` and

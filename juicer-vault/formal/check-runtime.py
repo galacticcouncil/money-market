@@ -65,7 +65,8 @@ def main():
             raise SystemExit(f"Main storage layout changed: {name}")
     traces = [formal / ".stateful" / f"{prefix}-{seed}.jsonl"
               for prefix in ("trace", "market", "rescale") for seed in range(1, 9)]
-    for path in traces:
+    harvest_traces = [formal / ".stateful" / f"harvest-capacity-{fixture}.jsonl" for fixture in (1, 2)]
+    for path in traces + harvest_traces:
         path.unlink(missing_ok=True)
     env.update(LEAN_STATEFUL_SEED="1", LEAN_STATEFUL_COUNT="8", LEAN_STATEFUL_DEPTH="192")
     subprocess.run(["forge", "test", "--offline", "--match-path", "test/formal/*.t.sol", "--match-contract", "^(Lean|Rescale)", "--gas-limit", str(2**40), "-vv"],
@@ -73,6 +74,8 @@ def main():
     subprocess.run(lean + ["--run", "StatefulReplay.lean"] +
                    [str(path) for path in traces],
                    cwd=formal, check=True)
+    subprocess.run(lean + ["--run", "StatefulReplay.lean", "--harvest-capacity"] +
+                   [str(path) for path in harvest_traces], cwd=formal, check=True)
     subprocess.run(lean + ["--run", "ScaledDebtReplay.lean",
                            str(formal / ".stateful" / "scaled-debt.jsonl")],
                    cwd=formal, check=True)
