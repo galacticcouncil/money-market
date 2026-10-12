@@ -34,7 +34,7 @@
     "formal/JuicerLean/FixedPoint/CheckedRefinement.lean": "28ac7a13ac770fa304b13e3c7a680761a8eac4d0e39bb6b429d93db71ac778f9",
     "formal/MachineVectors.lean": "b3e18d157c04ba57c0e2a4caa326cc5aba1f3b372d71494a37b8696560c8642f",
     "../bil-vault/lib/openzeppelin-contracts/contracts/utils/math/Math.sol": "85a2caf3bd06579fb55236398c1321e15fd524a8fe140dff748c0f73d7a52345",
-    "formal/JuicerLean.lean": "badf65ccf12daa4c72b620009241388f91f4cabef14f87febfcdb93f26752fca",
+    "formal/JuicerLean.lean": "944268d4b39bbf69d2cf68478791471e4f1ceb6b901da5130458cdaea4b25184",
     "formal/JuicerLean/FixedPoint/PublicCalls.lean": "20eccaff65dc596d36a69574cd4343a42b3779fd23de05da63f8988a770ec33d",
     "formal/JuicerLean/FixedPoint/PublicInvariants.lean": "22c88068358f1d874f6a80ed945ff040249ab4d7489b26a7066f452d2f764c1c",
     "formal/JuicerLean/FixedPoint/PublicCertificates.lean": "5d46d711959887516914a2dc9a5e52be814c0835f4f44137aa2dad8aa0592742",
@@ -49,7 +49,7 @@
     "formal/JuicerLean/FixedPoint/RoundingResidue.lean": "01c790e7bf737c322e10f4ca10289c0a40bc507071b94bd54c3afa377b5a5ca2",
     "formal/JuicerLean/FixedPoint/ScaledDebt.lean": "83973a56f3dadcd1e9a2c40febc20b7199aa5d1b1952880884352cd5656a9608",
     "formal/ScaledDebtReplay.lean": "5546be223b87959389ce2977ce9a21986e56571297785960b21cd521ec9f35a8",
-    "formal/StatefulReplay.lean": "f33130cd16599556f20c023b266e45946217decdf78e3923886c40bac4a74833",
+    "formal/StatefulReplay.lean": "1bd15ef85d84af0647c8b163d54b735b1be50fc41cd582de4aceaf0acbde840d",
     "formal/check-stateful.py": "682154fbf078d8019d82f5ff313d1dd3b0c02ef1769a0adc3247f16b0b87c827",
     "formal/stateful_coverage.py": "85fec43faf528c416a1660727bb411da869e59454559b1d205527ccf907bdb25",
     "test/formal/LeanStatefulParity.t.sol": "b8b9382ddd1531de1bbbbe19221610cffb622a27bf931ce8e3b8487682b5d734",
@@ -127,11 +127,13 @@
     "formal/test_solidity_bodies.py": "10b421fbc67beb64f9a5bcda9ccb008ab70b452ff2864f1d13179629cce46b29",
     "formal/JuicerLean/Solidity/Guards.lean": "e6a608aa97fa5ba0f1f09830fd57ca4c0daf605e705a3ba5dbdc360418b52f14",
     "formal/JuicerLean/Solidity/GeneratedGuards.lean": "2a6fa3a901a058017e8b66475dbfb5dab93b60b06c453a406a89de673e987117",
-    "formal/JuicerLean/Solidity/GuardProofs.lean": "f08c587fe1b49c78cad36ed9e909d28f997737f7fb3e59e6e7c9f471c31cce89",
+    "formal/JuicerLean/Solidity/GuardProofs.lean": "172378cb41908437a3daeafb19560096c4a57e67d6b57602df3a3c6694a90317",
     "formal/solidity_guards.py": "c7112bcf07913c092af47a994019cb73f26ada9bcb8ff06ee849c4fdfc68a4d3",
     "formal/test_solidity_guards.py": "2a73e0fa5f2fb2d6f891058c6128ac197d30c0970202e29f019cb3288acb9e91",
     "../bil-vault/lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol": "fa97ea556c990ee44f2ef4c80d4ef7d0af3f5f9b33a02142911140688106f5a9",
     "formal/JuicerLean/FixedPoint/PublicMetadataTransitions.lean": "c8c0f03839aae79cfc52da65ba8e22d3ccfe824453a65bddf2308a91d7404814",
-    "formal/JuicerLean/FixedPoint/PublicMetadataReachability.lean": "c2e2b62717862526c2a90fcda6e191eab69ea573f528e20eded18cac3635de81"
+    "formal/JuicerLean/FixedPoint/PublicMetadataReachability.lean": "c2e2b62717862526c2a90fcda6e191eab69ea573f528e20eded18cac3635de81",
+    "formal/JuicerLean/FixedPoint/PublicCallBounds.lean": "bae02fe86f7878390cf641cd18f6332b65f6a76ce5f678f1f3b3dfd0f7ea763c",
+    "formal/JuicerLean/FixedPoint/PublicCallBoundsReachability.lean": "5c229e4cfb640b965c33545b662ca37bace4e49b91527ca6510bfaf49f0849ea"
   }
 }

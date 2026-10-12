@@ -1,5 +1,5 @@
 import Lean
-import JuicerLean.FixedPoint.PublicReachability
+import JuicerLean.FixedPoint.PublicCallBoundsReachability
 
 open Lean Juicer Juicer.PublicCalls
 
@@ -89,7 +89,7 @@ def checkCertificateParts (s : State) : Except String Unit := do
   unless decide (p := ZeroActiveFee s) do throw "zero active remainder retained fees"
   unless decide (p := QueueBacking s) do throw "queue backing or position count"
   unless decide (p := CreditReady s) do throw "source-credit readiness"
-  unless decide (p := SourcePullBounds s) do throw "source pull bounds"
+  unless decide (p := PublicCallBounds s) do throw "source/fee rates or request owners"
   unless decide (p := HarvestBound s) do throw "harvest source capacity"
   unless decide (p := UnwindReady s) do throw "unwind readiness"
 
@@ -106,7 +106,7 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
     unless decide (p := ZeroActiveFee s) do throw "genesis active fees rejected"
     unless decide (p := QueueBacking s) do throw "genesis queue backing rejected"
     unless decide (p := CreditReady s) do throw "genesis source-credit readiness rejected"
-    unless decide (p := SourcePullBounds s) do throw "genesis source pull bounds rejected"
+    unless decide (p := PublicCallBounds s) do throw "genesis source/fee rates or request owners rejected"
     unless decide (p := HarvestBound s) do throw "genesis harvest capacity rejected"
     unless decide (p := UnwindReady s) do throw "genesis unwind readiness rejected"
     compare (snapshot s) actual
@@ -122,7 +122,7 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
   unless decide (p := ZeroActiveFee s) do throw "input active fees rejected"
   unless decide (p := QueueBacking s) do throw "input queue backing rejected"
   unless decide (p := CreditReady s) do throw "input source-credit readiness rejected"
-  unless decide (p := SourcePullBounds s) do throw "input source pull bounds rejected"
+  unless decide (p := PublicCallBounds s) do throw "input source/fee rates or request owners rejected"
   unless decide (p := HarvestBound s) do throw "input harvest capacity rejected"
   unless decide (p := UnwindReady s) do throw "input unwind readiness rejected"
   unless decide (p := FixtureAction action) do throw "action outside source-pinned fixture domain"
@@ -137,7 +137,7 @@ def checkRow (s : State) (j : Json) (genesis : Bool) (fixture : Nat := 0) : Exce
   unless decide (p := ZeroActiveFee next) do throw "reachable raw state lost its active fee bound"
   unless decide (p := QueueBacking next) do throw "reachable raw state lost its queue backing"
   unless decide (p := CreditReady next) do throw "reachable raw state lost its source-credit readiness"
-  unless decide (p := SourcePullBounds next) do throw "reachable raw state lost its source pull bounds"
+  unless decide (p := PublicCallBounds next) do throw "reachable raw state lost its source/fee rates or request owners"
   unless decide (p := HarvestBound next) do throw "reachable raw state lost its harvest capacity bound"
   unless decide (p := UnwindReady next) do throw "reachable raw state lost its unwind readiness"
   if code == 99 then throw "trace reached an unsupported fixture branch"

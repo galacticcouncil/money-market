@@ -78,7 +78,10 @@ call-frame rollback on failure. `GuardProofs.lean` proves:
 - composing the guards with the raw public-call model preserves `PublicInvariant`, including
   rollback, under the existing invariant and `ValidSolidityAction` input premises;
 - the same composition preserves account/request epoch and scale metadata from input metadata
-  alone, for every raw action, including rollback and unsupported opcodes.
+  alone, for every raw action, including rollback and unsupported opcodes;
+- source pull/cost rates, fee rates and all stored request owners remain bounded under the same
+  composition from initial bounds and a `FixtureAction`, including rollback. this uses the fixture's
+  existing setter and owner restrictions, without financial invariants.
 
 the transfer result concerns the first check in the internal `_transfer` body. it does not prove
 dispatch from inherited `transfer`/`transferFrom`, or safety of the exempt paths. error classes

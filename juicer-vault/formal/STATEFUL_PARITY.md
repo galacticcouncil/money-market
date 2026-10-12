@@ -174,9 +174,14 @@ recorded actions. a fabricated orphan-claim storage state is a concrete countere
 preservation over unrestricted states and is excluded by the domain.
 account/request epoch and scale metadata has a separate preservation proof for every raw action:
 `rawReplay_genesis_metadata` covers arbitrary finite histories, including rollback and
-unsupported opcodes. the replay metadata checks remain useful diagnostics. initialization, active
-fees, queue backing, credit readiness, rate bounds, harvest capacity and waiting-owner premises
-still need broader inductive proofs.
+unsupported opcodes. `rawReplay_genesis_callBounds` separately proves source pull/cost rates and
+fee rates remain at most 10000 basis points, and all stored request owners remain ordinary, across
+arbitrary finite fixture-call histories. it uses only initial bounds and `FixtureAction`, including
+its bounded setters and ordinary request creators; financial invariants and successful post-state
+certificates are unnecessary. `WaitingOwners` follows from the stronger all-request property.
+the replay checks these properties as diagnostics, including owners of already-started requests.
+initialization, zero active fees, queue backing, credit readiness and harvest capacity still need
+broader inductive proofs.
 
 the typed opcode theorem and source checker establish fixture-dispatch correspondence.
 `check-bytecode.py` separately binds 11 reproducibly compiled production artifacts and the relevant
@@ -193,5 +198,7 @@ remaining budgets. harvest preserves the invariant when its post-checkpoint amou
 capacity. startUnwinds preserves the invariant over arbitrary loop lengths under consistent
 metadata, queue backing, ordinary waiting owners and fee rates at most 10000 basis points.
 its exact raw-body correspondence includes the deferred cursor update. replay checks these
-premises too. inductive preservation of all additional input premises and semantic equivalence from compiled bytecode
-to the Lean transitions remain outside this result.
+premises too. the reachable-call admission theorems now derive the rate/owner/metadata premises
+from the history: `startUnwinds` still needs queue backing, and `pokeSettle` needs queue backing and
+credit readiness. inductive preservation of the remaining five additional input conditions and
+semantic equivalence from compiled bytecode to the Lean transitions remain outside this result.

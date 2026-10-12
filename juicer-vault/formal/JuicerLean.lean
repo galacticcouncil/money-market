@@ -38,6 +38,7 @@ import JuicerLean.FixedPoint.PublicCertificates
 import JuicerLean.FixedPoint.SolidityDispatch
 import JuicerLean.FixedPoint.PublicReachability
 import JuicerLean.FixedPoint.PublicMetadataReachability
+import JuicerLean.FixedPoint.PublicCallBoundsReachability
 import JuicerLean.FixedPoint.PublicBoundaryRegressions
 import JuicerLean.Solidity.BodyProofs
 import JuicerLean.Solidity.GuardProofs

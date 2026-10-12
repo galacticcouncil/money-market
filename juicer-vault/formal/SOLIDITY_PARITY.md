@@ -187,6 +187,13 @@ preservation needs only input metadata: every raw opcode, arbitrary-length credi
 loops, reverts and unsupported opcodes preserve it. `rawReplay_metadata` composes arbitrary finite
 histories without financial or fixture-domain premises; genesis supplies the initial metadata.
 the generated guard prefixes also preserve it when composed with the raw model body.
+`PublicCallBounds.lean` and `PublicCallBoundsReachability.lean` prove source pull/cost rates and fee
+rates stay at most 10000 basis points and every stored request keeps an ordinary owner through all
+31 fixture opcodes, rollback and arbitrary-length helper loops. `rawReplay_callBounds` composes
+arbitrary finite histories from initial bounds and `FixtureAction` alone. the setter restrictions
+are essential; this result does not cover arbitrary out-of-domain rate changes. `WaitingOwners`
+follows from the stronger all-request bound, including active requests. the guard composition also
+preserves these bounds with a fixture action and raw model continuation.
 `PublicPaymentProofs.lean` proves Main payment preserves cash, source claims and unit totals for
 every in-bounds position, including retries and cleared tails. `PublicCompoundProofs.lean`
 composes cash funding, payment, reward reservation and funded-share minting, proves equality with
@@ -219,10 +226,13 @@ consistent metadata, queue backing, ordinary waiting owners and a fee rate at mo
 `ValidSolidityAction` accepts all 31 structural cases from their inputs or a raw revert. it no
 longer accepts successful calls by computing their post-state certificate; `valid_success_input`
 proves every admitted success has a structural input rule. replay checks metadata, initialization,
-active-fee, queue-backing, credit-readiness, pull/cost-rate, harvest-capacity and unwind premises at genesis
+active-fee, queue-backing, credit-readiness, source/fee-rate, request-owner, harvest-capacity and unwind premises at genesis
 and before and after every call, using the predicted state compared with Solidity storage.
-metadata is now proved inductive across every raw call. the other extra input premises have not
-yet been proved inductive across every raw public call.
+metadata is inductive across every raw call; rates and request owners are inductive across every
+fixture call. reachable `startUnwinds` admission therefore needs only queue backing in addition to
+the history, while reachable `pokeSettle` admission needs queue backing and credit readiness.
+`InitialMintSafe`, `ZeroActiveFee`, `QueueBacking`, `CreditReady` and `HarvestBound` still need
+inductive preservation proofs across the relevant raw public calls.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` carry that certificate through
 arbitrary finite raw traces from any certified fixture genesis. the orphan-claim regression records
 the necessary boundary: a fabricated raw storage state can contain a settled claim without any
@@ -296,8 +306,8 @@ replays.
 
 ## verification
 
-1,131 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 2,305 kernel theorem
+1,213 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 2,392 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.
@@ -388,8 +398,10 @@ input invariant; in particular, the orphan claim's fabricated input is not reach
 trace in that domain preserves `PublicInvariant`; `validSolidityReachable_invariant` gives the
 equivalent inductive reachability result. the stateful runner now advances through the raw typed
 dispatcher and checked all 7,338 default actions for domain membership using input rules or
-reverts. metadata consistency is inductive even outside that domain; proving the remaining
-additional input premises inductive across every raw call remains open.
+reverts. metadata consistency is inductive even outside that domain. bounded source/fee rates and
+ordinary stored request owners follow from initial bounds and fixture actions alone. proving the
+remaining initialization, active-fee, queue-backing, credit-readiness and harvest-capacity premises
+inductive remains open.
 liability slots must represent
 distinct holders or disjoint
 waiting requests; all liabilities must be included in the initial representation. The new genesis

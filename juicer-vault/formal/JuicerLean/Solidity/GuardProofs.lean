@@ -1,5 +1,5 @@
 import JuicerLean.Solidity.GeneratedGuards
-import JuicerLean.FixedPoint.PublicMetadataReachability
+import JuicerLean.FixedPoint.PublicCallBoundsReachability
 
 namespace Juicer.Solidity
 
@@ -120,6 +120,34 @@ theorem guarded_raw_execute_metadata (contract : GuardContract) (selector caller
     PublicCalls.PublicMetadata
       (executeGuards (guardPrefix contract selector) caller vault s (rawPublicBody action)).1.data := by
   have hp := guarded_raw_body_metadata contract selector caller vault s action h
+  unfold executeGuards
+  cases heq : runGuards (guardPrefix contract selector) caller vault s (rawPublicBody action) with
+  | error code => exact h
+  | ok result =>
+    rcases result with ⟨next, value⟩
+    simpa only [heq, DataPreserved] using hp
+
+theorem guarded_raw_body_callBounds (contract : GuardContract) (selector caller vault : Nat)
+    (s : CallState PublicCalls.State) (action : PublicCalls.Action) (h : PublicCalls.PublicCallBounds s.data)
+    (fixture : PublicCalls.FixtureAction action) :
+    DataPreserved PublicCalls.PublicCallBounds
+      (runGuards (guardPrefix contract selector) caller vault s (rawPublicBody action)) := by
+  apply guards_preserve_from
+  intro status
+  unfold rawPublicBody
+  cases heq : PublicCalls.rawRunCall s.data action with
+  | error code => trivial
+  | ok result =>
+    have hn := PublicCalls.onSuccess_of_eq (PublicCalls.rawRunCall_callBounds s.data action h fixture) heq
+    rcases result with ⟨next, value⟩
+    exact hn
+
+theorem guarded_raw_execute_callBounds (contract : GuardContract) (selector caller vault : Nat)
+    (s : CallState PublicCalls.State) (action : PublicCalls.Action) (h : PublicCalls.PublicCallBounds s.data)
+    (fixture : PublicCalls.FixtureAction action) :
+    PublicCalls.PublicCallBounds
+      (executeGuards (guardPrefix contract selector) caller vault s (rawPublicBody action)).1.data := by
+  have hp := guarded_raw_body_callBounds contract selector caller vault s action h fixture
   unfold executeGuards
   cases heq : runGuards (guardPrefix contract selector) caller vault s (rawPublicBody action) with
   | error code => exact h

@@ -66,6 +66,8 @@ JuicerLean/
    ├─ PublicReachability.lean certified raw-call domain and arbitrary finite trace preservation
    ├─ PublicMetadataTransitions.lean account/request epoch and scale preservation through helpers and loops
    ├─ PublicMetadataReachability.lean metadata preservation for every raw call and arbitrary finite history
+   ├─ PublicCallBounds.lean source/fee rate and stored-request owner preservation through helpers and loops
+   ├─ PublicCallBoundsReachability.lean bounded rates and request owners across arbitrary fixture-call histories
    ├─ PublicBoundaryRegressions.lean fabricated future epochs and vault impersonation boundaries
    ├─ ScaledDebt.lean     Aave half-up ray arithmetic and executable scaled-balance histories
    ├─ Checked.lean        uint256 arithmetic failures and atomic transaction semantics
@@ -206,8 +208,12 @@ all 31 opcodes now have preservation proofs based on inputs. domain admission us
 or a raw revert, with no successful post-state certificate fallback. account/request metadata
 is now proved inductive across every raw call, including reverts and unsupported opcodes, without
 financial or fixture-domain premises. arbitrary finite histories from genesis therefore have
-consistent epochs and scales. the other additional input premises remain replay-checked and
-have not yet been proved inductive across every raw call.
+consistent epochs and scales. `PublicCallBounds` proves that source pull/cost rates and fee rates
+stay at most 10000 basis points and every stored request retains an ordinary owner across arbitrary
+finite fixture-call histories, including rollback. these proofs need initial bounds and the existing
+fixture restrictions on setters and request creation, without financial invariants or post-state
+certificates. initialization, zero active fees, queue backing, credit readiness and harvest capacity
+remain replay-checked and still need inductive proofs.
 the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
 price-driven deleveraging. the rescale fixture keeps ray-scale holders and a waiting request stale
