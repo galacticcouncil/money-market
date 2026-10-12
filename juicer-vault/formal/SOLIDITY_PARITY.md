@@ -217,8 +217,9 @@ remaining weights, and require fees to be backed by cash or remaining yield. the
 fresh batches, resumed batches and receipts arriving during an unfinished batch.
 `PublicHarvestProofs.lean` proves the exact raw harvest body through source withdrawal,
 reward/protocol reservation release and compounding. its capacity premise requires the
-post-checkpoint harvestable amount to fit the held source shares. Solidity caps burns by source
-capacity; the raw fixture model currently implements the case where that cap does not bind.
+post-checkpoint capped burn to fit the held source shares, which holds for every state.
+`PublicHarvestCapacityProofs.lean` proves the capped burn and realized reserve-slice bounds,
+including partial harvests. the modeled capacity is the single-vault fixture's held shares.
 the unwind proofs connect lazy-account consumption, source/Main splitting, rounding coverage and
 request activation to the exact raw `startOne` body. `startMany_preserves` covers arbitrary loop
 lengths with a proof cursor that agrees with the final stored cursor. `startUnwinds` requires
@@ -229,10 +230,11 @@ proves every admitted success has a structural input rule. replay checks metadat
 active-fee, queue-backing, credit-readiness, source/fee-rate, request-owner, harvest-capacity and unwind premises at genesis
 and before and after every call, using the predicted state compared with Solidity storage.
 metadata is inductive across every raw call; rates and request owners are inductive across every
-fixture call. reachable `startUnwinds` admission therefore needs only queue backing in addition to
-the history, while reachable `pokeSettle` admission needs queue backing and credit readiness.
-`InitialMintSafe`, `ZeroActiveFee`, `QueueBacking`, `CreditReady` and `HarvestBound` still need
-inductive preservation proofs across the relevant raw public calls.
+fixture call. `PublicReadyReachability.lean` derives initialization, active-fee, queue-backing and
+credit-readiness conditions together with the financial invariant across arbitrary finite ordinary
+histories. capped-harvest safety holds for every state. the ordinary domain retains the fixture
+bounds, four external transfer callers and started claims or raw reverts; the five accounting
+conditions are conclusions of the induction rather than call-admission premises.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` carry that certificate through
 arbitrary finite raw traces from any certified fixture genesis. the orphan-claim regression records
 the necessary boundary: a fabricated raw storage state can contain a settled claim without any
@@ -306,8 +308,8 @@ replays.
 
 ## verification
 
-1,213 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 2,392 kernel theorem
+1,540 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 2,812 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.
@@ -324,15 +326,17 @@ cases. validation also includes 512 transfer-rounding fuzz cases, the public vau
 rollback regressions, the focused rescale suites, and the seeded and public-call rescale
 fixtures. all three generated datasets reproduce exactly.
 the Aave scaled-debt trace adds 516 calls with 43 expected reverts. the full formal check invokes
-113 formal Foundry tests plus the two targeted shared-flow histories, all with zero failures and skips;
-source fingerprints, all 17 accounting slots and the six private
+117 formal Foundry tests plus the two targeted shared-flow histories, all with zero failures and skips;
+the default campaigns replay 7,338 calls with 1,411 expected reverts and 1,072 corrupted-output
+checks. the two focused harvest histories add 20 calls and 36 corrupted-output checks.
+all 146 source fingerprints, all 17 accounting slots and the six private
 Main batch slots also pass. the legacy environment-gated Verity fork suite is outside this formal gate.
 the gate includes source-body extraction and 14 rejection/mutation tests for its supported AST
 boundary, plus 24 guard-extractor tests. formal compiler remappings are fixed and relative, with automatic discovery disabled;
 the resulting artifact refresh changes only compiler CBOR metadata, including embedded artifacts.
 the prior allowance-fix run also passed 187 distinct targeted tests. the London build measures
 CollateralVault at 24,480 bytes and JuicerYieldAccounting at 12,652 bytes, 139 bytes above the
-PR 73 baseline and below the 24,576-byte deployment limit. the complete offline Foundry run passes
+PR 73 baseline and below the 24,576-byte deployment limit. the prior complete offline Foundry run passed
 570 tests with zero failures and 13 environment/campaign skips.
 
 ## reproduce
@@ -391,7 +395,7 @@ account/request epochs and scales. requestRedeem requires an ordinary owner; dep
 bounded receiver and zero reward index at zero supply. rebalance requires consistent metadata and
 zero fee remainder at zero active source remainder. pokeSettle requires queue backing, consistent
 batch weights/budgets, backed fees and bounded pull/cost rates; harvest requires the
-post-checkpoint harvestable amount to fit the held source shares. startUnwinds requires queue
+post-checkpoint capped burn to fit the held source shares, which holds for every state. startUnwinds requires queue
 backing, consistent metadata, ordinary waiting owners and bounded fee rates. all preservation results require the certified
 input invariant; in particular, the orphan claim's fabricated input is not reachable.
 `validSolidityTrace_invariant` proves every arbitrary finite raw
@@ -399,9 +403,34 @@ trace in that domain preserves `PublicInvariant`; `validSolidityReachable_invari
 equivalent inductive reachability result. the stateful runner now advances through the raw typed
 dispatcher and checked all 7,338 default actions for domain membership using input rules or
 reverts. metadata consistency is inductive even outside that domain. bounded source/fee rates and
-ordinary stored request owners follow from initial bounds and fixture actions alone. proving the
-remaining initialization, active-fee, queue-backing, credit-readiness and harvest-capacity premises
-inductive remains open.
+ordinary stored request owners follow from initial bounds and fixture actions alone.
+
+`ordinaryTrace_genesis_ready` now proves financial preservation and all five auxiliary conditions
+jointly. `OrdinaryAction` contains the fixture constraints, direct transfer callers below four,
+and a started-claim-or-revert condition; it does not assume initialization, active-fee, queue,
+credit or harvest safety. rollback remains part of the theorem. `CreditReadyHistory` keeps the
+source prefix empty while a batch is suspended, preserves fee backing through repayments,
+keeps appended positions outside the frozen batch tail, and restores fresh readiness on closure.
+
+initialization depends on the locked address remaining unable to transfer. the older permissive
+`ValidSolidityTrace` domain deliberately remains available: a kernel-checked ten-call history
+impersonates holder 4, exhausts supply, and leaves index `749999980000000000000000000`.
+this refutes unconditional initialization induction over that larger domain.
+
+the old uncapped harvest premise was also false: a seven-call ordinary history quotes two more
+shares than the vault owns. the Solidity Harvester already caps the burn, and `beginHarvest`
+consumes only the realized reserve slice. the Lean model now matches that behavior. two actual
+Solidity regressions and ten-call replays check held shares, partial reserves, compounding and
+the following checkpoint. this corrects a model gap, with no production Solidity change. the
+capacity model remains the single-vault `StatefulYieldSource` fixture; live SubLoop capacity and
+multi-vault round allocation are separate correspondence obligations.
+
+a second correspondence regression raises the TVL cap and deposits one token unit more than the
+caller's balance. the old natural-number subtraction silently exhausted that balance and minted
+shares. `depositResult` and the raw model now return the fixture's ERC20-balance error and roll
+back, matching Solidity at both `10^24` and `10^30` fixture balances.
+the principal-floor check also precedes reserve cover, matching the order of the Solidity deposit
+body when both conditions fail.
 liability slots must represent
 distinct holders or disjoint
 waiting requests; all liabilities must be included in the initial representation. The new genesis

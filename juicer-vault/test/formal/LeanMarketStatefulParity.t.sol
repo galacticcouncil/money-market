@@ -117,6 +117,46 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
         return super._error(result);
     }
 
+    function test_depositCannotSpendMissingCollateral() public {
+        _configure();
+        vault.setTvlCap(type(uint256).max);
+        bytes32 before = keccak256(abi.encode(_snapshot()));
+        uint256 amount = eth.balanceOf(address(this)) + 1;
+        (bool ok, bytes memory reason) = address(vault).call(
+            abi.encodeCall(vault.deposit, (amount, address(this)))
+        );
+        assertFalse(ok);
+        assertEq(_error(reason), 15);
+        assertEq(keccak256(abi.encode(_snapshot())), before);
+    }
+
+    function test_harvestQuoteExceedsOwnedShares() public {
+        _configure();
+        uint256 fixture = _allowRescale() ? 2 : 1;
+        tracePath = string.concat("formal/.stateful/harvest-capacity-", vm.toString(fixture), ".jsonl");
+        vm.writeFile(tracePath, "");
+        _record([uint256(999), 0, 0, 0, fixture], 0, 0);
+        _act(18, 0, 0, 0, 0);
+        _act(0, 0, 0, 0, 1e18);
+        _act(9, 0, 0, 0, 0);
+        _act(30, 0, 0, 0, 1e18);
+        _act(8, 0, 0, 0, 0);
+        assertEq(market.principalOf(address(vault)), 0);
+        _act(17, 0, 0, 0, 333333333333333333);
+        _act(20, 0, 0, 0, 5000);
+        _act(8, 0, 0, 0, 0);
+        uint256 held = market.sharesOf(address(vault));
+        assertEq(held, 750000000000000000);
+        assertEq(vault.yieldAccounting().harvestableShares(), held + 2);
+        _act(23, 0, 0, 0, 0);
+        assertEq(market.sharesOf(address(vault)), 0);
+        assertEq(vault.yieldAccounting().reservedShares(), 2);
+        _act(8, 0, 0, 0, 0);
+        assertEq(vault.yieldAccounting().reservedShares(), 0);
+        _checkFixture();
+        _record([uint256(998), 0, 0, fixture, step - 1], 0, 0);
+    }
+
     function _campaign(uint256 seed, uint256 depth, bool wide) internal virtual override {
         tracePath = string.concat("formal/.stateful/market-", vm.toString(seed), ".jsonl");
         vm.writeFile(tracePath, ""); random = seed; step = 0;

@@ -22,13 +22,16 @@ theorem depositResult_metadata (s : State) (caller receiver amount shares needed
     OnSuccess (fun result : State × Nat => PublicMetadata result.1)
       (depositResult s caller receiver amount shares needed) := by
   unfold depositResult
-  rw [onSuccess_bind]
-  intro next heq
-  have hm := mintWallet_metadata (initialMint s) receiver shares (initialMint_metadata s h)
-  have ha := depositAssets_metadata (mintWallet (initialMint s) receiver shares) caller amount hm
-  have hn := onSuccess_of_eq (cover_metadata _ _ ha) heq
-  change OnSuccess _ (if next.synth*9800/10000 < next.debt then .error 23 else .ok (next, shares))
-  exact onSuccess_if _ _ _ _ trivial hn
+  apply onSuccess_if
+  · trivial
+  · apply onSuccess_if
+    · trivial
+    · rw [onSuccess_bind]
+      intro next heq
+      have hm := mintWallet_metadata (initialMint s) receiver shares (initialMint_metadata s h)
+      have ha := depositAssets_metadata (mintWallet (initialMint s) receiver shares) caller amount hm
+      have hn := onSuccess_of_eq (cover_metadata _ _ ha) heq
+      exact hn
 
 theorem raw_deposit_metadata (s : State) (caller a b n : Nat) (h : PublicMetadata s) :
     OnSuccess (fun result : State × Nat => PublicMetadata result.1) (rawRunCall s ⟨0, caller, a, b, n⟩) := by
@@ -201,7 +204,8 @@ theorem withdrawSource_metadata (s : State) (burned : Nat) (h : PublicMetadata s
 
 theorem harvestFunding_metadata (s : State) (burned : Nat) (h : PublicMetadata s) :
     PublicMetadata (harvestFunding s burned) :=
-  bookFunding_metadata _ 0 0 s.basis (withdrawSource_metadata s burned h)
+  let slice := harvestSlice (harvestable s) s.book.source s.book.protocol burned
+  bookFunding_metadata _ (s.book.source-slice.1) (s.book.protocol-slice.2) s.basis (withdrawSource_metadata s burned h)
 
 theorem harvestAll_metadata (s : State) (minimum : Nat) (h : PublicMetadata s) :
     OnSuccess (fun result : State × Nat => PublicMetadata result.1) (harvestAll s minimum) := by
@@ -209,7 +213,7 @@ theorem harvestAll_metadata (s : State) (minimum : Nat) (h : PublicMetadata s) :
   have hn := checkpoint_metadata s zeroId zeroId h
   exact harvestProgram_preserves harvestable sourceValue quoteCollateral splitHarvest compoundFunds
     PublicMetadata (checkpoint s zeroId zeroId) minimum hn
-    (harvestFunding_metadata (checkpoint s zeroId zeroId) (harvestable (checkpoint s zeroId zeroId)) hn)
+    (harvestFunding_metadata (checkpoint s zeroId zeroId) (harvestBurn (checkpoint s zeroId zeroId)) hn)
     compoundFunds_metadata (fun _ hx => hx)
 
 theorem raw_compound_metadata (s : State) (caller a b n : Nat) (h : PublicMetadata s) :

@@ -23,13 +23,16 @@ theorem depositResult_callBounds (s : State) (caller receiver amount shares need
     OnSuccess (fun result : State × Nat => PublicCallBounds result.1)
       (depositResult s caller receiver amount shares needed) := by
   unfold depositResult
-  rw [onSuccess_bind]
-  intro next heq
-  have hm := mintWallet_callBounds (initialMint s) receiver shares (initialMint_callBounds s h)
-  have ha := depositAssets_callBounds (mintWallet (initialMint s) receiver shares) caller amount hm
-  have hn := onSuccess_of_eq (cover_callBounds _ _ ha) heq
-  change OnSuccess _ (if next.synth*9800/10000 < next.debt then .error 23 else .ok (next, shares))
-  exact onSuccess_if _ _ _ _ trivial hn
+  apply onSuccess_if
+  · trivial
+  · apply onSuccess_if
+    · trivial
+    · rw [onSuccess_bind]
+      intro next heq
+      have hm := mintWallet_callBounds (initialMint s) receiver shares (initialMint_callBounds s h)
+      have ha := depositAssets_callBounds (mintWallet (initialMint s) receiver shares) caller amount hm
+      have hn := onSuccess_of_eq (cover_callBounds _ _ ha) heq
+      exact hn
 
 theorem raw_deposit_callBounds (s : State) (caller a b n : Nat) (h : PublicCallBounds s) :
     OnSuccess (fun result : State × Nat => PublicCallBounds result.1) (rawRunCall s ⟨0, caller, a, b, n⟩) := by
@@ -204,7 +207,8 @@ theorem withdrawSource_callBounds (s : State) (burned : Nat) (h : PublicCallBoun
 
 theorem harvestFunding_callBounds (s : State) (burned : Nat) (h : PublicCallBounds s) :
     PublicCallBounds (harvestFunding s burned) :=
-  bookFunding_callBounds _ 0 0 s.basis (withdrawSource_callBounds s burned h)
+  let slice := harvestSlice (harvestable s) s.book.source s.book.protocol burned
+  bookFunding_callBounds _ (s.book.source-slice.1) (s.book.protocol-slice.2) s.basis (withdrawSource_callBounds s burned h)
 
 theorem harvestAll_callBounds (s : State) (minimum : Nat) (h : PublicCallBounds s) :
     OnSuccess (fun result : State × Nat => PublicCallBounds result.1) (harvestAll s minimum) := by
@@ -212,7 +216,7 @@ theorem harvestAll_callBounds (s : State) (minimum : Nat) (h : PublicCallBounds 
   have hn := checkpoint_callBounds s zeroId zeroId h
   exact harvestProgram_preserves harvestable sourceValue quoteCollateral splitHarvest compoundFunds
     PublicCallBounds (checkpoint s zeroId zeroId) minimum hn
-    (harvestFunding_callBounds (checkpoint s zeroId zeroId) (harvestable (checkpoint s zeroId zeroId)) hn)
+    (harvestFunding_callBounds (checkpoint s zeroId zeroId) (harvestBurn (checkpoint s zeroId zeroId)) hn)
     compoundFunds_callBounds (fun _ hx => hx)
 
 theorem raw_compound_callBounds (s : State) (caller a b n : Nat) (h : PublicCallBounds s) :
