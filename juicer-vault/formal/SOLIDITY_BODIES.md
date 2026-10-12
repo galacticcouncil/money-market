@@ -76,7 +76,9 @@ call-frame rollback on failure. `GuardProofs.lean` proves:
 - ordinary transfers reject a held lock, with the exact exemptions for transfers from or to
   the vault and transfers from the accounting fund;
 - composing the guards with the raw public-call model preserves `PublicInvariant`, including
-  rollback, under the existing invariant and `ValidSolidityAction` input premises.
+  rollback, under the existing invariant and `ValidSolidityAction` input premises;
+- the same composition preserves account/request epoch and scale metadata from input metadata
+  alone, for every raw action, including rollback and unsupported opcodes.
 
 the transfer result concerns the first check in the internal `_transfer` body. it does not prove
 dispatch from inherited `transfer`/`transferFrom`, or safety of the exempt paths. error classes

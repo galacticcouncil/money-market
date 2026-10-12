@@ -1,5 +1,5 @@
 import JuicerLean.Solidity.GeneratedGuards
-import JuicerLean.FixedPoint.PublicReachability
+import JuicerLean.FixedPoint.PublicMetadataReachability
 
 namespace Juicer.Solidity
 
@@ -100,5 +100,31 @@ theorem guarded_raw_execute_preserves (contract : GuardContract) (selector calle
   | ok result =>
     rcases result with ⟨next,value⟩
     simpa only [heq,DataPreserved] using hp
+
+theorem guarded_raw_body_metadata (contract : GuardContract) (selector caller vault : Nat)
+    (s : CallState PublicCalls.State) (action : PublicCalls.Action) (h : PublicCalls.PublicMetadata s.data) :
+    DataPreserved PublicCalls.PublicMetadata
+      (runGuards (guardPrefix contract selector) caller vault s (rawPublicBody action)) := by
+  apply guards_preserve_from
+  intro status
+  unfold rawPublicBody
+  cases heq : PublicCalls.rawRunCall s.data action with
+  | error code => trivial
+  | ok result =>
+    have hn := PublicCalls.onSuccess_of_eq (PublicCalls.rawRunCall_metadata s.data action h) heq
+    rcases result with ⟨next, value⟩
+    exact hn
+
+theorem guarded_raw_execute_metadata (contract : GuardContract) (selector caller vault : Nat)
+    (s : CallState PublicCalls.State) (action : PublicCalls.Action) (h : PublicCalls.PublicMetadata s.data) :
+    PublicCalls.PublicMetadata
+      (executeGuards (guardPrefix contract selector) caller vault s (rawPublicBody action)).1.data := by
+  have hp := guarded_raw_body_metadata contract selector caller vault s action h
+  unfold executeGuards
+  cases heq : runGuards (guardPrefix contract selector) caller vault s (rawPublicBody action) with
+  | error code => exact h
+  | ok result =>
+    rcases result with ⟨next, value⟩
+    simpa only [heq, DataPreserved] using hp
 
 end Juicer.Solidity

@@ -182,6 +182,11 @@ and transferFrom for ordinary holders and bounded destinations; `PublicClaimProo
 claims of started requests. `PublicMetadataProofs.lean`, `PublicAllocationProofs.lean` and
 `PublicCheckpointProofs.lean` prove sync/checkpoint preservation from bounded account/request
 epochs and scales, including allocation, write-off and all four rescale steps.
+`PublicMetadataTransitions.lean` and `PublicMetadataReachability.lean` prove that metadata
+preservation needs only input metadata: every raw opcode, arbitrary-length credit/settlement/unwind
+loops, reverts and unsupported opcodes preserve it. `rawReplay_metadata` composes arbitrary finite
+histories without financial or fixture-domain premises; genesis supplies the initial metadata.
+the generated guard prefixes also preserve it when composed with the raw model body.
 `PublicPaymentProofs.lean` proves Main payment preserves cash, source claims and unit totals for
 every in-bounds position, including retries and cleared tails. `PublicCompoundProofs.lean`
 composes cash funding, payment, reward reservation and funded-share minting, proves equality with
@@ -216,7 +221,8 @@ longer accepts successful calls by computing their post-state certificate; `vali
 proves every admitted success has a structural input rule. replay checks metadata, initialization,
 active-fee, queue-backing, credit-readiness, pull/cost-rate, harvest-capacity and unwind premises at genesis
 and before and after every call, using the predicted state compared with Solidity storage.
-these extra input premises have not yet been proved inductive across every raw public call.
+metadata is now proved inductive across every raw call. the other extra input premises have not
+yet been proved inductive across every raw public call.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` carry that certificate through
 arbitrary finite raw traces from any certified fixture genesis. the orphan-claim regression records
 the necessary boundary: a fabricated raw storage state can contain a settled claim without any
@@ -225,7 +231,8 @@ reachability theorem excludes that input state. `PublicBoundaryRegressions.lean`
 a fabricated future account epoch that breaks raw checkpointing and a vault-impersonation call
 that removes waiting-request escrow. the former lacks a reachable metadata history; the latter
 falls outside the ordinary-holder transfer premise. these are proof-boundary regressions, not
-public Solidity exploit claims.
+public Solidity exploit claims. `future_epoch_not_raw_reachable` now excludes the future-epoch
+state from every raw history with consistent initial metadata, independently of domain admission.
 
 `LeanStatefulParity.t.sol` adds long public-call campaigns against the actual vault, accounting,
 Main and delegatecall logic, using the existing deterministic pool/token/source mocks.
@@ -289,8 +296,8 @@ replays.
 
 ## verification
 
-1,057 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 2,228 kernel theorem
+1,131 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 2,305 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.
@@ -381,7 +388,8 @@ input invariant; in particular, the orphan claim's fabricated input is not reach
 trace in that domain preserves `PublicInvariant`; `validSolidityReachable_invariant` gives the
 equivalent inductive reachability result. the stateful runner now advances through the raw typed
 dispatcher and checked all 7,338 default actions for domain membership using input rules or
-reverts. proving all additional input premises inductive across every raw call remains open.
+reverts. metadata consistency is inductive even outside that domain; proving the remaining
+additional input premises inductive across every raw call remains open.
 liability slots must represent
 distinct holders or disjoint
 waiting requests; all liabilities must be included in the initial representation. The new genesis

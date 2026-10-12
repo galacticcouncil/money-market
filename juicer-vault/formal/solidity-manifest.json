@@ -34,7 +34,7 @@
     "formal/JuicerLean/FixedPoint/CheckedRefinement.lean": "28ac7a13ac770fa304b13e3c7a680761a8eac4d0e39bb6b429d93db71ac778f9",
     "formal/MachineVectors.lean": "b3e18d157c04ba57c0e2a4caa326cc5aba1f3b372d71494a37b8696560c8642f",
     "../bil-vault/lib/openzeppelin-contracts/contracts/utils/math/Math.sol": "85a2caf3bd06579fb55236398c1321e15fd524a8fe140dff748c0f73d7a52345",
-    "formal/JuicerLean.lean": "87da2f462bb01bda9569d73accab8f9cf4234d230954f6d89b2c3fc922d2bc3a",
+    "formal/JuicerLean.lean": "badf65ccf12daa4c72b620009241388f91f4cabef14f87febfcdb93f26752fca",
     "formal/JuicerLean/FixedPoint/PublicCalls.lean": "20eccaff65dc596d36a69574cd4343a42b3779fd23de05da63f8988a770ec33d",
     "formal/JuicerLean/FixedPoint/PublicInvariants.lean": "22c88068358f1d874f6a80ed945ff040249ab4d7489b26a7066f452d2f764c1c",
     "formal/JuicerLean/FixedPoint/PublicCertificates.lean": "5d46d711959887516914a2dc9a5e52be814c0835f4f44137aa2dad8aa0592742",
@@ -44,7 +44,7 @@
     "formal/JuicerLean/FixedPoint/PublicStateProofs.lean": "e5877765986a5d17595ef2265b64b68a28ca03d3561c2d7426ca2a3b0bf2a9e9",
     "formal/JuicerLean/FixedPoint/PublicTransferProofs.lean": "d99b6c5cdd99a76bf23abaed2a67e2e605bebd9276ada4b44f203fecf6985e0d",
     "formal/JuicerLean/FixedPoint/PublicClaimProofs.lean": "c07f7a66aa4b7d2b7a7dde1a28a7fad18e6e5b2db77a869ef78f878728eef233",
-    "formal/JuicerLean/FixedPoint/PublicBoundaryRegressions.lean": "8b8c2091745e262773b6f58d7994909b1ac4cfe1ece372093562b1118ffda532",
+    "formal/JuicerLean/FixedPoint/PublicBoundaryRegressions.lean": "eab3690052fd21a6b37b2b21b82a801bdbd86c5cb26a09604d3bda935762b09c",
     "formal/JuicerLean/FixedPoint/RescaleBounds.lean": "8cd65dd1114ff28b0f35137873f064aa69703580ce52894c3f2bbe4661b27aa0",
     "formal/JuicerLean/FixedPoint/RoundingResidue.lean": "01c790e7bf737c322e10f4ca10289c0a40bc507071b94bd54c3afa377b5a5ca2",
     "formal/JuicerLean/FixedPoint/ScaledDebt.lean": "83973a56f3dadcd1e9a2c40febc20b7199aa5d1b1952880884352cd5656a9608",
@@ -127,9 +127,11 @@
     "formal/test_solidity_bodies.py": "10b421fbc67beb64f9a5bcda9ccb008ab70b452ff2864f1d13179629cce46b29",
     "formal/JuicerLean/Solidity/Guards.lean": "e6a608aa97fa5ba0f1f09830fd57ca4c0daf605e705a3ba5dbdc360418b52f14",
     "formal/JuicerLean/Solidity/GeneratedGuards.lean": "2a6fa3a901a058017e8b66475dbfb5dab93b60b06c453a406a89de673e987117",
-    "formal/JuicerLean/Solidity/GuardProofs.lean": "a0a886ee3da4e1125773a1f876c601c9628a537bcb278846684010fe2f4d7a2a",
+    "formal/JuicerLean/Solidity/GuardProofs.lean": "f08c587fe1b49c78cad36ed9e909d28f997737f7fb3e59e6e7c9f471c31cce89",
     "formal/solidity_guards.py": "c7112bcf07913c092af47a994019cb73f26ada9bcb8ff06ee849c4fdfc68a4d3",
     "formal/test_solidity_guards.py": "2a73e0fa5f2fb2d6f891058c6128ac197d30c0970202e29f019cb3288acb9e91",
-    "../bil-vault/lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol": "fa97ea556c990ee44f2ef4c80d4ef7d0af3f5f9b33a02142911140688106f5a9"
+    "../bil-vault/lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol": "fa97ea556c990ee44f2ef4c80d4ef7d0af3f5f9b33a02142911140688106f5a9",
+    "formal/JuicerLean/FixedPoint/PublicMetadataTransitions.lean": "c8c0f03839aae79cfc52da65ba8e22d3ccfe824453a65bddf2308a91d7404814",
+    "formal/JuicerLean/FixedPoint/PublicMetadataReachability.lean": "c2e2b62717862526c2a90fcda6e191eab69ea573f528e20eded18cac3635de81"
   }
 }

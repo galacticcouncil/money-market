@@ -172,6 +172,11 @@ are checked separately and are no longer an admission fallback.
 arbitrary finite traces in that domain, while the default replay checks membership for all 7,338
 recorded actions. a fabricated orphan-claim storage state is a concrete counterexample to raw
 preservation over unrestricted states and is excluded by the domain.
+account/request epoch and scale metadata has a separate preservation proof for every raw action:
+`rawReplay_genesis_metadata` covers arbitrary finite histories, including rollback and
+unsupported opcodes. the replay metadata checks remain useful diagnostics. initialization, active
+fees, queue backing, credit readiness, rate bounds, harvest capacity and waiting-owner premises
+still need broader inductive proofs.
 
 the typed opcode theorem and source checker establish fixture-dispatch correspondence.
 `check-bytecode.py` separately binds 11 reproducibly compiled production artifacts and the relevant

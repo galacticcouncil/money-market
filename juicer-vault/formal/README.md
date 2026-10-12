@@ -64,6 +64,8 @@ JuicerLean/
    ├─ PublicCertificates.lean checked public-call semantics and combined invariant certificates
    ├─ SolidityDispatch.lean typed 31-opcode fixture dispatcher and universal raw-call correspondence
    ├─ PublicReachability.lean certified raw-call domain and arbitrary finite trace preservation
+   ├─ PublicMetadataTransitions.lean account/request epoch and scale preservation through helpers and loops
+   ├─ PublicMetadataReachability.lean metadata preservation for every raw call and arbitrary finite history
    ├─ PublicBoundaryRegressions.lean fabricated future epochs and vault impersonation boundaries
    ├─ ScaledDebt.lean     Aave half-up ray arithmetic and executable scaled-balance histories
    ├─ Checked.lean        uint256 arithmetic failures and atomic transaction semantics
@@ -201,8 +203,11 @@ source pull/cost rates at most 10000 basis points. harvest requires its post-che
 fit source capacity. startUnwinds requires consistent metadata, queue backing, ordinary waiting
 owners and a fee rate at most 10000 basis points; its proof covers arbitrary loop lengths.
 all 31 opcodes now have preservation proofs based on inputs. domain admission uses those rules
-or a raw revert, with no successful post-state certificate fallback. the additional
-input premises are replay-checked but not yet proved inductive across every raw call.
+or a raw revert, with no successful post-state certificate fallback. account/request metadata
+is now proved inductive across every raw call, including reverts and unsupported opcodes, without
+financial or fixture-domain premises. arbitrary finite histories from genesis therefore have
+consistent epochs and scales. the other additional input premises remain replay-checked and
+have not yet been proved inductive across every raw call.
 the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
 price-driven deleveraging. the rescale fixture keeps ray-scale holders and a waiting request stale
