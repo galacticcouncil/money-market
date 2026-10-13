@@ -84,6 +84,7 @@ const LEDGER_ABI = parseAbi([
   'function activePosition() view returns (uint256 debt, uint256 principal, uint256 cash)',
   'function activeFunds() view returns (uint256)',
   'function pendingSourceAccounting() view returns (bool)',
+  'function sourceFees(uint256) view returns (uint256 yieldRemaining, uint256 feeRemaining)',
   'function surplusOf(uint256 id) view returns (uint256)',
   'function claimSurplus(uint256 id) returns (uint256)',
 ]);
@@ -189,6 +190,7 @@ export class JuicerLooper {
   private evidence?: Map<string, LatestLog>;
   private feeds?: Map<string, FeedSeen>;
   private synced?: Map<Address, bigint>;
+  private mainServiceAttempt?: Map<Address, bigint>;
 
   // drains a submitted transaction but never starts another write
   stop(): void { this.stopping = true; }
@@ -345,10 +347,64 @@ export class JuicerLooper {
     for (const vault of pending) {
       await this.poke(VAULT_ABI, vault, 'pokeSettle', `pokeSettle ${short(vault)}`);
     }
+    if (turn) for (const vault of this.vaults) {
+      if (!pending.includes(vault) && !frozen.has(vault) && !unsettled.has(vault)) {
+        await this.serviceMainInterest(vault, time);
+      }
+    }
     // users only send withdraw: settled collateral and exit surplus are pushed to their owners
     for (const vault of this.vaults) await this.deliver(vault);
     // frozen vaults can't sync and unallocated ones wouldn't allocate
     if (turn) await this.syncVaults(new Set([...frozen, ...unsettled]), time);
+  }
+
+  private async fundedInterest(vault: Address): Promise<bigint> {
+    const ledger = await this.read(VAULT_ABI, vault, 'mainDebt') as Address;
+    const [position, accounting, paused, emergency] = await Promise.all([
+      this.read(LEDGER_ABI, ledger, 'activePosition'),
+      this.read(LEDGER_ABI, ledger, 'pendingSourceAccounting'),
+      this.read(VAULT_ABI, vault, 'paused'),
+      this.read(SUBLOOP_ABI, this.subLoop, 'emergencyPaused'),
+    ]) as [readonly bigint[], boolean, boolean, boolean];
+    if (accounting || paused || emergency) return 0n;
+    const [debt, principal, cash] = position;
+    if (debt <= principal || cash === 0n) return 0n;
+    const fees = await this.read(LEDGER_ABI, ledger, 'sourceFees', [0n]) as readonly bigint[];
+    const interest = debt - principal;
+    const spendable = cash > fees[1] ? cash - fees[1] : 0n;
+    return interest < spendable ? interest : spendable;
+  }
+
+  private async serviceMainInterest(vault: Address, now: bigint): Promise<void> {
+    const attempts = (this.mainServiceAttempt ??= new Map<Address, bigint>());
+    const last = attempts.get(vault);
+    if (last !== undefined && now < last + CONFIG.MAIN_SERVICE_RETRY_SECONDS) return;
+    try {
+      const amount = await this.fundedInterest(vault);
+      this.note(`service-error:${vault}`);
+      if (amount < CONFIG.MAIN_SERVICE_MIN_HOLLAR) return;
+      attempts.set(vault, now);
+      await this.poke(VAULT_ABI, vault, 'pokeSettle', `service Main interest ${short(vault)}`, [], false, true);
+    } catch (error) {
+      attempts.set(vault, now);
+      this.note(`service-error:${vault}`, `[ALERT] ${vault}: funded-interest service unavailable: ${shortErr(error)}`);
+    }
+  }
+
+  private async mainServiceWorthwhile(vault: Address, gasWei: bigint): Promise<boolean> {
+    const amount = await this.fundedInterest(vault);
+    if (amount < CONFIG.MAIN_SERVICE_MIN_HOLLAR) return false;
+    if (CONFIG.SPONSORED_GAS) return true;
+    const provider = await this.read([view('ADDRESSES_PROVIDER', 'address')], this.pool, 'ADDRESSES_PROVIDER') as Address;
+    const oracle = await this.read([view('getPriceOracle', 'address')], provider, 'getPriceOracle') as Address;
+    const hollar = await this.read([view('hollar', 'address')], this.subLoop, 'hollar') as Address;
+    const prices = parseAbi(['function getAssetPrice(address) view returns (uint256)']);
+    const [hollarPrice, gasPrice] = await Promise.all([
+      this.read(prices, oracle, 'getAssetPrice', [hollar]),
+      this.read(prices, oracle, 'getAssetPrice', [CONFIG.GAS_ASSET_ADDRESS]),
+    ]) as [bigint, bigint];
+    if (hollarPrice === 0n || gasPrice === 0n) throw new Error('missing service economic price');
+    return gasWei * gasPrice * 10_000n <= amount * hollarPrice * CONFIG.MAIN_SERVICE_MAX_GAS_BPS;
   }
 
   // allocation follows prices: sync after a PRIME or collateral oracle update, and every SYNC_EVERY seconds
@@ -672,7 +728,8 @@ export class JuicerLooper {
         const debt = await this.read(parseAbi(['function balanceOf(address) view returns (uint256)']), debtToken, 'balanceOf', [vault]) as bigint;
         if (supplied * lt < debt * 10025n) console.error(`[ALERT] ${vault}: synthetic buffer needs replenishing`);
         const interest = await this.read(parseAbi(['function interestOf(uint256) view returns (uint256)']), ledger, 'interestOf', [0n]) as bigint;
-        if (interest / 10n ** 10n >= CONFIG.MAIN_INTEREST_URGENT_USD8) console.error(`[ALERT] ${vault}: Main interest needs urgent harvest/service`);
+        this.note(`main-interest:${vault}`, interest / 10n ** 10n >= CONFIG.MAIN_INTEREST_URGENT_USD8
+          ? `[ALERT] ${vault}: Main interest needs urgent harvest/service` : undefined);
       } catch (error) { console.error(`[ALERT] ${vault}: safety monitor failed: ${shortErr(error)}`); }
     }
   }
@@ -817,6 +874,7 @@ export class JuicerLooper {
     label: string,
     args: readonly unknown[] = [],
     direct = false,
+    fundedService = false,
   ): Promise<boolean> {
     if (this.stopping || this.receiptPending) return false;
     try {
@@ -904,6 +962,10 @@ export class JuicerLooper {
       }
       // some RPCs estimate reverting calls; re-simulate at the final allowance
       if (!hasWork((await this.publicClient.simulateContract({...options, gas})).result)) return false;
+      if (fundedService && !await this.mainServiceWorthwhile(address, gas * gasPrice)) {
+        console.log(`  ${label}: funded interest below minimum or gas budget`);
+        return false;
+      }
       // some gateways serve a stale pending nonce; keep ours monotonic
       const nonce = Math.max(this.nextNonce ?? 0, await this.publicClient.getTransactionCount({
         address: this.account.address, blockTag: 'pending',
