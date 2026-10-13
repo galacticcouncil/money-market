@@ -37,7 +37,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         JuicerMainDebt m = JuicerMainDebt(address(vault.mainDebt()));
         uint256 tail = vault.queueTail();
         uint256 mainTail = m.sourceTail();
-        out = new uint256[](114 + tail * 15 + mainTail * 5);
+        out = new uint256[](116 + tail * 15 + mainTail * 5);
         uint256 k;
         out[k++] = vault.totalSupply(); out[k++] = vault.totalAssets();
         out[k++] = aEth.balanceOf(address(vault)); out[k++] = eth.balanceOf(address(vault));
@@ -50,6 +50,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         out[k++] = vault.queueUnwind(); out[k++] = tail;
         out[k++] = y.sourceShares(); out[k++] = y.protocolShares(); out[k++] = y.totalUnits();
         out[k++] = y.rewardIndex(); out[k++] = y.epoch(); out[k++] = y.unitScale();
+        out[k++] = y.sourceLossCarry(); out[k++] = y.protocolLossCarry();
         out[k++] = m.totalUnits(); out[k++] = m.ownedCash(); out[k++] = m.sourceOutstanding();
         out[k++] = m.sourceHead(); out[k++] = mainTail; out[k++] = m.unallocatedSource();
         out[k++] = vault.paused() ? 1 : 0;
@@ -116,6 +117,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         if (selector == CollateralVault.RequestNotActive.selector) return 20;
         if (selector == CollateralVault.NothingToClaim.selector) return 21;
         if (keccak256(reason) == keccak256(abi.encodeWithSignature("Error(string)", "Pausable: not paused"))) return 22;
+        if (selector == CollateralVault.PrincipalShortfall.selector) return 28;
         revert(string.concat("unclassified revert: ", vm.toString(reason)));
     }
 

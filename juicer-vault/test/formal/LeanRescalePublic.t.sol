@@ -14,7 +14,7 @@ contract LeanRescalePublicTest is HarvestTest {
         else aPrime.burn(address(loop), before_ - amount);
     }
 
-    function test_positiveResidualLossRefillsReachRescale() public {
+    function test_positiveResidualLossRefillsRestoreCarryBeforeNewUnits() public {
         _depositAndRamp();
         JuicerYieldAccounting y = vault.yieldAccounting();
         uint256 high = aPrime.balanceOf(address(loop)) * 105 / 100;
@@ -37,18 +37,20 @@ contract LeanRescalePublicTest is HarvestTest {
             emit log_named_uint("residual value", y.totalAssets());
             assertGt(y.totalAssets(), 0);
             assertEq(y.epoch(), epoch);
+            assertGt(y.sourceLossCarry() + y.protocolLossCarry(), 0);
             _setPrime(high);
             vault.sync();
             emit log_named_uint("round", round);
             emit log_named_uint("units", y.totalUnits());
             emit log_named_uint("scale", y.unitScale());
+            assertEq(y.sourceLossCarry() + y.protocolLossCarry(), 0);
         }
-        assertGt(y.unitScale(), 0);
+        assertEq(y.unitScale(), 0, "loss recovery is restored instead of reminted");
         assertEq(y.epoch(), epoch);
         assertEq(vault.walletOf(address(y)), 0);
     }
 
-    function test_multiplePublicHoldersStayWithinTotalAtReachableRescale() public {
+    function test_multiplePublicHoldersStayWithinTotalAcrossLossRestoration() public {
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         vault.deposit(1e18, address(this));
@@ -84,10 +86,12 @@ contract LeanRescalePublicTest is HarvestTest {
             vault.sync();
             assertGt(y.totalAssets(), 0);
             assertEq(y.epoch(), epoch);
+            assertGt(y.sourceLossCarry() + y.protocolLossCarry(), 0);
             _setPrime(high);
             vault.sync();
+            assertEq(y.sourceLossCarry() + y.protocolLossCarry(), 0);
         }
-        assertEq(y.unitScale(), 64);
+        assertEq(y.unitScale(), 0, "old recoveries do not inflate units into a rescale");
         uint256 aggregate = y.balanceOf(address(this)) + y.balanceOf(ALICE) + y.balanceOf(BOB)
             + y.balanceOf(address(0xdead));
         emit log_named_uint("total units", y.totalUnits());

@@ -61,9 +61,11 @@ theorem raw_deposit_callBounds (s : State) (caller a b n : Nat) (h : PublicCallB
                     · trivial
                     · apply onSuccess_if
                       · trivial
-                      · exact depositResult_callBounds _ caller b n _ _
-                          (checkpoint_callBounds _ zeroId b
-                            (callBounds_synth (pay s 0 0).1 s.synth (pay_callBounds s 0 0 h)))
+                      · apply onSuccess_if
+                        · trivial
+                        · exact depositResult_callBounds _ caller b n _ _
+                            (checkpoint_callBounds _ zeroId b
+                              (callBounds_synth (pay s 0 0).1 s.synth (pay_callBounds s 0 0 h)))
 
 theorem transfer_result_callBounds (s : State) (a b n : Nat) (h : PublicCallBounds s) :
     OnSuccess (fun result : State × Nat => PublicCallBounds result.1)

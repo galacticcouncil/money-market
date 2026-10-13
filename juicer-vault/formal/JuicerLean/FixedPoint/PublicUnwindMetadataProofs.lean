@@ -44,7 +44,13 @@ theorem commitExitAccount_metadata (s : State) (h : PublicMetadata s) :
     PublicMetadata (commitExitAccount s) := by
   have ha := metadata_setAccount s (request s s.unwind).owner
     ⟨(waitingExit s).owned,s.book.index,s.book.epoch,s.book.scale⟩ h ⟨le_rfl,fun _ => le_rfl⟩
-  exact metadata_bookProgress _ (waitingExit s).book ha ⟨le_rfl,fun _ => le_rfl⟩
+  apply metadata_bookProgress _ (waitingExit s).book ha
+  constructor
+  · simp only [setAccount,waitingExit,startExit_epoch]
+    exact le_rfl
+  · intro _
+    simp only [setAccount,waitingExit,startExit_scale]
+    exact le_rfl
 
 theorem prepareExitOwnership_metadata (s : State) (h : PublicMetadata s) :
     PublicMetadata (prepareExitOwnership s) := commitExitAccount_metadata s h

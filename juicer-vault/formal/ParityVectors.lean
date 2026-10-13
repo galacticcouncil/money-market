@@ -33,7 +33,7 @@ def takeRows : List (List ℕ) := (do
 
 def accountRows : List (List ℕ) := do
   let n ← List.range 48
-  let b : Book := ⟨0, 0, 1000 + n, 10 * ray, 3, if n % 4 == 0 then 64 else 0⟩
+  let b : Book := ⟨0, 0, 1000 + n, 10 * ray, 3, if n % 4 == 0 then 64 else 0, 0, 0⟩
   let a : Account := ⟨if n % 4 == 0 then 99 * 2 ^ 64 else 99,
     if n % 4 == 0 then 2 * ray * 2 ^ 64 else 2 * ray, if n % 3 == 0 then 2 else 3, 0⟩
   let w := n * 7
@@ -43,7 +43,7 @@ def allocationRows : List (List ℕ) := do
   let n ← List.range 48
   let b : Book := ⟨if n % 6 == 0 then 2000 else 100, 11,
     if n % 8 == 0 then 2 ^ 220 else if n % 8 == 1 then 0 else 1000 + n,
-    if n % 8 == 0 then 2 ^ 230 else 3 * ray, 2, 0⟩
+    if n % 8 == 0 then 2 ^ 230 else 3 * ray, 2, 0, 0, 0⟩
   let v : AllocationInput := ⟨if n % 7 == 0 then 0 else 1000,
     if n % 6 == 0 then 0 else (2 + n) * 10 ^ 10,
     if n % 5 == 0 then 3 * 10 ^ 10 else 0,
@@ -55,7 +55,8 @@ def allocationRows : List (List ℕ) := do
 
 def exitRows : List (List ℕ) := do
   let n ← List.range 64
-  let b : Book := ⟨1000, 111, if n == 0 then 0 else 1000 + n, 3 * ray, 2, if n % 4 == 0 then 64 else 0⟩
+  let b : Book := ⟨1000, 111, if n == 0 then 0 else 1000 + n, 3 * ray, 2,
+    if n % 4 == 0 then 64 else 0, 0, 0⟩
   let o : Account := ⟨120, 2 * ray, if n % 5 == 0 then 1 else 2, 0⟩
   let r : Account := ⟨23, ray, if n % 3 == 0 then 1 else 2, 0⟩
   let w := if n % 7 == 0 then 0 else n * 2

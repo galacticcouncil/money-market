@@ -130,7 +130,7 @@ contract LeanSharedIntentTest is Test {
         uint256[] memory operation = new uint256[](3);
         operation[0] = op; operation[1] = actor; operation[2] = amount;
         uint256 nonce = loop.intentNonce();
-        uint256[] memory state = new uint256[](46 + nonce * 5);
+        uint256[] memory state = new uint256[](48 + nonce * 5);
         state[0] = hollar.balanceOf(address(loop));
         state[1] = aPrime.balanceOf(address(loop));
         state[2] = hollarDebt.balanceOf(address(loop));
@@ -153,9 +153,11 @@ contract LeanSharedIntentTest is Test {
             state[j + 6] = v.seenCost(); state[j + 7] = v.weight();
             state[j + 8] = v.compounded(); state[j + 9] = v.pulled(); state[j + 10] = v.blocked() ? 1 : 0;
         }
+        state[46] = harvester.parkedGiftOf(address(vaults[0]));
+        state[47] = harvester.parkedGiftOf(address(vaults[1]));
         for (uint256 i = 1; i <= nonce; ++i) {
             MockIntentDispatch.Intent memory p = dispatch.intent(ids[i]);
-            uint256 j = 46 + (i - 1) * 5;
+            uint256 j = 48 + (i - 1) * 5;
             state[j] = p.assetIn == 222 ? 1 : 2; state[j + 1] = p.amountIn;
             state[j + 2] = p.amountOut; state[j + 3] = p.deadline; state[j + 4] = p.state;
         }
@@ -270,8 +272,10 @@ contract LeanSharedIntentTest is Test {
         _step(15, 0, 1);
         for (uint256 i; i < 5; ++i) assertTrue(_step(10, 0, 0));
         assertEq(vaults[0].compounded(), 0);
-        assertEq(vaults[1].compounded(), 968_750_000);
-        assertEq(prime.balanceOf(address(harvester)), 31_250_000);
+        assertEq(vaults[1].compounded(), 500_000_000);
+        assertEq(prime.balanceOf(address(harvester)), 500_000_000);
+        assertEq(harvester.parkedGiftOf(address(vaults[0])), 500_000_000);
+        assertEq(harvester.parkedGiftOf(address(vaults[1])), 0);
         _record(998, 0, steps, true, 0);
     }
 }

@@ -23,9 +23,10 @@ source equity after reserving active Main debt, operating cash and the
 realization fee needed to service accrued Main interest, and emits `Allocated()`.
 Two USD8 quote quanta remain in active source backing to prevent floor rounding
 from creating an unpaid debt tail; this is a bounded rounding residual, not a
-percentage yield holdback. Entry is not checked against that backing on-chain:
-the keepers compute the deficit off-chain and stop deposits through the vault's
-`deficitStop` ([keeper runbook](../looper/README.md#deficit-stop)).
+percentage yield holdback. Each deposit checks live Main debt against source
+backing and active Main cash, and rejects a rounded-up deficit above 50 bps.
+The keepers also operate the vault's hysteretic `deficitStop`
+([keeper runbook](../looper/README.md#deficit-stop)).
 
 Checkpointed earnings split into user-owned source units and protocol fee units
 at the current fee rate. Fee ownership vests at this checkpoint; subsequent rate
@@ -39,18 +40,20 @@ unconverted rewards by up to the unpaid interest times the change in
 
 Unconverted user and protocol units are junior to the active Main obligation.
 They absorb source losses and accrued servicing needs before Main backing is
-impaired. Checkpoints write down that ownership when needed; a recapitalization
-to borrowed principal does not restore written-off earnings ahead of exits.
-Already-funded collateral rewards remain backed collateral claims.
+impaired. A partial write-down records user and protocol loss carries. Later
+recovery restores those existing claims at their prior split before any new
+reward units mint to current wallet weight. A complete write-off starts a new
+epoch and clears the carries. Already-funded collateral rewards remain backed
+collateral claims.
 
 Execution costs are source losses too. Deployment slices and source ramps buy
 PRIME for shares minted at the pre-swap source NAV, so each slice's swap cost,
 bounded by its lane's approved shortfall, lowers every attached vault's source
 equity. The next allocation absorbs it from unconverted rewards first, including
 rewards of holders who did not trigger the deployment. Once those rewards are
-exhausted the cost reaches Main backing. No contract waits for carry to restore
-it: the keepers stop deposits and the source ramp when their deficit check
-exceeds `DEFICIT_STOP_BPS` (50) and resume below `DEFICIT_RESUME_BPS` (25).
+exhausted the cost reaches Main backing. Deposits then enforce the 50 bps
+on-chain ceiling; keepers stop the source ramp and set `deficitStop` at
+`DEFICIT_STOP_BPS` (50), and resume below `DEFICIT_RESUME_BPS` (25).
 Deploying collateral that is already deposited (`rebalance`) is not gated by
 that stop.
 
@@ -98,7 +101,11 @@ share of source gains/losses and swap execution. The reserved servicing portion
 pays Main interest first; the remaining owned-yield portion is supplied as
 collateral and mints backed vault shares to the reward fund. It does not raise
 every collateral holder's exchange rate and give past earnings to newcomers.
-Unsolicited compound contributions retain their existing donation treatment.
+Unsolicited PRIME at the Harvester is assigned once by the vaults' source-share
+weights at the start of the harvest. Each vault's amount then remains in its
+`parkedGiftOf` ledger across skipped or unquoted rounds; it is not re-split among
+the vaults that happen to trade. A vault with an outstanding gift cannot be
+removed from the registry.
 
 The reward fund owns both unconverted source units and funded collateral shares.
 Fund units are priced in HOLLAR precision from those assets; user-owned source

@@ -44,7 +44,7 @@ contract CollateralVault is
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
-    /// @notice may only set the deficit stop (the keeper's off-chain deficit check)
+    /// @notice may only set the keeper's hysteretic deficit stop
     bytes32 public constant DEPOSIT_GUARDIAN_ROLE = keccak256("DEPOSIT_GUARDIAN_ROLE");
 
     // config

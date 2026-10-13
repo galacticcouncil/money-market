@@ -2,7 +2,7 @@
 import argparse
 from pathlib import Path
 import subprocess
-from stateful_coverage import check_coverage, check_rescale_coverage
+from stateful_coverage import check_coverage, check_loss_recovery_coverage
 from compiler_environment import compiler_environment
 
 
@@ -45,7 +45,7 @@ def main():
         if harvest_paths:
             subprocess.run(lean + ["--run", "StatefulReplay.lean", "--harvest-capacity"] +
                            [str(p) for p in harvest_paths], cwd=formal, check=True)
-        (check_rescale_coverage if fixture == "rescale" else check_coverage)(paths)
+        (check_loss_recovery_coverage if fixture == "rescale" else check_coverage)(paths)
 
 
 if __name__ == "__main__":

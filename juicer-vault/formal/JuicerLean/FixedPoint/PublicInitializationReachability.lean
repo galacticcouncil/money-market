@@ -89,9 +89,11 @@ theorem raw_deposit_initializationSafe (s : State) (caller a b n : Nat) (h : Ini
                     · trivial
                     · apply onSuccess_if
                       · trivial
-                      · exact depositResult_initializationSafe _ caller b n _ _
-                          (checkpoint_initializationSafe _ zeroId b
-                            (initializationSafe_synth (pay s 0 0).1 s.synth (pay_initializationSafe s 0 0 h)))
+                      · apply onSuccess_if
+                        · trivial
+                        · exact depositResult_initializationSafe _ caller b n _ _
+                            (checkpoint_initializationSafe _ zeroId b
+                              (initializationSafe_synth (pay s 0 0).1 s.synth (pay_initializationSafe s 0 0 h)))
 
 theorem transfer_result_initializationSafe (s : State) (a b n : Nat) (h : InitializationSafe s) (ha : a ≠ 4) :
     OnSuccess (fun result : State × Nat => InitializationSafe result.1)

@@ -262,19 +262,24 @@ contract IceIntentsTest is Test {
         assertEq(_callback(id, out), SubLoop.execute.selector);
     }
 
-    function test_vaultFlowsWhileInFlightAreNotMistakenForARefund() public {
+    function test_vaultDepositWaitsForEntryIntentSettlement() public {
         _deposit(SEED);
         _rampSteps(2);
         loop.pokeBorrowQuoted(ENTRY_RATE);
         (,,, uint256 amountIn,) = _pending();
         uint256 equity = loop.totalEquity();
-        // a vault deposit larger than the in-flight input lands as cash
-        _deposit(amountIn * 2);
-        assertEq(loop.reconcile(), WAITING, "own deposit is not the refund");
-        assertApproxEqAbs(loop.totalEquity(), equity + amountIn * 2 / 1e10, 1);
+        hollar.mint(address(this), amountIn * 2);
+        hollar.approve(address(loop), amountIn * 2);
+        vm.expectRevert(SubLoop.IntentRejected.selector);
+        loop.deposit(amountIn * 2);
+        assertEq(loop.reconcile(), WAITING, "the pending intent remains unchanged");
+        assertApproxEqAbs(loop.totalEquity(), equity, 1);
         _resolve();
         (,, uint8 kind,,) = _pending();
         assertEq(kind, 0);
+        equity = loop.totalEquity();
+        loop.deposit(amountIn * 2);
+        assertApproxEqAbs(loop.totalEquity(), equity + amountIn * 2 / 1e10, 1);
     }
 
     function test_deLeverCountsInFlightHollarAsDebtBackedCash() public {
@@ -474,15 +479,18 @@ contract IceIntentsTest is Test {
         assertEq(kind, EXIT, "the slice goes out again");
     }
 
-    function test_entryInFlightHoldsBackTheUnwind() public {
+    function test_entryInFlightFreezesNewUnwindMembership() public {
         _deposit(SEED);
         _rampSteps(2);
         loop.pokeBorrowQuoted(ENTRY_RATE);
-        loop.requestUnwind(loop.sharesOf(address(this)) / 2);
+        uint256 shares = loop.sharesOf(address(this)) / 2;
+        vm.expectRevert(SubLoop.IntentRejected.selector);
+        loop.requestUnwind(shares);
         uint256 submitted = dispatch.counter();
         assertEq(loop.pokeRepayQuoted(EXIT_RATE), 0);
         assertEq(dispatch.counter(), submitted, "one intent at a time");
         _resolve();
+        loop.requestUnwind(shares);
         loop.pokeRepayQuoted(EXIT_RATE);
         (,, uint8 kind,,) = _pending();
         assertEq(kind, EXIT);

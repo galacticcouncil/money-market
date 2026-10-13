@@ -36,19 +36,19 @@ def entrySeed : List (Nat × Nat × Nat) := [(0,0,1000 * wad), (0,1,1000 * wad),
 def exitBeforeFill := stateAfter (entrySeed ++ [(7,1,1000 * wad), (2,1,1980 * 10^6), (4,0,0)])
 def exitAfterFill := stateAfter (entrySeed ++ [(2,1,1980 * 10^6), (4,0,0), (7,1,1000 * wad)])
 
-theorem entry_exit_cost_shift :
-    (vault exitBeforeFill 1).requested = 1000 * wad ∧
+theorem pending_entry_freezes_exit_membership :
+    run {} (entrySeed ++ [(7,1,1000 * wad), (2,1,1980 * 10^6), (4,0,0)]) = none ∧
     (vault exitAfterFill 1).requested = 990 * wad ∧
-    live exitBeforeFill = 980 * wad ∧ live exitAfterFill = 990 * wad ∧
-    equity exitBeforeFill = equity exitAfterFill := by decide
+    live exitAfterFill = 990 * wad := by decide
 
 def joinBeforeFill := stateAfter [(0,0,1000 * wad), (1,0,0), (0,1,1000 * wad),
   (2,1,990 * 10^6), (4,0,0)]
 def joinAfterFill := stateAfter [(0,0,1000 * wad), (1,0,0), (2,1,990 * 10^6),
   (4,0,0), (0,1,1000 * wad)]
 
-theorem entrant_shares_earlier_entry_loss :
-    live joinBeforeFill * (vault joinBeforeFill 1).shares / joinBeforeFill.total = 995 * wad ∧
+theorem pending_entry_freezes_new_deposits :
+    run {} [(0,0,1000 * wad), (1,0,0), (0,1,1000 * wad),
+      (2,1,990 * 10^6), (4,0,0)] = none ∧
     999 * wad < live joinAfterFill * (vault joinAfterFill 1).shares / joinAfterFill.total := by decide
 
 def giftSpoof := stateAfter [(0,0,1000 * wad), (1,0,0), (5,0,980100000), (4,0,0)]
@@ -69,6 +69,26 @@ theorem parked_gift_is_reassigned_each_round :
     parkedGiftRounds 5 (1000 * 10^6, 0) = (31250000,968750000) ∧
     (parkedGiftRounds 5 (1000 * 10^6, 0)).1 +
       (parkedGiftRounds 5 (1000 * 10^6, 0)).2 = 1000 * 10^6 := by decide
+
+structure OwnedGift where
+  first : Nat := 0
+  second : Nat := 0
+  deriving Repr, BEq, DecidableEq
+
+def assignGift (gift firstWeight totalWeight : Nat) : OwnedGift :=
+  let first := gift * firstWeight / totalWeight
+  ⟨first, gift - first⟩
+
+def paySecondGift (g : OwnedGift) : OwnedGift × Nat := (⟨g.first, 0⟩, g.second)
+
+def paySecondGiftRounds : Nat → OwnedGift → OwnedGift
+  | 0, gift => gift
+  | n + 1, gift => paySecondGiftRounds n (paySecondGift gift).1
+
+theorem assigned_gift_is_not_reassigned :
+    let assigned := assignGift (1000 * 10^6) 1 2
+    assigned = ⟨500 * 10^6, 500 * 10^6⟩ ∧
+    paySecondGiftRounds 5 assigned = ⟨500 * 10^6, 0⟩ := by decide
 
 def cappedCosts : State := {
   target := 200, unwinders := #[0,1],
@@ -95,6 +115,25 @@ theorem late_request_shares_prior_slice_cost :
     (vault joined 0).cost = 5 ∧ (vault joined 1).cost = 5 ∧
     origin.target = 90 ∧ joined.target = 190 := by decide
 
+def waitingMembership : State := {
+  pending := { nonce := 1, kind := 1, amount := 100, minimum := 99 }, nonce := 1,
+  target := 100, reserved := 10, vaults := #[{ shares := 100, freed := 10 }, {}] }
+
+theorem waiting_intent_freezes_membership :
+    deposit waitingMembership 1 100 = none ∧
+    request waitingMembership 0 50 = none ∧
+    pull waitingMembership 0 = none := by decide
+
+def chargedToUnwinders (before after : State) : Nat :=
+  (vault after 0).cost - (vault before 0).cost +
+  ((vault after 1).cost - (vault before 1).cost)
+
+theorem capped_cost_remains_an_explicit_source_liability :
+    let next := chargeCost cappedCosts 10
+    chargedToUnwinders cappedCosts next = 5 ∧
+    10 - chargedToUnwinders cappedCosts next = 5 ∧
+    cappedCosts.target - next.target = chargedToUnwinders cappedCosts next := by decide
+
 end Juicer.SharedIntent
 
 namespace Juicer.Runtime
@@ -108,6 +147,25 @@ theorem newcomer_dilutes_existing_deficit :
     deficitExit 2000 2000 1900 2000 = (1000,950) ∧
     1000 - 900 = 2 * (1000 - 950) := by decide
 
+def admissionDeficitBps (debt backing : ℕ) : ℕ :=
+  if debt == 0 || debt ≤ backing then 0 else ceilDiv ((debt - backing) * 10000) debt
+
+def admissionReady (debt backing : ℕ) : Bool := admissionDeficitBps debt backing ≤ 50
+
+theorem admission_ceiling_accepts_fifty_and_rejects_fifty_one_bps :
+    admissionDeficitBps 10000 9950 = 50 ∧ admissionReady 10000 9950 ∧
+    admissionDeficitBps 10000 9949 = 51 ∧ !admissionReady 10000 9949 := by decide
+
+theorem admitted_deficit_is_bounded (debt backing : ℕ) (h : admissionReady debt backing) :
+    admissionDeficitBps debt backing ≤ 50 := by simpa [admissionReady] using h
+
+def activeAdmissionDeficitBps (totalDebt totalUnits activeUnits backing : ℕ) : ℕ :=
+  admissionDeficitBps (mainDebtOf totalDebt totalUnits { units := activeUnits }) backing
+
+theorem queued_exit_debt_is_excluded_from_active_admission :
+    activeAdmissionDeficitBps 20000 20000 10000 10000 = 0 ∧
+    admissionDeficitBps 20000 10000 = 5000 := by decide
+
 def recoveryBook : Book := { total := 100, source := 100 }
 def recoveryView (supply equity : ℕ) : AllocationInput := {
   held := 1100, equity, basis := 1000, required := 1000,
@@ -119,11 +177,11 @@ def recoveryClaim (supply units weight : ℕ) :=
   let b := recoveredBook supply
   fundedOf b.source b.total (accountUnits b { units } weight)
 
-theorem undeployed_weight_receives_recovery :
-    dippedBook.source = 52 ∧ dippedBook.total = 100 ∧
+theorem recovery_restores_existing_units_before_current_weight :
+    dippedBook.source = 52 ∧ dippedBook.sourceLoss = 48 ∧ dippedBook.total = 100 ∧
     (recoveredBook 1000).source = (recoveredBook 2000).source ∧
     recoveryClaim 1000 100 1000 = 100 ∧
-    recoveryClaim 2000 100 1000 = 75 ∧ recoveryClaim 2000 0 1000 = 23 := by decide
+    recoveryClaim 2000 100 1000 = 100 ∧ recoveryClaim 2000 0 1000 = 0 := by decide
 
 theorem recovery_still_conserves_allocated_source :
     (recoveredBook 2000).source = 100 ∧

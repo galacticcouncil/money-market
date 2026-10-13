@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-from stateful_coverage import check_coverage, check_rescale_coverage
+from stateful_coverage import check_coverage, check_loss_recovery_coverage
 from compiler_environment import compiler_environment, compiler_cache_path
 
 
@@ -41,8 +41,8 @@ def main():
                     "--artifacts", str(layout_out)], cwd=vault, check=True)
     subprocess.run([sys.executable, str(formal / "solidity_bodies.py"),
                     "--artifacts", str(layout_out)], cwd=formal, check=True)
-    subprocess.run([sys.executable, str(formal / "test_solidity_bodies.py"), "--artifact",
-                    str(layout_out / "JuicerYieldAccounting.sol/JuicerYieldAccounting.json")], cwd=formal, check=True)
+    subprocess.run([sys.executable, str(formal / "test_solidity_bodies.py"), "--artifacts",
+                    str(layout_out)], cwd=formal, check=True)
     subprocess.run([sys.executable, str(formal / "solidity_guards.py"),
                     "--artifacts", str(layout_out)], cwd=formal, check=True)
     subprocess.run([sys.executable, str(formal / "test_solidity_guards.py"),
@@ -52,7 +52,8 @@ def main():
     slots = {entry["label"]: int(entry["slot"]) for entry in layout["storage"]}
     names = ["sourceShares", "protocolShares", "totalUnits", "rewardIndex", "units", "accountIndex",
              "requestIndex", "harvestUnits", "harvestRewardUnits", "harvestProtocolUnits", "epoch",
-             "accountEpoch", "requestEpoch", "unitScale", "accountScale", "requestScale", "requestUnits"]
+             "accountEpoch", "requestEpoch", "unitScale", "accountScale", "requestScale", "requestUnits",
+             "sourceLossCarry", "protocolLossCarry"]
     for slot, name in enumerate(names):
         if slots.get(name) != slot:
             raise SystemExit(f"storage layout changed: {name}")
@@ -99,7 +100,7 @@ def main():
                        cwd=vault, env=env, check=True)
     check_coverage(traces[:8])
     check_coverage(traces[8:16])
-    check_rescale_coverage(traces[16:])
+    check_loss_recovery_coverage(traces[16:])
     print("Lean/Solidity runtime comparisons passed; source fingerprints and vector regeneration match")
 
 

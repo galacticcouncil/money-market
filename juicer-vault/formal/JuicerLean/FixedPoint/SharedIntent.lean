@@ -52,6 +52,7 @@ structure State where
   unwinders : Array Nat := #[]
   pallet : Array PalletIntent := #[{}]
   gift : Nat := 0
+  giftOwned : Array Nat := #[0, 0]
   now : Nat := 1800000000
   lastHarvest : Nat := 1800000000
   deriving Repr, BEq, Inhabited
@@ -143,8 +144,8 @@ def submit (s : State) (kind amount fair : Nat) : Option State := do
       pallet := s.pallet.push { kind, amount, minimum, deadline, status := 1 } }
 
 def deposit (input : State) (v amount : Nat) : Option (State × Nat) := do
-  let s := (reconcile input).1
-  if amount == 0 || 10000000 * wad < amount || equity s < s.target ||
+  let (s, status) := reconcile input
+  if status == 1 || amount == 0 || 10000000 * wad < amount || equity s < s.target ||
       (s.total != 0 && live s == 0) then none else do
     let shares := if s.total == 0 || live s == 0 then amount else amount * s.total / live s
     if shares == 0 then none else do
@@ -172,9 +173,9 @@ def borrow (input : State) : Option (State × Nat) := do
         return (rebase s, amount)
 
 def request (input : State) (v shares : Nat) : Option (State × Nat) := do
-  let s := (reconcile input).1
+  let (s, status) := reconcile input
   let a := vault s v
-  if shares == 0 || a.shares < shares then none else do
+  if status == 1 || shares == 0 || a.shares < shares then none else do
     let value := live s * shares / s.total
     if value == 0 then none else do
       let basis := a.principal * shares / a.shares
@@ -233,25 +234,37 @@ def harvest (input : State) (settleFirst : Bool := true) : Option (State × Nat)
   let totalWeight := weights.foldl (· + ·) 0
   let capacity := min totalWeight (capacity initial)
   let donated := initial.gift
+  let parked := initial.giftOwned.foldl (· + ·) 0
+  let fresh := donated - parked
   let mut s := initial
   let mut surplus := 0
+  if initial.total != 0 && fresh != 0 then
+    let mut cumulative := 0
+    for v in [:2] do
+      let prior := fresh * cumulative / initial.total
+      cumulative := cumulative + before[v]!
+      let cut := fresh * cumulative / initial.total - prior
+      s := { s with giftOwned := s.giftOwned.set! v (s.giftOwned[v]! + cut) }
   for v in [:2] do
     s := setVault s v { vault s v with weight := weights[v]! }
   for v in [:2] do
     let shares := capacity * weights[v]! / totalWeight
     let (next, amount) ← if capacity != 0 && weights[v]! != 0 then harvestFor s v shares else some (s, 0)
     s := next
-    let gift := if amount == 0 && !serviceBlocked s v then donated * before[v]! / initial.total else 0
+    let ownedGift := if amount == 0 && !serviceBlocked s v then s.giftOwned[v]! else 0
     let a := vault s v
-    s := setVault s v { a with compounded := a.compounded + amount + gift }
-    s := { s with gift := s.gift - amount - gift }
-    surplus := surplus + amount + gift
+    s := setVault s v { a with compounded := a.compounded + amount + ownedGift }
+    let remainingGift := s.gift - amount - ownedGift
+    let remainingOwned := s.giftOwned.set! v (s.giftOwned[v]! - ownedGift)
+    s := { s with gift := remainingGift, giftOwned := remainingOwned }
+    surplus := surplus + amount + ownedGift
   return ({ s with lastHarvest := if surplus == 0 then s.lastHarvest else s.now }, surplus)
 
-def pull (input : State) (v : Nat) : State × Nat := Id.run do
-  let s := (reconcile input).1
+def pull (input : State) (v : Nat) : Option (State × Nat) := Id.run do
+  let (s, status) := reconcile input
+  if status == 1 then return none
   let a := vault s v
-  if a.freed == 0 then return (rebase s, 0)
+  if a.freed == 0 then return some (rebase s, 0)
   let next := { a with
     requested := a.requested - a.freed, freed := 0,
     pulled := a.pulled + a.freed, allowance := if a.requested == a.freed then 0 else a.allowance }
@@ -260,7 +273,7 @@ def pull (input : State) (v : Nat) : State × Nat := Id.run do
     if let some i := order.findIdx? (· == v) then
       order := (order.set! i order[order.size - 1]!).pop
   let s := setVault s v next
-  return (rebase { s with cash := s.cash - a.freed, reserved := s.reserved - a.freed, unwinders := order }, a.freed)
+  return some (rebase { s with cash := s.cash - a.freed, reserved := s.reserved - a.freed, unwinders := order }, a.freed)
 
 def palletFill (s : State) (nonce output : Nat) : Option (State × Nat) := do
   let p := s.pallet[nonce]?.getD {}
@@ -298,7 +311,7 @@ def call (s : State) (op actor amount : Nat) : Option (State × Nat) :=
   | 9 => some ({ s with now := s.now + amount }, 0)
   | 10 => harvest s
   | 11 => some ({ s with gift := s.gift + amount }, 0)
-  | 12 => some (pull s actor)
+  | 12 => pull s actor
   | 13 => callback s actor amount
   | 14 => some (setVault s actor { vault s actor with seenCost := (vault s actor).cost }, 0)
   | 15 => some (setVault s actor { vault s actor with blocked := amount != 0 }, 0)
@@ -313,6 +326,7 @@ def snapshot (s : State) : Array Nat := Id.run do
   for v in s.vaults do
     a := a ++ #[v.shares, v.principal, v.requested, v.freed, v.allowance, v.cost,
       v.seenCost, v.weight, v.compounded, v.pulled, if v.blocked then 1 else 0]
+  a := a ++ s.giftOwned
   for p in s.pallet.toList.drop 1 do
     a := a ++ #[p.kind, p.amount, p.minimum, p.deadline, p.status]
   return a

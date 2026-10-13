@@ -115,12 +115,31 @@ def allocationInput (s : State) : AllocationInput :=
   ⟨s.held, sourceEquity s, required + (if required == 0 then 0 else 2*10^10),
     activeSupply s, wallet s fundId, quoteHollar s (toAssets s (wallet s fundId)), s.basis, s.feeBps⟩
 
+def activeFunds (s : State) : Nat :=
+  let gross := (position s 0).cash + s.activeRemaining
+  gross - min gross (fee s 0).feeLeft
+
+def admissionBacking (s : State) : Nat :=
+  let equity := sourceEquity s
+  let retained := min (s.book.source + s.book.protocol) (allocationAvailable (allocationInput s))
+  let excluded := if s.held == 0 then 0 else equity * retained / s.held
+  equity - excluded
+
+def admissionDeficitBps (s : State) : Nat :=
+  let debt := mainDebtOf s.debt s.mainUnits (position s 0)
+  if debt == 0 then 0 else
+  let backing := admissionBacking s
+  let cash := activeFunds s
+  let uncovered := debt - backing - cash
+  let required := requiredBacking debt (position s 0).principal cash s.feeBps
+  let unbacked := required - backing
+  ceilDiv (max uncovered unbacked * 10000) debt
+
 def checkpoint (s : State) (a b : Nat) : State := Id.run do
   let mut s := s
   if !pendingAccounting s then
     let v := allocationInput s
-    let trimmed := trimLoss s.book (allocationAvailable v)
-    let added := allocationAvailable v - trimmed.source - trimmed.protocol
+    let added := allocationFresh s.book v
     let released := if v.held != 0 && v.supply != 0 && added != 0 then
       min (added * v.equity / v.held) (v.basis - v.required) else 0
     s := { s with book := allocate s.book v, basis := s.basis - released }
@@ -436,6 +455,7 @@ def rawRunCall (input : State) (action : Action) : Result := do
     if supply != 0 && activeAssets s == 0 then throw 8
     let shares := if supply == 0 then n - 1000 else ceilDiv (n * supply) (activeAssets s)
     let needed := if supply == 0 then n else ceilDiv (shares * activeAssets s) supply
+    if 50 < admissionDeficitBps s then throw 28
     if s.collateral[caller]! < n then throw 15
     if s.supply == 0 then s := setWallet { s with supply := 1000 } 4 1000
     s := setWallet s b (wallet s b + shares)
@@ -620,7 +640,8 @@ def snapshot (s : State) : Array Nat := Id.run do
   let mut out := #[s.supply, s.assets, s.supplied, s.liquid, s.reserve, s.debt, s.synth,
     s.held, s.basis, s.freed, s.reinvest, s.pending, s.queued, s.owed, s.queuedDebt,
     s.head, s.unwind, s.requests.size, s.book.source, s.book.protocol, s.book.total,
-    s.book.index, s.book.epoch, s.book.scale, s.mainUnits, s.ownedCash, s.outstanding,
+    s.book.index, s.book.epoch, s.book.scale, s.book.sourceLoss, s.book.protocolLoss,
+    s.mainUnits, s.ownedCash, s.outstanding,
     s.sourceHead, s.positions.size, s.unallocated, (s.paused || s.sourcePaused).toNat, s.depositsPaused.toNat,
     s.sourcePaused.toNat, s.time]
   for i in [:actors] do

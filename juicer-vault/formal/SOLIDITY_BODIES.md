@@ -1,10 +1,22 @@
 # Solidity body correspondence
 
-`solidity_bodies.py` extracts `JuicerYieldAccounting._shiftIndex` from the actual solc 0.8.22 AST
-and checks it against `JuicerLean/Solidity/GeneratedBodies.lean`. identifiers are bound by
-declaration ID and parameter order. unsupported expressions, widths, statements, unchecked
-blocks, modifiers and override dispatch are rejected. the compiler version and current source
-fingerprint are checked, together with the production artifact manifest.
+`solidity_bodies.py` extracts `JuicerYieldAccounting._shiftIndex` and five critical stateful
+functions from the actual solc 0.8.22 AST:
+
+| binding | selector | modeled transition |
+| --- | --- | --- |
+| `CollateralVault.deposit` | `0x6e553f65` | public action 0 |
+| `JuicerYieldAccounting.beginHarvest` | `0x1def7faa` | harvest reservation and reserve debit |
+| `JuicerYieldAccounting.splitHarvest` | `0xad81f8c0` | reward/service/fee split |
+| `CollateralVault.startUnwinds` | `0x1b727f39` | public action 5 |
+| `CollateralVault.pokeSettle` | `0xe891ab49` | public action 6 |
+
+The generated module records each stateful signature, selector, modifier order, complete
+normalized body digest, and an ordered trace of blocks, branches, loops, calls, writes, returns,
+reverts and events. Required semantic anchors bind the trace to the modeled operation. Inline
+assembly, Yul, unchecked blocks, try/catch, modifier arguments and override dispatch are rejected.
+The compiler version and current source fingerprint are checked together with the production
+artifact manifest.
 
 `JuicerLean/Solidity/Expressions.lean` interprets the accepted typed expression tree with
 checked uint256 inputs, addition and subtraction, unsigned right shifts, equality and lazy
@@ -13,7 +25,7 @@ rules](https://docs.soliditylang.org/en/v0.8.22/types.html#integers). `eval_vali
 successful word result is within uint256; `choose_true` and `choose_false` prove the unused
 conditional branch does not execute.
 
-`accountingShiftIndex_refines` proves evaluation of the extracted body succeeds and equals
+`accountingShiftIndex_refines` proves evaluation of the extracted pure body succeeds and equals
 `Runtime.ceilShift` for every uint256 index and shift. this includes zero, the maximum word,
 and shifts at least 256; `accountingShiftIndex_wide` proves the latter return zero for a zero
 index and one otherwise. the arithmetic proof includes the subtraction and addition checks.
@@ -25,9 +37,9 @@ lake build
 lake env lean CheckAxioms.lean
 ```
 
-`--emit` prints a regenerated Lean expression for review. checking never overwrites the
-accepted expression. the runtime gate builds AST-bearing production artifacts, checks the
-expression and runs 14 extractor boundary tests before the existing Solidity comparisons.
+`--emit` prints regenerated Lean bindings for review. checking never overwrites the accepted
+module. the runtime gate builds AST-bearing production artifacts, checks all six bindings and
+runs 24 extractor boundary tests before the existing Solidity comparisons.
 
 the formal scripts use `compiler-remappings.json` with automatic remapping discovery disabled.
 cache directories include a digest of that file: Foundry can otherwise reuse an artifact when
@@ -35,14 +47,21 @@ only unused remappings have changed. each build selects its cache through the en
 which takes precedence over `--cache-path`; production AST/layout builds therefore cannot replace
 the test cache. these settings are scoped to the formal scripts; ordinary
 project build configuration is unchanged.
-the remapping update changes compiler metadata. all 11 production contracts retain their
-selectors and code lengths; creation and runtime bytes match the previous reviewed artifacts
-after zeroing their compiler CBOR metadata blocks, including embedded contract metadata.
+The artifact gate records compiler metadata, selectors, creation/runtime sizes, link and immutable
+references, and normalized bytecode hashes for all 11 production contracts. Source changes in this
+PR therefore require an explicit manifest refresh as well as the body checks above.
 
-this expression proof covers one private pure helper. solc parsing, the Python extraction and
-the correspondence of the interpreter's operations to Solidity remain trusted. there is no
-kernel proof of the Solidity compiler or EVM instruction execution. the other arithmetic bodies,
-storage and external calls remain outside this expression interpreter.
+The `_shiftIndex` result is expression-level semantics. For the stateful bodies,
+`BodyProofs.lean` proves the selected selectors use their checked guard prefixes, composes
+`deposit`, `startUnwinds` and `pokeSettle` with the existing raw public-call preservation theorem,
+and proves the `beginHarvest` reserve debit and `splitHarvest` arithmetic/conservation models.
+The full body digest and trace prevent an unreviewed Solidity edit from passing the gate.
+
+Solc parsing, Python extraction, the semantic label assigned to each checked AST, external-call
+effects and the compiler remain trusted. There is no kernel proof of solc lowering or EVM opcode
+execution, no storage-journal proof, and no model of arbitrary callback code. The stateful result
+is complete compiled-AST structural correspondence plus composition with the existing transition
+semantics; it is not a proof that every EVM instruction implements that transition.
 
 ## guard prefixes
 
@@ -50,7 +69,8 @@ storage and external calls remain outside this expression interpreter.
 the regular and upgradeable OpenZeppelin reentrancy guards, and the vault's explicit `_transfer`
 guard. it binds storage references, internal calls and modifier uses by declaration ID, checks
 statement order, and rejects extra guard statements, repeated continuations, override dispatch,
-unknown helper calls and modifier argument evaluation. the remaining function body is opaque.
+unknown helper calls and modifier argument evaluation. Function bodies are opaque to this guard
+extractor; the five stateful bindings above are checked separately by `solidity_bodies.py`.
 
 `GeneratedGuards.lean` records the checked guards and 32 leading modifier prefixes: seven
 accounting, eleven Main, eleven vault and three execution-controller entrypoints. the checker
@@ -87,9 +107,9 @@ dispatch from inherited `transfer`/`transferFrom`, or safety of the exempt paths
 are abstracted; revert payloads and gas are not modeled. rollback is an assumed call-frame rule,
 not an EVM storage-journal proof. the `status` field represents the guard's private storage;
 successful continuations return normally. nonlocal assembly exits, arbitrary assembly/delegatecall
-writes and hostile callbacks that change this state are not proved safe. the public-call composition
-proves the model wrapper, not correspondence of each
-remaining Solidity function body.
+writes and hostile callbacks that change this state are not proved safe. The public-call composition
+proves the model wrapper. For the three selected vault bodies it is also tied to the checked
+selector/body binding above; other Solidity function bodies remain out of scope.
 
 the runtime gate checks these bindings and 24 rejection/mutation tests against the same pinned
 production artifacts. the two OpenZeppelin guard sources are included in the fingerprint set.

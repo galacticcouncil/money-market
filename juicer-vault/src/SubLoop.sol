@@ -117,6 +117,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     {
         if (hollarAmount == 0) revert ZeroAmount();
         if (deployTranche != 0 && hollarAmount > deployTranche) revert InvalidParameters();
+        if (pendingIntent.kind != 0) revert IntentRejected();
         // Pending withdrawals are liabilities, not backing for live shares.
         // Quote before pulling cash, which is itself included in totalEquity.
         uint256 gross18 = _totalEquity() * 1e10;
@@ -159,6 +160,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     }
 
     function _requestUnwind(uint256 shares, uint256 protectedBasis) private returns (uint256 unwindId) {
+        if (pendingIntent.kind != 0) revert IntentRejected();
         uint256 held = _sharesOf[msg.sender];
         if (shares == 0) revert ZeroAmount();
         if (shares > held) revert InsufficientShares();
@@ -191,6 +193,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     function pullFreed()
         external override onlyRole(VAULT_ROLE) nonReentrant settlesIntents returns (uint256 hollarSent)
     {
+        if (pendingIntent.kind != 0) revert IntentRejected();
         hollarSent = freedHollar[msg.sender];
         if (hollarSent == 0) return 0;
         freedHollar[msg.sender] = 0;

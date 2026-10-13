@@ -12,7 +12,8 @@ with `rawRunCall` for every action.
 `LeanStatefulParity.t.sol` runs the actual vault, accounting, Main and delegatecall logic
 from deployment. `LeanMarketStatefulParity.t.sol` adds the actual Harvester and fee controller,
 with changing source values, collateral prices, debt observations and execution costs.
-`LeanRescaleStatefulParity.t.sol` drives the same public system through four lazy rescales.
+`LeanRescaleStatefulParity.t.sol` retains its historical name and drives the same public system
+through repeated partial loss and recovery cycles, including waiting requests and transfers.
 `StatefulReplay.lean` replays the recorded actions and compares every
 post-call snapshot and success/revert outcome. it also checks the holder, request,
 Main-cash/debt and collateral partitions and the lazy liability bound after every call. its
@@ -55,22 +56,25 @@ queue/batch/claim boundaries. Required boundary cases must actually execute.
 `check-runtime.py` includes the default campaigns, their Lean replay and two focused ten-call
 harvest-capacity replays.
 
-the PR #79 default run covers 24 campaigns, 7,338 recorded steps, 1,509 expected reverts and
-1,072 corrupted-output checks. there are 98 more reverts than before PR #79, including
-the new fund-recipient rejections.
+the current PR #79 gate covers 24 campaigns, 9,690 recorded steps, 1,901 expected reverts and 416
+corrupted-output checks.
 
-| fixture | seeds | random depth | recorded steps | expected reverts |
-| --- | --- | --- | --- | --- |
-| baseline | 1–8 | 192 | 2,419 | 662 |
-| market | 1–8 | 192 | 2,598 | 495 |
-| rescale | 1–8 | 192 | 2,321 | 352 |
+| fixture | seeds | random depth | recorded steps | expected reverts | mutation checks |
+| --- | --- | --- | --- | --- | --- |
+| baseline | 1–8 | 192 | 2,419 | 662 | 96 |
+| market | 1–8 | 192 | 2,598 | 499 | 160 |
+| loss/recovery (`rescale` CLI name) | 1–8 | 192 | 4,673 | 740 | 160 |
+
+the third fixture keeps the `rescale` command-line and trace-file name for compatibility, while its
+coverage report is `loss-recovery-coverage.json`.
 
 the historical pre-PR #79 corpus contains 48 campaigns and 22,609 recorded steps, including 16,315 vault calls,
 637 Harvester/fee-controller calls and 5,657 environment actions. The longest sequence has 720
 steps. the baseline and market corpus passes on the original and allowance-fixed Solidity; the
 fixed branch rejects one additional `transferFrom` call with `InexactShares` (baseline seed 9,
-step 596). the rescale corpus targets the corrected branch and intentionally distinguishes its
-ceil-shifted result from the earlier floor behavior.
+step 596). the historical rescale corpus predates the high-water carry policy and intentionally
+distinguished its ceil-shifted result from the earlier floor behavior; it is retained as historical
+evidence rather than a current public-reachability claim.
 
 | fixture | seeds | random depth | recorded steps | expected reverts |
 | --- | --- | --- | --- | --- |
@@ -124,21 +128,21 @@ must also occur. Corruption checks cover the additional custody, index, cost, fe
 repayment-counter fields. Genesis selects a fixed fixture configuration from the action header;
 no observed Solidity state initializes the prediction.
 
-## rescale campaigns
+## loss/recovery campaigns
 
-the rescale fixture lowers the funded source to a positive residual, deposits through the public
-vault at that low denominator, and obtains ray-scale shares without writing accounting storage.
-an ordinary account and waiting request then remain stale while repeated public `sync` calls cross
-scales 64, 128, 192 and 256. every campaign must settle the stale account, start the stale request,
-perform transfers and partial/final claims after a rescale, execute rejected calls without state
-changes, write off the reward epoch, refill it and mint funded rewards again.
+the third fixture lowers the funded source to a positive residual and then restores it through
+public `sync` calls. every loss must increase `sourceLossCarry + protocolLossCarry`; every recovery
+must reduce that carry before current wallet weight can mint units. an ordinary account and a
+waiting request remain live throughout 48 deterministic cycles while transfers and allowance
+changes execute around them. `unitScale` must remain zero after every recorded action.
 
-the coverage gate independently recomputes the old floor-shifted account and request claims and
-requires a state where they differ from the corrected ceil-shift result. this makes the long replay
-sensitive to the PR #74 correction, beyond merely observing a nonzero scale. rescale-step mutation
-checks alter total units, reward index, epoch, scale, stale account/request fields and the expanded
-market fields. these are controlled source repricings backed by fixture tokens, not a claim about
-the cost or feasibility of producing the same path in a live market.
+the coverage gate requires carry creation and restoration, a waiting request during both phases,
+transfers after a recorded loss, partial and final claims, an epoch write-off, refill and a funded
+harvest after write-off. each campaign then adds 192 pseudorandom public/environment actions and
+drains the queue. source repricings are backed by fixture tokens; the campaign proves exact
+Solidity/Lean correspondence for this controlled environment, not the market cost of producing it.
+seeded suites separately cover scale 64/256 and the corrected ceil shift for accounts and waiting
+requests.
 
 ## fixture boundary
 
@@ -158,10 +162,10 @@ token implementation. Outside repayments, reserve deposits and Main funding are 
 funded environment actions, not trading profit. Market changes, time advances and liquidity
 controls are also recorded actions.
 
-the baseline and market campaigns stay below rescale thresholds and require `unitScale == 0`.
-the dedicated rescale campaigns reach cumulative `unitScale == 256` with an ordinary holder and
-waiting request left stale from scale zero. ceil-shifted indices keep aggregate claims within
-`totalUnits` and remain defined at the four-shift boundary.
+all public campaigns require `unitScale == 0`. the loss/recovery fixture additionally requires
+explicit carry restoration for the incumbent cohort. seeded accounting fixtures reach cumulative
+`unitScale == 256`; ceil-shifted indices keep aggregate claims within `totalUnits` and remain defined
+at the four-shift boundary.
 
 separate integration checks cover four other fixture boundaries. `LeanScaledDebt.t.sol` runs 516
 mint, burn and index steps against Aave core v3's actual `VariableDebtToken` 1.19.3, with a mock
@@ -172,11 +176,11 @@ expiry, permissionless reconciliation, exit, a missed callback, a late callback 
 
 `LeanSharedIntent.t.sol` adds six independent state-by-state traces for the production SubLoop and
 Harvester with two callback vaults and the pallet mock. Lean replays 1,176 calls from genesis,
-including 41 expected reverts, 66 fills, 18 refunds, nine balance rebases and one near-full gift
-that clears the SubLoop slot while the pallet intent remains open. six covered harvest states
-distinguish reconcile-before-weight from the old delayed ordering. the snapshot includes loop
-cash, collateral, debt, intent baselines, pallet status, vault shares/principal/unwinds/costs,
-Harvester gifts and compounded receipts.
+including 111 expected reverts, 66 fills, 18 refunds, three balance rebases, one near-full arrival
+that clears the SubLoop slot while the pallet intent remains open, and one parked-gift ownership
+history. six mutation checks distinguish reconcile-before-weight from the old delayed ordering.
+the snapshot includes loop cash, collateral, debt, intent baselines, pallet status, vault
+shares/principal/unwinds/costs, per-vault Harvester gifts and compounded receipts.
 
 the deployed Aave Pool and reserve lifecycle, live pallet/solver execution, malicious tokens,
 reentrancy, arbitrary oracle/configuration changes and the full uint256 input space remain outside
@@ -188,7 +192,7 @@ lists from a certified input. `ValidSolidityTrace` defines the raw domain as sou
 actions admitted by a structural input theorem or a raw revert. successful post-state certificates
 are checked separately and are no longer an admission fallback.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` prove preservation through
-arbitrary finite traces in that domain, while the default replay checks membership for all 7,338
+arbitrary finite traces in that domain, while the default replay checks membership for all 9,690
 recorded actions. a fabricated orphan-claim storage state is a concrete counterexample to raw
 preservation over unrestricted states and is excluded by the domain.
 
@@ -208,7 +212,7 @@ the typed opcode theorem and source checker establish fixture-dispatch correspon
 ABI selectors to reviewed hashes. it does not prove the internal contract bodies equivalent to
 `rawRunCall`. sync, requestRedeem and deposit have structural preservation under account/request
 metadata consistent with the book history. deposit also requires zero reward index at zero supply;
-replay checks these input premises throughout all 7,338 steps. requestRedeem requires an ordinary
+replay checks these input premises throughout all 9,690 steps. requestRedeem requires an ordinary
 owner and deposit a bounded receiver, both supplied by the fixture domain. rebalance is proved
 under a zero-fee remainder at zero active source remainder. settlement loops preserve the
 invariant for any iteration count under backed owed collateral and a Main position count equal

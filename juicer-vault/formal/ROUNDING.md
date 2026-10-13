@@ -98,8 +98,9 @@ index. stored units and committed request units continue to shift downward.
 an account-only candidate was incomplete in two ways. leaving `requestIndex` floor-shifted retained
 the same extra pending unit when a waiting request crossed a rescale and later started. computing
 `Math.ceilDiv(index, 1 << shift)` also made the divisor zero at `shift >= 256`, reverting a nonzero
-stale account view. `RescaleCeilIndexAudit.t.sol` has seeded and public controlled regressions for
-both paths.
+stale account view. `RescaleCeilIndexAudit.t.sol` retains seeded regressions for both paths; its
+public histories now check the high-water recovery policy that prevents those loss/refill cycles
+from reaching a rescale.
 
 ### executable evidence
 
@@ -113,22 +114,24 @@ both paths.
   bound.
 - `test_fourShiftAllocationKeepsCeilShiftDefined` performs four 64-bit shifts in one allocation.
   a nonzero stale index remains readable at `unitScale == 256`.
-- `test_publicControlledCyclesKeepCeilShiftDefined` reaches `unitScale == 256` after 12 controlled
-  loss/refill cycles through public `sync` calls. `balanceOf` remains defined.
-- `test_publicWaitingRequestUsesCeilShift` creates a real deposit and waiting redemption, reaches
-  `unitScale == 64`, and checks that public `startUnwinds` burns the ceil-shifted request claim.
+- `test_publicControlledCyclesRestoreLossWithoutRescale` runs 40 controlled loss/refill cycles
+  through public `sync` calls. each loss records carry, each refill restores it, and `unitScale`
+  remains zero.
+- `test_publicWaitingRequestSurvivesLossCarryRestoration` creates a real deposit and waiting
+  redemption, runs 20 such cycles, and checks that public `startUnwinds` burns the unshifted request
+  claim after its incumbent ownership has been restored.
 
 these public controlled tests use the actual vault, SubLoop and accounting entry points without
 accounting storage writes or vault impersonation. the waiting-request trace raises the test TVL cap,
 uses two deposits of `RAY` base units, and both public traces mint or burn mock aPRIME to represent
-large external source-value changes. they establish control-flow reachability in the fixture, not
-the economic feasibility of producing those conditions in a deployed market.
+large external source-value changes. they establish that the implemented high-water policy closes
+the former public rescale path in this fixture.
 
 broader public searches in `RescaleReachability.t.sol` cover deposits, `rebalance`, `pokeBorrow`,
-loss/refill cycles, transfers and account splitting. the untargeted 24-round and 60-round searches
-remain at scale zero because zero-value losses take the write-off branch. the targeted
-positive-residual fixture reaches scale 64 in four cycles; three public holders finish two units
-below `totalUnits`.
+loss/refill cycles, transfers and account splitting. zero-value losses take the write-off branch;
+positive-residual losses now accumulate carry and their refills restore the incumbent reserve.
+both paths remain at scale zero. seeded accounting states continue to cover the rescale arithmetic
+and its aggregate claim bound.
 
 `RescaleEconomics.t.sol` reruns the original seeded state at funded ratios of one and three shares
 per unit. corrected aggregate displays remain within the fund, full displayed transfers remain
@@ -182,9 +185,10 @@ runtime account scales to the recurrence. the result is an aggregate worst-case 
 it does not assign the residue fairly among individual holders or establish that controlled source
 losses are economically reachable in a deployed market.
 
-verdict. the original floor/floor arithmetic finding was real. the complete correction is a
-constant-cost change with no holder scan: ceil-shift both ordinary and waiting-request indices with
-the overflow-safe formula, then clamp to the current index. executable regressions close the known
-seeded and controlled public traces, and the Lean model proves aggregate no-overclaim for its full
-lazy-ledger transition system. economic reachability against a deployed market and full Solidity
-trace equivalence remain outside these results.
+verdict. the original floor/floor arithmetic finding was real. the complete arithmetic correction
+is a constant-cost change with no holder scan: ceil-shift both ordinary and waiting-request indices
+with the overflow-safe formula, then clamp to the current index. seeded executable regressions and
+the Lean model prove aggregate no-overclaim for the lazy-ledger transition system. the later
+high-water carry policy additionally closes the demonstrated public loss/refill route to rescaling.
+economic reachability against a deployed market and full Solidity trace equivalence remain outside
+these results.

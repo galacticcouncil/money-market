@@ -112,11 +112,22 @@ theorem finishAllocation_progress (b : Book) (v : AllocationInput) (added before
   exact rescale_progress 4 b _
 
 theorem writeOff_progress (b : Book) :
-    BookProgress b { b with total := 0, index := 0, scale := 0, epoch := b.epoch+1 } := by
+    BookProgress b { b with
+      total := 0
+      index := 0
+      scale := 0
+      epoch := b.epoch+1
+      sourceLoss := 0
+      protocolLoss := 0 } := by
   refine ⟨by dsimp only; omega, ?_⟩
   intro he
   dsimp only at he
   omega
+
+theorem restoreLoss_progress (b : Book) (added : Nat) :
+    BookProgress b (restoreLoss b added).1 := by
+  simp only [restoreLoss]
+  split <;> exact bookProgress_refl b
 
 theorem allocate_progress (b : Book) (v : AllocationInput) : BookProgress b (allocate b v) := by
   let trimmed := trimLoss b (allocationAvailable v)
@@ -124,20 +135,31 @@ theorem allocate_progress (b : Book) (v : AllocationInput) : BookProgress b (all
   let allocating := v.held != 0 && v.supply != 0 && added != 0
   let before := (if v.held == 0 then 0 else v.equity * trimmed.source / v.held) + v.fundedValue
   let base := if trimmed.total != 0 && before == 0 then
-    { trimmed with total := 0, index := 0, scale := 0, epoch := trimmed.epoch+1 } else trimmed
+    { trimmed with
+      total := 0
+      index := 0
+      scale := 0
+      epoch := trimmed.epoch+1
+      sourceLoss := 0
+      protocolLoss := 0 } else trimmed
+  let restored := restoreLoss base added
+  let allocatingAfter := v.held != 0 && v.supply != 0 && restored.2 != 0
+  let beforeAfter := (if v.held == 0 then 0 else v.equity * restored.1.source / v.held) + v.fundedValue
   have ht : BookProgress b trimmed := trimLoss_progress b _
   have hb : BookProgress b base := by
     dsimp only [base]
     split
     · exact bookProgress_trans ht (writeOff_progress trimmed)
     · exact ht
+  have hr : BookProgress b restored.1 := bookProgress_trans hb (restoreLoss_progress base added)
   change BookProgress b (if trimmed.total == 0 && !allocating then trimmed
-    else if !allocating then base else finishAllocation base v added before)
+    else if !allocatingAfter then restored.1
+    else finishAllocation restored.1 v restored.2 beforeAfter)
   split
   · exact ht
   · split
-    · exact hb
-    · exact bookProgress_trans hb (finishAllocation_progress base v added before)
+    · exact hr
+    · exact bookProgress_trans hr (finishAllocation_progress restored.1 v restored.2 beforeAfter)
 
 theorem metadata_bookProgress (s : State) (next : Book) (h : PublicMetadata s)
     (hp : BookProgress s.book next) : PublicMetadata { s with book := next } := by
