@@ -69,6 +69,7 @@ contract CompoundLogic {
     event Rebalanced(uint256 ltvBefore, uint256 ltvAfter);
     event Harvested(uint256 collateralAmount);
 
+    /// @dev `paid` is cash spent, a de-lever target's unit; the synthetic burn follows the debt reduction
     function repay(uint256 key, uint256 amount, uint256 recovery)
         external returns (uint256 principalPaid, uint256 burn, uint256 paid)
     {
@@ -77,9 +78,10 @@ contract CompoundLogic {
         IERC20 hollar = v.hollar();
         IMainDebt buffer = v.mainDebt();
         hollar.forceApprove(address(buffer), recovery);
-        (, principalPaid, paid) = buffer.repay(key, amount, recovery);
+        uint256 reduced;
+        (paid, principalPaid, reduced) = buffer.repay(key, amount, recovery);
         hollar.forceApprove(address(buffer), 0);
-        burn = debt == 0 ? 0 : v.syntheticSupplied() * paid / debt;
+        burn = debt == 0 ? 0 : v.syntheticSupplied() * reduced / debt;
         if (burn != 0) {
             ISyntheticToken synthetic = v.synthetic();
             v.pool().withdraw(address(synthetic), burn, address(this));

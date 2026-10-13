@@ -110,6 +110,8 @@ contract Harvester is AccessControl, ReentrancyGuard {
     function harvest(uint256[] calldata minOuts) external nonReentrant returns (uint256 surplus) {
         IJuicerFeeController controller = feeController;
         if (address(controller) == address(0)) revert FeeControllerUnset();
+        // settle a landed fill before weights are read, not inside a vault's harvestFor
+        subLoop.reconcile();
         uint256 version = controller.configurationVersion();
         uint256 total = subLoop.totalShares();
         uint256 n = vaults.length;

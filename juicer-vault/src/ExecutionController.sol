@@ -269,7 +269,8 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
         b.credit = uint128(_credit(b) - Math.min(_credit(b), amount));
         b.updatedAt = uint64(block.timestamp);
         Pacing storage p = pacing[l.group];
-        p.nextAt = uint64(block.timestamp + p.interval);
+        // a trade closes only its share of the interval
+        p.nextAt = uint64(block.timestamp + Math.mulDiv(p.interval, amount, l.maximum, Math.Rounding.Up));
         p.lastBlock = block.number;
     }
 

@@ -89,4 +89,5 @@ contract StatefulYieldSource is IYieldSource {
         return (amount, shares);
     }
     function harvest() external pure returns (uint256) { return 0; }
+    function reconcile() external pure returns (uint8) { return 0; }
 }
