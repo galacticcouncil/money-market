@@ -72,8 +72,9 @@ contract LeanLifecycleParityTest is HarvestTest {
         harvester.harvest(new uint256[](1));
         _assertLifecycle();
         uint256 gift = vault.walletOf(address(this)) / 100;
+        address fund = address(vault.yieldAccounting());
         vm.expectRevert(JuicerYieldAccounting.Unauthorized.selector);
-        vault.transfer(address(vault.yieldAccounting()), gift);
+        vault.transfer(fund, gift);
         _assertLifecycle();
         vault.transfer(address(vault), 7);
         _assertLifecycle();

@@ -78,6 +78,10 @@ def main():
     subprocess.run(lean + ["--run", "ScaledDebtReplay.lean",
                            str(formal / ".stateful" / "scaled-debt.jsonl")],
                    cwd=formal, check=True)
+    subprocess.run(["forge", "test", "--offline", "--match-contract", "^(AuditPr46|YieldFundTransfer)",
+                    "--match-test", "^test_(pr46_|walletSharesCannotReachTheFund|depositCannotMintIntoTheFund|smallAllocationsOwnAFundThatHeldSharesBeforeAnyUnits)",
+                    "--gas-limit", str(2**40), "-vv"] + tree,
+                   cwd=vault, env=env, check=True)
     for contract, test in [
         ("SharedHarvestFormalHarness", "test_repeatedTwoVaultHarvestHistory"),
         ("IceSequenceFormalHarness", "test_longEntryExpiryReconcileAndExitHistory"),

@@ -25,10 +25,10 @@
       "summary": {
         "compiler": "0.8.22+commit.4fc1097e",
         "creation": {
-          "bytes": 39228,
+          "bytes": 39238,
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "4274f6aa3641d746093807180d2fe3bf7f05011c9db8768edcba665d4daf08a4"
+          "sha256": "f4fdf8fe3c86aa5bf754dea17945abc890cbdb88a28b6105671ade0d6b29dd5a"
         },
         "evmVersion": "paris",
         "methodCount": 95,
@@ -36,10 +36,10 @@
         "optimizer": { "enabled": true, "runs": 200 },
         "settingsSha256": "d0df919045cd07b7a5e1f1397a3f898ed428b1e1ea33c204cecaf5d32a28c1de",
         "runtimeTemplate": {
-          "bytes": 24480,
-          "immutableReferencesSha256": "82f1e22d719dcd216bd8329d0a17683cd5cd001186e0c1503e7dfd45571392c8",
+          "bytes": 24495,
+          "immutableReferencesSha256": "9addde687f45ebd9855a0f913950014df6813214423b9f6e4ce781f1351a9b5d",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "34d9bbbfd616eb0c9f7c0aaee805cb0edf4a69781ed5875cccc6f208ee42245b"
+          "sha256": "6e8cbc30c42d207d469be557d8e491fa297a60d1bb3b778926659d3c5dff5239"
         },
         "viaIR": true
       }
@@ -50,10 +50,10 @@
       "summary": {
         "compiler": "0.8.22+commit.4fc1097e",
         "creation": {
-          "bytes": 14359,
+          "bytes": 14354,
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "4c9072150802dbbf231b01cb21646254395e02bc3906ba17590e16ceabb249b8"
+          "sha256": "ef010e44234e8d444027d49d6d51b6e7185d58b4998f37baff121ce16d3611a3"
         },
         "evmVersion": "paris",
         "methodCount": 5,
@@ -61,10 +61,10 @@
         "optimizer": { "enabled": true, "runs": 200 },
         "settingsSha256": "5f097e4d73b72044314be6b4b571fe43b9d3aff2e302e9fa599736a0dcb48500",
         "runtimeTemplate": {
-          "bytes": 14331,
+          "bytes": 14326,
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "ce6b199f5af304491526e7e87c70f4406fa617cfe192db85c73d32c687810d3f"
+          "sha256": "6fc1607680652af9c9a6e8c127914f0974e2444207dc3cda993bf53632ff5816"
         },
         "viaIR": true
       }
@@ -75,10 +75,10 @@
       "summary": {
         "compiler": "0.8.22+commit.4fc1097e",
         "creation": {
-          "bytes": 15607,
+          "bytes": 15670,
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "c61b1dda8c25c45a6a58c1665fc520b960faea16317433d35b63c374eb8afa6a"
+          "sha256": "f372e8cb1e7e11fcdd28f10b30925863a71549d1e0e818f93c7dc50b140d392c"
         },
         "evmVersion": "paris",
         "methodCount": 40,
@@ -86,10 +86,10 @@
         "optimizer": { "enabled": true, "runs": 200 },
         "settingsSha256": "444ac5ff324341322c1b40d6fe313af2117b0e983719162e085b1d05ea002545",
         "runtimeTemplate": {
-          "bytes": 15183,
-          "immutableReferencesSha256": "8ee104b690f9b48146a4624b0f406825bf0b9a9ad98d465377b4e3519fade372",
+          "bytes": 15246,
+          "immutableReferencesSha256": "923660dfd996c60809d04bd5aa6c2cffce40fa1cb482b4cec0d00484ce57d969",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "36ab467a93b371395a615e888843ee48c06ca9417c90e678525a4de52e0246cd"
+          "sha256": "948ffdf5fcca2b0b9476482f7fbcb3b9ad06d12214b07f638e3828535fd96599"
         },
         "viaIR": true
       }
@@ -101,10 +101,10 @@
       "summary": {
         "compiler": "0.8.22+commit.4fc1097e",
         "creation": {
-          "bytes": 9898,
+          "bytes": 10039,
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "c7051fd93f676ca32d66aadc01c7fc6e96c4dbb30b09a19e939486bfb79daba8"
+          "sha256": "587f2e4b5aff23d12de94348e192dca3d2b10157ccf7963562a3d6a5423da6ae"
         },
         "evmVersion": "paris",
         "methodCount": 22,
@@ -112,10 +112,10 @@
         "optimizer": { "enabled": true, "runs": 200 },
         "settingsSha256": "0632dac0eb52d715a18b0dd699c6afba944db0d0c03d907d722f6146207ab85d",
         "runtimeTemplate": {
-          "bytes": 9368,
-          "immutableReferencesSha256": "ff66e5b94b66ea9478236b133ef54332e7e957b4495ff3dcc3db6c1051b8839f",
+          "bytes": 9502,
+          "immutableReferencesSha256": "3f2129ec6bf0cd2c6db24258adcf7843727c734b35128d54943d1459da3fb302",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "b14014c8903fd418fb1f2eec4b3d49796cb4e314bc1a0a884243f7c86518ca79"
+          "sha256": "a0fc9b8dd6d3c57ea35e246df7badca0c91d5ae2bb043c2a608cbd1b228b0572"
         },
         "viaIR": true
       }
@@ -138,7 +138,7 @@
         "settingsSha256": "5f1ab1509027e6ecfb21b886d932cc1a75571de4dfdc31efe7f06f1d0c4e780f",
         "runtimeTemplate": {
           "bytes": 6740,
-          "immutableReferencesSha256": "8532578418f7c9e5a281d360395cd2ee51d693355071c67730786703c70dfaac",
+          "immutableReferencesSha256": "ab48d75c2b255f31e1eab0a7e7d7b39d62af1440c7a48866b8f4852bf2929a6f",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "sha256": "dc84cab6f08fbdae263605989759f04dfbc3becc686002efb85db025ccc2cc4a"
         },
@@ -184,10 +184,10 @@
       "summary": {
         "compiler": "0.8.22+commit.4fc1097e",
         "creation": {
-          "bytes": 32826,
+          "bytes": 32953,
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "9e580d48d0fdeb3e25da47e30bf86b56538f8771ee9090c5a231e15c4fe7a49b"
+          "sha256": "dc70ef5a4778d1eefe1246d9d8301a56ab785278d84058840a4c30bd50ad7829"
         },
         "evmVersion": "paris",
         "methodCount": 38,
@@ -196,9 +196,9 @@
         "settingsSha256": "d448d5eb2d856a0d74dafcd636cafc272477fc34a3200370a79b53cb15c3b78b",
         "runtimeTemplate": {
           "bytes": 18573,
-          "immutableReferencesSha256": "5164b22a4fe951d3bf7bc5b9aa0be46e262a540c9af8c38c12e8121af99caa01",
+          "immutableReferencesSha256": "ed02eb7d231fd0f2c5d318006a6b76da86deb0b27063a53fde00a4f3bf12953e",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "c2a76c887f887436dabe553c594b332638c8e0e970cf1599a8bda1e358173e23"
+          "sha256": "f0f89ecb5785428fc6f4899f586ac2e41772f005bc6ef5c0eb973de96da56ac1"
         },
         "viaIR": true
       }
@@ -209,10 +209,10 @@
       "summary": {
         "compiler": "0.8.22+commit.4fc1097e",
         "creation": {
-          "bytes": 12984,
+          "bytes": 13111,
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "a91961975aad7736c91f61e41f281fc548bb06b4ac62ac32dab8ed2f2848bc49"
+          "sha256": "fee4273c3272692c95f480f210c243d16225a64e91ff635e32c9647f7ff9bee6"
         },
         "evmVersion": "paris",
         "methodCount": 33,
@@ -220,10 +220,10 @@
         "optimizer": { "enabled": true, "runs": 200 },
         "settingsSha256": "7514328a3b72f1bdd9b0f0cf3d122d6a17d7beceb196655f41f5b93971a49d32",
         "runtimeTemplate": {
-          "bytes": 12652,
-          "immutableReferencesSha256": "631d88c3d143459e48b3a4970d2a92136caffc3db2bfe758d58596f8d9ce8a39",
+          "bytes": 12779,
+          "immutableReferencesSha256": "1194e4b51dd9309c48767825dbdc1ad19bad5b5eb70c3ecdbee38eeb6cd2756b",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "09d2b76bd361c2dc817b9a531478bcc50ff2da7dbe6d6b7a9ddf5daa31962239"
+          "sha256": "734ac30e33fe921bf2000bc4ece1acc4753049eb97546026b1cd20ae8745cab6"
         },
         "viaIR": true
       }
@@ -234,24 +234,25 @@
       "summary": {
         "compiler": "0.8.22+commit.4fc1097e",
         "creation": {
-          "bytes": 20544,
+          "bytes": 21041,
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "a48495f059ba761d357226b38d895c29b9f97490e631ebb704ee7be9a2913407"
+          "sha256": "35d018bdd00c14a71fa82a9cc57fbdc59abcbf10e5664bdda2da6c66c965a9ba"
         },
         "evmVersion": "paris",
-        "methodCount": 90,
-        "methodIdentifiersSha256": "b4a6725cbc89845cb9bdf9b34f6b90ce8cd3424bd2ab93c86a7504e84be2d3af",
+        "methodCount": 91,
+        "methodIdentifiersSha256": "13b8dd1ad4fc01b2e5a3f93687271e20e3df24fe340d5117ee94d1c796defff9",
         "optimizer": { "enabled": true, "runs": 200 },
         "settingsSha256": "8a15e54db3c4ee3045f00295fe843b8ee91f9b9219923f1df4751d7f5af24db3",
         "runtimeTemplate": {
-          "bytes": 20165,
-          "immutableReferencesSha256": "5a8c786ca3c8565deb07a867ca9a31aef6a6766ccd002fba5a385de3d480236d",
+          "bytes": 20662,
+          "immutableReferencesSha256": "05caf689ad998efdb70f14b2a8d65a99bc579e25671acd8970678a718f3379f6",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "537e2724b7ba36e8ecf6e60f1d0abd5e02163759b6fc5008e8cff2ee0da87c0d"
+          "sha256": "c7b5c7827fd53b436d20574c45d39a42315b7c035876dd48162e011cd01e5221"
         },
         "viaIR": true
-      }
+      },
+      "dispatchMethods": { "clearCollateral(address)": "4542ed3c" }
     },
     "SubLoopLogic": {
       "artifact": "SubLoopLogic.sol/SubLoopLogic.json",
@@ -259,10 +260,10 @@
       "summary": {
         "compiler": "0.8.22+commit.4fc1097e",
         "creation": {
-          "bytes": 22861,
+          "bytes": 23658,
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "1ecd5580187c5aff6bb39568d893d0088984edfeca8d952db3f3ac6743ef9e52"
+          "sha256": "d80ec69090150823f4f2da925d7ede8a790bddae744d46bce619b5a5bdb9f293"
         },
         "evmVersion": "paris",
         "methodCount": 48,
@@ -270,10 +271,10 @@
         "optimizer": { "enabled": true, "runs": 200 },
         "settingsSha256": "2f01125db79bbb63b13a8f088facaf6a6740d261755247fe9163a69130dc5374",
         "runtimeTemplate": {
-          "bytes": 22805,
+          "bytes": 23602,
           "immutableReferencesSha256": "86ea5a9bd63553eef44d1aed14495c43ca3b1a42b55ea7a405491b82b6a77e3f",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "sha256": "5e02997a41f46ea0eeeaf88d2742473de641670fd0af2885439e5cc5b0d16574"
+          "sha256": "36969efe58db44b49332abb62ad84f667d381d8ab7a0561eb5d7796c80534dd6"
         },
         "viaIR": true
       }

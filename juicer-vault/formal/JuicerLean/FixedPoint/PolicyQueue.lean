@@ -28,6 +28,11 @@ def available (p : Policy) (now block : ℕ) (safety : Bool) : ℕ :=
 def policyCharge (p : Policy) (now amount : ℕ) : ℕ :=
   policyCredit p now - min (policyCredit p now) amount
 
+def pacingDelay (interval amount maximum : ℕ) : ℕ := ceilDiv (interval * amount) maximum
+
+def pacingNextAt (now interval amount maximum : ℕ) : ℕ :=
+  (now + pacingDelay interval amount maximum) % 2^64
+
 def priceFloor (fair shortfall : ℕ) : ℕ := ceilDiv (fair * (10000 - shortfall)) 10000
 
 def executionMinimum (fair shortfall quoteOut amount quoteAmount : ℕ) : ℕ :=

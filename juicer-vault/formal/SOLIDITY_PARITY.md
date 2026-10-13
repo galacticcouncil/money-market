@@ -1,8 +1,7 @@
 # current Solidity mapping
 
-reviewed from `juicer-allowance-rounding` at
-`be5a469d2a007743b70b135a5c746f5481ff7428`, 11 october 2026, with the lazy-rescale
-index correction in this change.
+reviewed from PR #79, `juicer-pr46-fixes` at
+`a5116f2aa23ebf01c31ff29c6912e2a814df15b2`, 13 october 2026.
 accounting rejects unrepresentable funded debits and preserves the requested allowance
 bound; [rounding evidence](ROUNDING.md) records the remaining recipient display rounding.
 the common formal update is based on `juicer-next` at
@@ -19,11 +18,12 @@ references and method ids for 11 production contracts; the checks fail if either
 | lazy account histories | `LazyLedger`, `normalizeAccount`, `normalizeLedger` | finite trace bounds, corrected ceil-shift normalization, aggregate unit and funded no-overclaim from genesis |
 | deposit, transfer, waiting request, start and claim lifecycle | `Lifecycle`, `exitOwner`, `exitBurned` | reachable share partition and liability bounds; exact runtime exit normalization; public vault lifecycle regression |
 | `settle` / `_take` | `Runtime.take`, `fundedOf` | exact sender debit, full/fine-unit availability, conservation and 86 success/revert cases |
-| `_allocate` | `Runtime.allocate`, `rescale` | 48 cases: virtual +1, fees, capital gifts, self-compounding, write-off and rescale |
+| `_allocate` | `Runtime.allocate`, `rescale`, `allocationMinted` | 48 cases: first allocation prices the whole fund; virtual +1, fees, capital gifts, self-compounding, write-off and rescale |
 | `startExit` | `Runtime.startExit` | 64 request epoch, committed unit, accrual, fee rounding and funded fold cases; waiting-request rescale regression |
 | `requiredSourceBacking` | `Runtime.requiredBacking` | 48 cash, interest and fee cases, including 100% fee |
 | `splitHarvest` | `Runtime.splitHarvest` | 32 rounding, service fee and harvest reset cases |
-| `SubLoopStorage` views; `SubLoopLogic.deLever` | `Runtime.outcome`, `inFlight`, `effectiveAccount`, `totalEquity`, `deLeverTarget` | 80 arrival, USD8, unflagged collateral, reserved cash, zero debt and target cases |
+| `SubLoopStorage` views; `SubLoopLogic.deLever` | `Runtime.outcome`, `inFlight`, `effectiveAccount`, `totalEquity`, `deLeverTarget` | 80 cases: 99% arrival boundaries, USD8, foreign collateral dust, available unwind cash, zero debt and targets |
+| unwind and safety sale sizing | `Runtime.unwindNeed`, `deleverNeed`, `stepHfFloor` | 64 idle-cash, insolvent, dust, slippage, lane-minimum and floor comparisons |
 | `SubLoopLogic.execute` | `Runtime.callback` | 64 caller/owner, nonce, kind, output token and minimum cases |
 
 | Main borrowing, cohort exit split and repayment | `mainBorrow`, `mainExit`, `mainRepay` | cash/unit isolation proofs; 48 public-call sequences |
@@ -33,9 +33,9 @@ references and method ids for 11 production contracts; the checks fail if either
 | Aave scaled balances | `ScaledDebt`, `rayMulHalf`, `rayDivHalf` | 516 calls against Aave core v3 `VariableDebtToken` 1.19.3; exact scaled/user/total balances and 43 expected reverts |
 | vested source fees | `vestFee`, `settleFee` | junior fee bounds, cost reduction, no early charge; 48 comparisons |
 | protocol reserve | `reserveDraw`, `spendable`, `repaymentLimit` | no active/unfinished draw, amount caps and protected fee cash; existing reserve regressions |
-| controller credit, pacing, expiry and safety lanes | `Policy`, `available`, `policyCharge`, `executionMinimum` | credit/size bounds, no refill on refresh, quote only tightens oracle floor; 64 availability and 32 executed quote comparisons |
+| controller credit, pacing, expiry and safety lanes | `Policy`, `available`, `policyCharge`, `executionMinimum`, `pacingNextAt` | credit/size bounds, no refill on refresh, quote only tightens oracle floor; 64 availability, 32 executed quote and 32 proportional-pacing comparisons, including uint64 casts |
 | FIFO start and collateral claims | `queueReady`, `startQueue`, `settleRedemption`, `claimRedemption` | work/FIFO bounds, full final burn, recipient protection; 32 queue and 48 claim comparisons |
-| repeated settlement/claim histories | `RedemptionState.valid`, `settleQueue` | cumulative collateral/burn bounds, unpaid-head stop, final payout/burn; 24 three-claim histories |
+| repeated settlement/claim histories | `RedemptionState.valid`, `settleQueue` | cumulative collateral/burn bounds, unpaid-head stop, final payout/burn; 24 three-claim histories; zero-share, debt-free empty requests advance both cursors |
 | stateful vault/Main/harvest/rescale sequences | `PublicCalls.State`, `SolidityDispatch`, `ValidSolidityTrace`, `PublicInvariant` | complete source-checked 31-opcode fixture map; arbitrary finite certified raw-trace preservation; independent replay from fixture genesis with exact outcomes, snapshots and rollback |
 | shared-loop harvest and ICE histories | lifecycle and runtime projections | repeated harvests across two vaults sharing one loop; long actual-SubLoop intent expiry/reconcile/late-callback/exit sequence |
 | checked arithmetic and failure | `Checked`, checked account/backing/borrow/batch/claim/rescale operations | success refinement, exact arithmetic revert classes, atomic failure semantics; 488 primitive, 40 account and eight backing comparisons |
@@ -233,27 +233,24 @@ Main and delegatecall logic, using the existing deterministic pool/token/source 
 `StatefulReplay.lean` keeps its own predicted state from fixture genesis; it never resets from
 a Solidity snapshot. Each call checks its outcome, all tracked holder/allowance/request/Main
 fields, and share, cash, collateral and lazy-liability partitions. The default eight seeds cover
-2,419 recorded steps, including 596 expected reverts and 48 deliberately corrupted outputs rejected by
+2,419 recorded steps, including 662 expected reverts and 48 deliberately corrupted outputs rejected by
 the checker. Coverage gates require partial/final claims, keeper receiver protection, 71-request
 starts, resumed 64-cohort batches with late receipts and the 32-request settlement limit.
-Eight additional seeds with 512 pseudorandom actions pass 5,005 recorded steps and 1,641 expected reverts;
-the longest baseline sequence has 696 steps. Together the 16 campaigns check 7,424 recorded steps,
-2,237 expected reverts and 96 corrupted-output checks. A truncated-trace rejection also passes.
 `LeanMarketStatefulParity.t.sol` adds the actual Harvester and fee controller with changing source
 values, collateral prices, debt observations and execution costs. Its default eight campaigns pass
-2,598 recorded steps, 463 expected reverts and 104 corrupted-output checks. Coverage gates require
+2,598 recorded steps, 495 expected reverts and 104 corrupted-output checks. Coverage gates require
 harvests/reward mints, fee collection, interest servicing, debt-rounding retries, peg top-ups,
 source costs/losses and completed price-driven deleveraging. Both fixtures run in the formal check.
-The larger market campaigns add 5,194 steps and 1,034 expected reverts, reaching 720 steps per
-sequence. Across both fixtures, 32 campaigns pass 15,216 recorded steps and 304 corruption checks.
 `LeanRescaleStatefulParity.t.sol` adds long public-call histories crossing scales 64, 128, 192 and
 256 with ray-scale account/request weights, then settlement, start, claims, write-off and refill.
 its coverage gate requires the old floor shift to produce a different claim, so observing a scale
-change alone is insufficient. its 16 campaigns add 7,393 recorded steps, 1,198 expected reverts
-and 1,696 corruption checks. See [stateful scope and reproduction](STATEFUL_PARITY.md). These tests exercise control-flow
+change alone is insufficient. its eight default campaigns add 2,321 recorded steps, 352 expected reverts
+and 920 corruption checks. see [stateful scope and reproduction](STATEFUL_PARITY.md). these tests exercise control-flow
 body correspondence for a bounded fixture environment; the opcode map itself is checked exhaustively.
-across all three fixtures, 48 campaigns pass 22,609 recorded steps, 4,932 expected reverts and
-2,000 corruption checks.
+across all three fixtures, the PR #79 default run passes 24 campaigns, 7,338 recorded steps,
+1,509 expected reverts and 1,072 corruption checks. the revert count rises by 98 relative to the
+earlier baseline, including the new fund-recipient rejections. the historical 48-campaign corpus
+and deeper runs are recorded separately in `STATEFUL_PARITY.md`.
 
 `LeanScaledDebt.t.sol` imports Aave core v3's actual `VariableDebtToken` 1.19.3 and drives it from
 a mock Pool through 516 deterministic mint, burn and monotonically increasing index calls. Lean
@@ -275,10 +272,15 @@ replays.
   196-wei precondition were removed; the floor now holds for every debt with positive LT.
 - The synthetic reserve has 100 bps LTV. The vault excludes it from its own borrowing budget.
   Solidity's separate `noSynthBorrow` invariant checks zero synthetic-token debt, a different property.
-- Runtime ICE HF nets waiting ENTRY HOLLAR against debt and restores EXIT aPRIME to collateral.
-  Idle cash counts in equity, not that HF adjustment. The older `IceLoop.grossHF` (formerly
+- runtime ICE HF adds in-flight input value to collateral and leaves debt unchanged. available
+  idle HOLLAR also backs collateral while an unwind target is active. with no extra backing,
+  the original Aave HF is retained. the older `IceLoop.grossHF` (formerly
   `effHF`) and `oracleSaleOk` are explicitly abstract algebra, not the runtime HF/trigger.
-- Runtime arrival detection uses balance deltas of at least half the expected amount. Authenticated
+  `effective_hf_gross_interval` connects the recomputed integer HF to `IceLoop.grossHF`:
+  with positive debt, nonzero extra backing and matching gross assets/debt/LT, the runtime
+  result is within one HF unit below the ideal ratio scaled by `10^18`. those matching-value
+  premises include the cash eligibility and USD8 quantization boundary.
+- runtime arrival detection uses balance deltas of at least `amount - amount / 100` (ceil 99%). authenticated
   callbacks instead check the output token and minimum. The ideal pallet-outcome book abstracts this.
 - Real-valued yield theorems omit rounding, virtual units, epochs and lazy shifts. The integer
   layer includes them. Successful funded transfers now debit exactly the requested displayed
@@ -287,11 +289,21 @@ replays.
   proves fine-unit liveness.
 - `freedBacked` is a solvency hypothesis, not an on-chain deposit gate. `collSold` is a hypothetical
   shortfall diagnostic; current collateral claims remain owed during underfunding.
+- fund recipients are rejected before checkpoint/settlement, including wallet-only transfers and
+  deposits. the first allocation with zero total units prices the whole existing fund.
+- empty funded requests may fold to zero shares and start debt-free. the redemption invariant
+  allows this case while preserving all payout and burn bounds. delever targets decrease by
+  repayment cash spent; debt and synthetic balances still use the observed debt reduction.
+- unwind sizing includes idle cash in gross backing; safety sales are capped by target need,
+  subject to the controller minimum, and use the 1.005 step floor. routine exits retain 1.02.
+- harvest reconciles before reading source weights. its two-vault regression and the foreign
+  collateral clearing regressions run in the formal gate; external Pool behavior and the full
+  shared-loop call graph remain integration-test boundaries.
 
 ## verification
 
-1,057 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 2,228 kernel theorem
+1,081 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 2,264 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
 its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.
@@ -303,21 +315,23 @@ the remaining contract bodies rely on differential execution comparisons.
 32 leading entrypoint prefixes and the explicit transfer check to compiler ASTs. it proves rejection,
 lock reset and conditional composition with the raw public invariant, including modeled rollback.
 it does not establish whole-protocol callback safety; the exact limits are in the same scope record.
-the comparison datasets contain 1,430 rows: the previous 826 plus 604 machine-boundary and history
+the comparison datasets contain 1,526 rows: 570 runtime, 352 coverage and 604 machine-boundary and history
 cases. validation also includes 512 transfer-rounding fuzz cases, the public vault lifecycle,
 rollback regressions, the focused rescale suites, and the seeded and public-call rescale
 fixtures. all three generated datasets reproduce exactly.
 the Aave scaled-debt trace adds 516 calls with 43 expected reverts. the full formal check invokes
-113 formal Foundry tests plus the two targeted shared-flow histories, all with zero failures and skips;
+116 formal Foundry tests, 18 PR #79 regressions and the two targeted shared-flow histories,
+all with zero failures or skips;
 source fingerprints, all 17 accounting slots and the six private
 Main batch slots also pass. the legacy environment-gated Verity fork suite is outside this formal gate.
+the broader `test/formal/**` acceptance run passes 150 tests with zero failures; its only skip
+is that legacy Verity fork setup, which is unavailable offline.
 the gate includes source-body extraction and 14 rejection/mutation tests for its supported AST
-boundary, plus 24 guard-extractor tests. formal compiler remappings are fixed and relative, with automatic discovery disabled;
-the resulting artifact refresh changes only compiler CBOR metadata, including embedded artifacts.
-the prior allowance-fix run also passed 187 distinct targeted tests. the London build measures
-CollateralVault at 24,480 bytes and JuicerYieldAccounting at 12,652 bytes, 139 bytes above the
-PR 73 baseline and below the 24,576-byte deployment limit. the complete offline Foundry run passes
-570 tests with zero failures and 13 environment/campaign skips.
+boundary, plus 24 guard-extractor tests. formal compiler remappings are fixed and relative, with automatic discovery disabled.
+the production Paris build binds 11 contracts and 441 selectors; `clearCollateral(address)` is
+the only new selector. CollateralVault is 24,495 bytes (81 bytes below the deployment limit),
+JuicerYieldAccounting is 12,779 bytes and SubLoopLogic is 23,602 bytes. this artifact refresh
+includes the executable PR #79 fixes. it does not change Solidity production sources.
 
 ## reproduce
 
@@ -327,10 +341,10 @@ From `juicer-vault/formal`, with the pinned Lean/Mathlib dependencies and Foundr
 python3 check-runtime.py
 ```
 
-this builds the proofs, regenerates and compares 1,430 cases across three datasets, checks source
+this builds the proofs, regenerates and compares 1,526 cases across three datasets, checks source
 fingerprints, compiled production artifacts and storage slots, then runs the comparison suites,
 512 transfer-bound fuzz cases, the allowance, rounding and corrected account/request rescale
-regressions, the 516-call Aave scaled-debt replay and both shared-flow histories. after a reviewed
+regressions, the 516-call Aave scaled-debt replay, PR #79 regressions and both shared-flow histories. after a reviewed
 model change, regenerate with:
 
 ```sh
@@ -355,7 +369,7 @@ assembly implementation. Valid configuration and truthful external observations 
 Four 64-bit rescale steps suffice for an initial total below `2^256`; checked scale/epoch counter
 overflow reverts rather than silently wrapping.
 
-the 1,430 vector cases and 516 scaled-debt calls are cross-language comparisons, not a proof of
+the 1,526 vector cases and 516 scaled-debt calls are cross-language comparisons, not a proof of
 every Solidity trace. the lifecycle and Main transition systems derive their numerical partitions
 from genesis and cover the listed call sequences. every successful checked `runCall` has a
 kernel proof of the combined public invariant, and checked execution and replay preserve it for
@@ -400,7 +414,7 @@ fixture boundaries rather than formalized external protocol implementations. the
 matches the pinned token history but does not prove Aave's assembly or arbitrary Pool behavior.
 
 Aave/token observations must be truthful, oracle prices/configuration valid, and external calls
-successful where their results are model inputs. Matching ICE's half-minimum arrival heuristic
+successful where their results are model inputs. matching ICE's 99%-minimum arrival heuristic
 does not prove an arrival came from the intended solver; it also does not imply that the stricter
 minimum required by an authenticated callback was received. Keeper/solver liveness, bounded market
 losses and solvency cannot be derived from these arithmetic results. the reproducible compiler

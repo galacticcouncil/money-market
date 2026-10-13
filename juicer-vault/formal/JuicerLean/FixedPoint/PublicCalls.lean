@@ -133,10 +133,11 @@ def transfer (s : State) (a b n : Nat) : Except Nat State := do
   let mut s := s
   let mut moved := n
   if a != vaultId && b != vaultId && a != fundId then
+    if b == fundId then throw 10
     s := settleOwner (settleOwner s a) b
     let excess := n - wallet s a
     if excess != 0 then
-      if b == fundId || b == zeroId then throw 10
+      if b == zeroId then throw 10
       let owned := (account s a).units
       if excess > fundedOf (wallet s fundId) s.book.total owned then throw 11
       if a != b then
@@ -197,7 +198,7 @@ def pay (s : State) (key limit : Nat) : State × Nat × Nat :=
     protocolReserve := s.protocolReserve - drawn + unused,
     repayCalls := s.repayCalls + (if amount == 0 then 0 else 1) + (if retry then 1 else 0),
     debt := s.debt - reduced, synth := s.synth - synthBurn } key next,
-    p.principal - principal, reduced)
+    p.principal - principal, spent)
 
 def cover (s : State) (n : Nat) : Except Nat State :=
   if s.reserve < n then .error 17
@@ -218,7 +219,7 @@ def startOne (s : State) (id : Nat) : Except Nat State := do
   let shares := escrowed + out.folded
   let numerator := activeAssets s * shares
   let owed := ceilDiv numerator supply
-  if owed == 0 then throw 2
+  if owed == 0 && shares != 0 then throw 2
   s := { s with reinvest := s.reinvest - s.reinvest * shares / supply }
   let activeSlice := (s.held - s.book.source - s.book.protocol - out.reward - out.fee) * shares / supply
   let slice := activeSlice + out.reward + out.fee
@@ -414,6 +415,7 @@ def rawRunCall (input : State) (action : Action) : Result := do
     let oldSynth := s.synth
     s := (pay s 0 0).1
     s := { s with synth := oldSynth }
+    if b == fundId then throw 10
     s := checkpoint s zeroId b
     if s.supply == 0 && caller != 0 then throw 5
     if s.assets + n > s.tvlCap then throw 6
@@ -475,8 +477,8 @@ def rawRunCall (input : State) (action : Action) : Result := do
     s := credit { s with
       freed := s.freed - gross, sourceCash := s.sourceCash - gross,
       sourceCost := s.sourceCost + cost } freed cost
-    let (next, _, reduced) := pay s 0 s.delever
-    s := { next with delever := if next.debt == 0 then 0 else next.delever - reduced }
+    let (next, _, paid) := pay s 0 s.delever
+    s := { next with delever := if next.debt == 0 then 0 else next.delever - paid }
     s := settleMany 32 s
     return (s, freed + (input.debt - s.debt) + (s.head - input.head) + (if pending then 1 else 0))
   else if op == 7 then

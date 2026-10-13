@@ -69,6 +69,7 @@ JuicerLean/
    ├─ Checked.lean        uint256 arithmetic failures and atomic transaction semantics
    ├─ CheckedRefinement.lean successful checked operations refine the natural-number models
    ├─ Environment.lean    external observation guards and ICE authentication limits
+   ├─ AuditChanges.lean   PR #79 arithmetic, pacing, fund and empty-request regressions
    └─ Refine.lean         Phase 3: integer floor guard conservatively refines the real floor,
                            incl. the loop-yield (accrueLoop) and re-peg fixed-point refinements
 ```
@@ -102,10 +103,10 @@ JuicerLean/
 
 ## Runtime correspondence
 
-aligned with the checked-in allowance and ceil-rescale fixes. `solidity-manifest.json` records the
+aligned with PR #79's audit fixes, including the earlier allowance and ceil-rescale fixes. `solidity-manifest.json` records the
 exact source snapshot. the real-number models prove ideal accounting properties;
 `FixedPoint/Runtime.lean` adds current integer arithmetic, epoch and rescale behavior.
-Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 1,430 Lean cases with the
+Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 1,526 Lean cases with the
 actual Solidity, and detect source, compiled-artifact or storage-layout drift. Same integrity bar: 0 `sorry`, axioms
 `propext`/`Classical.choice`/`Quot.sound` only.
 
@@ -151,7 +152,7 @@ describes the separate ideal-arithmetic models.
 | `State.startExit_requestRedeem` / `State.startExit_escrowOk` | seen by the redemption state the fold is `requestRedeem fold`, so `escrowOk` survives it |
 | `ShareBook.startExit_quote` / `ShareBook.runExit_totalBalance_add` | quoting after the fold pays the folded shares at the same per-share value and keeps the remaining holders'; the balance identity holds through any trace with exits |
 | `IceLoop.submit_equity` / `IceLoop.run_equity_noFill` | in-flight input counts in equity at oracle value; submit, expiry, callback and reconcile keep equity — only a fill moves it, by exactly the execution difference (`fill_equity`; no worse than the slippage floor, `fill_equity_ge`) |
-| `IceLoop.submit_grossHF` / `IceLoop.ramp_fill_grossHF` / `IceLoop.ramp_aaveHF_lt` | abstract gross-asset ratio only; runtime HF instead nets ENTRY input against debt and restores EXIT input to collateral |
+| `IceLoop.submit_grossHF` / `IceLoop.ramp_fill_grossHF` / `IceLoop.ramp_aaveHF_lt` | abstract gross-asset ratio only; runtime HF adds in-flight input and available unwind cash to collateral, leaving debt unchanged |
 | `IceLoop.submit_oracleSaleOk_iff` / `IceLoop.deLever_raises_grossHF` | the abstract oracle-fair sale preserves signed equity and raises its gross-asset ratio; the runtime trigger is modeled separately |
 | `IceLoop.submit_busy` / `IceLoop.late_callback` / `IceLoop.reconcile_eq_callback` | one intent per lane, never overwritten; once reconciled, a late callback changes nothing after any further trace; callback and reconcile record the same thing |
 | `IceLoop.naiveEquity_sub_equity` | an equity view that keeps counting a pending record after its outcome landed overstates by exactly that input |
@@ -207,9 +208,15 @@ the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
 price-driven deleveraging. the rescale fixture keeps ray-scale holders and a waiting request stale
 across four 64-bit shifts, then settles, starts, claims, writes off and refills. larger campaigns
-are configurable. the default 24 campaigns cover 7,338 recorded steps, 1,411 expected reverts and
+are configurable. the default 24 campaigns cover 7,338 recorded steps, 1,509 expected reverts and
 1,072 corrupted-output checks. see [stateful parity](STATEFUL_PARITY.md) for coverage gates and external mock
 boundaries. `check-runtime.py` includes all three default fixtures.
+
+`AuditChanges.lean` covers the first allocation's whole-fund units, the 99% arrival threshold,
+effective backing, proportional pacing and cash-based delever repayment. empty requests may
+start with zero shares, owed collateral and debt; the queue proofs retain their cumulative payout
+and burn bounds. the gate also runs the PR #79 public-flow regressions for fund rejection,
+empty queues, foreign collateral flags, safety sales and harvest reconciliation.
 
 `check-dispatch.py` independently checks all 31 target, selector and action-argument mappings
 against the pinned Solidity `perform` functions. `solidity_dispatch_corresponds` and

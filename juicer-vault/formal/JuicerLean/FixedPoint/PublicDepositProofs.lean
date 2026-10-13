@@ -256,6 +256,7 @@ theorem raw_deposit_factored (s : State) (caller owner receiver amount : Nat) :
       else if amount == 0 then .error 2
       else if s.delever != 0 then .error 24
       else if pendingAccounting s || s.activeRemaining != 0 then .error 18
+      else if receiver == fundId then .error 10
       else depositTailRaw (checkpoint { (pay s 0 0).1 with synth := s.synth } zeroId receiver)
         caller receiver amount) := by
   rfl
@@ -287,15 +288,17 @@ theorem raw_deposit_public (s : State) (caller owner receiver amount : Nat)
           · trivial
           · apply onSuccess_if
             · trivial
-            · rw [depositTail_factored]
-              let paid := { (pay s 0 0).1 with synth := s.synth }
-              have hp : PublicInvariant paid := synth_public _ _
-                (pay_public s 0 0 h.2.2.2.2.2.2.2.2.2.1 h)
-              have hpm : PublicMetadata paid := pay_metadata s 0 0 hm
-              have hpz : InitialMintSafe paid := pay_initialMintSafe s 0 0 hz
-              exact depositTail_public (checkpoint paid zeroId receiver) caller receiver amount
-                (checkpoint_public paid zeroId receiver hp hpm)
-                (checkpoint_initialMintSafe paid zeroId receiver hpz) hr
-                (fun hb => checkpoint_current_second paid zeroId receiver hb hp.2.2.2.2.2.2.1)
+            · apply onSuccess_if
+              · trivial
+              · rw [depositTail_factored]
+                let paid := { (pay s 0 0).1 with synth := s.synth }
+                have hp : PublicInvariant paid := synth_public _ _
+                  (pay_public s 0 0 h.2.2.2.2.2.2.2.2.2.1 h)
+                have hpm : PublicMetadata paid := pay_metadata s 0 0 hm
+                have hpz : InitialMintSafe paid := pay_initialMintSafe s 0 0 hz
+                exact depositTail_public (checkpoint paid zeroId receiver) caller receiver amount
+                  (checkpoint_public paid zeroId receiver hp hpm)
+                  (checkpoint_initialMintSafe paid zeroId receiver hpz) hr
+                  (fun hb => checkpoint_current_second paid zeroId receiver hb hp.2.2.2.2.2.2.1)
 
 end Juicer.PublicCalls

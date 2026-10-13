@@ -94,7 +94,7 @@ theorem finishAllocation_factored (b : Book) (v : AllocationInput) (added before
       let denominator := before+selfValue+1
       let limit := 2^160*denominator/max denominator outsideValue
       let scaled := rescale 4 b limit
-      let minted := outsideValue*(scaled.total+1)/denominator
+      let minted := allocationMinted scaled.total before value outsideValue denominator
       allocationUpdate scaled rewardShares feeShares minted outsideSupply := by
   rfl
 

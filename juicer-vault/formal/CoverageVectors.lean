@@ -63,6 +63,13 @@ def priceRows : List (List ℕ) := do
   let qo := if n % 2 == 0 then fair * 2 else fair / 2
   pure [fair, sf, qo, 11, 20, executionMinimum fair sf qo 11 20]
 
+def pacingRows : List (List ℕ) := do
+  let n ← List.range 32
+  let interval := [0, 1, 60, 2^64 - 1][n % 4]!
+  let amount := [1, 11, 99, 100][n / 4 % 4]!
+  let now := if n < 16 then 100 else 2^64 - 10
+  pure [now, interval, amount, 100, pacingNextAt now interval amount 100]
+
 def claimRows : List (List ℕ) := do
   let n ← List.range 48
   let shares := 1000 + 7 * n
@@ -83,4 +90,4 @@ def queueRows : List (List ℕ) := do
 def main : IO Unit :=
   IO.println ("{" ++ String.intercalate "," [dataset "main" mainRows, dataset "batch" batchRows,
     dataset "fees" feeRows, dataset "policy" policyRows, dataset "prices" priceRows,
-    dataset "claims" claimRows, dataset "queue" queueRows] ++ "}")
+    dataset "claims" claimRows, dataset "queue" queueRows, dataset "pacing" pacingRows] ++ "}")

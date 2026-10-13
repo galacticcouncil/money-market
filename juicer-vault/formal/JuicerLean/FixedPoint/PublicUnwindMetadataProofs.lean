@@ -112,7 +112,7 @@ theorem unwindHead_preserves (s : State) (h : PublicInvariant s) (hr : UnwindRea
         split
         · trivial
         next hreserve =>
-          have hpositive : 0 < (unwindNumbers s).owed := by simp only [beq_iff_eq] at hzero; omega
+          have hpositive := unwindNumbers_redemption s hzero
           have hbudget : (unwindNumbers s).rounding ≤ s.reserve := by omega
           have facts := unwindNumbers_facts s h hr.2.1 hi (hb (Bool.eq_false_iff.mpr hpending)) hpositive hbudget
           exact ⟨unwindCommitted_public s _ h hi ho facts,unwindCommitted_ready s _ hr hi facts⟩

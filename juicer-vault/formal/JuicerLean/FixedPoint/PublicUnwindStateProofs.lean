@@ -24,7 +24,7 @@ structure UnwindNumbers where
 structure UnwindFacts (s : State) (q : UnwindNumbers) : Prop where
   source : SourceExitFacts s q.active q.exit q.total q.slice q.claim q.vested
   shares_eq : q.shares = (request s s.unwind).claim.shares+(waitingExit s).folded
-  owed_positive : 0 < q.owed
+  redemption : 0 < q.owed ∨ (q.shares = 0 ∧ q.debt = 0)
   reserve : q.rounding ≤ s.reserve
   backing : s.owed+q.owed ≤ s.assets+q.rounding
 
@@ -142,7 +142,7 @@ theorem unwindCommitted_public (s : State) (q : UnwindNumbers) (h : PublicInvari
     rw [unwindCommitted_liability,unwindCommitted_book]
     exact (publicSlack_lt_iff _).1 (prepareWaitingExit_slack s h.2.2.2.2.1 hi ho hac hop.1)
   · exact activateWaiting_operational (unwindCovered s q) q.shares q.owed q.debt q.synth
-      hc hic hq.owed_positive (unwindCovered_escrow s q hop hi hq)
+      hc hic hq.redemption (unwindCovered_escrow s q hop hi hq)
 
 theorem unwindCommitted_queueBacking (s : State) (q : UnwindNumbers) (h : QueueBacking s) (hq : UnwindFacts s q) :
     QueueBacking (unwindCommitted s q) := by

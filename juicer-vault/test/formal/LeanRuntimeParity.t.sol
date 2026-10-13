@@ -11,6 +11,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Artifacts} from "../helpers/Artifacts.t.sol";
+import {ExecutionController} from "../../src/ExecutionController.sol";
 
 contract ParityVault is MockERC20 {
     address public yieldSource = address(this);
@@ -69,6 +70,15 @@ contract ParityPool {
     function setUserUseReserveAsCollateral(address, bool) external {}
 }
 
+contract ParitySizingController {
+    uint128 immutable minimum;
+    constructor(uint128 minimum_) { minimum = minimum_; }
+    function lane(address, address, address) external pure returns (bytes32) { return bytes32(0); }
+    function limits(bytes32) external view returns (bytes32, uint128, uint128) {
+        return (bytes32(0), minimum, type(uint128).max);
+    }
+}
+
 contract ParityLoop is SubLoopLogic {
     function seed(uint256[] memory r, address pool_, address hollar_, address prime_) external {
         pool = IAavePool(pool_); hollar = IERC20(hollar_); prime = IERC20(prime_); primeAToken = IERC20(prime_);
@@ -76,6 +86,7 @@ contract ParityLoop is SubLoopLogic {
             0, uint128(r[4]), uint128(r[5]));
         intentNonce = uint64(r[1]);
         if (r.length > 13) reservedFreed = r[13];
+        if (r.length > 24 && r[24] != 0) unwindTargetEquity = 1;
         targetHf = 1.05e18; deLeverTrigger = 1.10e18;
     }
     function setLastNonce(uint64 n) external { intentNonce = n; }
@@ -83,6 +94,14 @@ contract ParityLoop is SubLoopLogic {
     function flight() external view returns (uint8, uint256) { return _inFlight8(); }
     function effective() external view returns (uint256, uint256, uint256, uint256) { return _effectiveAccount(); }
     function equity() external view returns (uint256) { return _totalEquity(); }
+    function sizing(uint256[] memory r, address token, address control) external returns (uint256, uint256, uint256) {
+        hollar = IERC20(token);
+        executionController = ExecutionController(control);
+        reservedFreed = r[3]; unwindTargetEquity = r[4]; deleverDebtTarget = r[5];
+        dcaSlippagePpm = uint32(r[8]);
+        return (_unwindNeedAPrime(r[0], r[1], r[7]), _deleverNeedAPrime(r[6], r[7]),
+            deleverDebtTarget == 0 ? STEP_HF_FLOOR : SAFETY_STEP_HF_FLOOR);
+    }
     function pendingKind() external view returns (uint8) { return pendingIntent.kind; }
 }
 
@@ -250,6 +269,18 @@ contract LeanRuntimeParityTest is Test {
             assertEq(coll, r[18]); assertEq(debt, r[19]); assertEq(hf, r[20]); assertEq(loop.equity(), r[21]);
             if (r[22] == 0) { vm.expectRevert(); loop.deLever(); }
             else { loop.deLever(); assertEq(loop.deleverDebtTarget(), r[23]); }
+        }
+    }
+
+    function test_leanUnwindAndSafetySizing() public {
+        for (uint256 i; i < _count("sizing"); ++i) {
+            uint256[] memory r = _row("sizing", i);
+            MockERC20 token = new MockERC20("h", "h", 18);
+            ParityLoop loop = ParityLoop(vm.deployCode("LeanRuntimeParity.t.sol:ParityLoop"));
+            token.mint(address(loop), r[2]);
+            address control = r[9] == 0 ? address(0) : address(new ParitySizingController(uint128(r[9])));
+            (uint256 unwind, uint256 safety, uint256 floor) = loop.sizing(r, address(token), control);
+            assertEq(unwind, r[10]); assertEq(safety, r[11]); assertEq(floor, r[12]);
         }
     }
 

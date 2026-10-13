@@ -132,6 +132,9 @@ def trimLoss (b : Book) (available : ℕ) : Book :=
 def allocationAvailable (v : AllocationInput) : ℕ :=
   if v.required < v.equity then (v.equity - v.required) * v.held / v.equity else 0
 
+def allocationMinted (total before value outside denominator : ℕ) : ℕ :=
+  if total == 0 then before + value else outside * (total + 1) / denominator
+
 def finishAllocation (b : Book) (v : AllocationInput) (added before : ℕ) : Book :=
   let released := min (added * v.equity / v.held) (v.basis - v.required)
   let untaxed := released * v.held / v.equity
@@ -144,7 +147,7 @@ def finishAllocation (b : Book) (v : AllocationInput) (added before : ℕ) : Boo
   let denominator := before + selfValue + 1
   let limit := 2 ^ 160 * denominator / max denominator outsideValue
   let b := rescale 4 b limit
-  let minted := outsideValue * (b.total + 1) / denominator
+  let minted := allocationMinted b.total before value outsideValue denominator
   { b with
     source := b.source + rewardShares
     protocol := b.protocol + feeShares
@@ -212,25 +215,46 @@ structure Intent where
   outBase : ℕ := 0
   deriving Repr
 
+def arrivalThreshold (amount : ℕ) : ℕ := amount - amount / 100
+
 def outcome (p : Intent) (input output : ℕ) : ℕ × ℕ :=
-  if p.outBase < output && (p.minimum + 1) / 2 ≤ output - p.outBase then (2, output - p.outBase)
-  else if p.inBase < input && (p.amount + 1) / 2 ≤ input - p.inBase then (3, 0)
+  if p.outBase < output && arrivalThreshold p.minimum ≤ output - p.outBase then (2, output - p.outBase)
+  else if p.inBase < input && arrivalThreshold p.amount ≤ input - p.inBase then (3, 0)
   else (1, 0)
 
 def inFlight (p : Intent) (input output price : ℕ) : ℕ × ℕ :=
   if p.kind == 0 || (outcome p input output).1 != 1 then (0, 0)
   else if p.kind == 1 then (1, p.amount / 10 ^ 10) else (2, p.amount * price / 10 ^ 6)
 
-def effectiveAccount (p : Intent) (input output price coll debt lt aaveHF : ℕ) : ℕ × ℕ × ℕ :=
-  let (kind, value) := inFlight p input output price
-  if kind == 0 then (coll, debt, aaveHF) else
-  let coll := if kind == 1 then coll else coll + value
-  let debt := if kind == 1 then debt - min debt value else debt
+def effectiveExtra (p : Intent) (input output price : ℕ) (unwinding : Bool) (cash reserved : ℕ) : ℕ :=
+  (inFlight p input output price).2 + (if unwinding then (cash - reserved) / 10^10 else 0)
+
+def effectiveAccount (p : Intent) (input output price coll debt lt aaveHF : ℕ)
+    (unwinding : Bool := false) (cash reserved : ℕ := 0) : ℕ × ℕ × ℕ :=
+  let extra := effectiveExtra p input output price unwinding cash reserved
+  if extra == 0 then (coll, debt, aaveHF) else
+  let coll := coll + extra
   (coll, debt, if debt == 0 then max256 else coll * lt * 10 ^ 14 / debt)
 
 def totalEquity (p : Intent) (input output price coll unflagged debt cash reserved : ℕ) : ℕ :=
-  let base := if coll == 0 then unflagged else coll
+  let base := if coll < unflagged / 2 then coll + unflagged else coll
   base + (cash - reserved) / 10 ^ 10 + (inFlight p input output price).2 - debt
+
+def unwindNeed (coll debt cash reserved target primePrice slippage : ℕ) : ℕ :=
+  let idle := (cash - reserved) / 10^10
+  let gross := coll + idle
+  if gross ≤ debt then max256 else
+  let need := ceilDiv (ceilDiv target (10^10) * gross) (gross - debt)
+  if need ≤ idle then 0 else ceilDiv ((need - idle) * 10^12) (primePrice * (1000000 - slippage))
+
+def deleverNeed (target cash reserved hollarPrice primePrice slippage minimum : ℕ) : ℕ :=
+  let idle := cash - reserved
+  if target ≤ idle then 0 else
+  max (ceilDiv ((target - idle) * (hollarPrice * 1000000))
+    (primePrice * 10^12 * (1000000 - slippage))) minimum
+
+def stepHfFloor (deleverTarget : ℕ) : ℕ :=
+  if deleverTarget == 0 then 102 * 10^16 else 1005 * 10^15
 
 def deLeverTarget (coll debt lt hf target trigger previous : ℕ) : Option ℕ :=
   let ltWad := lt * 10 ^ 14

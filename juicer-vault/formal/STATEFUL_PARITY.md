@@ -54,7 +54,17 @@ traces, and the three coverage JSON files record successful actions, revert clas
 queue/batch/claim boundaries. Required boundary cases must actually execute.
 `check-runtime.py` includes the default campaigns and their Lean replay.
 
-The checked corpus contains 48 campaigns and 22,609 recorded steps, including 16,315 vault calls,
+the PR #79 default run covers 24 campaigns, 7,338 recorded steps, 1,509 expected reverts and
+1,072 corrupted-output checks. there are 98 more reverts than before PR #79, including
+the new fund-recipient rejections.
+
+| fixture | seeds | random depth | recorded steps | expected reverts |
+| --- | --- | --- | --- | --- |
+| baseline | 1–8 | 192 | 2,419 | 662 |
+| market | 1–8 | 192 | 2,598 | 495 |
+| rescale | 1–8 | 192 | 2,321 | 352 |
+
+the historical pre-PR #79 corpus contains 48 campaigns and 22,609 recorded steps, including 16,315 vault calls,
 637 Harvester/fee-controller calls and 5,657 environment actions. The longest sequence has 720
 steps. the baseline and market corpus passes on the original and allowance-fixed Solidity; the
 fixed branch rejects one additional `transferFrom` call with `InexactShares` (baseline seed 9,
@@ -70,12 +80,12 @@ ceil-shifted result from the earlier floor behavior.
 | rescale | 1–8 | 192 | 2,321 | 352 |
 | rescale | 9–16 | 512 | 5,072 | 846 |
 
-All campaigns pass coverage gates and 2,000 corrupted-output checks. Incomplete traces
+those historical campaigns passed coverage gates and 2,000 corrupted-output checks. incomplete traces
 are also rejected. Longer campaigns use a higher test gas budget for snapshot instrumentation;
 these gas totals are not estimates for public vault calls.
 
 Each campaign exercises deposits, deferred borrowing, external Main repayment, sync,
-fund donations, approvals, direct/delegated transfers, partial/full/delegated requests,
+rejected fund donations, approvals, direct/delegated transfers, partial/full/delegated requests,
 cooldowns, bounded starts, partial source receipts and pool repayments, repeated claims,
 receiver selection, local/deposit/source pauses and rejected calls. Outside Main
 repayment releases capital for reward allocation without seeding accounting storage.
