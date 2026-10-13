@@ -323,6 +323,12 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         emit Harvested(amount);
     }
 
+    /// @notice unflag a reserve supplied on the loop's behalf; aave won't enable isolated PRIME beside it
+    function clearCollateral(address asset) external nonReentrant {
+        if (asset == address(prime)) revert InvalidParameters();
+        pool.setUserUseReserveAsCollateral(asset, false);
+    }
+
     /// @inheritdoc ILeveragedLoop
     /// @dev sets repay target x solving (coll − x)·lt / (debt − x) = targetHf; pokeRepay executes it
     function deLever() external override nonReentrant {

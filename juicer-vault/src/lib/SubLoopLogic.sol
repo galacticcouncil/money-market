@@ -30,6 +30,8 @@ abstract contract SubLoopStorage is
     uint256 internal constant VARIABLE_RATE = 2;
     /// @dev per-step HF floor for the in-route unwind withdraw, just above aave's 1.0 limit
     uint256 internal constant STEP_HF_FLOOR = 1.02e18;
+    /// @dev a safety sale repays in the same call, so it may withdraw closer to the limit
+    uint256 internal constant SAFETY_STEP_HF_FLOOR = 1.005e18;
     // intent kinds, and reconcile outcomes (0 = nothing in flight)
     uint8 internal constant ENTRY = 1; // HOLLAR → aPRIME
     uint8 internal constant EXIT = 2; // aPRIME → HOLLAR
@@ -118,8 +120,10 @@ abstract contract SubLoopStorage is
 
     function _totalEquity() internal view returns (uint256) {
         (uint256 collBase, uint256 debtBase, , , , ) = pool.getUserAccountData(address(this));
-        // isolated aPRIME that landed before the loop could flag it (a first fill, a refund) is still ours
-        if (collBase == 0) collBase = _unflaggedPrime8();
+        // unflagged aPRIME (a first fill, a refund, or one a planted foreign flag blocks) is still ours;
+        // flagged, it is already the whole base
+        uint256 prime8 = _unflaggedPrime8();
+        if (collBase < prime8 / 2) collBase += prime8;
         uint256 cash = hollar.balanceOf(address(this));
         if (cash > reservedFreed) collBase += (cash - reservedFreed) / 1e10;
         (, uint256 inFlight8) = _inFlight8();
@@ -134,14 +138,15 @@ abstract contract SubLoopStorage is
         return balance * IAaveOracle(oracle).getAssetPrice(address(prime)) / 1e6;
     }
 
-    /// @dev the position as if the in-flight input had not left: HOLLAR nets against the debt it
-    /// was borrowed as, aPRIME on its way to a sale still backs it at the PRIME threshold
+    /// @dev the position once in-flight input lands at the oracle price: it backs the debt at the PRIME
+    /// threshold instead of netting against it (deposits were never debt), as does cash pokeRepay will split
     function _effectiveAccount() internal view returns (uint256 coll8, uint256 debt8, uint256 ltBps, uint256 hf) {
         (coll8, debt8, , ltBps, , hf) = pool.getUserAccountData(address(this));
-        (uint8 kind, uint256 inFlight8) = _inFlight8();
-        if (kind == 0) return (coll8, debt8, ltBps, hf);
-        if (kind == ENTRY) debt8 -= Math.min(debt8, inFlight8);
-        else coll8 += inFlight8;
+        (, uint256 extra8) = _inFlight8();
+        uint256 cash = unwindTargetEquity == 0 ? 0 : hollar.balanceOf(address(this));
+        if (cash > reservedFreed) extra8 += (cash - reservedFreed) / 1e10;
+        if (extra8 == 0) return (coll8, debt8, ltBps, hf);
+        coll8 += extra8;
         hf = debt8 == 0 ? type(uint256).max : coll8 * ltBps * 1e14 / debt8;
     }
 
@@ -150,15 +155,15 @@ abstract contract SubLoopStorage is
     }
 
     /// @dev deltas against balances at the end of the loop's last transaction count only outside
-    /// arrivals; half the expected amount absorbs fees and aToken rounding, not interest or dust
+    /// arrivals; a 1% margin absorbs aToken rounding, while a gift must nearly match the intent
     function _outcome(PendingIntent memory p) internal view returns (uint8 outcome, uint256 output) {
         (IERC20 tokenIn, IERC20 tokenOut) = _intentTokens(p.kind);
         uint256 balance = tokenOut.balanceOf(address(this));
-        if (balance > p.outBase && balance - p.outBase >= (uint256(p.minOut) + 1) / 2) {
+        if (balance > p.outBase && balance - p.outBase >= p.minOut - p.minOut / 100) {
             return (FILLED, balance - p.outBase);
         }
         balance = tokenIn.balanceOf(address(this));
-        if (balance > p.inBase && balance - p.inBase >= (uint256(p.amountIn) + 1) / 2) return (RETURNED, 0);
+        if (balance > p.inBase && balance - p.inBase >= p.amountIn - p.amountIn / 100) return (RETURNED, 0);
         return (WAITING, 0);
     }
 
@@ -444,19 +449,19 @@ contract SubLoopLogic is SubLoopStorage {
         if (unwindTargetEquity > 0 || deleverDebtTarget > 0) {
             (uint256 coll8, uint256 debt8, , uint256 lt, , ) = pool.getUserAccountData(address(this));
             if (debt8 > 0 && lt > 0) {
-                // min collateral to keep HF ≥ 1.02 after the withdraw:
+                // min collateral to keep HF ≥ the step floor after the withdraw:
                 //   minColl8 = floor * debt8 * 1e4 / (lt_bps * WAD)
-                uint256 minColl8 = (STEP_HF_FLOOR * debt8 * 10000) / (lt * WAD);
+                uint256 floor = deleverDebtTarget == 0 ? STEP_HF_FLOOR : SAFETY_STEP_HF_FLOOR;
+                uint256 minColl8 = (floor * debt8 * 10000) / (lt * WAD);
                 if (coll8 > minColl8) {
                     // size at the oracle price, not $1, or a PRIME premium oversells past the HF floor.
                     // aPRIME(6dp) = budgetUSD8 · 0.9 · 1e6 / pPrime(8dp)
                     (uint256 pHollar, uint256 pPrime) = _oracleRate();
                     uint256 sellAmt = ((coll8 - minColl8) * 90 / 100) * 1e6 / pPrime;
                     if (unwindTranche > 0 && sellAmt > unwindTranche) sellAmt = unwindTranche;
-                    if (deleverDebtTarget == 0) {
-                        uint256 need = _unwindNeedAPrime(coll8, debt8, pPrime);
-                        if (sellAmt > need) sellAmt = need;
-                    }
+                    uint256 need = deleverDebtTarget == 0 ? _unwindNeedAPrime(coll8, debt8, pPrime)
+                        : _deleverNeedAPrime(pHollar, pPrime);
+                    if (sellAmt > need) sellAmt = need;
                     uint256 apBal = primeAToken.balanceOf(address(this));
                     if (sellAmt > apBal) sellAmt = apBal;
                     if (sellAmt > 0) {
@@ -604,19 +609,35 @@ contract SubLoopLogic is SubLoopStorage {
         if (hf >= targetHf) deleverDebtTarget = 0;
     }
 
-    /// @dev aPRIME (6dp) still needed: target·coll/(coll − debt) HOLLAR less idle HOLLAR,
-    /// padded by the slippage allowance so fees don't leave a tail
+    /// @dev aPRIME (6dp) still needed: target·gross/(gross − debt) HOLLAR less idle HOLLAR, where
+    /// gross counts idle cash as pokeRepay's split does, padded by the slippage allowance
     function _unwindNeedAPrime(uint256 coll8, uint256 debt8, uint256 pPrime) internal view returns (uint256) {
-        if (coll8 <= debt8) return type(uint256).max;
-        // A remaining claim below one USD8/PRIME unit still needs funding.
-        // Round required sales up; truncating either conversion pins that tail.
-        uint256 need8 = Math.mulDiv(Math.ceilDiv(unwindTargetEquity, 1e10), coll8,
-            coll8 - debt8, Math.Rounding.Up);
         uint256 bal = hollar.balanceOf(address(this));
         uint256 idle8 = bal > reservedFreed ? (bal - reservedFreed) / 1e10 : 0;
+        uint256 gross8 = coll8 + idle8;
+        if (gross8 <= debt8) return type(uint256).max;
+        // A remaining claim below one USD8/PRIME unit still needs funding.
+        // Round required sales up; truncating either conversion pins that tail.
+        uint256 need8 = Math.mulDiv(Math.ceilDiv(unwindTargetEquity, 1e10), gross8,
+            gross8 - debt8, Math.Rounding.Up);
         if (need8 <= idle8) return 0;
         return Math.mulDiv(need8 - idle8, 1e12,
             pPrime * (1_000_000 - dcaSlippagePpm), Math.Rounding.Up);
+    }
+
+    /// @dev aPRIME (6dp) a safety step still needs, slippage-padded; never below the lane minimum,
+    /// which would refuse a smaller sale outright
+    function _deleverNeedAPrime(uint256 pHollar, uint256 pPrime) internal view returns (uint256 need) {
+        uint256 bal = hollar.balanceOf(address(this));
+        uint256 idle = bal > reservedFreed ? bal - reservedFreed : 0;
+        if (deleverDebtTarget <= idle) return 0;
+        need = Math.mulDiv(deleverDebtTarget - idle, pHollar * 1_000_000,
+            pPrime * 1e12 * (1_000_000 - dcaSlippagePpm), Math.Rounding.Up);
+        ExecutionController control = executionController;
+        if (address(control) != address(0)) {
+            (, uint128 minimum,) = control.limits(control.lane(address(this), address(primeAToken), address(hollar)));
+            if (need < minimum) need = minimum;
+        }
     }
 
     /// @dev credit freed HOLLAR pro rata by each request's uncredited remainder; Σrem == target,
