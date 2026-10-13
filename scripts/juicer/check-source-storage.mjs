@@ -11,6 +11,22 @@ import { utils } from "ethers";
 const root = fileURLToPath(new URL("../../juicer-vault/", import.meta.url));
 export const baselinePath = join(root, "docs/evidence/source-upgrades-2026-09-23/subloop-storage.json");
 
+// the logic split replaced two compiler-generated getters with identical manual getters. the
+// backing fields kept their slots and types; only their source labels gained an underscore.
+const approvedLabelRenames = new Map([
+  ["374:0:emergencyPaused", "_emergencyPaused"],
+  ["376:0:unwindExecutionCost", "_unwindExecutionCost"],
+]);
+
+function restoreApprovedLabels(baseline, candidate) {
+  return candidate.map((entry, index) => {
+    const original = baseline[index];
+    if (!original) return entry;
+    const approved = approvedLabelRenames.get(`${original.slot}:${original.offset}:${original.label}`);
+    return approved === entry.label ? { ...entry, label: original.label } : entry;
+  });
+}
+
 export function normalizeLayout(layout) {
   function type(id, seen = new Set()) {
     const t = layout.types[id];
@@ -32,7 +48,8 @@ export function assertLayoutCompatible(baseline, candidate) {
   assert.equal(candidate.compiler, baseline.compiler, "compiler changes require separate review");
   assert.ok(baseline.storage.length > 0, "empty baseline");
   assert.ok(candidate.storage.length >= baseline.storage.length, "existing storage removed");
-  assert.deepEqual(candidate.storage.slice(0, baseline.storage.length), baseline.storage,
+  const prefix = restoreApprovedLabels(baseline.storage, candidate.storage.slice(0, baseline.storage.length));
+  assert.deepEqual(prefix, baseline.storage,
     "existing slots, packed offsets, types, inheritance order and gaps must remain unchanged");
   let end = 0n;
   for (const entry of baseline.storage) {
