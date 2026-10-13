@@ -8,6 +8,15 @@ const fresh = () => structuredClone(baseline);
 
 test("identical layout preserves the baseline", () => assertLayoutCompatible(baseline, fresh()));
 
+test("reviewed getter-preserving label changes preserve the baseline", () => {
+  const candidate = fresh();
+  candidate.storage.find(s => s.label === "emergencyPaused").label = "_emergencyPaused";
+  candidate.storage.find(s => s.label === "unwindExecutionCost").label = "_unwindExecutionCost";
+  assertLayoutCompatible(baseline, candidate);
+  candidate.storage.find(s => s.label === "principalEquity").label = "_principalEquity";
+  assert.throws(() => assertLayoutCompatible(baseline, candidate));
+});
+
 test("append-only storage after the preserved gaps is allowed", () => {
   const candidate = fresh();
   const last = candidate.storage.at(-1);

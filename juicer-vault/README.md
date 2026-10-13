@@ -121,7 +121,7 @@ compounded user yield are not implemented. See [principal and emergency policy](
 | Withdrawal delay       | Governance-configurable per vault, initially 12 hours before unwinding; existing requests retain their eligibility time.                              |
 | Emergency freeze       | Guardian can freeze; governance reopens. Local vault freeze and source-wide emergency freeze are distinct from the source route kill switch.          |
 | Share transfers        | Stopped only by a vault's own pause, not by a source-wide freeze. A vault's `pause()` reverts while that freeze is set, so pause vaults first.        |
-| Deposit stops          | Guardian `pauseDeposits`, and the keepers' `deficitStop` (`DEPOSIT_GUARDIAN_ROLE`): set above a 50 bps off-chain deficit, cleared below 25 bps.       |
+| Deposit stops          | An on-chain live-backing check rejects deficits above 50 bps. Guardian `pauseDeposits` and the keepers' hysteretic `deficitStop` (`DEPOSIT_GUARDIAN_ROLE`, set above 50 bps and cleared below 25 bps) are additional stops. |
 | Protocol reserve       | Governance funds HOLLAR per Main ledger (`fundReserve`); drawn only for realized exit shortfalls, never counted as backing. Admin can withdraw.       |
 | Swap limits            | Oracle-relative floors are enforced on-chain; no automatic widening. Production floors, tranches and TVL/ramp budgets still require approval.         |
 

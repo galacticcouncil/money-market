@@ -31,6 +31,8 @@ contract Harvester is AccessControl, ReentrancyGuard {
     IJuicerFeeController public feeController;
     ExecutionController public executionController;
     uint256 public lastHarvestAt;
+    mapping(address => uint256) public parkedGiftOf;
+    uint256 public totalParkedGifts;
 
     event HarvestRun(uint256 surplusPrime);
     event DeLeverRun();
@@ -43,6 +45,7 @@ contract Harvester is AccessControl, ReentrancyGuard {
     error NotRegistered();
     error FeeControllerUnset();
     error HarvestConfigurationChanged();
+    error OutstandingGift();
     event ExecutionControllerSet(address indexed controller);
 
     constructor(address _subLoop, address _prime, address admin) {
@@ -67,6 +70,7 @@ contract Harvester is AccessControl, ReentrancyGuard {
     /// @dev harvest reverts until its loop shares are unwound, so its carry is never redistributed.
     function removeVault(address vault) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         if (!isRegistered[vault]) revert NotRegistered();
+        if (parkedGiftOf[vault] != 0) revert OutstandingGift();
         isRegistered[vault] = false;
         uint256 n = vaults.length;
         for (uint256 i = 0; i < n; i++) {
@@ -110,6 +114,8 @@ contract Harvester is AccessControl, ReentrancyGuard {
     function harvest(uint256[] calldata minOuts) external nonReentrant returns (uint256 surplus) {
         IJuicerFeeController controller = feeController;
         if (address(controller) == address(0)) revert FeeControllerUnset();
+        // settle a landed fill before weights are read, not inside a vault's harvestFor
+        subLoop.reconcile();
         uint256 version = controller.configurationVersion();
         uint256 total = subLoop.totalShares();
         uint256 n = vaults.length;
@@ -128,6 +134,20 @@ contract Harvester is AccessControl, ReentrancyGuard {
         require(registeredShares == total, "vault set incomplete");
         uint256 capacity = Math.min(totalWeight, subLoop.harvestCapacity());
         uint256 donated = prime.balanceOf(address(this));
+        if (donated < totalParkedGifts) revert HarvestConfigurationChanged();
+        uint256 freshGift = donated - totalParkedGifts;
+        if (total != 0 && freshGift != 0) {
+            uint256 weight;
+            uint256 assigned;
+            for (uint256 i; i < n; ++i) {
+                uint256 prior = Math.mulDiv(freshGift, weight, total);
+                weight += beforeShares[i];
+                uint256 cut = Math.mulDiv(freshGift, weight, total) - prior;
+                parkedGiftOf[vaults[i]] += cut;
+                assigned += cut;
+            }
+            totalParkedGifts += assigned;
+        }
         uint256 totalBurned;
         for (uint256 i; i < n; ++i) {
             address v = vaults[i];
@@ -145,7 +165,7 @@ contract Harvester is AccessControl, ReentrancyGuard {
                 totalBurned += burned[i];
                 surplus += amount;
             }
-            uint256 gift = total == 0 ? 0 : Math.mulDiv(donated, beforeShares[i], total);
+            uint256 gift = parkedGiftOf[v];
             if (address(executionController) != address(0)) {
                 // owned carry first: no second dust trade on the route, and parked donations
                 // never bypass the limits or a skipped vault's blocked interest sale
@@ -160,6 +180,8 @@ contract Harvester is AccessControl, ReentrancyGuard {
                 prime.forceApprove(v, 0);
             }
             if (gift != 0) {
+                parkedGiftOf[v] -= gift;
+                totalParkedGifts -= gift;
                 prime.forceApprove(v, gift);
                 ICompoundable(v).compound(address(prime), gift, minimum - yieldMinimum, "");
                 prime.forceApprove(v, 0);

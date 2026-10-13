@@ -67,12 +67,15 @@ theorem batch_segment_budget (a c t p w cash cost : Nat) (hp : 0 < a+c) (ht : 0 
   have hds := batch_cost_step a c t p w hp
   omega
 
-structure BatchBudget (s : State) : Prop where
-  positive : 0 < s.batchAmount+s.batchCost
-  capacity : s.batchAmount+s.batchCost ≤ s.batchTotal
-  weight_le : s.batchWeight ≤ s.batchTotal
-  cash : s.batchAmount-batchCash s.batchAmount s.batchCost s.batchTotal s.batchWeight ≤ s.unallocated
-  cost : s.batchCost-batchCostPaid s.batchAmount s.batchCost s.batchTotal s.batchWeight ≤ s.unallocatedCost
+structure BatchBudgetData (amount cost total weight unallocated unallocatedCost : Nat) : Prop where
+  positive : 0 < amount+cost
+  capacity : amount+cost ≤ total
+  weight_le : weight ≤ total
+  cash : amount-batchCash amount cost total weight ≤ unallocated
+  cost : cost-batchCostPaid amount cost total weight ≤ unallocatedCost
+
+abbrev BatchBudget (s : State) : Prop :=
+  BatchBudgetData s.batchAmount s.batchCost s.batchTotal s.batchWeight s.unallocated s.unallocatedCost
 
 instance (s : State) : Decidable (BatchBudget s) :=
   decidable_of_iff
@@ -103,11 +106,15 @@ theorem creditPosition_public_of_budget (s : State) (key weight : Nat) (h : Publ
 
 def batchPending (s : State) : List MainPosition := (s.positions.toList.take s.batchTail).drop s.batchCursor
 
-structure BatchShape (s : State) : Prop where
-  cursor_positive : 0 < s.batchCursor
-  cursor_le : s.batchCursor ≤ s.batchTail
-  tail_le : s.batchTail ≤ s.positions.size
-  weights : s.batchWeight+(batchPending s |>.map MainPosition.remaining).sum = s.batchTotal
+structure BatchShapeData (cursor tail size weight pending total : Nat) : Prop where
+  cursor_positive : 0 < cursor
+  cursor_le : cursor ≤ tail
+  tail_le : tail ≤ size
+  weights : weight+pending = total
+
+abbrev BatchShape (s : State) : Prop :=
+  BatchShapeData s.batchCursor s.batchTail s.positions.size s.batchWeight
+    (batchPending s |>.map MainPosition.remaining).sum s.batchTotal
 
 instance (s : State) : Decidable (BatchShape s) :=
   decidable_of_iff (0 < s.batchCursor ∧ s.batchCursor ≤ s.batchTail ∧ s.batchTail ≤ s.positions.size ∧

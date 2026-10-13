@@ -73,7 +73,7 @@ theorem runtime_lazy_funded_bound (b : Book) (accounts : List (Account × ℕ)) 
     Nat.ne_of_gt ht] using
     lazy_funded_claims_bound (normalizeLedger b accounts slack) funded h (by norm_num [ray]) ht
 
-def rescaleExampleBook : Book := ⟨2, 0, 2 ^ 64 + 1, 2 ^ 64, 0, 0⟩
+def rescaleExampleBook : Book := ⟨2, 0, 2 ^ 64 + 1, 2 ^ 64, 0, 0, 0, 0⟩
 def rescaleExampleInput : AllocationInput := ⟨2 * 10 ^ 38, 2 * 10 ^ 38, 0, 2 * ray, 0, 0, 0, 0⟩
 def rescaleExampleOld : Account := ⟨2 ^ 64 - 1, 2 ^ 64 - 1, 0, 0⟩
 def rescaleExampleWaiting : Account := ⟨0, 2 ^ 64 - 1, 0, 0⟩

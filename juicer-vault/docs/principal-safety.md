@@ -19,7 +19,7 @@ and dated test results.
 | Main collateral  | Not sold for ordinary strategy-loss recovery or interest servicing. Synthetic collateral maintains a health-factor floor under valid configuration and timely maintenance. |
 | PRIME strategy   | Can incur trading losses, negative carry or liquidation. Lost source value can leave HOLLAR shortfalls without reducing the recorded collateral claim.                     |
 | Unpaid claims    | Remain outstanding when execution or funding is insufficient. No automatic haircut or write-off to finish an exit.                                                         |
-| New deposits     | Stopped by the keepers' `deficitStop` while their off-chain deficit check exceeds 50 bps, and by governance's `pauseDeposits`; new users are not a recovery fund.          |
+| New deposits     | Rejected on-chain when the live Main-backing deficit exceeds 50 bps; the keepers' earlier `deficitStop` and governance's `pauseDeposits` remain additional stops.          |
 | Yield            | Not guaranteed. Un-compounded earned yield can absorb eligible execution costs. Compounded yield may contribute to governance-approved emergency recovery.                 |
 | Recovery funding | External governance responsibility. A governance-funded protocol reserve covers realized exit shortfalls only. No fixed repayment deadline is implemented.                 |
 
@@ -74,11 +74,12 @@ a source emergency. To freeze them, pause the affected vaults before the source
 emergency: a vault's `pause()` reverts while that emergency is set, because the
 vault already counts as paused.
 
-Deposits have two separate stops: governance's `pauseDeposits`
-(`GUARDIAN_ROLE`) and the keepers' `deficitStop`, which follows their off-chain
-deficit check ([keeper runbook](../looper/README.md#deficit-stop)). Deposits
-revert while either is set. A keeper can neither lift the guardian's pause nor
-use its role for anything else.
+Deposits have three stops: the on-chain 50 bps active-position admission ceiling, governance's
+`pauseDeposits` (`GUARDIAN_ROLE`) and the keepers' `deficitStop`, which follows
+their off-chain check with resume hysteresis
+([keeper runbook](../looper/README.md#deficit-stop)). A keeper can neither lift
+the guardian's pause nor use its role for anything else. The direct check closes
+the interval between a deficit appearing and the next keeper transaction.
 
 Paused `pokeSettle` may receive source funds and service Main debt, but does not
 advance ordinary user collateral allocation. Main-ledger HOLLAR surplus claims

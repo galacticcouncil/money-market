@@ -33,7 +33,7 @@ def takeRows : List (List ℕ) := (do
 
 def accountRows : List (List ℕ) := do
   let n ← List.range 48
-  let b : Book := ⟨0, 0, 1000 + n, 10 * ray, 3, if n % 4 == 0 then 64 else 0⟩
+  let b : Book := ⟨0, 0, 1000 + n, 10 * ray, 3, if n % 4 == 0 then 64 else 0, 0, 0⟩
   let a : Account := ⟨if n % 4 == 0 then 99 * 2 ^ 64 else 99,
     if n % 4 == 0 then 2 * ray * 2 ^ 64 else 2 * ray, if n % 3 == 0 then 2 else 3, 0⟩
   let w := n * 7
@@ -43,7 +43,7 @@ def allocationRows : List (List ℕ) := do
   let n ← List.range 48
   let b : Book := ⟨if n % 6 == 0 then 2000 else 100, 11,
     if n % 8 == 0 then 2 ^ 220 else if n % 8 == 1 then 0 else 1000 + n,
-    if n % 8 == 0 then 2 ^ 230 else 3 * ray, 2, 0⟩
+    if n % 8 == 0 then 2 ^ 230 else 3 * ray, 2, 0, 0, 0⟩
   let v : AllocationInput := ⟨if n % 7 == 0 then 0 else 1000,
     if n % 6 == 0 then 0 else (2 + n) * 10 ^ 10,
     if n % 5 == 0 then 3 * 10 ^ 10 else 0,
@@ -55,7 +55,8 @@ def allocationRows : List (List ℕ) := do
 
 def exitRows : List (List ℕ) := do
   let n ← List.range 64
-  let b : Book := ⟨1000, 111, if n == 0 then 0 else 1000 + n, 3 * ray, 2, if n % 4 == 0 then 64 else 0⟩
+  let b : Book := ⟨1000, 111, if n == 0 then 0 else 1000 + n, 3 * ray, 2,
+    if n % 4 == 0 then 64 else 0, 0, 0⟩
   let o : Account := ⟨120, 2 * ray, if n % 5 == 0 then 1 else 2, 0⟩
   let r : Account := ⟨23, ray, if n % 3 == 0 then 1 else 2, 0⟩
   let w := if n % 7 == 0 then 0 else n * 2
@@ -71,24 +72,43 @@ def iceRows : List (List ℕ) := do
   let amount := if kind == 1 then (100 + n) * 10 ^ 18 else (100 + n) * 10 ^ 6
   let minimum := if kind == 1 then (90 + n) * 10 ^ 6 else (90 + n) * 10 ^ 18
   let p : Intent := ⟨kind, n + 1, amount, minimum, 7, 11⟩
-  let i := p.inBase + if n % 5 == 3 then (amount + 1) / 2 else 0
-  let o := p.outBase + if n % 5 == 0 then minimum else if n % 5 == 1 then (minimum + 1) / 2 else if n % 5 == 2 then minimum / 2 - 1 else 0
+  let i := p.inBase + if n % 8 == 4 then arrivalThreshold amount else
+    if n % 8 == 5 then arrivalThreshold amount - 1 else if n % 8 == 6 then amount / 2 else 0
+  let o := p.outBase + if n % 8 == 0 then minimum else if n % 8 == 1 then arrivalThreshold minimum else
+    if n % 8 == 2 then arrivalThreshold minimum - 1 else if n % 8 == 3 then minimum / 2 else 0
   let price := 10 ^ 8 + n * 12345
-  let coll := if n % 9 == 0 then 0 else (1000 + n) * 10 ^ 8
+  let coll := if n % 9 == 0 then 0 else if n % 9 == 1 then 1 else (1000 + n) * 10 ^ 8
   let debt := if n % 7 == 0 then 0 else (800 + n) * 10 ^ 8
   let lt := 8800
   let hf := if debt == 0 then max256 else coll * lt * 10 ^ 14 / debt
   let cash := if kind == 1 then i else o
   let unflagged := (if kind == 1 then o else i) * price / 10 ^ 6
   let reserved := if n % 6 == 0 then cash + 1 else cash / 3
+  let unwinding := n % 4 != 0
   let observed := outcome p i o
   let flight := inFlight p i o price
-  let effective := effectiveAccount p i o price coll debt lt hf
+  let effective := effectiveAccount p i o price coll debt lt hf unwinding cash reserved
   let equity := totalEquity p i o price coll unflagged debt cash reserved
   let target := deLeverTarget effective.1 effective.2.1 lt effective.2.2 (105 * 10 ^ 16) (110 * 10 ^ 16) 0
   pure (intentFields p ++ [i, o, price, coll, debt, lt, hf, reserved,
     observed.1, observed.2, flight.1, flight.2, effective.1, effective.2.1, effective.2.2, equity,
-    if target.isSome then 1 else 0, target.getD 0])
+    if target.isSome then 1 else 0, target.getD 0, if unwinding then 1 else 0])
+
+def sizingRows : List (List ℕ) := do
+  let n ← List.range 64
+  let coll := (1000 + n) * 10^8
+  let debt := if n % 7 == 0 then 2 * coll else coll * 4 / 5
+  let cash := (n % 5) * 100 * wad
+  let reserved := if n % 3 == 0 then cash + 1 else cash / 2
+  let target := [0, 1, wad, 100 * wad, 1000 * wad][n % 5]!
+  let delever := [0, 1, 50 * wad, 1000 * wad][n % 4]!
+  let hollarPrice := 10^8 + n * 12345
+  let primePrice := 10^8 + n * 23456
+  let slippage := [0, 1, 10000, 50000][n % 4]!
+  let minimum := [0, 1, 10^6, 1000 * 10^6][n % 4]!
+  pure [coll, debt, cash, reserved, target, delever, hollarPrice, primePrice, slippage, minimum,
+    unwindNeed coll debt cash reserved target primePrice slippage,
+    deleverNeed delever cash reserved hollarPrice primePrice slippage minimum, stepHfFloor delever]
 
 def callbackRows : List (List ℕ) := do
   let n ← List.range 64
@@ -122,5 +142,5 @@ def harvestRows : List (List ℕ) := do
 def main : IO Unit :=
   IO.println ("{" ++ String.intercalate "," [dataset "peg" pegRows, dataset "take" takeRows,
     dataset "accounts" accountRows, dataset "allocations" allocationRows, dataset "exits" exitRows,
-    dataset "ice" iceRows, dataset "callbacks" callbackRows,
+    dataset "ice" iceRows, dataset "sizing" sizingRows, dataset "callbacks" callbackRows,
     dataset "funding" fundingRows, dataset "harvest" harvestRows] ++ "}")

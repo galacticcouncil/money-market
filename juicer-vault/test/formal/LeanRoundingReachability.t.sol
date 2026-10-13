@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
+import {StdStorage, stdStorage} from "forge-std/StdStorage.sol";
 import {HarvestTest} from "../Harvest.t.sol";
 import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract LeanRoundingReachabilityTest is HarvestTest {
+    using stdStorage for StdStorage;
+
     address constant DONOR = address(0xD010);
     address constant SPENDER = address(0x5EED);
 
@@ -19,7 +22,10 @@ contract LeanRoundingReachabilityTest is HarvestTest {
         vault.transfer(DONOR, vault.walletOf(address(this)));
         uint256 donation = vault.walletOf(DONOR);
         vm.prank(DONOR);
+        vm.expectRevert(JuicerYieldAccounting.Unauthorized.selector);
         vault.transfer(address(y), donation);
+        stdstore.target(address(vault)).sig(vault.walletOf.selector).with_key(DONOR).checked_write(uint256(0));
+        stdstore.target(address(vault)).sig(vault.walletOf.selector).with_key(address(y)).checked_write(donation);
         assertGt(vault.walletOf(address(y)), y.totalUnits());
         assertEq(vault.walletOf(address(this)), 0);
     }

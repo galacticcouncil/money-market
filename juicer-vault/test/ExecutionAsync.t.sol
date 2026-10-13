@@ -157,12 +157,20 @@ contract ExecutionAsyncTest is Test {
         assertEq(control.available(address(consumer), address(hollar), address(aPrime)), 0,
             "an async submit does not open its group to more trades in the block");
         vm.roll(block.number + 1);
-        vm.warp(block.timestamp + 59);
+        vm.warp(block.timestamp + 2);
         vm.expectRevert(ExecutionController.TradeSize.selector);
         consumer.consumeAsync(address(hollar), address(aPrime), 100e18, 94e6, 2);
         vm.warp(block.timestamp + 1);
         consumer.consumeAsync(address(hollar), address(aPrime), 100e18, 94e6, 2);
         consumer.recordAsync(entryLane, 2, 94e6);
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 3);
+        consumer.consumeAsync(address(hollar), address(aPrime), 2500e18, 2400e6, 3);
+        consumer.recordAsync(entryLane, 3, 2400e6);
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 59);
+        vm.expectRevert(ExecutionController.TradeSize.selector);
+        consumer.consumeAsync(address(hollar), address(aPrime), 100e18, 94e6, 4);
         vm.warp(block.timestamp + 31 days);
         vm.roll(block.number + 1);
         vm.expectRevert(ExecutionController.TradeSize.selector);

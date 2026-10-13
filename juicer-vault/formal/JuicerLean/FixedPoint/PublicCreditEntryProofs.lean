@@ -207,20 +207,20 @@ theorem pullCreditState_ready (s : State) (cash cost : Nat) (h : CreditReady s) 
     · exact hs.1.cost.trans (Nat.le_add_right _ _)
 
 def pokeSettleTail (s : State) : State :=
-  let (next,_,reduced) := pay s 0 s.delever
-  settleMany 32 { next with delever := if next.debt == 0 then 0 else next.delever-reduced }
+  let (next,_,spent) := pay s 0 s.delever
+  settleMany 32 { next with delever := if next.debt == 0 then 0 else next.delever-spent }
 
 theorem pokeSettleTail_public (s : State) (h : PublicInvariant s) (hb : QueueBacking s) :
     PublicInvariant (pokeSettleTail s) := by
   have hi : 0 < s.positions.size := h.2.2.2.2.2.2.2.2.2.1
   have hn := pay_public s 0 s.delever hi h
   have hq := pay_queueBacking s 0 s.delever hb
-  rcases heq : pay s 0 s.delever with ⟨next,paid,reduced⟩
+  rcases heq : pay s 0 s.delever with ⟨next,paid,spent⟩
   rw [heq] at hn hq
   unfold pokeSettleTail
   rw [heq]
   exact (settleMany_preserves 32 { next with
-    delever := if next.debt == 0 then 0 else next.delever-reduced } hn hq).1
+    delever := if next.debt == 0 then 0 else next.delever-spent } hn hq).1
 
 def SourcePullBounds (s : State) : Prop := s.pullBps ≤ 10000 ∧ s.costBps ≤ 10000
 

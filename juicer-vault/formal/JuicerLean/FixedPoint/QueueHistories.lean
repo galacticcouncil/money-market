@@ -6,7 +6,7 @@ def claimEntitlement (owed debt repaid : ℕ) : ℕ :=
   if repaid == debt then owed else owed * repaid / debt
 
 def RedemptionState.valid (r : RedemptionState) : Prop :=
-  0 < r.owed ∧ r.repaid ≤ r.debt ∧
+  (0 < r.owed ∨ (r.shares = 0 ∧ r.debt = 0)) ∧ r.repaid ≤ r.debt ∧
   r.claimed + r.settled ≤ claimEntitlement r.owed r.debt r.repaid ∧
   r.burned = r.shares * r.claimed / r.owed ∧
   (0 < r.settled → r.claimed + r.settled = claimEntitlement r.owed r.debt r.repaid)
@@ -63,7 +63,8 @@ theorem redemption_claim_preserves (r : RedemptionState) (h : r.valid) (hs : 0 <
   · split_ifs with hd
     · have hd' : r.repaid = r.debt := by have := h.2.1; omega
       have hfull : r.claimed + r.settled = r.owed := by simpa [claimEntitlement, hd'] using he
-      simp [hfull, Nat.add_sub_of_le hb, h.1]
+      have ho : 0 < r.owed := by omega
+      simp [hfull, Nat.add_sub_of_le hb, ho]
     · exact Nat.add_sub_of_le hm
   · simp
 
@@ -89,6 +90,9 @@ def freshRedemption (shares owed debt : ℕ) : RedemptionState :=
 theorem fresh_redemption_valid (shares owed debt : ℕ) (ho : 0 < owed) :
     (freshRedemption shares owed debt).valid := by
   simp [RedemptionState.valid, freshRedemption, ho]
+
+theorem fresh_empty_redemption_valid : (freshRedemption 0 0 0).valid := by
+  norm_num [RedemptionState.valid, freshRedemption, claimEntitlement]
 
 theorem redemption_history_no_overpayment (shares owed debt : ℕ) (r : RedemptionState) (ho : 0 < owed)
     (steps : Relation.ReflTransGen RedemptionState.Step (freshRedemption shares owed debt) r) :

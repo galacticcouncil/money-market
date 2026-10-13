@@ -43,6 +43,9 @@ contract JuicerYieldAccounting {
     mapping(uint256 => uint256) public requestScale;
     /// @notice units a redemption took beyond its escrowed shares, burned when it starts
     mapping(uint256 => uint256) public requestUnits;
+    /// @notice written-down reserves restore these existing claims before new reward units mint
+    uint256 public sourceLossCarry;
+    uint256 public protocolLossCarry;
 
     error Unauthorized();
     error InvalidHarvest();
@@ -170,6 +173,8 @@ contract JuicerYieldAccounting {
     /// @dev ownership and its fee vest before collateral balances change; a later rate change
     /// can't reassign earlier earnings, though the interest servicing reserve follows it.
     function checkpoint(address from, address to) external onlyVault {
+        // vault shares reach the fund only as harvested rewards
+        if (to == address(this)) revert Unauthorized();
         IYieldVault v = IYieldVault(vault);
         IYieldSource s = v.yieldSource();
         if (harvestUnits != 0 || s.accountingLocked()) revert InvalidHarvest();
@@ -187,10 +192,11 @@ contract JuicerYieldAccounting {
     /// allocation follows the balances at the next one. a transfer beyond the sender's wallet
     /// moves the units whose funded slice covers the rest, so no third party's balance changes
     function settle(address from, address to, uint256 excess) external onlyVault {
+        if (to == address(this)) revert Unauthorized();
         _settle(from);
         if (to != from) _settle(to);
         if (excess != 0) {
-            if (to == address(this) || to == address(0)) revert Unauthorized();
+            if (to == address(0)) revert Unauthorized();
             if (from == to) {
                 if (excess > fundedOf(from)) revert ExceedsBalance();
             } else {
@@ -220,8 +226,12 @@ contract JuicerYieldAccounting {
         uint256 available = equity > required ? Math.mulDiv(equity - required, held, equity) : 0;
         uint256 reserved = reservedShares();
         if (available < reserved) {
+            uint256 sourceBefore = sourceShares;
+            uint256 protocolBefore = protocolShares;
             sourceShares = Math.mulDiv(sourceShares, available, reserved);
             protocolShares = available - sourceShares;
+            sourceLossCarry += sourceBefore - sourceShares;
+            protocolLossCarry += protocolBefore - protocolShares;
             reserved = available;
         }
         uint256 added = available - reserved;
@@ -235,9 +245,28 @@ contract JuicerYieldAccounting {
             totalUnits = 0;
             rewardIndex = 0;
             unitScale = 0;
+            sourceLossCarry = 0;
+            protocolLossCarry = 0;
             emit YieldWrittenOff(++epoch);
         }
+        // A refill of a partially written-down reserve belongs to the units that absorbed
+        // the loss. Restore that reserve at the old user/protocol split before minting any
+        // units to current vault-share weight.
+        uint256 lossCarry = sourceLossCarry + protocolLossCarry;
+        if (totalUnits != 0 && added != 0 && lossCarry != 0) {
+            uint256 restored = Math.min(added, lossCarry);
+            uint256 restoredSource = Math.mulDiv(restored, sourceLossCarry, lossCarry);
+            uint256 restoredProtocol = restored - restoredSource;
+            sourceLossCarry -= restoredSource;
+            protocolLossCarry -= restoredProtocol;
+            sourceShares += restoredSource;
+            protocolShares += restoredProtocol;
+            added -= restored;
+        }
+        allocating = held != 0 && supply != 0 && added != 0;
         if (!allocating) return;
+        before_ = Math.mulDiv(equity, sourceShares, held)
+            + v.mainDebt().quoteHollar(v.convertToAssets(funded));
         // Main recovery cash or an outside repayment can release source
         // capital. That capital is a gift, not fee-bearing earned yield.
         uint256 basis = s.principalOf(vault);
@@ -259,7 +288,8 @@ contract JuicerYieldAccounting {
             rewardIndex >>= 64;
             unitScale += 64;
         }
-        uint256 minted = Math.mulDiv(outsideValue, totalUnits + 1, denominator);
+        // first units price the whole fund, so earlier value can't strand later yield
+        uint256 minted = totalUnits == 0 ? before_ + value : Math.mulDiv(outsideValue, totalUnits + 1, denominator);
         sourceShares += rewardShares;
         protocolShares += feeShares;
         totalUnits += minted;
@@ -304,6 +334,10 @@ contract JuicerYieldAccounting {
         totalUnits -= burned;
         sourceShares -= rewardShares;
         protocolShares -= feeShares;
+        if (totalUnits == 0) {
+            sourceLossCarry = 0;
+            protocolLossCarry = 0;
+        }
         if (folded != 0) IERC20(vault).transfer(vault, folded);
         emit RewardsFolded(owner, folded);
     }

@@ -1,6 +1,6 @@
 import JuicerLean.FixedPoint.PublicCreditEntryProofs
 
-set_option maxRecDepth 6000
+set_option maxRecDepth 12000
 set_option maxHeartbeats 1000000
 
 namespace Juicer.PublicCalls
@@ -33,6 +33,18 @@ theorem bookTotals_liability (s : State) (total source protocol : Nat) :
     publicLiability { s with book := { s.book with total,source,protocol } } = publicLiability s := by
   rw [publicLiability_parts,publicLiability_parts]
   rfl
+
+theorem bookAllocationMetadata_liability (s : State) (book : Book)
+    (hi : book.index = s.book.index) (he : book.epoch = s.book.epoch)
+    (hs : book.scale = s.book.scale) :
+    publicLiability { s with book := book } = publicLiability s := by
+  have hn (a : Account) (weight : Nat) :
+      normalizeAccount book a weight = normalizeAccount s.book a weight := by
+    simp only [normalizeAccount,hi,he,hs]
+  rw [publicLiability_parts,publicLiability_parts]
+  simp only [account,wallet,request]
+  simp_rw [hn]
+  rw [hi]
 
 theorem startExit_liability_consumed (book : Book) (owner request : Account) (wallet shares funded : Nat) :
     (startExit book owner request wallet shares funded).owned*ray+
@@ -77,8 +89,13 @@ theorem commitExitOwnership_liability (s : State) (hi : s.unwind < s.requests.si
   change publicLiability next+
     (normalizeAccount s.book (account s r.owner) (wallet s r.owner)).numerator s.book.index =
     publicLiability s+out.owned*ray at hset
-  have hbook : publicLiability (commitExitOwnership s) = publicLiability (advanceWaiting next) :=
-    bookTotals_liability (advanceWaiting next) out.book.total out.book.source out.book.protocol
+  have hbook : publicLiability (commitExitOwnership s) = publicLiability (advanceWaiting next) := by
+    change publicLiability { advanceWaiting next with book := out.book } =
+      publicLiability (advanceWaiting next)
+    apply bookAllocationMetadata_liability
+    · simp only [out,waitingExit,startExit_index,advanceWaiting,next,setAccount]
+    · simp only [out,waitingExit,startExit_epoch,advanceWaiting,next,setAccount]
+    · simp only [out,waitingExit,startExit_scale,advanceWaiting,next,setAccount]
   rw [hbook]
   change publicLiability (advanceWaiting next)+out.burned*ray ≤ publicLiability s
   omega
@@ -189,6 +206,7 @@ theorem waitingExit_source_slice (s : State) (shares : Nat) (hs : shares ≤ act
   have hf := startExit_source_bounds s.book (account s (request s s.unwind).owner)
     (request s s.unwind).account (wallet s (request s s.unwind).owner)
     (request s s.unwind).claim.shares (wallet s fundId)
+  simp only [waitingExit,startExit_source,startExit_protocol]
   exact exit_source_slice_bound s.held s.book.source s.book.protocol
     (waitingExit s).reward (waitingExit s).fee shares (activeSupply s) hb hf.1 hf.2 hs
 

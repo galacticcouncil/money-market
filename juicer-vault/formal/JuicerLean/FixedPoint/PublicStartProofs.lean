@@ -25,7 +25,7 @@ def startProgram (input : State) (id : Nat)
   let shares := escrowed + out.folded
   let numerator := activeAssets s * shares
   let owed := ceilDiv numerator supply
-  if owed == 0 then throw 2
+  if owed == 0 && shares != 0 then throw 2
   s := { s with reinvest := s.reinvest - s.reinvest * shares / supply }
   let activeSlice := (s.held - s.book.source - s.book.protocol - out.reward - out.fee) * shares / supply
   let slice := activeSlice + out.reward + out.fee
@@ -85,7 +85,7 @@ def startHead (s : State) (id : Nat)
   let r := request s id
   let out := exitFn s.book (account s r.owner) r.account (wallet s r.owner) r.claim.shares (wallet s fundId)
   let q := startNumbers s id out mainFn
-  if q.owed == 0 then .error 2
+  if q.owed == 0 && q.shares != 0 then .error 2
   else if pendingAccounting s then .error 18
   else if q.slice == 0 && q.debt > (position s 0).cash*q.shares/activeSupply s then .error 19
   else if s.reserve < q.rounding then .error 17

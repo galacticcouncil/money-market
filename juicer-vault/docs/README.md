@@ -12,9 +12,9 @@ covers the fresh-fork contracts, UI, hosted keepers, a mined and claimed
 harvest, and the bots that keep Lark's oracles, pool prices and trade flow in
 step with mainnet. Earlier reports retain their original artifact scope.
 
-The next version on `juicer-next` ([plan](next-version-plan.md)) moves the
-underfunding check to the keepers (they stop deposits through a `deficitStop`
-flag), allocates yield at events instead of on every transfer, and puts funded
+The next version on `juicer-next` ([plan](next-version-plan.md)) enforces a
+50 bps Main-backing admission ceiling on-chain and retains the keepers'
+hysteretic `deficitStop`, allocates yield at events instead of on every transfer, and puts funded
 earnings in each holder's vault balance, so nothing is claimed. The
 specifications below describe it. ICE intents are replacing the router for
 entries, harvest swaps and normal exits, which become asynchronous, with the
@@ -36,8 +36,9 @@ brings the next version up on Lark 0.
 ## Agreed Design
 
 - Protect original principal in the deposited token, not its dollar value.
-  Preserve unpaid claims and stop deposits while underfunded: the keepers check
-  the deficit off-chain and stop deposits above 50 bps. Governance funds
+  Preserve unpaid claims and stop deposits while underfunded: every deposit
+  checks the live deficit and rejects it above 50 bps; keepers retain an earlier
+  hysteretic stop. Governance funds
   residual recovery; recording a claim does not make repayment liquid.
 - Yield, including previously compounded yield, may contribute to an emergency
   recovery. That requires explicit per-holder reconciliation and a reviewed
