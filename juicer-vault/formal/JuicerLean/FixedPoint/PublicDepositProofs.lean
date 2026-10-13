@@ -179,10 +179,12 @@ theorem checkpoint_current_second (s : State) (a b : Nat) (hb : b < 5)
     rw [hc]
     exact hb.trans (by decide : 5 < actors)
 
-def depositResult (s : State) (caller receiver amount shares needed : Nat) : Result := do
-  let next ← cover (depositAssets (mintWallet (initialMint s) receiver shares) caller amount) (needed-amount)
-  if next.synth*9800/10000 < next.debt then throw 23
-  return (next,shares)
+def depositResult (s : State) (caller receiver amount shares needed : Nat) : Result :=
+  if s.collateral[caller]! < amount then .error 15 else
+    let funded := depositAssets (mintWallet (initialMint s) receiver shares) caller amount
+    if funded.synth*9800/10000 < funded.debt then .error 23 else do
+      let next ← cover funded (needed-amount)
+      return (next,shares)
 
 theorem depositResult_public (s : State) (caller receiver amount shares needed : Nat)
     (h : PublicInvariant s) (hz : InitialMintSafe s) (hr : receiver < actors)
@@ -190,13 +192,16 @@ theorem depositResult_public (s : State) (caller receiver amount shares needed :
     OnSuccess (fun result : State × Nat => PublicInvariant result.1)
       (depositResult s caller receiver amount shares needed) := by
   unfold depositResult
-  rw [onSuccess_bind]
-  intro next heq
-  have hm := mintWallet_public (initialMint s) receiver shares (initialMint_public s h hz) hr
-    (fun h5 => current_normalized _ receiver (initialMint_current s receiver (hc h5)))
-  have hn := onSuccess_of_eq (cover_public _ _ (depositAssets_public _ caller amount hm)) heq
-  change OnSuccess _ (if next.synth*9800/10000 < next.debt then .error 23 else .ok (next,shares))
-  exact onSuccess_if _ _ _ _ trivial hn
+  apply onSuccess_if
+  · trivial
+  · apply onSuccess_if
+    · trivial
+    · rw [onSuccess_bind]
+      intro next heq
+      have hm := mintWallet_public (initialMint s) receiver shares (initialMint_public s h hz) hr
+        (fun h5 => current_normalized _ receiver (initialMint_current s receiver (hc h5)))
+      have hn := onSuccess_of_eq (cover_public _ _ (depositAssets_public _ caller amount hm)) heq
+      exact hn
 
 def depositTail (s : State) (caller receiver amount : Nat) : Result :=
   if s.supply == 0 && caller != 0 then .error 5
@@ -224,29 +229,45 @@ theorem depositTail_public (s : State) (caller receiver amount : Nat)
         · trivial
         · exact depositResult_public s caller receiver amount _ _ h hz hr hc
 
-def depositTailRaw (input : State) (caller receiver amount : Nat) : Result := do
+def depositResultRaw (input : State) (caller receiver amount shares needed : Nat) : Result := do
   let mut s := input
-  if s.supply == 0 && caller != 0 then throw 5
-  if s.assets+amount > s.tvlCap then throw 6
-  let supply := activeSupply s
-  if supply == 0 && amount ≤ 1000 then throw 7
-  if supply != 0 && activeAssets s == 0 then throw 8
-  let shares := if supply == 0 then amount-1000 else ceilDiv (amount*supply) (activeAssets s)
-  let needed := if supply == 0 then amount else ceilDiv (shares*activeAssets s) supply
+  if s.collateral[caller]! < amount then throw 15
   if s.supply == 0 then s := setWallet { s with supply := 1000 } 4 1000
   s := setWallet s receiver (wallet s receiver+shares)
   s := { s with
     supply := s.supply+shares,assets := s.assets+amount,supplied := s.supplied+amount,
     reinvest := s.reinvest+amount,collateral := s.collateral.set! caller (s.collateral[caller]!-amount) }
-  s ← cover s (needed-amount)
   if s.synth*9800/10000 < s.debt then throw 23
+  s ← cover s (needed-amount)
   return (s,shares)
+
+theorem depositResultRaw_eq (s : State) (caller receiver amount shares needed : Nat) :
+    depositResultRaw s caller receiver amount shares needed = depositResult s caller receiver amount shares needed := by
+  unfold depositResultRaw depositResult
+  simp only [bind, pure, Except.bind, Except.pure]
+  by_cases hc : s.collateral[caller]! < amount
+  · simp only [if_pos hc]
+  · simp only [if_neg hc]
+    unfold initialMint
+    by_cases hs : (s.supply == 0) = true
+    · simp only [hs, ite_true]
+      rfl
+    · simp only [hs]
+      rfl
+
+def depositTailRaw (s : State) (caller receiver amount : Nat) : Result :=
+  if s.supply == 0 && caller != 0 then .error 5
+  else if s.assets+amount > s.tvlCap then .error 6
+  else if activeSupply s == 0 && amount ≤ 1000 then .error 7
+  else if activeSupply s != 0 && activeAssets s == 0 then .error 8
+  else
+    let shares := if activeSupply s == 0 then amount-1000 else ceilDiv (amount*activeSupply s) (activeAssets s)
+    let needed := if activeSupply s == 0 then amount else ceilDiv (shares*activeAssets s) (activeSupply s)
+    depositResultRaw s caller receiver amount shares needed
 
 theorem depositTail_factored (s : State) (caller receiver amount : Nat) :
     depositTailRaw s caller receiver amount = depositTail s caller receiver amount := by
-  unfold depositTailRaw depositTail depositResult initialMint
-  simp only [bind,pure,Except.bind,Except.pure]
-  split_ifs <;> rfl
+  simp only [depositTailRaw, depositTail, depositResultRaw_eq]
 
 theorem raw_deposit_factored (s : State) (caller owner receiver amount : Nat) :
     rawRunCall s ⟨0,caller,owner,receiver,amount⟩ =

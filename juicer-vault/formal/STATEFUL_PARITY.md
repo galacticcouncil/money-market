@@ -52,7 +52,8 @@ is saved under `.stateful/trace-<seed>.jsonl`, `.stateful/market-<seed>.jsonl` o
 each invocation accepts up to eight seeds. A completion marker rejects interrupted
 traces, and the three coverage JSON files record successful actions, revert classes and exercised
 queue/batch/claim boundaries. Required boundary cases must actually execute.
-`check-runtime.py` includes the default campaigns and their Lean replay.
+`check-runtime.py` includes the default campaigns, their Lean replay and two focused ten-call
+harvest-capacity replays.
 
 the PR #79 default run covers 24 campaigns, 7,338 recorded steps, 1,509 expected reverts and
 1,072 corrupted-output checks. there are 98 more reverts than before PR #79, including
@@ -191,6 +192,17 @@ arbitrary finite traces in that domain, while the default replay checks membersh
 recorded actions. a fabricated orphan-claim storage state is a concrete counterexample to raw
 preservation over unrestricted states and is excluded by the domain.
 
+account/request epoch and scale metadata has a separate preservation proof for every raw action:
+`rawReplay_genesis_metadata` covers arbitrary finite histories, including rollback and
+unsupported opcodes. `rawReplay_genesis_callBounds` separately proves source pull/cost rates and
+fee rates remain at most 10000 basis points, and all stored request owners remain ordinary, across
+arbitrary finite fixture-call histories. it uses only initial bounds and `FixtureAction`, including
+its bounded setters and ordinary request creators. `PublicReady` then closes initialization,
+active-fee, queue-backing and credit-readiness together with the financial invariant.
+`ordinaryTrace_fixture_ready` derives that certificate for arbitrary finite ordinary histories
+from each of the three concrete replay genesis states. the action domain excludes direct transfers
+from the locked holder and requires started claims or raw reverts.
+
 the typed opcode theorem and source checker establish fixture-dispatch correspondence.
 `check-bytecode.py` separately binds 11 reproducibly compiled production artifacts and the relevant
 ABI selectors to reviewed hashes. it does not prove the internal contract bodies equivalent to
@@ -202,9 +214,16 @@ under a zero-fee remainder at zero active source remainder. settlement loops pre
 invariant for any iteration count under backed owed collateral and a Main position count equal
 to the unwind cursor plus one. pokeSettle composes source pulls, fee-backed batch credits, Main
 payments and settlement; its additional premises constrain source rates, batch weights and
-remaining budgets. harvest preserves the invariant when its post-checkpoint amount fits source
-capacity. startUnwinds preserves the invariant over arbitrary loop lengths under consistent
+remaining budgets. harvest caps the burn at held shares and consumes only the realized reserve
+slice, so its capacity bound is unconditional in this single-vault fixture. startUnwinds preserves
+the invariant over arbitrary loop lengths under consistent
 metadata, queue backing, ordinary waiting owners and fee rates at most 10000 basis points.
 its exact raw-body correspondence includes the deferred cursor update. replay checks these
-premises too. inductive preservation of all additional input premises and semantic equivalence from compiled bytecode
-to the Lean transitions remain outside this result.
+premises as diagnostics, while the `PublicReady` induction derives them from genesis. semantic
+equivalence from compiled bytecode to the Lean transitions remains outside this result.
+
+the deposit-balance regression raises the cap, attempts to deposit one more collateral unit than
+the caller holds, and checks the ERC20 revert plus full snapshot rollback in both expanded
+fixtures. the old model used saturating subtraction and incorrectly accepted this call. the
+harvest regression checks the case where rounding quotes two more shares than the vault holds;
+both Solidity and Lean cap the burn and preserve the unrealized reserve remainder.

@@ -96,6 +96,7 @@ JuicerLean/
 | `solidity_dispatch_corresponds` | the complete source-pinned 31-opcode fixture dispatcher selects the same raw model call for every action |
 | `validSolidityTrace_invariant` | every arbitrary finite raw trace in the certified Solidity action domain preserves the combined public invariant |
 | `validSolidityReachable_invariant` | every state reachable through certified raw fixture transitions satisfies the combined public invariant |
+| `ordinaryTrace_fixture_ready` | every arbitrary finite ordinary trace from any of the three Solidity fixture genesis states preserves the financial invariant and all public-call readiness premises |
 | `agg_synthConserved` | no over-mint of the synthetic across the **whole book** of positions at once |
 | `agg_collateral_out_ge_in` | portfolio-wide redemption solvency: aggregate collateral out ≥ in, under `freedBacked` |
 | `deposit_conserved` / `deposit_isolation` | shared-loop deposit conserves total shares and cannot move another vault's balance |
@@ -201,19 +202,42 @@ account/request epochs and scales consistent with the book's history. requestRed
 an ordinary owner; deposit requires a bounded receiver and a zero reward index when supply is zero.
 rebalance additionally requires zero fee remainder when the active source remainder is zero.
 pokeSettle requires backed queue collateral, consistent batch weights/budgets, backed fees and
-source pull/cost rates at most 10000 basis points. harvest requires its post-checkpoint amount to
-fit source capacity. startUnwinds requires consistent metadata, queue backing, ordinary waiting
-owners and a fee rate at most 10000 basis points; its proof covers arbitrary loop lengths.
-all 31 opcodes now have preservation proofs based on inputs. domain admission uses those rules
-or a raw revert, with no successful post-state certificate fallback. the additional
-input premises are replay-checked but not yet proved inductive across every raw call.
+source pull/cost rates at most 10000 basis points. harvest burns the minimum of its quote and
+the single-vault fixture's held-share capacity; the capacity bound is unconditional. startUnwinds
+requires consistent metadata, queue backing, ordinary waiting owners and a fee rate at most
+10000 basis points; its proof covers arbitrary loop lengths. all 31 opcodes have preservation
+proofs based on inputs. domain admission uses those rules or a raw revert, with no successful
+post-state certificate fallback.
+
+account/request metadata is inductive across every raw call, including reverts and unsupported
+opcodes, without financial or fixture-domain premises. `PublicCallBounds` proves that source
+pull/cost rates and fee rates stay at most 10000 basis points and every stored request retains an
+ordinary owner across arbitrary finite fixture-call histories. `PublicReady` combines those facts
+with initialization, active-fee, queue-backing, credit-readiness and the financial invariant.
+`OrdinaryAction` retains the source-pinned fixture restrictions, limits direct transfer callers
+to the four external holders, and requires a started claim or a raw revert; it assumes none of
+the accounting readiness predicates. `ordinaryTrace_fixture_ready` derives the complete
+certificate for arbitrary finite ordinary histories from each concrete fixture genesis, including
+rollback. credit readiness keeps the source prefix empty during suspended batches and preserves
+fee backing through repayments and appended exits.
+
+negative regressions make the domain and model corrections explicit. the permissive old fixture
+domain can impersonate the locked-share address, drain supply to zero, and retain a nonzero reward
+index; the initialization theorem excludes that caller. a public harvest history quotes
+`750000000000000002` source shares while holding `750000000000000000`. Solidity already caps the
+burn. the model now applies that cap and consumes only the realized source/protocol reserve slice,
+preserving the two remaining reward units until the next checkpoint. deposits also reject amounts
+above the caller's collateral balance before consuming it; raising the TVL cap previously exposed
+a successful model deposit where ERC20 transfer reverts. Solidity rollback regressions and
+kernel-checked model cases cover both fixture balance scales.
 the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
 price-driven deleveraging. the rescale fixture keeps ray-scale holders and a waiting request stale
 across four 64-bit shifts, then settles, starts, claims, writes off and refills. larger campaigns
 are configurable. the default 24 campaigns cover 7,338 recorded steps, 1,509 expected reverts and
 1,072 corrupted-output checks. see [stateful parity](STATEFUL_PARITY.md) for coverage gates and external mock
-boundaries. `check-runtime.py` includes all three default fixtures.
+boundaries. `check-runtime.py` includes all three default fixtures plus two focused ten-call
+harvest-capacity replays.
 
 `AuditChanges.lean` covers the first allocation's whole-fund units, the 99% arrival threshold,
 effective backing, proportional pacing and cash-based delever repayment. empty requests may

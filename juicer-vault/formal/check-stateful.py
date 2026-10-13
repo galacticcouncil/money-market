@@ -32,13 +32,19 @@ def main():
             continue
         paths = [formal / ".stateful" / f"{prefix}-{seed}.jsonl"
                  for seed in range(args.seed, args.seed + args.count)]
-        for path in paths:
+        harvest_paths = [] if fixture == "baseline" else [formal / ".stateful" /
+            f"harvest-capacity-{2 if fixture == 'rescale' else 1}.jsonl"]
+        for path in paths + harvest_paths:
             path.unlink(missing_ok=True)
         subprocess.run(["forge", "test", "--offline", "--match-contract", f"^{contract}$",
-                        "--match-test", "test_statefulPublicCalls", "--gas-limit", str(2**40), "-vv"] + tree,
+                        "--match-test", "test_statefulPublicCalls|test_harvestQuoteExceedsOwnedShares|test_depositCannotSpendMissingCollateral",
+                        "--gas-limit", str(2**40), "-vv"] + tree,
                        cwd=formal.parent, env=env, check=True)
         subprocess.run(lean + ["--run", "StatefulReplay.lean"] + [str(p) for p in paths],
                        cwd=formal, check=True)
+        if harvest_paths:
+            subprocess.run(lean + ["--run", "StatefulReplay.lean", "--harvest-capacity"] +
+                           [str(p) for p in harvest_paths], cwd=formal, check=True)
         (check_rescale_coverage if fixture == "rescale" else check_coverage)(paths)
 
 
