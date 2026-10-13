@@ -348,7 +348,8 @@ contract CollateralVault is
         uint256 assetsBefore = totalAssets();
         uint256 numerator = (assetsBefore - totalQueuedCollateral) * shares;
         uint256 collateralOwed = Math.ceilDiv(numerator, supply);
-        if (collateralOwed == 0) revert ZeroAmount();
+        // a funded-only request can fold to zero shares; it must not block the queue
+        if (collateralOwed == 0 && shares != 0) revert ZeroAmount();
         uint256 debt = hollarDebtToken.balanceOf(address(this));
         uint256 debtShare;
         (loopShares, debtShare) = abi.decode(Address.functionDelegateCall(compoundLogic,

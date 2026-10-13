@@ -170,6 +170,8 @@ contract JuicerYieldAccounting {
     /// @dev ownership and its fee vest before collateral balances change; a later rate change
     /// can't reassign earlier earnings, though the interest servicing reserve follows it.
     function checkpoint(address from, address to) external onlyVault {
+        // vault shares reach the fund only as harvested rewards
+        if (to == address(this)) revert Unauthorized();
         IYieldVault v = IYieldVault(vault);
         IYieldSource s = v.yieldSource();
         if (harvestUnits != 0 || s.accountingLocked()) revert InvalidHarvest();
@@ -187,10 +189,11 @@ contract JuicerYieldAccounting {
     /// allocation follows the balances at the next one. a transfer beyond the sender's wallet
     /// moves the units whose funded slice covers the rest, so no third party's balance changes
     function settle(address from, address to, uint256 excess) external onlyVault {
+        if (to == address(this)) revert Unauthorized();
         _settle(from);
         if (to != from) _settle(to);
         if (excess != 0) {
-            if (to == address(this) || to == address(0)) revert Unauthorized();
+            if (to == address(0)) revert Unauthorized();
             if (from == to) {
                 if (excess > fundedOf(from)) revert ExceedsBalance();
             } else {
@@ -259,7 +262,8 @@ contract JuicerYieldAccounting {
             rewardIndex >>= 64;
             unitScale += 64;
         }
-        uint256 minted = Math.mulDiv(outsideValue, totalUnits + 1, denominator);
+        // first units price the whole fund, so earlier value can't strand later yield
+        uint256 minted = totalUnits == 0 ? before_ + value : Math.mulDiv(outsideValue, totalUnits + 1, denominator);
         sourceShares += rewardShares;
         protocolShares += feeShares;
         totalUnits += minted;
