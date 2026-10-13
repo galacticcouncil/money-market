@@ -65,7 +65,8 @@ def main():
             raise SystemExit(f"Main storage layout changed: {name}")
     traces = [formal / ".stateful" / f"{prefix}-{seed}.jsonl"
               for prefix in ("trace", "market", "rescale") for seed in range(1, 9)]
-    for path in traces:
+    shared_traces = [formal / ".stateful" / f"shared-intent-{seed}.jsonl" for seed in range(1, 7)]
+    for path in traces + shared_traces:
         path.unlink(missing_ok=True)
     env.update(LEAN_STATEFUL_SEED="1", LEAN_STATEFUL_COUNT="8", LEAN_STATEFUL_DEPTH="192")
     # the env already moves the cache; keep these artifacts out of the default out/ too
@@ -74,6 +75,9 @@ def main():
                    cwd=vault, env=env, check=True)
     subprocess.run(lean + ["--run", "StatefulReplay.lean"] +
                    [str(path) for path in traces],
+                   cwd=formal, check=True)
+    subprocess.run(lean + ["--run", "SharedIntentReplay.lean"] +
+                   [str(path) for path in shared_traces],
                    cwd=formal, check=True)
     subprocess.run(lean + ["--run", "ScaledDebtReplay.lean",
                            str(formal / ".stateful" / "scaled-debt.jsonl")],

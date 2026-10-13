@@ -70,6 +70,9 @@ JuicerLean/
    ├─ CheckedRefinement.lean successful checked operations refine the natural-number models
    ├─ Environment.lean    external observation guards and ICE authentication limits
    ├─ AuditChanges.lean   PR #79 arithmetic, pacing, fund and empty-request regressions
+   ├─ SharedIntent.lean   shared SubLoop intents, two vaults, gifts and harvest ordering
+   ├─ AuditProgress.lean  conditional queue and pacing progress proofs
+   ├─ AuditLossAllocation.lean executable audit counterexamples for loss assignment
    └─ Refine.lean         Phase 3: integer floor guard conservatively refines the real floor,
                            incl. the loop-yield (accrueLoop) and re-peg fixed-point refinements
 ```
@@ -217,6 +220,24 @@ effective backing, proportional pacing and cash-based delever repayment. empty r
 start with zero shares, owed collateral and debt; the queue proofs retain their cumulative payout
 and burn bounds. the gate also runs the PR #79 public-flow regressions for fund rejection,
 empty queues, foreign collateral flags, safety sales and harvest reconciliation.
+
+`SharedIntent.lean` follows two vaults through actual SubLoop intent inputs and outputs, landed
+fills, refunds, balance rebasing, unwind cost checkpoints and Harvester weight reads. six traces
+execute the production SubLoop and Harvester for 1,176 public calls and compare every modeled
+field and return or revert. mutation coverage delays Harvester reconciliation and is rejected in
+six states. the traces also retain a separate pallet state, so a near-full unsolicited arrival
+can clear SubLoop's slot while the original pallet intent remains open.
+
+`AuditProgress.lean` states liveness assumptions explicitly: mature requests, enough repayment
+cash and debt capacity, positive lane capacity, no uint64 wrap and continued keeper calls. under
+those assumptions it proves bounded progress for arbitrary empty and funded queues, target
+clearance despite repayment rounding, and at most one extra pacing quantum per fragment.
+`AuditLossAllocation.lean` keeps the unresolved policy findings as executable counterexamples:
+deficit dilution, entry-loss cohort shifts, capped exit cost left in live equity, undeployed
+weight receiving a recovery and repeated reassignment of a parked gift. the conservation proofs
+still hold; they do not determine which cohort should bear those losses. this maps audit findings
+#3/#19 and #32/#39 to the shared replay, #5/#12/#29/#30/#31 to conditional progress, and
+#6/#13/#15/#22/#25/#35/#38 to the loss-allocation counterexamples.
 
 `check-dispatch.py` independently checks all 31 target, selector and action-argument mappings
 against the pinned Solidity `perform` functions. `solidity_dispatch_corresponds` and

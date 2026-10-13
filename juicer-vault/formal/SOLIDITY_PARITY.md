@@ -38,6 +38,8 @@ references and method ids for 11 production contracts; the checks fail if either
 | repeated settlement/claim histories | `RedemptionState.valid`, `settleQueue` | cumulative collateral/burn bounds, unpaid-head stop, final payout/burn; 24 three-claim histories; zero-share, debt-free empty requests advance both cursors |
 | stateful vault/Main/harvest/rescale sequences | `PublicCalls.State`, `SolidityDispatch`, `ValidSolidityTrace`, `PublicInvariant` | complete source-checked 31-opcode fixture map; arbitrary finite certified raw-trace preservation; independent replay from fixture genesis with exact outcomes, snapshots and rollback |
 | shared-loop harvest and ICE histories | lifecycle and runtime projections | repeated harvests across two vaults sharing one loop; long actual-SubLoop intent expiry/reconcile/late-callback/exit sequence |
+| shared intent/harvest accounting | `SharedIntent.State`, `SharedIntent.call`, `SharedIntent.snapshot` | 1,176 calls against production SubLoop and Harvester: two-vault fills, refunds, gifts, rebases, cost checkpoints and reconcile-before-weight ordering |
+| audit liveness and loss allocation | `AuditProgress`, `AuditLossAllocation` | conditional arbitrary-queue progress and fragmented-pacing bounds; executable deficit, cohort-cost, recovery-weight and parked-gift counterexamples |
 | checked arithmetic and failure | `Checked`, checked account/backing/borrow/batch/claim/rescale operations | success refinement, exact arithmetic revert classes, atomic failure semantics; 488 primitive, 40 account and eight backing comparisons |
 | external observations | `payValid`, `exactReceipt`, `exactPayment`, callback/arrival theorems | conditional cash/debt bounds; detection threshold does not authenticate token origin |
 
@@ -266,6 +268,16 @@ expiry, reconciliation, exit, a missed callback, a late callback and final pull 
 `MockIntentDispatch`. these are executable integration checks rather than Lean state-by-state
 replays.
 
+`LeanSharedIntent.t.sol` and `SharedIntentReplay.lean` add that state-by-state comparison for the
+shared source. the harness uses the production SubLoop, SubLoopLogic, Harvester and
+ExecutionController; two callback vaults and a binding-only fee controller expose the surrounding
+source-facing boundary.
+Lean starts from deployment constants and independently applies deposits, entry and exit intents,
+fills, refunds, unsolicited token arrivals, callbacks, reconciliation, harvests, blocked services,
+cost acknowledgements and pulls. every call result and 46 base fields plus every pallet intent
+are compared. delaying the initial Harvester reconciliation must change the prediction in covered
+states, preventing the PR #79 ordering fix from becoming a no-op in the model.
+
 ## corrections
 
 - Minting is `ceil(debt * 10000 / lt) + floor(base / 200)`. The old floored mint formula and
@@ -320,11 +332,11 @@ cases. validation also includes 512 transfer-rounding fuzz cases, the public vau
 rollback regressions, the focused rescale suites, and the seeded and public-call rescale
 fixtures. all three generated datasets reproduce exactly.
 the Aave scaled-debt trace adds 516 calls with 43 expected reverts. the full formal check invokes
-116 formal Foundry tests, 18 PR #79 regressions and the two targeted shared-flow histories,
+122 formal Foundry tests, 18 PR #79 regressions and the two targeted shared-flow histories,
 all with zero failures or skips;
 source fingerprints, all 17 accounting slots and the six private
 Main batch slots also pass. the legacy environment-gated Verity fork suite is outside this formal gate.
-the broader `test/formal/**` acceptance run passes 150 tests with zero failures; its only skip
+the broader `test/formal/**` acceptance run passes 156 tests with zero failures; its only skip
 is that legacy Verity fork setup, which is unavailable offline.
 the gate includes source-body extraction and 14 rejection/mutation tests for its supported AST
 boundary, plus 24 guard-extractor tests. formal compiler remappings are fixed and relative, with automatic discovery disabled.

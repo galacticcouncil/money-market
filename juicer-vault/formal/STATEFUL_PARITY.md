@@ -162,12 +162,20 @@ the dedicated rescale campaigns reach cumulative `unitScale == 256` with an ordi
 waiting request left stale from scale zero. ceil-shifted indices keep aggregate claims within
 `totalUnits` and remain defined at the four-shift boundary.
 
-separate integration checks cover three other fixture boundaries. `LeanScaledDebt.t.sol` runs 516
+separate integration checks cover four other fixture boundaries. `LeanScaledDebt.t.sol` runs 516
 mint, burn and index steps against Aave core v3's actual `VariableDebtToken` 1.19.3, with a mock
 Pool that drives the normalized index, and Lean replays every scaled balance and expected revert.
 `SharedFlowHarness.t.sol` runs repeated harvests for two real vault instances sharing one SubLoop
 and Harvester. its ICE sequence uses the actual SubLoop with `MockIntentDispatch` through entry,
 expiry, permissionless reconciliation, exit, a missed callback, a late callback and final pull.
+
+`LeanSharedIntent.t.sol` adds six independent state-by-state traces for the production SubLoop and
+Harvester with two callback vaults and the pallet mock. Lean replays 1,176 calls from genesis,
+including 41 expected reverts, 66 fills, 18 refunds, nine balance rebases and one near-full gift
+that clears the SubLoop slot while the pallet intent remains open. six covered harvest states
+distinguish reconcile-before-weight from the old delayed ordering. the snapshot includes loop
+cash, collateral, debt, intent baselines, pallet status, vault shares/principal/unwinds/costs,
+Harvester gifts and compounded receipts.
 
 the deployed Aave Pool and reserve lifecycle, live pallet/solver execution, malicious tokens,
 reentrancy, arbitrary oracle/configuration changes and the full uint256 input space remain outside
