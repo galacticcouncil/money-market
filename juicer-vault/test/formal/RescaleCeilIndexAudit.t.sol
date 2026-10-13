@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 import {ParityVault} from "./LeanRuntimeParity.t.sol";
 import {HarvestTest} from "../Harvest.t.sol";
+import {Artifacts} from "../helpers/Artifacts.t.sol";
 
 contract RescaleCeilIndexAuditTest is Test {
     uint256 constant RAY = 1e27;
@@ -23,7 +24,7 @@ contract RescaleCeilIndexAuditTest is Test {
         returns (JuicerYieldAccounting y, ParityVault v)
     {
         v = new ParityVault();
-        y = new JuicerYieldAccounting(address(v));
+        y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
         uint256[] memory input = new uint256[](14);
         input[6] = held;
         input[7] = equity;

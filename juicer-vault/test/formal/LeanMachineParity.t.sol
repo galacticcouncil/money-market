@@ -10,6 +10,7 @@ import {LeanCoverageParityTest, ParityQueue} from "./LeanCoverageParity.t.sol";
 import {CollateralVault} from "../../src/CollateralVault.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Artifacts} from "../helpers/Artifacts.t.sol";
 
 contract HistoryQueue is ParityQueue {
     function observeSettlement(uint256 repaid, uint256 settled) external {
@@ -64,7 +65,7 @@ contract LeanMachineParityTest is Test {
         for (uint256 i; i < count; ++i) {
             uint256[] memory r = vm.parseJsonUintArray(machine, string.concat(".accounts[", vm.toString(i), "]"));
             ParityVault v = new ParityVault();
-            JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+            JuicerYieldAccounting y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
             v.mint(owner, r[8]);
             vm.store(address(y), bytes32(uint256(2)), bytes32(r[0]));
             vm.store(address(y), bytes32(uint256(3)), bytes32(r[1]));
@@ -84,7 +85,7 @@ contract LeanMachineParityTest is Test {
         for (uint256 i; i < count; ++i) {
             uint256[] memory r = vm.parseJsonUintArray(machine, string.concat(".backing[", vm.toString(i), "]"));
             ParityVault v = new ParityVault();
-            JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+            JuicerYieldAccounting y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
             v.configureFunding(r[0], r[1], r[2], r[3]);
             (bool ok, bytes memory data) = address(y).staticcall(abi.encodeCall(y.requiredSourceBacking, ()));
             _result(ok, data, r[4], r[5]);
@@ -100,7 +101,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
         for (uint256 i; i < count; ++i) {
             uint256 snapshot = vm.snapshotState();
             uint256[] memory r = vm.parseJsonUintArray(machine, string.concat(".retries[", vm.toString(i), "]"));
-            JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+            JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
             hollarDebt.mint(address(vault), 100);
             vm.prank(address(vault)); ledger.borrowed(0);
             hollar.mint(address(this), r[0]);
@@ -132,7 +133,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
         uint256 count = vm.parseJsonUint(machine, ".historiesCount");
         for (uint256 i; i < count; ++i) {
             uint256[] memory r = vm.parseJsonUintArray(machine, string.concat(".histories[", vm.toString(i), "]"));
-            HistoryQueue q = new HistoryQueue();
+            HistoryQueue q = HistoryQueue(vm.deployCode("LeanMachineParity.t.sol:HistoryQueue"));
             MockERC20 token = new MockERC20("claim", "claim", 18);
             q.seed(r, OWNER, IERC20(address(token)), address(source));
             token.mint(address(q), r[1]);
@@ -148,7 +149,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
     }
 
     function test_claimOverflowRollsBackEarlierWrites() public {
-        HistoryQueue q = new HistoryQueue();
+        HistoryQueue q = HistoryQueue(vm.deployCode("LeanMachineParity.t.sol:HistoryQueue"));
         MockERC20 token = new MockERC20("claim", "claim", 18);
         uint256[] memory r = new uint256[](8);
         r[0] = type(uint256).max; r[1] = 4; r[2] = 2; r[3] = 1; r[4] = 2; r[7] = 1;
@@ -184,7 +185,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
         for (uint256 n; n < count; ++n) {
             uint256 snapshot = vm.snapshotState();
             uint256[] memory r = vm.parseJsonUintArray(machine, string.concat(".batches[", vm.toString(n), "]"));
-            JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+            JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
             vm.startPrank(address(vault));
             ledger.expectDelever(r[2], r[2]);
             for (uint256 i; i < r[1]; ++i) {
@@ -211,7 +212,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
     }
 
     function test_scaledRepaymentRetryUsesOnlyOwnCash() public {
-        JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+        JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
         hollarDebt.mint(address(vault), 100);
         vm.prank(address(vault)); ledger.borrowed(0);
         hollar.mint(address(this), 50);
@@ -228,7 +229,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
     }
 
     function test_liquidityLimitedRepaymentDoesNotRetry() public {
-        JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+        JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
         hollarDebt.mint(address(vault), 100);
         vm.prank(address(vault)); ledger.borrowed(0);
         hollar.mint(address(this), 50);
@@ -243,7 +244,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
     }
 
     function test_failedSourceReceiptRollsBackTokenTransferAndCheckpoint() public {
-        JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+        JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
         vm.prank(address(vault)); ledger.expectDelever(100, 100);
         hollar.mint(address(vault), 101);
         vm.prank(address(vault)); hollar.approve(address(ledger), 101);
@@ -262,7 +263,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
     }
 
     function test_borrowOverflowLeavesLedgerUntouched() public {
-        JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+        JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
         vm.mockCall(address(hollarDebt), abi.encodeCall(hollarDebt.balanceOf, (address(vault))),
             abi.encode(type(uint256).max / 1e18 + 1));
         vm.prank(address(vault));

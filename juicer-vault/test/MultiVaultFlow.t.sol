@@ -2,7 +2,6 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
@@ -15,7 +14,7 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {MockSwapper} from "./mocks/MockSwapper.sol";
 import {Deficit} from "./helpers/Deficit.sol";
-import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice two vaults (eth 75% ltv, tbtc 80%) share one subloop and harvester;
 ///         each earns carry in its own collateral and an eth exit leaves tbtc untouched.
@@ -51,7 +50,7 @@ contract MultiVaultFlowTest is Test {
         prime = new MockERC20("PRIME", "PRIME", 6);
         aPrime = new MockERC20("aPRIME", "aPRIME", 6);
         primeDebt = new MockERC20("dPRIME", "dPRIME", 6);
-        synth = new SyntheticToken("Juicer Synthetic", "jsHOLLAR", address(this));
+        synth = SyntheticToken(Artifacts.syntheticToken("Juicer Synthetic", "jsHOLLAR", address(this)));
         aSynth = new MockERC20("aSYNTH", "aSYNTH", 18);
         synthDebt = new MockERC20("dSYNTH", "dSYNTH", 18);
 
@@ -66,22 +65,20 @@ contract MultiVaultFlowTest is Test {
         swapper = new MockSwapper(address(pool));
 
         loop = SubLoop(
-            address(
-                new ERC1967Proxy(
-                    address(new SubLoop(address(new SubLoopLogic()))),
-                    abi.encodeCall(
-                        SubLoop.initialize,
-                        (
-                            address(pool), address(hollar), address(prime),
-                            address(aPrime), 1.05e18, 1.10e18, address(this)
-                        )
+            Artifacts.proxy(
+                Artifacts.subLoop(),
+                abi.encodeCall(
+                    SubLoop.initialize,
+                    (
+                        address(pool), address(hollar), address(prime),
+                        address(aPrime), 1.05e18, 1.10e18, address(this)
                     )
                 )
             )
         );
         ethVault = _deployVault("Juicer ETH", "jETH", address(eth), address(aEth));
         tbtcVault = _deployVault("Juicer tBTC", "jtBTC", address(tbtc), address(aTbtc));
-        harvester = new Harvester(address(loop), address(prime), address(this));
+        harvester = Harvester(Artifacts.harvester(address(loop), address(prime), address(this)));
 
         vm.etch(DcaDispatch.DISPATCH, address(new MockDispatch()).code);
         MockDispatch(payable(DcaDispatch.DISPATCH)).configure(
@@ -101,7 +98,7 @@ contract MultiVaultFlowTest is Test {
         tbtcVault.setCompoundSlippageBps(100);
         harvester.addVault(address(ethVault));
         harvester.addVault(address(tbtcVault));
-        fees = new JuicerFeeController(address(this), address(0xFEE));
+        fees = JuicerFeeController(Artifacts.feeController(address(this), address(0xFEE)));
         harvester.setFeeController(address(fees));
         ethVault.setFeeController(address(fees));
         tbtcVault.setFeeController(address(fees));
@@ -127,16 +124,14 @@ contract MultiVaultFlowTest is Test {
         returns (CollateralVault v)
     {
         v = CollateralVault(
-            address(
-                new ERC1967Proxy(
-                    address(new CollateralVault()),
-                    abi.encodeCall(
-                        CollateralVault.initialize,
-                        (
-                            n, s, coll, address(pool), address(loop), address(swapper),
-                            address(hollar), address(synth), aTok, address(hollarDebt),
-                            1_000e18, address(this)
-                        )
+            Artifacts.proxy(
+                Artifacts.collateralVault(),
+                abi.encodeCall(
+                    CollateralVault.initialize,
+                    (
+                        n, s, coll, address(pool), address(loop), address(swapper),
+                        address(hollar), address(synth), aTok, address(hollarDebt),
+                        1_000e18, address(this)
                     )
                 )
             )

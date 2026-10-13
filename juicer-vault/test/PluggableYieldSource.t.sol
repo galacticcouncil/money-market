@@ -2,13 +2,13 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockYieldSource} from "./mocks/MockYieldSource.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice the vault runs a full deposit → redeem → claim against a non-leveraged
 /// `IYieldSource`, so the source is pluggable
@@ -34,7 +34,7 @@ contract PluggableYieldSourceTest is Test {
         hollar = new MockERC20("HOLLAR", "HOLLAR", 18);
         aHollar = new MockERC20("aHOLLAR", "aHOLLAR", 18);
         hollarDebt = new MockERC20("dHOLLAR", "dHOLLAR", 18);
-        synth = new SyntheticToken("Juicer Synthetic", "jsHOLLAR", address(this));
+        synth = SyntheticToken(Artifacts.syntheticToken("Juicer Synthetic", "jsHOLLAR", address(this)));
         aSynth = new MockERC20("aSYNTH", "aSYNTH", 18);
         synthDebt = new MockERC20("dSYNTH", "dSYNTH", 18);
 
@@ -46,25 +46,23 @@ contract PluggableYieldSourceTest is Test {
         source = new MockYieldSource(address(hollar));
 
         vault = CollateralVault(
-            address(
-                new ERC1967Proxy(
-                    address(new CollateralVault()),
-                    abi.encodeCall(
-                        CollateralVault.initialize,
-                        (
-                            "Juicer ETH",
-                            "jETH",
-                            address(eth),
-                            address(pool),
-                            address(source), // non-leveraged source
-                            address(0),
-                            address(hollar),
-                            address(synth),
-                            address(aEth),
-                            address(hollarDebt),
-                            1_000e18,
-                            address(this)
-                        )
+            Artifacts.proxy(
+                Artifacts.collateralVault(),
+                abi.encodeCall(
+                    CollateralVault.initialize,
+                    (
+                        "Juicer ETH",
+                        "jETH",
+                        address(eth),
+                        address(pool),
+                        address(source), // non-leveraged source
+                        address(0),
+                        address(hollar),
+                        address(synth),
+                        address(aEth),
+                        address(hollarDebt),
+                        1_000e18,
+                        address(this)
                     )
                 )
             )

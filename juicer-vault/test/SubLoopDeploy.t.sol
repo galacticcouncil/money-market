@@ -2,13 +2,12 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
-import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice Deploy-ramp flow: deposit a HOLLAR seed, then keeper pokeBorrow
 ///         until the loop self-ramps to the target HF (each poke borrows an
@@ -42,7 +41,7 @@ contract SubLoopDeployTest is Test {
         // HOLLAR: borrow-only (LT 0 / LTV 0), 18dp, $1
         pool.initReserve(address(hollar), address(aHollar), address(hollarDebt), 0, 0, 18, 1e18);
 
-        SubLoop impl = new SubLoop(address(new SubLoopLogic()));
+        SubLoop impl = SubLoop(Artifacts.subLoop());
         bytes memory init = abi.encodeCall(
             SubLoop.initialize,
             (
@@ -55,7 +54,7 @@ contract SubLoopDeployTest is Test {
                 address(this) // admin
             )
         );
-        loop = SubLoop(address(new ERC1967Proxy(address(impl), init)));
+        loop = SubLoop(Artifacts.proxy(address(impl), init));
 
         // router mock at the dispatch precompile + route ids (mainnet values)
         vm.etch(DcaDispatch.DISPATCH, address(new MockDispatch()).code);
@@ -96,7 +95,7 @@ contract SubLoopDeployTest is Test {
 
     /// the proxy's code says nothing about EIP-170; the implementation and its logic must fit
     function test_implementationAndLogicFitEip170() public {
-        SubLoop impl = new SubLoop(address(new SubLoopLogic()));
+        SubLoop impl = SubLoop(Artifacts.subLoop());
         assertLe(address(impl).code.length, 24_576, "SubLoop implementation");
         assertLe(impl.logic().code.length, 24_576, "SubLoop logic");
         assertGt(impl.logic().code.length, 0);

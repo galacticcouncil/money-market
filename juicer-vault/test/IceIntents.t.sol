@@ -2,14 +2,13 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {ExecutionController} from "../src/ExecutionController.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockIntentDispatch} from "./mocks/MockIntentDispatch.sol";
-import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice ICE entries: the ramp submits HOLLAR→aPRIME intents; the lazy executor's callback (or a
 ///         permissionless reconcile) settles them. The intent mock at 0x0401 plays the pallet:
@@ -54,8 +53,8 @@ contract IceIntentsTest is Test {
         // live PRIME is isolated: an aPRIME arrival is not collateral until the loop enables it
         pool.setIsolationMode(address(prime), true);
 
-        loop = SubLoop(address(new ERC1967Proxy(address(new SubLoop(address(new SubLoopLogic()))), abi.encodeCall(SubLoop.initialize,
-            (address(pool), address(hollar), address(prime), address(aPrime), TARGET_HF, 1.10e18, address(this))))));
+        loop = SubLoop(Artifacts.proxy(Artifacts.subLoop(), abi.encodeCall(SubLoop.initialize,
+            (address(pool), address(hollar), address(prime), address(aPrime), TARGET_HF, 1.10e18, address(this)))));
 
         vm.etch(DcaDispatch.DISPATCH, address(new MockIntentDispatch()).code);
         dispatch = MockIntentDispatch(payable(DcaDispatch.DISPATCH));
@@ -340,7 +339,7 @@ contract IceIntentsTest is Test {
     }
 
     function test_controllerAsyncLaneOpensAndCloses() public {
-        ExecutionController control = new ExecutionController(address(this), 60, 5);
+        ExecutionController control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         bytes32 entryGroup = keccak256("entry");
         control.configureBudget(entryGroup, address(hollar), 5_000e18, 1e18, uint64(block.timestamp + 30 days));
         control.configureLimit(address(loop), address(hollar), address(aPrime), entryGroup, 10e18, 2_500e18);
@@ -547,7 +546,7 @@ contract IceIntentsTest is Test {
 
     function test_controllerExitLaneUsesItsAsyncPrepare() public {
         _rampToTarget();
-        ExecutionController control = new ExecutionController(address(this), 60, 5);
+        ExecutionController control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         bytes32 group = keccak256("unwind");
         control.configureBudget(group, address(aPrime), 5_000e6, 1e6, uint64(block.timestamp + 30 days));
         control.configureLimit(address(loop), address(aPrime), address(hollar), group, 1e6, 100e6);

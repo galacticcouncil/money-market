@@ -10,6 +10,7 @@ import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {Deficit} from "./helpers/Deficit.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// real contracts with explicit market fixtures: 180 main cases + 190 sensitivities
 contract MainDebtCampaignTest is RecoveryE2ETest {
@@ -65,7 +66,9 @@ contract MainDebtCampaignTest is RecoveryE2ETest {
     function _installDiscount() internal {
         vm.etch(address(hollarDebt), address(new MockDiscountDebtToken(address(pool))).code);
         vm.etch(address(aSynth), address(new MockDiscountAToken(address(pool), address(synth))).code);
-        policy = new JuicerDiscount(address(hollarDebt), address(synth), address(aSynth), address(this), address(this));
+        policy = JuicerDiscount(
+            Artifacts.discount(address(hollarDebt), address(synth), address(aSynth), address(this), address(this))
+        );
         MockDiscountDebtToken(address(hollarDebt)).setPolicy(address(policy));
         ethVault.setDiscountController(address(policy));
         tbtcVault.setDiscountController(address(policy));

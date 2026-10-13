@@ -2,13 +2,12 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
-import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice pokeRepay sells only what open requests still need, and a de-lever target
 /// lapses once hf is back at targetHf
@@ -38,12 +37,12 @@ contract SubLoopUnwindSizingTest is Test {
         pool.initReserve(address(prime), address(aPrime), address(primeDebt), 8800, 8500, 6, 1e18);
         pool.initReserve(address(hollar), address(aHollar), address(hollarDebt), 0, 0, 18, 1e18);
 
-        SubLoop impl = new SubLoop(address(new SubLoopLogic()));
+        SubLoop impl = SubLoop(Artifacts.subLoop());
         bytes memory init = abi.encodeCall(
             SubLoop.initialize,
             (address(pool), address(hollar), address(prime), address(aPrime), TARGET_HF, 1.10e18, address(this))
         );
-        loop = SubLoop(address(new ERC1967Proxy(address(impl), init)));
+        loop = SubLoop(Artifacts.proxy(address(impl), init));
 
         vm.etch(DcaDispatch.DISPATCH, address(new MockDispatch()).code);
         MockDispatch(payable(DcaDispatch.DISPATCH)).configure(address(pool), address(hollar), address(prime), 222, 1043);

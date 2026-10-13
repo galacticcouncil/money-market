@@ -68,7 +68,9 @@ def main():
     for path in traces:
         path.unlink(missing_ok=True)
     env.update(LEAN_STATEFUL_SEED="1", LEAN_STATEFUL_COUNT="8", LEAN_STATEFUL_DEPTH="192")
-    subprocess.run(["forge", "test", "--offline", "--match-path", "test/formal/*.t.sol", "--match-contract", "^(Lean|Rescale)", "--gas-limit", str(2**40), "-vv"],
+    # the env already moves the cache; keep these artifacts out of the default out/ too
+    tree = ["--out", str(formal / ".stateful" / "test-out")]
+    subprocess.run(["forge", "test", "--offline", "--match-path", "test/formal/*.t.sol", "--match-contract", "^(Lean|Rescale)", "--gas-limit", str(2**40), "-vv"] + tree,
                    cwd=vault, env=env, check=True)
     subprocess.run(lean + ["--run", "StatefulReplay.lean"] +
                    [str(path) for path in traces],
@@ -82,7 +84,7 @@ def main():
     ]:
         subprocess.run(["forge", "test", "--offline", "--match-path",
                         "test/formal/SharedFlowHarness.t.sol", "--match-contract", contract,
-                        "--match-test", test, "--gas-limit", str(2**40), "-vv"],
+                        "--match-test", test, "--gas-limit", str(2**40), "-vv"] + tree,
                        cwd=vault, env=env, check=True)
     check_coverage(traces[:8])
     check_coverage(traces[8:16])

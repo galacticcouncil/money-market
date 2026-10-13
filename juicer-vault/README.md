@@ -183,6 +183,41 @@ not native route coverage. See [verification commands](docs/main-debt-verificati
 [route evidence](docs/route-execution-calibration.md) and the
 [keeper runbook](looper/README.md).
 
+### Faster loops
+
+The default profile stays the production build (via-IR, 200 runs) that CI
+checks. Tests deploy system contracts from their compiled artifacts through
+[`test/helpers/Artifacts.t.sol`](test/helpers/Artifacts.t.sol) instead of `new`, so
+no test contract embeds and re-optimizes them; new tests should do the same.
+A cold `forge build` dropped from about 42 minutes and 27 GB of solc memory to
+17 minutes and 11 GB; most of what remains is via-IR on the test contracts
+themselves. While iterating:
+
+- Build and run only what you touch:
+  `forge test --offline --match-path test/Harvest.t.sol` (or `--match-contract`)
+  compiles the matching tests, their imports and `src`. `forge test` never
+  compiles `script/`; `forge build` does.
+- `FOUNDRY_PROFILE=fast forge test --offline ...` targets London like CI, links
+  tests dynamically and builds into its own `out-fast`/`cache-fast`. A `src` edit
+  that keeps the interface then recompiles `src` plus the few test files whose
+  probes inherit from it: a full run after such an edit took 3.5 minutes, against
+  15 with the default profile, which recompiles every importing test. It drops
+  via-IR except where solc runs out of stack (four `src` files and one test), but
+  Forge keeps via-IR for every file importing those, which is most tests, so a
+  cold fast build is no quicker. It is not a deployable build.
+- Reuse one checkout: Forge's cache is keyed to absolute paths, so a new worktree
+  or a copied tree starts cold.
+- Keep one set of flags per output tree. Switching `--evm-version`,
+  `--dynamic-test-linking` or `FOUNDRY_LIBS` against the same `out`/`cache`
+  recompiles everything; the formal scripts build under `formal/.stateful/`.
+
+Before pushing, run what CI runs; the production build keeps its own tree:
+
+```sh
+forge build --offline --evm-version london --skip test --skip script --sizes --out out-production --cache-path cache-production --build-info
+forge test --offline --evm-version london --dynamic-test-linking
+```
+
 ## Deployment and Upgrades
 
 Use the [deployment runbook](DEPLOYMENT.md) for fresh deployments only. No

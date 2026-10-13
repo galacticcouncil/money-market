@@ -2,7 +2,6 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {SubLoop} from "../src/SubLoop.sol";
@@ -11,7 +10,7 @@ import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
-import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice keeper ops: rebalance toward the live max ltv, and maintainPeg re-topping
 ///         the synthetic as main debt accrues.
@@ -29,7 +28,7 @@ contract KeeperOpsTest is Test {
         eth = new MockERC20("ETH","ETH",18); aEth = new MockERC20("aETH","aETH",18); ethDebt = new MockERC20("dETH","dETH",18);
         hollar = new MockERC20("HOLLAR","HOLLAR",18); aHollar = new MockERC20("aHOLLAR","aHOLLAR",18); hollarDebt = new MockERC20("dHOLLAR","dHOLLAR",18);
         prime = new MockERC20("PRIME","PRIME",6); aPrime = new MockERC20("aPRIME","aPRIME",6); primeDebt = new MockERC20("dPRIME","dPRIME",6);
-        synth = new SyntheticToken("Juicer Synthetic","jsHOLLAR",address(this));
+        synth = SyntheticToken(Artifacts.syntheticToken("Juicer Synthetic","jsHOLLAR",address(this)));
         aSynth = new MockERC20("aSYNTH","aSYNTH",18); synthDebt = new MockERC20("dSYNTH","dSYNTH",18);
 
         pool = new MockPool();
@@ -39,10 +38,10 @@ contract KeeperOpsTest is Test {
         // synth: small non-zero LTV so it can be enabled as collateral
         pool.initReserve(address(synth), address(aSynth), address(synthDebt), SYNTH_LT, 100, 18, 1e18);
 
-        loop = SubLoop(address(new ERC1967Proxy(address(new SubLoop(address(new SubLoopLogic()))), abi.encodeCall(SubLoop.initialize,
-            (address(pool),address(hollar),address(prime),address(aPrime),1.05e18,1.10e18,address(this))))));
-        vault = CollateralVault(address(new ERC1967Proxy(address(new CollateralVault()), abi.encodeCall(CollateralVault.initialize,
-            ("Juicer ETH","jETH",address(eth),address(pool),address(loop),address(0),address(hollar),address(synth),address(aEth),address(hollarDebt),1_000e18,address(this))))));
+        loop = SubLoop(Artifacts.proxy(Artifacts.subLoop(), abi.encodeCall(SubLoop.initialize,
+            (address(pool),address(hollar),address(prime),address(aPrime),1.05e18,1.10e18,address(this)))));
+        vault = CollateralVault(Artifacts.proxy(Artifacts.collateralVault(), abi.encodeCall(CollateralVault.initialize,
+            ("Juicer ETH","jETH",address(eth),address(pool),address(loop),address(0),address(hollar),address(synth),address(aEth),address(hollarDebt),1_000e18,address(this)))));
 
         vm.etch(DcaDispatch.DISPATCH, address(new MockDispatch()).code);
         MockDispatch(payable(DcaDispatch.DISPATCH)).configure(

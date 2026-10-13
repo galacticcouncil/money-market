@@ -2,7 +2,6 @@
 pragma solidity ^0.8.22;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {JuicerMainDebt} from "../src/JuicerMainDebt.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
@@ -12,7 +11,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
-import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice interference between the permissionless `rebalance()` de-lever and the
 ///         fifo redemption queue.
@@ -44,7 +43,7 @@ contract DeleverQueueInterferenceTest is Test {
         prime = new MockERC20("PRIME", "PRIME", 6);
         aPrime = new MockERC20("aPRIME", "aPRIME", 6);
         primeDebt = new MockERC20("dPRIME", "dPRIME", 6);
-        synth = new SyntheticToken("Juicer Synthetic", "jsHOLLAR", address(this));
+        synth = SyntheticToken(Artifacts.syntheticToken("Juicer Synthetic", "jsHOLLAR", address(this)));
         aSynth = new MockERC20("aSYNTH", "aSYNTH", 18);
         synthDebt = new MockERC20("dSYNTH", "dSYNTH", 18);
 
@@ -57,37 +56,33 @@ contract DeleverQueueInterferenceTest is Test {
         pool.setIsolationMode(address(prime), true);
 
         loop = SubLoop(
-            address(
-                new ERC1967Proxy(
-                    address(new SubLoop(address(new SubLoopLogic()))),
-                    abi.encodeCall(
-                        SubLoop.initialize,
-                        (address(pool), address(hollar), address(prime), address(aPrime), 1.05e18, 1.10e18, address(this))
-                    )
+            Artifacts.proxy(
+                Artifacts.subLoop(),
+                abi.encodeCall(
+                    SubLoop.initialize,
+                    (address(pool), address(hollar), address(prime), address(aPrime), 1.05e18, 1.10e18, address(this))
                 )
             )
         );
 
         vault = CollateralVault(
-            address(
-                new ERC1967Proxy(
-                    address(new CollateralVault()),
-                    abi.encodeCall(
-                        CollateralVault.initialize,
-                        (
-                            "Juicer ETH",
-                            "jETH",
-                            address(eth),
-                            address(pool),
-                            address(loop),
-                            address(0),
-                            address(hollar),
-                            address(synth),
-                            address(aEth),
-                            address(hollarDebt),
-                            1_000e18,
-                            address(this)
-                        )
+            Artifacts.proxy(
+                Artifacts.collateralVault(),
+                abi.encodeCall(
+                    CollateralVault.initialize,
+                    (
+                        "Juicer ETH",
+                        "jETH",
+                        address(eth),
+                        address(pool),
+                        address(loop),
+                        address(0),
+                        address(hollar),
+                        address(synth),
+                        address(aEth),
+                        address(hollarDebt),
+                        1_000e18,
+                        address(this)
                     )
                 )
             )

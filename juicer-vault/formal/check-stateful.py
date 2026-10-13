@@ -23,6 +23,8 @@ def main():
     env.update(LEAN_STATEFUL_SEED=str(args.seed), LEAN_STATEFUL_COUNT=str(args.count),
                LEAN_STATEFUL_DEPTH=str(args.depth))
     lean = ["lean"] if args.compiled else ["lake", "env", "lean"]
+    # the env already moves the cache; keep these artifacts out of the default out/ too
+    tree = ["--out", str(formal / ".stateful" / "test-out")]
     for fixture, contract, prefix in [("baseline", "LeanStatefulParityTest", "trace"),
                                      ("market", "LeanMarketStatefulParityTest", "market"),
                                      ("rescale", "LeanRescaleStatefulParityTest", "rescale")]:
@@ -33,7 +35,7 @@ def main():
         for path in paths:
             path.unlink(missing_ok=True)
         subprocess.run(["forge", "test", "--offline", "--match-contract", f"^{contract}$",
-                        "--match-test", "test_statefulPublicCalls", "--gas-limit", str(2**40), "-vv"],
+                        "--match-test", "test_statefulPublicCalls", "--gas-limit", str(2**40), "-vv"] + tree,
                        cwd=formal.parent, env=env, check=True)
         subprocess.run(lean + ["--run", "StatefulReplay.lean"] + [str(p) for p in paths],
                        cwd=formal, check=True)

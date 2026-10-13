@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 import {ParityVault} from "./LeanRuntimeParity.t.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Artifacts} from "../helpers/Artifacts.t.sol";
 
 /// @notice economic regression coverage for the corrected seeded rescale across
 /// settle/transfer/exit calls and varying funded-shares-per-unit ratios.
@@ -23,7 +24,7 @@ contract RescaleEconomicsTest is Test {
     /// @dev the original seeded counterexample after one corrected rescale.
     function _rescaled(uint256 funded) internal returns (JuicerYieldAccounting y, ParityVault v) {
         v = new ParityVault();
-        y = new JuicerYieldAccounting(address(v));
+        y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
         uint256[] memory input = new uint256[](14);
         input[6] = 2e38;
         input[7] = 2e38;
