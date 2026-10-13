@@ -11,6 +11,7 @@ import {Harvester} from "../src/Harvester.sol";
 import {JuicerMainDebt} from "../src/JuicerMainDebt.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockIntentDispatch} from "./mocks/MockIntentDispatch.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 contract AuditPr46PacingTest is HarvestTest {
     ExecutionController control;
@@ -25,7 +26,7 @@ contract AuditPr46PacingTest is HarvestTest {
     uint128 constant UNWIND_MAX = 50e6;
 
     function _enable() internal {
-        control = new ExecutionController(address(this), 60, 5);
+        control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         vm.roll(100);
         vm.setBlockhash(99, QUOTED_HASH);
         uint64 expiry = uint64(vm.getBlockTimestamp() + 30 days);

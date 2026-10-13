@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SubLoop} from "../src/SubLoop.sol";
-import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
@@ -11,6 +9,7 @@ import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {IsolationRulesPool} from "./mocks/IsolationRulesPool.sol";
 import {SubLoopUnwindTest} from "./SubLoopUnwind.t.sol";
 import {IceIntentsTest} from "./IceIntents.t.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 library AuditPr46Iso {
     function deploy(MockERC20 hollar, MockERC20 aHollar, MockERC20 hollarDebt, MockERC20 prime, MockERC20 aPrime,
@@ -28,8 +27,8 @@ library AuditPr46Iso {
     function newLoop(address pool, address hollar, address prime, address aPrime, address admin)
         internal returns (SubLoop)
     {
-        return SubLoop(address(new ERC1967Proxy(address(new SubLoop(address(new SubLoopLogic()))),
-            abi.encodeCall(SubLoop.initialize, (pool, hollar, prime, aPrime, 1.05e18, 1.10e18, admin)))));
+        return SubLoop(Artifacts.proxy(Artifacts.subLoop(),
+            abi.encodeCall(SubLoop.initialize, (pool, hollar, prime, aPrime, 1.05e18, 1.10e18, admin))));
     }
 
     function dust(IsolationRulesPool iso, MockERC20 dot, address onBehalfOf) internal {

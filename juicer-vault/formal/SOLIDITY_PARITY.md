@@ -144,7 +144,8 @@ and borrow writes would otherwise have occurred.
 enter through vault-authorized public methods; claim and availability cases use inherited
 harnesses to seed their state. Pool, source and fee-sink behavior is supplied by fixtures.
 `LeanRoundingReachability.t.sol` checks the allowance fix, representable amounts, full exits
-and self-transfers through public vault operations, without seeding accounting storage. The model
+and self-transfers through public vault operations, without seeding accounting storage; the
+fund's donated balance is written directly because the fund rejects transfers. The model
 comparison cases are not reachability proofs for every seeded state.
 
 `LeanRuntimeParity.t.sol` executes the actual accounting contract and inherited SubLoop logic.

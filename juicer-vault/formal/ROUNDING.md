@@ -49,15 +49,17 @@ unchanged by a transfer. wallet-only transfers retain their existing behavior.
 
 ## donation regression
 
-wallet shares can be donated to accounting without issuing units, so `F / T` has no enforced
-constant upper bound. under the previous implementation, a public-call fixture with one
+wallet shares could be donated to accounting without issuing units, so `F / T` had no enforced
+constant upper bound. the fund now rejects wallet transfers and deposits naming it, so the
+regressions below seed its balance instead. under the previous implementation, a public-call fixture with one
 base-unit approval produced a sender debit of 1,074,114 and recipient credit of 1,074,113.
 that example showed an allowance mismatch; it did not establish a profitable exploit or a
 maximum production loss.
 
 `LeanRoundingReachabilityTest` uses the actual vault, accounting, SubLoop and harvester fixtures
-with mocked external tokens and pool. it creates a small allocation and donates wallet shares
-to the fund without seeding accounting storage or impersonating the vault. eight regressions
+with mocked external tokens and pool. it creates a small allocation, checks that a public
+donation reverts, and writes the donor's wallet shares into the fund's vault balance; accounting
+storage is not seeded and the vault is not impersonated. eight regressions
 check the rejected one-unit transfer and delegated redemption, direct transfer rejection,
 representable partial transfer and redemption, full transfer, full unwind and self-transfer.
 failed calls leave the approval and ownership intact.
