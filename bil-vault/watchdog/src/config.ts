@@ -14,8 +14,9 @@ export const CONFIG = {
   CLAIM_GRACE_SECONDS: num(process.env.CLAIM_GRACE_MINUTES, 10) * 60,
   MATURED_GRACE_SECONDS: num(process.env.MATURED_GRACE_MINUTES, 60) * 60,
   STUCK_THRESHOLD_SECONDS: num(process.env.STUCK_THRESHOLD_HOURS, 96) * 3600,
-  // decentral approvals are out of our hands: one digest per DIGEST_HOURS, waits past the sla marked overdue
-  DIGEST_SECONDS: num(process.env.DIGEST_HOURS, 24) * 3600,
+  // All position warnings share one persistent summary window, never shorter than a day.
+  DIGEST_SECONDS: Math.max(24, num(process.env.DIGEST_HOURS, 24)) * 3600,
+  SUMMARY_STATE_FILE: process.env.SUMMARY_STATE_FILE || `/app/data/summary-${process.env.VAULT_ADDRESS?.toLowerCase()}.json`,
   // only waits at least this old make it into the digest; none → no message
   DIGEST_MIN_WAIT_SECONDS: num(process.env.DIGEST_MIN_WAIT_HOURS, 24) * 3600,
   APPROVAL_SLA_SECONDS: num(process.env.APPROVAL_SLA_HOURS, 48) * 3600,

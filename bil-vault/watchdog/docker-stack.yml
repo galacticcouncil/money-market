@@ -9,7 +9,8 @@
 #   - Decentral approval waits never alert per position: at most one digest per DIGEST_HOURS, and only when
 #     something has waited over DIGEST_MIN_WAIT_HOURS (no slow waits → no message); overdue past APPROVAL_SLA_HOURS
 #   - keeper gas (WETH) < MIN_KEEPER_WETH, vault paused, or the watchdog itself can't read the chain
-# alerts dedupe per issue, re-fire every REALERT_HOURS, and post a "resolved" when cleared.
+# All position warnings/recoveries go into one daily summary; the timer survives restarts.
+# Only service-level faults (gas, paused vault, RPC outage) alert immediately.
 # serves a status page on :PORT (/), json at /api/status, liveness at /healthz. route it via your proxy.
 #
 # Deploy:
@@ -35,9 +36,14 @@ services:
       REALERT_HOURS: ${REALERT_HOURS:-6}
       MIN_KEEPER_WETH: ${MIN_KEEPER_WETH:-0.001}
       PORT: ${PORT:-8080}
+      SUMMARY_STATE_FILE: /app/data/summary.json
+    volumes:
+      - summary-state:/app/data
     deploy:
       mode: replicated
       replicas: 1
+      update_config:
+        order: stop-first
       restart_policy:
         condition: any
         delay: 10s
@@ -57,3 +63,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  summary-state:

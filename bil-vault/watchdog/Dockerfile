@@ -24,6 +24,8 @@ RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 
+RUN mkdir -p /app/data && chown node:node /app/data
+
 # Drop root. The `node` user is provided by the base image (uid 1000).
 USER node
 

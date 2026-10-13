@@ -26,7 +26,8 @@ services:
       VAULT_ADDRESS: ${VAULT_ADDRESS:?VAULT_ADDRESS required}
       KEEPER_PRIVATE_KEY: ${KEEPER_PRIVATE_KEY:?KEEPER_PRIVATE_KEY required}
       POLL_INTERVAL_MS: ${POLL_INTERVAL_MS:-6000}
-      ALERT_WEBHOOK: ${ALERT_WEBHOOK:-}
+      # The watchdog owns alerts and the persistent daily position summary.
+      ALERT_WEBHOOK: ""
     deploy:
       mode: replicated
       replicas: 1

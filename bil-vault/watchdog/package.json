@@ -6,6 +6,7 @@
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "test": "npm run build && node --test test/*.test.mjs",
     "start:prod": "node dist/index.js"
   },
   "dependencies": {

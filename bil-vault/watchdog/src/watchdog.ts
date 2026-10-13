@@ -10,6 +10,7 @@ import {
   type PublicClient,
 } from 'viem';
 import { CONFIG } from './config.js';
+import { DailySummary, isPositionIssue } from './daily-summary.js';
 
 const hydration: Chain = {
   id: 222222,
@@ -79,7 +80,7 @@ export class BILWatchdog {
   private open = new Map<string, Tracked>();
   private rpcFailures = 0;
   private rpcAlerted = false;
-  private lastDigest = 0;
+  private summary = new DailySummary(CONFIG.SUMMARY_STATE_FILE, Math.floor(Date.now() / 1000), CONFIG.DIGEST_SECONDS);
   private snapshot: Awaited<ReturnType<BILWatchdog['scan']>>['snapshot'] | null = null;
   private lastError: string | null = null;
 
@@ -114,17 +115,17 @@ export class BILWatchdog {
     const fire: Issue[] = [];
     for (const [key, issue] of issues) {
       const prev = this.open.get(key);
-      if (!prev || now - prev.lastAlert >= CONFIG.REALERT_SECONDS) {
+      if (!isPositionIssue(key) && (!prev || now - prev.lastAlert >= CONFIG.REALERT_SECONDS)) {
         fire.push(issue);
         this.open.set(key, { ...issue, firstSeen: prev?.firstSeen ?? now, lastAlert: now });
       } else {
-        this.open.set(key, { ...issue, firstSeen: prev.firstSeen, lastAlert: prev.lastAlert });
+        this.open.set(key, { ...issue, firstSeen: prev?.firstSeen ?? now, lastAlert: prev?.lastAlert ?? 0 });
       }
     }
     const resolved: string[] = [];
     for (const [key, prev] of this.open) {
       if (!issues.has(key)) {
-        resolved.push(prev.text);
+        if (!isPositionIssue(key)) resolved.push(prev.text);
         this.open.delete(key);
       }
     }
@@ -138,18 +139,37 @@ export class BILWatchdog {
       await this.post('ok', `BIL Watchdog — ${resolved.length} resolved`, resolved.map((t) => `• ~~${t}~~`).join('\n'));
     }
 
-    // decentral approvals: one summary per digest window, never per position, and only
-    // when a wait is actually slow; fresh waits are normal processing and stay quiet
+    // Position arrivals, ageing, state changes and recoveries never post individually.
+    // The wall clock controls delivery even if the chain stalls or its timestamp jumps.
     const d = snapshot.decentral;
-    if (d.slowCount > 0 && now - this.lastDigest >= CONFIG.DIGEST_SECONDS) {
-      this.lastDigest = now;
-      const overdue = d.overdueCount ? `, ${d.overdueCount} past the ${dur(CONFIG.APPROVAL_SLA_SECONDS)} sla` : '';
-      await this.post(
-        d.overdueCount ? 'warn' : 'info',
-        'BIL — slow Decentral approvals',
-        `${fmt(d.slowPrincipal)} HOLLAR principal (+ ${fmt(d.slowYield)} yield) across ${d.slowCount} position(s) waiting over ${dur(CONFIG.DIGEST_MIN_WAIT_SECONDS)} for Decentral approval; oldest ${dur(d.oldestWait)}${overdue}.\n` +
-          `Decentral pool holds ${fmt(d.poolHollar)} HOLLAR. Nothing to do on our side.`,
-      );
+    const positionIssues = [...issues].filter(([key]) => isPositionIssue(key));
+    const hasPositions = snapshot.matured.length > 0 || positionIssues.length > 0;
+    try {
+      if (CONFIG.ALERT_WEBHOOK && this.summary.reserve(Math.floor(Date.now() / 1000), hasPositions)) {
+        const counts = new Map<string, number>();
+        for (const p of snapshot.matured) {
+          const name = STATE_NAMES[p.state] ?? String(p.state);
+          counts.set(name, (counts.get(name) ?? 0) + 1);
+        }
+        const uniqueIssues = new Set(positionIssues.filter(([key]) => !key.startsWith('claim:')).map(([key]) => key.split(':')[1]));
+        const claims = positionIssues.filter(([key]) => key.startsWith('claim:')).length;
+        const total = snapshot.matured.reduce((sum, p) => sum + p.principal, 0n);
+        const oldest = snapshot.matured.reduce((age, p) => Math.max(age, now - p.maturity), 0);
+        await this.post(
+          positionIssues.some(([, issue]) => issue.level === 'error') ? 'error' : d.overdueCount ? 'warn' : 'info',
+          'BIL — daily position summary',
+          hasPositions ? [
+            `${snapshot.matured.length} matured, unredeemed positions: ${fmt(total)} HOLLAR principal; oldest ${dur(oldest)} past maturity.`,
+            ...[...counts].map(([state, count]) => `• ${state}: ${count}`),
+            `Decentral approvals: ${d.waitingCount} waiting (${fmt(d.waitingPrincipal)} HOLLAR principal + ${fmt(d.waitingYield)} yield); ${d.slowCount} over ${dur(CONFIG.DIGEST_MIN_WAIT_SECONDS)}, ${d.overdueCount} over ${dur(CONFIG.APPROVAL_SLA_SECONDS)}; oldest wait ${dur(d.oldestWait)}.`,
+            `Needs investigation: ${uniqueIssues.size} positions not progressing; ${claims} unclaimed auto-claim requests.`,
+            `Decentral pool balance: ${fmt(d.poolHollar)} HOLLAR. Approval waits require Decentral approval.`,
+          ].join('\n') : 'All previously reported matured positions and auto-claim issues have cleared.',
+        );
+      }
+    } catch (err) {
+      // A broken state volume must not turn every scan/restart into another notification.
+      console.error('Daily summary suppressed: unable to persist notification clock', err);
     }
   }
 
@@ -191,7 +211,8 @@ export class BILWatchdog {
         slaSeconds: CONFIG.APPROVAL_SLA_SECONDS,
         slowCount: s.decentral.slowCount,
         digestMinWaitSeconds: CONFIG.DIGEST_MIN_WAIT_SECONDS,
-        lastDigestAt: this.lastDigest ? new Date(this.lastDigest * 1000).toISOString() : null,
+        lastDigestAt: new Date(this.summary.lastAttempt * 1000).toISOString(),
+        nextSummaryAt: new Date((this.summary.lastAttempt + CONFIG.DIGEST_SECONDS) * 1000).toISOString(),
       },
       market: s?.market && {
         pool: CONFIG.BIL_POOL,
@@ -430,6 +451,7 @@ export class BILWatchdog {
     try {
       const res = await fetch(CONFIG.ALERT_WEBHOOK, {
         method: 'POST',
+        signal: AbortSignal.timeout(15_000),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: 'BIL Watchdog',
