@@ -1,0 +1,4370 @@
+{
+  "baseCommit": "55acd38229f2ccc949f00c474e641d6a0df551b2",
+  "branch": "feat/propeller-interest-buffer",
+  "uncommitted": true,
+  "rpc": "http://127.0.0.1:8145",
+  "deployments": [
+    {
+      "label": "CollateralVault",
+      "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "transactionHash": "0x4f54f1dec34b8264148d42c5cd28247a99a47199fafe624f0a3f8c85fdff84aa",
+      "block": "14937806",
+      "gasUsed": "10868370",
+      "runtimeBytes": 24381,
+      "codeHash": "0x63726703bd737e6bcd48e5593ca30f7a806bb99a0db4fb55a79c49b771280d60",
+      "exactCodeMatch": false,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/CollateralVault.sol": "CollateralVault"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      },
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    },
+    {
+      "label": "SyntheticToken",
+      "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+      "transactionHash": "0x47f7cd6f47968b64ffab0121780529e05bd515b3fd4486768d3e0acde88c4985",
+      "block": "14937807",
+      "gasUsed": "1935042",
+      "runtimeBytes": 4827,
+      "codeHash": "0xcc832cf8c21a26f563727a946ff974d34b3c9ee48d96517b2b62b7f071cc8c6c",
+      "exactCodeMatch": true,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/SyntheticToken.sol": "SyntheticToken"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      },
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    },
+    {
+      "label": "SubLoop",
+      "address": "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
+      "transactionHash": "0xe2c32fed8c6b1cf0145c2f4458d3025aa8752afa8a74175b9ad4710e6f6f5c50",
+      "block": "14937808",
+      "gasUsed": "7563024",
+      "runtimeBytes": 20436,
+      "codeHash": "0xa15a10b6265c150dfcd8637bb016c7ce79534b683bf4ba5de7729818f0ebb826",
+      "exactCodeMatch": false,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/SubLoop.sol": "SubLoop"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      },
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    },
+    {
+      "label": "SubLoop.proxy",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x898525a5b375fb449bbbd91be4ea863768ace0795463115503401d5afe3b4c21",
+      "block": "14937809",
+      "gasUsed": "754326",
+      "runtimeBytes": 209,
+      "codeHash": "0x9f268fa4f4544ae58381ad1865b6d48dc68ce6d62ce40960fc8260eaf9b9cdf8",
+      "exactCodeMatch": true,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol": "ERC1967Proxy"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      },
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    },
+    {
+      "label": "CollateralVault.proxy",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x15b28f77dade2f855cc63ea58e31129633bf7cce5cad9807a1db3676de91acf2",
+      "block": "14937810",
+      "gasUsed": "924150",
+      "runtimeBytes": 209,
+      "codeHash": "0x9f268fa4f4544ae58381ad1865b6d48dc68ce6d62ce40960fc8260eaf9b9cdf8",
+      "exactCodeMatch": true,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol": "ERC1967Proxy"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      },
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    },
+    {
+      "label": "PropellerMainDebt",
+      "address": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+      "transactionHash": "0xb0c81e0bce5473ecfe2637c96a7d9ad2ab227c07b216cbef687fd937ac3567d2",
+      "block": "14937811",
+      "gasUsed": "5394474",
+      "runtimeBytes": 14279,
+      "codeHash": "0x56dc08179619cb45e3e8252dc9d1e20223bcd2878cdcba447c133229cb1542fb",
+      "exactCodeMatch": false,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/PropellerMainDebt.sol": "PropellerMainDebt"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      },
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    },
+    {
+      "label": "Harvester",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "transactionHash": "0xf252504970476098deb0c25389126cf690fc20be50b78652401ff0352d5601dd",
+      "block": "14937813",
+      "gasUsed": "2703276",
+      "runtimeBytes": 7042,
+      "codeHash": "0x4343fc05f169eed200091a6e30948ce688807c2b8be511ab087adada2a2109d4",
+      "exactCodeMatch": false,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/Harvester.sol": "Harvester"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      },
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    },
+    {
+      "label": "PropellerFeeController",
+      "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+      "transactionHash": "0x3b61fbd2718b7302d01d073d5e4c59b235e3912426dc3475759a6ef23c07f49e",
+      "block": "14937814",
+      "gasUsed": "3115392",
+      "runtimeBytes": 8052,
+      "codeHash": "0x98eee4a6f5fae8b0d8d19ce57c592dcefbf987d2a6df45e0287a03217f23d899",
+      "exactCodeMatch": true,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-consolidation-20260922/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/PropellerFeeController.sol": "PropellerFeeController"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      },
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    },
+    {
+      "label": "PropellerDiscount",
+      "address": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+      "transactionHash": "0xf3839b145b326ac3d77638d9b21ac54d6caec0583d80556729221f0728d8fd3f",
+      "block": "14937823",
+      "gasUsed": "2677656",
+      "runtimeBytes": 6740,
+      "codeHash": "0x8c271ac03187f9b33c597d776e0c7277a841d7ddb1d176aacc7d2eaf4b2e7d94",
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    },
+    {
+      "label": "HydraAugustus",
+      "address": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+      "transactionHash": "0x92a66b82840d1116f88ad41c08c03b33927ad804f5df0e6b691414f5700c6368",
+      "gasUsed": "1883802",
+      "runtimeBytes": 4919,
+      "codeHash": "0x67c1850a30b25b35399029276cfe39941567e5827587930835fbd26198e0b6f6",
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    },
+    {
+      "label": "CollateralVaultTBTC.proxy",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x90557e956781fdeb10c2922771ceb1107311a55919def6877d331314011bbe94",
+      "gasUsed": "924150",
+      "runtimeBytes": 209,
+      "codeHash": "0x9f268fa4f4544ae58381ad1865b6d48dc68ce6d62ce40960fc8260eaf9b9cdf8",
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    },
+    {
+      "label": "PropellerMainDebt.tBTC",
+      "address": "0x67d269191c92caf3cd7723f116c85e6e9bf55933",
+      "transactionHash": "0x9797bc747b4112076de3cad29fc50799e9684e7772c5b4d831863fc5b78c8e47",
+      "gasUsed": "5394474",
+      "runtimeBytes": 14279,
+      "codeHash": "0x8945e1010ee73f1c74859869a59ea0cb8a9d872b2f4110636f9f29ad9df607d1",
+      "receiptReverified": false,
+      "historicalReceiptUnavailable": true,
+      "artifactMatchExceptImmutables": true
+    }
+  ],
+  "calls": [
+    {
+      "label": "CollateralVault.setMainDebt",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xc266a8818cb678dd3ed04be3faa0058fa658dd56e9eda197ca048f0ebdf9d179",
+      "gasUsed": "60877"
+    },
+    {
+      "label": "SyntheticToken.grantRole",
+      "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+      "transactionHash": "0x0f08cb5c2c6ec288884e42e87ce58521a4044f84e6bfa2c18560cb6b076b2a09",
+      "gasUsed": "51201"
+    },
+    {
+      "label": "SubLoop.registerVault",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x903f91b1910bf796c35432e3dbb9cac1a6e2e71581f1e865556fb191c280ed4c",
+      "gasUsed": "53780"
+    },
+    {
+      "label": "SubLoop.setHarvester",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xbd3867b7f15cc947a7523f57b1f00665f516faa467d2a1f39fc125ce0fc7e576",
+      "gasUsed": "50986"
+    },
+    {
+      "label": "Harvester.addVault",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "transactionHash": "0x65b3bfc3eca747cd21b034888b5f46d8850b1d982e94da735f247bf8e8d0c31f",
+      "gasUsed": "127368"
+    },
+    {
+      "label": "Harvester.setFeeController",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "transactionHash": "0x62976e79abafe08c4796b332355fadabb180b18f2bc3accac451be3a3cb9de3e",
+      "gasUsed": "49652"
+    },
+    {
+      "label": "CollateralVault.setFeeController",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xaf418a8cdd4eedd7efb72efca98d4526a64e911180ecf0cbd7f2735e3ef539a3",
+      "gasUsed": "55499"
+    },
+    {
+      "label": "PropellerFeeController.registerVault",
+      "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+      "transactionHash": "0xbd30f1bd607574234aeb97cdeb927c83cab3a9758436206b8a847dbc5d90b25b",
+      "gasUsed": "382104"
+    },
+    {
+      "label": "Aave.initReserves(psHOLLAR)",
+      "block": 14937822,
+      "events": [
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0xa8f540fb7852024da35d30947be0899299ba42f1",
+              "topics": [
+                "0xb19e051f8af41150ccccb3fc2c2d8d15f4a4cf434f32a559ba75fe73d6eea20b",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                "0x0000000000000000000000001b02e051683b5cfac5929c25e84adb26ecf87b38"
+              ],
+              "data": "0x000000000000000000000000e52567ff06acd6cbe7ba94dc777a3126e180b6d90000000000000000000000007472a3d0891df2401d981a5954d07e364f05060f000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000001a50726f70656c6c65722053796e7468657469632061546f6b656e0000000000000000000000000000000000000000000000000000000000000000000000000007615053594e5448000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0x1219d21959db7f5c65aa8654535620ced466eca7",
+              "topics": [
+                "0x40251fbfb6656cfa65a00d7879029fec1fad21d28fdcff2f4f68f52795b74f2c",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                "0x0000000000000000000000001b02e051683b5cfac5929c25e84adb26ecf87b38"
+              ],
+              "data": "0x0000000000000000000000007472a3d0891df2401d981a5954d07e364f05060f000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001f50726f70656c6c65722053796e74686574696320537461626c65204465627400000000000000000000000000000000000000000000000000000000000000000873645053594e54480000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0x96c5ac107097a9ec52a2f9348db83ef3d35ae6ee",
+              "topics": [
+                "0x40251fbfb6656cfa65a00d7879029fec1fad21d28fdcff2f4f68f52795b74f2c",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                "0x0000000000000000000000001b02e051683b5cfac5929c25e84adb26ecf87b38"
+              ],
+              "data": "0x0000000000000000000000007472a3d0891df2401d981a5954d07e364f05060f000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002150726f70656c6c65722053796e746865746963205661726961626c65204465627400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000876645053594e54480000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4",
+              "topics": [
+                "0x3a0ca721fc364424566385a1aa271ed508cc2c0949c2272575fb3013a163a45f",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                "0x000000000000000000000000a8f540fb7852024da35d30947be0899299ba42f1"
+              ],
+              "data": "0x0000000000000000000000001219d21959db7f5c65aa8654535620ced466eca700000000000000000000000096c5ac107097a9ec52a2f9348db83ef3d35ae6ee0000000000000000000000005383a606ece147e94c1fa0b7375bc778f132b832"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Executed",
+          "data": [
+            "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4"
+          ]
+        },
+        {
+          "section": "dispatcher",
+          "method": "AaveManagerCallDispatched",
+          "data": [
+            "0xd048f6514501d5c72066262671e93c0064c67f556ca65df6f01a2893b8d412c5",
+            {
+              "ok": {
+                "actualWeight": {
+                  "refTime": 61074618000,
+                  "proofSize": 611827
+                },
+                "paysFee": "No"
+              }
+            }
+          ]
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              14937822,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        }
+      ],
+      "simulatedGovernance": true
+    },
+    {
+      "label": "HOLLAR.updateDiscountToken",
+      "block": 14937824,
+      "events": [
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+              "topics": [
+                "0x6b489e1dbfbe36f55c511c098bcc9d92fec7f04f74ceb75018697ab68f7d3529",
+                "0x000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a",
+                "0x000000000000000000000000959922be3caee4b8cd9a407cc3ac1c251c2007b1"
+              ],
+              "data": "0x"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Executed",
+          "data": [
+            "0x342923782ccaebf9c38dd9cb40436e82c42c73b5"
+          ]
+        },
+        {
+          "section": "dispatcher",
+          "method": "AaveManagerCallDispatched",
+          "data": [
+            "0x1390b58633923df9991fd8429a39de4a3387da2444fe3d620cf7b94c75acd2d4",
+            {
+              "ok": {
+                "actualWeight": {
+                  "refTime": 998193000,
+                  "proofSize": 11063
+                },
+                "paysFee": "No"
+              }
+            }
+          ]
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              14937824,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        }
+      ],
+      "simulatedGovernance": true
+    },
+    {
+      "label": "HOLLAR.updateDiscountRateStrategy",
+      "block": 14937825,
+      "events": [
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+              "topics": [
+                "0x194bd59f47b230edccccc2be58b92dde3a5dadd835751a621af59006928bccef",
+                "0x00000000000000000000000033a7c640140febafecc9801af723a0c14420eed7",
+                "0x000000000000000000000000959922be3caee4b8cd9a407cc3ac1c251c2007b1"
+              ],
+              "data": "0x"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Executed",
+          "data": [
+            "0x342923782ccaebf9c38dd9cb40436e82c42c73b5"
+          ]
+        },
+        {
+          "section": "dispatcher",
+          "method": "AaveManagerCallDispatched",
+          "data": [
+            "0xd4e79ef19bd2b2d5b9c5a347619306176f55317e3979bee28db42d5f7ebfead2",
+            {
+              "ok": {
+                "actualWeight": {
+                  "refTime": 998868000,
+                  "proofSize": 11070
+                },
+                "paysFee": "No"
+              }
+            }
+          ]
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              14937825,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        }
+      ],
+      "simulatedGovernance": true
+    },
+    {
+      "label": "CollateralVault.setDiscountController",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "encodedArgs": "[\"0x959922be3caee4b8cd9a407cc3ac1c251c2007b1\"]",
+      "transactionHash": "0x704183f921f5ace46267b9c445052f20e8408d39879f06676f7ccbe75fb97358",
+      "gasUsed": "144804"
+    },
+    {
+      "label": "PropellerDiscount.registerVault",
+      "address": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+      "encodedArgs": "[\"0xdc64a140aa3e981100a9beca4e685f962f0cf6c9\"]",
+      "transactionHash": "0xfba215c5148defe2621c698ec000aff4a93408f4e3ce9e32e813dd9544687efc",
+      "gasUsed": "187099"
+    },
+    {
+      "label": "PropellerDiscount.setDiscountBps",
+      "address": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+      "encodedArgs": "[8000]",
+      "transactionHash": "0xe32415e868a3402a9fd07d70fa2828c0c5e717606f9c28975f8b5aa9ef8d83ef",
+      "gasUsed": "154578"
+    },
+    {
+      "label": "PropellerDiscount.setDiscountBps",
+      "address": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+      "encodedArgs": "[0]",
+      "transactionHash": "0x0c6f60335c7f2aaa2474d3a7e017a20bad91197839d3539cc1067dfa4052fa4d",
+      "gasUsed": "95310"
+    },
+    {
+      "label": "Aave.configureSyntheticCollateral",
+      "block": 14937830,
+      "events": [
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4",
+              "topics": [
+                "0x637febbda9275aea2e85c0ff690444c8d87eb2e8339bbede9715abcc89cb0995",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512"
+              ],
+              "data": "0x000000000000000000000000000000000000000000000000000000000000006400000000000000000000000000000000000000000000000000000000000026480000000000000000000000000000000000000000000000000000000000002774"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Executed",
+          "data": [
+            "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4"
+          ]
+        },
+        {
+          "section": "dispatcher",
+          "method": "AaveManagerCallDispatched",
+          "data": [
+            "0x5fd7dcc8d07289637f274e407f2395a1798e4e178316219c81ee4a8091be39b6",
+            {
+              "ok": {
+                "actualWeight": {
+                  "refTime": 1612268000,
+                  "proofSize": 17204
+                },
+                "paysFee": "No"
+              }
+            }
+          ]
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              14937830,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        }
+      ],
+      "simulatedGovernance": true
+    },
+    {
+      "label": "Aave.configureSyntheticOracle",
+      "block": 14937831,
+      "events": [
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0xad33c0f0c42c5a0eaa65b5895d2bdb20cb6e8760",
+              "topics": [
+                "0x22c5b7b2d8561d39f7f210b6b326a1aa69f15311163082308ac4877db6339dc1",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                "0x0000000000000000000000006096c9d71f7c06024578a62f4b608a1bb06834f8"
+              ],
+              "data": "0x"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Executed",
+          "data": [
+            "0xad33c0f0c42c5a0eaa65b5895d2bdb20cb6e8760"
+          ]
+        },
+        {
+          "section": "dispatcher",
+          "method": "AaveManagerCallDispatched",
+          "data": [
+            "0xde27b6cc6e5d09dc8d2b7e9fa7049d2563dab8c98b2210e3eefb8eb6303ca254",
+            {
+              "ok": {
+                "actualWeight": {
+                  "refTime": 1430393000,
+                  "proofSize": 15385
+                },
+                "paysFee": "No"
+              }
+            }
+          ]
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              14937831,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        }
+      ],
+      "simulatedGovernance": true
+    },
+    {
+      "label": "SubLoop.configureDca",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "encodedArgs": "[222,43,1043,143,10000]",
+      "transactionHash": "0x5dfd317fedfc7aa8bdfb5ef6a80f9ffb54a27939d79f5a88ea02ae4b591d4de0",
+      "gasUsed": "52651"
+    },
+    {
+      "label": "SubLoop.setTranches",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "encodedArgs": "[\"100000000000000000000\",\"100000000\"]",
+      "transactionHash": "0xa74284f7739958d315d278c04a1f2c513a0c53870804df60983b1b3d5d694156",
+      "gasUsed": "84912"
+    },
+    {
+      "label": "campaign.adapter.asset43",
+      "address": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+      "transactionHash": "0x882ce2436d272ca862f0dfba141e2acb989da2483d5fe172f80499b652038113",
+      "gasUsed": "47670",
+      "args": [
+        "0x000000000000000000000000000000010000002B",
+        43
+      ]
+    },
+    {
+      "label": "campaign.adapter.asset222",
+      "address": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+      "transactionHash": "0x4c301c183e73470c3596fe14229d59de4d510b4d0707adf5566cda34e2b912de",
+      "gasUsed": "47886",
+      "args": [
+        "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        222
+      ]
+    },
+    {
+      "label": "campaign.adapter.asset34",
+      "address": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+      "transactionHash": "0x7260093588b76145389f0580553879cde520c612bda758d0eee307c345007149",
+      "gasUsed": "47670",
+      "args": [
+        "0x0000000000000000000000000000000100000022",
+        34
+      ]
+    },
+    {
+      "label": "campaign.adapter.asset1000765",
+      "address": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+      "transactionHash": "0x837e3555a93996df766d7f396d4ea8b394e2114c52f6f6cfbfa632de6b912d17",
+      "gasUsed": "47718",
+      "args": [
+        "0x00000000000000000000000000000001000f453d",
+        1000765
+      ]
+    },
+    {
+      "label": "campaign.btcBufferBinding",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x5cc3ad50a37b53d7aa4abf4b6fd1f2d174f4eee1601ccdc6ce12479540e7ddb4",
+      "gasUsed": "60877",
+      "args": [
+        "0x67d269191c92caf3cd7723f116c85e6e9bf55933"
+      ]
+    },
+    {
+      "label": "campaign.rootCustodyAndRoutes",
+      "simulatedGovernance": true,
+      "events": [
+        {
+          "section": "duster",
+          "method": "Added",
+          "data": [
+            "12ZuLmUxW86zR1QYroZpKgGBSzbPeYvJ3mhSaSkRze1AT4WJ"
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "duster",
+          "method": "Added",
+          "data": [
+            "12ZuLmV161qfX23dFUoc28pkLZqoFqGEK8xBS51bnssq8k2e"
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "duster",
+          "method": "Added",
+          "data": [
+            "12ZuLmUvXg5q58VscD4h91N3qYLwP6tTaGoLN4js59ctTybE"
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "duster",
+          "method": "Added",
+          "data": [
+            "12ZuLmUa7roKG9jnSZ5n274XnETRh7mUTJA8CDFfyvzgNcWQ"
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "duster",
+          "method": "Added",
+          "data": [
+            "12ZuLmUbjGUf4NTWmzGpYynWkGHwVm5DgwEPJykyz1bJf5TG"
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "duster",
+          "method": "Added",
+          "data": [
+            "12ZuLmUMqMAJdp2FieG5HkGZW3opmeVYzGqoHfeyrXZRk8NP"
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "duster",
+          "method": "Added",
+          "data": [
+            "12ZuLmUp1AGGqdW9Ja11z21Hy15RYb4yfmwDgAB1TLH5iSrB"
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "duster",
+          "method": "Added",
+          "data": [
+            "12ZuLmUQyb5dWHoSjvoLkaN4PqgV261qgEQXdh7xmyXf2zZL"
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "router",
+          "method": "RouteUpdated",
+          "data": [
+            [
+              34,
+              43
+            ]
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "router",
+          "method": "RouteUpdated",
+          "data": [
+            [
+              43,
+              1000765
+            ]
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "router",
+          "method": "RouteUpdated",
+          "data": [
+            [
+              34,
+              222
+            ]
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "router",
+          "method": "RouteUpdated",
+          "data": [
+            [
+              222,
+              1000765
+            ]
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "router",
+          "method": "RouteUpdated",
+          "data": [
+            [
+              43,
+              222
+            ]
+          ]
+        },
+        {
+          "section": "utility",
+          "method": "ItemCompleted",
+          "data": []
+        },
+        {
+          "section": "utility",
+          "method": "BatchCompleted",
+          "data": []
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              14937842,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        },
+        {
+          "section": "preimage",
+          "method": "Cleared",
+          "data": [
+            "0xb70a4fd4b720382d84afbebb6729ef944b15d6b539abee661748a3c15bc70378"
+          ]
+        },
+        {
+          "section": "system",
+          "method": "ExtrinsicSuccess",
+          "data": [
+            {
+              "weight": {
+                "refTime": 1912274000,
+                "proofSize": 12815
+              },
+              "class": "Mandatory",
+              "paysFee": "Yes"
+            }
+          ]
+        },
+        {
+          "section": "relayChainInfo",
+          "method": "CurrentBlockNumbers",
+          "data": [
+            14937842,
+            33123442
+          ]
+        },
+        {
+          "section": "system",
+          "method": "ExtrinsicSuccess",
+          "data": [
+            {
+              "weight": {
+                "refTime": 1779123000,
+                "proofSize": 11322
+              },
+              "class": "Mandatory",
+              "paysFee": "Yes"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "campaign.btcMinter",
+      "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+      "transactionHash": "0x74612f2999f5b9809220a446d1e0332e44ba043890ac8fe77493a24bd86c3307",
+      "gasUsed": "51213",
+      "args": [
+        "0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6",
+        "0xc5a5c42992decbae36851359345fe25997f5c42d"
+      ]
+    },
+    {
+      "label": "campaign.btcSource",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xbfdafa4ae40335c224d693ba1fc0a9da566054a219bd98d2e04b98de70e9289d",
+      "gasUsed": "53792",
+      "args": [
+        "0xc5a5c42992decbae36851359345fe25997f5c42d"
+      ]
+    },
+    {
+      "label": "campaign.btcHarvester",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "transactionHash": "0x7dec02b36bf8a8c9a886dcdadab498e583758ddfcfdf27d19b18c8766be368b1",
+      "gasUsed": "84912",
+      "args": [
+        "0xc5a5c42992decbae36851359345fe25997f5c42d"
+      ]
+    },
+    {
+      "label": "campaign.btcFees",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xcf59b07804efe5daab112cfcd5a5c76ec00a10e6128fa98c7dcee78af7bd2ee8",
+      "gasUsed": "55499",
+      "args": [
+        "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6"
+      ]
+    },
+    {
+      "label": "campaign.btcFeeRegistration",
+      "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+      "transactionHash": "0x90a8ac76556b6e77ecb228b80b06cd20174bb9efaf01cbb986ce670e26f8ec3b",
+      "gasUsed": "215153",
+      "args": [
+        "0xc5a5c42992decbae36851359345fe25997f5c42d",
+        "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853"
+      ]
+    },
+    {
+      "label": "campaign.btcDiscountBinding",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xb7cbe650970a9cf85c4ae86295334f9738880ab37c28f7886da865e4ab50274c",
+      "gasUsed": "144804",
+      "args": [
+        "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1"
+      ]
+    },
+    {
+      "label": "campaign.btcDiscount",
+      "address": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+      "transactionHash": "0xb3c9164a9d2068d5d00613f17eaa1b1446675680642901948abd958c65b64e8c",
+      "gasUsed": "170011",
+      "args": [
+        "0xc5a5c42992decbae36851359345fe25997f5c42d"
+      ]
+    },
+    {
+      "label": "campaign.tranches",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xa6ca45bffe597d7c05a243f384260f3a32aee98312c7af0a132ac19d8073abfb",
+      "gasUsed": "36990",
+      "args": [
+        "1000000000000000000000",
+        "100000000"
+      ]
+    },
+    {
+      "label": "campaign.34.adapter",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xf401c041ee8aef43c8adf6cbe76bd44c2caded13b0177ca16061905488e528ed",
+      "gasUsed": "35124",
+      "args": [
+        "0x322813fd9a801c5507c9de605d63cea4f2ce6c44"
+      ]
+    },
+    {
+      "label": "campaign.34.slippage",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xf4de86740d1e2363184291df8d37fba6cad21ae088f315cb522036d6b1bace87",
+      "gasUsed": "34769",
+      "args": [
+        100
+      ]
+    },
+    {
+      "label": "campaign.34.reserveApprove",
+      "address": "0x0000000000000000000000000000000100000022",
+      "transactionHash": "0x599c7f242d3c2f6a9e93f6dfc1a5ef5f538aae3259b1640de60c2ed3b50de125",
+      "gasUsed": "24376",
+      "args": [
+        "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "21494820526600"
+      ]
+    },
+    {
+      "label": "campaign.34.reserveFund",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x0e289f38427eac26dd566cfa1e2c4ebe986106d3f0fa50b4f5099210dffa9923",
+      "gasUsed": "93155",
+      "args": [
+        "21494820526600"
+      ]
+    },
+    {
+      "label": "campaign.1000765.adapter",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x42fd8b44f7e546df6f5aa99dabb2446c2b1ae3eb1a5303e812bd18e73fa1d770",
+      "gasUsed": "32324",
+      "args": [
+        "0x322813fd9a801c5507c9de605d63cea4f2ce6c44"
+      ]
+    },
+    {
+      "label": "campaign.1000765.slippage",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xf5efa87394b454541b9b3e518192a6db5fb0f5d39a5226d77c81ed405bf5419e",
+      "gasUsed": "34769",
+      "args": [
+        100
+      ]
+    },
+    {
+      "label": "campaign.1000765.reserveApprove",
+      "address": "0x00000000000000000000000000000001000f453d",
+      "transactionHash": "0x20a4bd6e1930c52d5d9355fb6dd6ebfc3094543670b55b95ac1b01a900fb23aa",
+      "gasUsed": "24376",
+      "args": [
+        "0xc5a5c42992decbae36851359345fe25997f5c42d",
+        "428213499948"
+      ]
+    },
+    {
+      "label": "campaign.1000765.reserveFund",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xfdb1ebb9a5872e869a42f9e89556ce9325950f1fc28568bc2a497dd21ac5d39e",
+      "gasUsed": "93143",
+      "args": [
+        "428213499948"
+      ]
+    },
+    {
+      "label": "campaign.donorApprove",
+      "address": "0x0000000000000000000000000000000100000022",
+      "transactionHash": "0xb3517c7c4c47d9649f7c4dc0a1c7db3b2442ee2ec7e4db77dd627f47d4b1a070",
+      "gasUsed": "24400",
+      "args": [
+        "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+        "20000000000000000000"
+      ]
+    },
+    {
+      "label": "campaign.donorSupply",
+      "address": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+      "transactionHash": "0x389598a35b67820f35667d0a571945822283d855c037cbd9b52f0417974eb908",
+      "gasUsed": "191323",
+      "args": [
+        "0x0000000000000000000000000000000100000022",
+        "20000000000000000000",
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        0
+      ]
+    },
+    {
+      "label": "campaign.donorBorrow",
+      "address": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+      "transactionHash": "0x8807f5c3c35f5e0b7aa2973e9880f0123fd56af3a3b6f4a8c13175b303198798",
+      "gasUsed": "284626",
+      "args": [
+        "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "10000000000000000000000",
+        "2",
+        0,
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      ]
+    },
+    {
+      "label": "campaign.probe.aPrimeApprove",
+      "address": "0x000000000000000000000000000000010000002B",
+      "transactionHash": "0x86f7326954833e4fed4f447ae3a2640d899c4bbe28a331f078b38b9646c8488e",
+      "gasUsed": "24364",
+      "args": [
+        "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+        "6000000000"
+      ]
+    },
+    {
+      "label": "campaign.probe.aPrimeSupply",
+      "address": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+      "transactionHash": "0xe34c492a5ce061131f866af62e071d48355dcbf54852fe157de9de344a95a250",
+      "gasUsed": "180405",
+      "args": [
+        "0x000000000000000000000000000000010000002B",
+        "6000000000",
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        0
+      ]
+    },
+    {
+      "label": "campaign.probe.approve34",
+      "address": "0x0000000000000000000000000000000100000022",
+      "transactionHash": "0xf51983db74cda106e8cae8c8eacdd53b72d4e15426cb81d995193e66c864a8ee",
+      "gasUsed": "24508",
+      "args": [
+        "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+        "340282366920938463463374607431768211455"
+      ]
+    },
+    {
+      "label": "campaign.probe.approve43",
+      "address": "0x000000000000000000000000000000010000002B",
+      "transactionHash": "0xf28f6752ec99f597707afba701cec0eab1f2c3a5eb15f2f50de4b730c22208e6",
+      "gasUsed": "24508",
+      "args": [
+        "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+        "340282366920938463463374607431768211455"
+      ]
+    },
+    {
+      "label": "campaign.probe.approve222",
+      "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+      "transactionHash": "0x50bbde9155148ba6b430fe069a6bb1b431f06523b0420a31db472e2b12fa4d08",
+      "gasUsed": "46307",
+      "args": [
+        "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+        "340282366920938463463374607431768211455"
+      ]
+    },
+    {
+      "label": "campaign.probe.approve1000765",
+      "address": "0x00000000000000000000000000000001000f453d",
+      "transactionHash": "0x077ee1c190e5190c02bd0547057a513a319dc1966e6ed3a0ff4e7ab4637c2d59",
+      "gasUsed": "24508",
+      "args": [
+        "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+        "340282366920938463463374607431768211455"
+      ]
+    },
+    {
+      "label": "campaign.probe.execute43to34",
+      "address": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+      "transactionHash": "0xad43104f14d282f11f83baf1abc838de3fae619f777260d69f531eaad3ca5cc9",
+      "gasUsed": "2168554",
+      "args": [
+        "0x000000000000000000000000000000010000002B",
+        "0x0000000000000000000000000000000100000022",
+        "95192765",
+        "36068377502165777",
+        "0x"
+      ]
+    },
+    {
+      "label": "campaign.probe.execute43to1000765",
+      "address": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+      "transactionHash": "0xadea4ef0fd663fd3ebe00a68d82cec73a35bb96e5d5072f7535fb7bde7d906ba",
+      "gasUsed": "616073",
+      "args": [
+        "0x000000000000000000000000000000010000002B",
+        "0x00000000000000000000000000000001000f453d",
+        "95192765",
+        "1144560004369959",
+        "0x"
+      ]
+    },
+    {
+      "label": "campaign.probe.execute34to222",
+      "address": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+      "transactionHash": "0xa586bde0f49313c5cbf776202997d661c46c189b70fd61d6da0c6551cdc643c6",
+      "gasUsed": "1912138",
+      "args": [
+        "0x0000000000000000000000000000000100000022",
+        "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "36432704681532388",
+        "98999999999999997973",
+        "0x"
+      ]
+    },
+    {
+      "label": "campaign.probe.execute1000765to222",
+      "address": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+      "transactionHash": "0xae4bb643bdf2179d3e398d42629cf36a0818f0992f4c3b20fed9ff4bed326d64",
+      "gasUsed": "359657",
+      "args": [
+        "0x00000000000000000000000000000001000f453d",
+        "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "1156121220784059",
+        "98999999999999973068",
+        "0x"
+      ]
+    },
+    {
+      "label": "campaign.probe.execute43to222",
+      "address": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+      "transactionHash": "0x848640dad784ece9b423938d5402c68e8339b4ed2e552033237e2793206370ba",
+      "gasUsed": "329700",
+      "args": [
+        "0x000000000000000000000000000000010000002B",
+        "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "95192765",
+        "98999999636175000000",
+        "0x"
+      ]
+    },
+    {
+      "label": "campaign.34.seedApprove",
+      "address": "0x0000000000000000000000000000000100000022",
+      "transactionHash": "0xd6679ac455621b1b3dfb852a6dd71527e623cbca3402dc9721681c9989693222",
+      "gasUsed": "24364",
+      "args": [
+        "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "10000000000000000"
+      ]
+    },
+    {
+      "label": "campaign.conditionalReferenceUpdate",
+      "simulatedGovernance": true,
+      "events": [
+        {
+          "section": "tokens",
+          "method": "Withdrawn",
+          "data": [
+            20,
+            "12ZuLmUq65u1KyKWDQewpbHyWfx1V9Xj8iL6wzsvH5Dv2Fef",
+            4771335000000
+          ]
+        },
+        {
+          "section": "tokens",
+          "method": "Deposited",
+          "data": [
+            20,
+            "12ZuLmUq65u1KyKWDQewpbHyWfx1V9Xj8iL6wzsvH5Dv2Fef",
+            4528812813285
+          ]
+        },
+        {
+          "section": "tokens",
+          "method": "Deposited",
+          "data": [
+            20,
+            "13UVJyLnbVp9RBZYFwFGyDvVd1y27Tt8tkntv6Q7JVPhFsTB",
+            242522186715
+          ]
+        },
+        {
+          "section": "currencies",
+          "method": "Deposited",
+          "data": [
+            20,
+            "13UVJyLnbVp9RBZYFwFGyDvVd1y27Tt8tkntv6Q7JVPhFsTB",
+            242522186715
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0xdee587cc569bf1fcbdcd6d1472031d225f34c307",
+              "topics": [
+                "0x7d8cee5d1217e47a14a662098e84a7758580aaf78f430c07c543249234e867bf",
+                "0x000000000000000000000000000000000000000000000000000000000000000a"
+              ],
+              "data": "0x000000000000000000000000000000000000000000000000000000000652a928000000000000000000000000000000000000000000000000000000006ab38ffa"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Executed",
+          "data": [
+            "0xdee587cc569bf1fcbdcd6d1472031d225f34c307"
+          ]
+        },
+        {
+          "section": "dispatcher",
+          "method": "AaveManagerCallDispatched",
+          "data": [
+            "0xda2a0cc7732141b313fd606ca2692160a0ab1529c53008a26036f05d852a46d2",
+            {
+              "ok": {
+                "actualWeight": {
+                  "refTime": 1162568000,
+                  "proofSize": 12707
+                },
+                "paysFee": "No"
+              }
+            }
+          ]
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              14937874,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        },
+        {
+          "section": "preimage",
+          "method": "Cleared",
+          "data": [
+            "0x506873bd64c67cb26f543747ca2c99fa4a48937bb2a8e856044663106e2ea70e"
+          ]
+        },
+        {
+          "section": "system",
+          "method": "ExtrinsicSuccess",
+          "data": [
+            {
+              "weight": {
+                "refTime": 1912274000,
+                "proofSize": 12815
+              },
+              "class": "Mandatory",
+              "paysFee": "Yes"
+            }
+          ]
+        },
+        {
+          "section": "relayChainInfo",
+          "method": "CurrentBlockNumbers",
+          "data": [
+            14937874,
+            33123474
+          ]
+        },
+        {
+          "section": "system",
+          "method": "ExtrinsicSuccess",
+          "data": [
+            {
+              "weight": {
+                "refTime": 1779123000,
+                "proofSize": 11322
+              },
+              "class": "Mandatory",
+              "paysFee": "Yes"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "campaign.34.seed",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xd9159468f48c3c88319cf9baf996fb112996a9411156cf2eae5de6bf1778c835",
+      "gasUsed": "2099419",
+      "args": [
+        "10000000000000000",
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      ]
+    },
+    {
+      "label": "campaign.1000765.seedApprove",
+      "address": "0x00000000000000000000000000000001000f453d",
+      "transactionHash": "0x8f9dcbaffc374581dbbcdd3bfb9baaaecb231f7162f95a0b9962e7c37b156abb",
+      "gasUsed": "24376",
+      "args": [
+        "0xc5a5c42992decbae36851359345fe25997f5c42d",
+        "100000000000000"
+      ]
+    },
+    {
+      "label": "campaign.seedRecovery",
+      "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+      "transactionHash": "0xb464bc81932ff4cc06909e5266351544606bc876206ea7e60984a74180cd68d5",
+      "gasUsed": "51263",
+      "args": [
+        "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "10000000000000000000"
+      ]
+    },
+    {
+      "label": "campaign.1000765.seed",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x82703b2ab1318eea5ce624e365314eb5cd042ce1c54bf5fbe8a1b3a142c08ad4",
+      "gasUsed": "1993693",
+      "args": [
+        "100000000000000",
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      ]
+    },
+    {
+      "label": "campaign.entrySourceFunding",
+      "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+      "transactionHash": "0x40703ceecfc1827d10e8188146c8ee8c40bd562536a3db1a80dfca7fe5657531",
+      "gasUsed": "34175",
+      "args": [
+        "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "50000000000000000000"
+      ]
+    },
+    {
+      "label": "campaign.user0.approve",
+      "address": "0x0000000000000000000000000000000100000022",
+      "transactionHash": "0x1fd8b9db105a802a37b9e85168e63cf04a6470943ac6f9e46d469d12f1e3104e",
+      "gasUsed": "24388",
+      "args": [
+        "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "100000000000000007"
+      ]
+    },
+    {
+      "label": "campaign.user0.deposit",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xf8d769c6cab34549910091e41d33b08e6d5fbec188fc5327825015fd258015a8",
+      "gasUsed": "2023512",
+      "args": [
+        "100000000000000007",
+        "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      ]
+    },
+    {
+      "label": "campaign.user1.approve",
+      "address": "0x0000000000000000000000000000000100000022",
+      "transactionHash": "0xcbd96f06bb46bf5ca10ee88c245fa9c2371fe14eeb1dea38e80dcd9e8dcedc09",
+      "gasUsed": "24388",
+      "args": [
+        "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "100000000000000011"
+      ]
+    },
+    {
+      "label": "campaign.user1.deposit",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xecc8d1857e0f0ea13b7e34143a353b1555aab954f815c58e8771f59361d5e44e",
+      "gasUsed": "2006400",
+      "args": [
+        "100000000000000011",
+        "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+      ]
+    },
+    {
+      "label": "campaign.user2.approve",
+      "address": "0x00000000000000000000000000000001000f453d",
+      "transactionHash": "0x84d996185f21be88283e9c4eded7b9caf059878970d0082090f93b4ab850d4c6",
+      "gasUsed": "24400",
+      "args": [
+        "0xc5a5c42992decbae36851359345fe25997f5c42d",
+        "3000000000000013"
+      ]
+    },
+    {
+      "label": "campaign.user2.deposit",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x2abf4471114c26830bfc1be38240533fb70fad496ebedc1680e38ef471d04083",
+      "gasUsed": "2026012",
+      "args": [
+        "3000000000000013",
+        "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      ]
+    },
+    {
+      "label": "campaign.user3.approve",
+      "address": "0x00000000000000000000000000000001000f453d",
+      "transactionHash": "0x7fccf9cb959f3241b8fb938010d4c31b1760ed4301cc20137c08397204999c61",
+      "gasUsed": "24400",
+      "args": [
+        "0xc5a5c42992decbae36851359345fe25997f5c42d",
+        "3000000000000017"
+      ]
+    },
+    {
+      "label": "campaign.user3.deposit",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xefed02c111c477ed0f43e5ee763bbc0d3b1a84afaa5b748996197c3d3014fefb",
+      "gasUsed": "2008900",
+      "args": [
+        "3000000000000017",
+        "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+      ]
+    },
+    {
+      "label": "campaign.ramp0",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x0a81b72d6008c4e56a0f06d027206b446816b5247cf18c2b4d024acf11cadcf4",
+      "gasUsed": "1346270",
+      "args": []
+    },
+    {
+      "label": "campaign.ramp1",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xc59a670d33da48599cf246b1b5dcd0f26fa29ea6448bc083ae03c9dcc41ce8f3",
+      "gasUsed": "1362607",
+      "args": []
+    },
+    {
+      "label": "campaign.ramp2",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xc00c765babce701193712ecc32d8f60573ce07d48c2cc25e087e34cc36b8ab99",
+      "gasUsed": "1345507",
+      "args": []
+    },
+    {
+      "label": "campaign.yieldApprove",
+      "address": "0x000000000000000000000000000000010000002B",
+      "transactionHash": "0x119fa377c63dd43678128c1f0818397baa4b64f3157b8cc0a65ad8df6bab5255",
+      "gasUsed": "24352",
+      "args": [
+        "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+        "100000000"
+      ]
+    },
+    {
+      "label": "campaign.yieldFixture",
+      "address": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+      "transactionHash": "0xf3b9e3c973571435bf1333b8bc998f01c1c72272ed407570207ba83d535ae95b",
+      "gasUsed": "149798",
+      "args": [
+        "0x000000000000000000000000000000010000002B",
+        "100000000",
+        "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        0
+      ]
+    },
+    {
+      "label": "campaign.harvest",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "transactionHash": "0xaab652586a472ab30daa13bcbace2998ad92e6472b8a49b937fe1022ad711800",
+      "gasUsed": "6490439",
+      "args": [
+        []
+      ]
+    },
+    {
+      "label": "campaign.feeClaim34",
+      "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+      "transactionHash": "0x45d774c9b552398d1a776448f1c3580506d8b5b2f64269ba54b4ceb1f6e550aa",
+      "gasUsed": "35965",
+      "args": [
+        "0x0000000000000000000000000000000100000022"
+      ]
+    },
+    {
+      "label": "campaign.feeClaim1000765",
+      "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+      "transactionHash": "0x6c90bf0fa6ff927d36d53ca5e6012bd18759d870063c3625f240671db2e7918d",
+      "gasUsed": "35989",
+      "args": [
+        "0x00000000000000000000000000000001000f453d"
+      ]
+    },
+    {
+      "label": "campaign.user0.request",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xcddbe0bef227e2f1c71357c5b76034fbd1a3fca241320aaea09ebe70a0d55c49",
+      "gasUsed": "297192",
+      "args": [
+        "99999999986517828",
+        "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      ]
+    },
+    {
+      "label": "campaign.user1.request",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x67e8edae73fb2a02cc64cd8ac24e1a62edf11a7dde5c973cec8125cf4d700d72",
+      "gasUsed": "197517",
+      "args": [
+        "99999999982024557",
+        "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+      ]
+    },
+    {
+      "label": "campaign.user2.request",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x20f910ca414b6664c5e5198dad17da2a1c6ebba6395c7f60749fafc61dc1c321",
+      "gasUsed": "297192",
+      "args": [
+        "2999999999866544",
+        "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      ]
+    },
+    {
+      "label": "campaign.user3.request",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xc0621c8d501017988051e13156f58d145c6683a06cacd04f187e0286d3762838",
+      "gasUsed": "197505",
+      "args": [
+        "2999999999828420",
+        "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+      ]
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.earlyStart",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x12f608b1d2d4d7402f3bac068fc9021b98e73bdf33bcdac0a46d9f27872ef85b",
+      "gasUsed": "59656",
+      "args": [
+        "16"
+      ]
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.earlyStart",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x8cacf7ce1f7eddb67509e1d03c5d5c59da53af6a5cdb9c4da6c899759051e024",
+      "gasUsed": "59656",
+      "args": [
+        "16"
+      ]
+    },
+    {
+      "label": "campaign.freeze",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x7f6610dc1a40206019b66c9ec9527081df1ba5343329a5c52d3f1277a4e41070",
+      "gasUsed": "52329",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.peg",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x7528e9c17bf2ba2eef235bd2fa57150ed5693a9d3bddd8aa37f29ad5f6e3aaa9",
+      "gasUsed": "291878",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.recoveryApprove",
+      "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+      "transactionHash": "0xd0ed1180a5166d2f680775747bd3e662785d6d19efb225c23c5ce03353466a43",
+      "gasUsed": "46199",
+      "args": [
+        "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+        "100000000000000000000"
+      ]
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.recoverMain",
+      "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      "transactionHash": "0x00557f6e50a688ff56071a8c221e63ce6f9221310732ebb6b2b887d34f9a0d84",
+      "gasUsed": "58820",
+      "args": [
+        "0",
+        "100000000000000000000"
+      ]
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.peg",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x06f75c6ecbaa2ddf04cb0389fe9444bff6731865eab83fb534d548ea808e6548",
+      "gasUsed": "291878",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.recoveryApprove",
+      "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+      "transactionHash": "0xaab19783cf87f2ea90200bae2769d2a6a6d917dee1faa7bd861fa451d946c98c",
+      "gasUsed": "46199",
+      "args": [
+        "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+        "100000000000000000000"
+      ]
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.recoverMain",
+      "address": "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+      "transactionHash": "0x33ae0cd626e1dc48ac680bbaa722175f314e48608db8ce8ff0e3f8915820e6d6",
+      "gasUsed": "58820",
+      "args": [
+        "0",
+        "100000000000000000000"
+      ]
+    },
+    {
+      "label": "campaign.recoverSource",
+      "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+      "transactionHash": "0x6075e0f7e7c0fb95aa2a08cb206298eed5a2cacd677233c8b9d0c68e4a8059c5",
+      "gasUsed": "34175",
+      "args": [
+        "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+        "100000000000000000000"
+      ]
+    },
+    {
+      "label": "campaign.resume",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x2d73a173a6c440937a3aae71c8c4dd32ad1b832cd550731d35ec10613f122dfc",
+      "gasUsed": "30203",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.start",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x1e39f48b86d62da5a4fa48cba155670a59ec7146b0996d7f1408be6a9c6c6a2f",
+      "gasUsed": "1188768",
+      "args": [
+        "16"
+      ]
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.start",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xfd4875f683b364193f947ce63a7d809e2e28de8f7e32b86817b96022520364ea",
+      "gasUsed": "1061400",
+      "args": [
+        "16"
+      ]
+    },
+    {
+      "label": "campaign.repay0",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x405fdcecfd52a378a1caa8afba89fe9c9233160f02b76a6bf2587e94392bad4b",
+      "gasUsed": "1472300",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle0",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x9a2b7dd1d5c5031d509f25deadad2a87372ea2382cc00c29505fe651fbc8acdf",
+      "gasUsed": "1169499",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle0",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xa0e8d37fdcb1b46d03d7a8db7d29598ad3fdfda996359e6c5cfe19a705c97e92",
+      "gasUsed": "1167199",
+      "args": []
+    },
+    {
+      "label": "campaign.repay1",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x89043951dc4fd917dfbd7434fb2974a4b7338ee9b7bd1922749b7fd61374de37",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle1",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x2fced93e9b51314fc238f2ce0312afbf16ddeaea586ba22c010a8a444b7feafa",
+      "gasUsed": "1076482",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle1",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x3ba693319c343ed10b328b35e11467cd1f63cf7ab965e23cfebf6e885a5a95d2",
+      "gasUsed": "1080124",
+      "args": []
+    },
+    {
+      "label": "campaign.repay2",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x6ddad7daa561d49934cf8fb9eef592b0b4a873b5f3f4d41126e3a202229094d7",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle2",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x171ae5b8144e1106fd53c9b4135d2bc9c022845bf4108e88c0cae52e4479a78c",
+      "gasUsed": "1155727",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle2",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x9e5d89122ddfe8d13caa13481dab00fc9fb951b847ba017457667841aedce31b",
+      "gasUsed": "1078482",
+      "args": []
+    },
+    {
+      "label": "campaign.repay3",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x66226df964f57875a5e697b62d4e8ffc4199bfcded25a97a1a5a74dba1c81ca2",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle3",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xd03af21e07fef82cbb4cbfc17c16bc035ad8bc9ec807717a0ede5021b215ef03",
+      "gasUsed": "1153976",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle3",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xec009cab6e0f7d3ca0b269453b9b09b764cf0028d9b032970a2e5f1052f2ba94",
+      "gasUsed": "1080233",
+      "args": []
+    },
+    {
+      "label": "campaign.repay4",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x0897be85090c778ddad8d3348698b6dbafb321bb87e8da8a4af4780102da91cd",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle4",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xa04f0f912eabc8547fa2ca43230c3e45f3715f824fdf778ea5d614f1a6f826b9",
+      "gasUsed": "1076482",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle4",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xe7313e415989ad28b9e46d6027338562144e1c9856c124ad1e98ce579641affb",
+      "gasUsed": "1081832",
+      "args": []
+    },
+    {
+      "label": "campaign.repay5",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x9f1291d996111c8ae54247d92b5dbef3c984626654f9e21a918de33a82c6e49b",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle5",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xbd9fb84f2aedbd5fceb060e6345cdf3929244d2758f6657f52460d6309ac4371",
+      "gasUsed": "1076482",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle5",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xc38addcd4390738c26c4e95fbf982a0202d53a8a7893ff1b9589286eebde537b",
+      "gasUsed": "1078482",
+      "args": []
+    },
+    {
+      "label": "campaign.repay6",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x9d83bf36cdda034ef2579e24b494156b058aeecf81f1d6b1676dd9f1c16c6e62",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle6",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x61f181e211c3116febe3ae445b42fd5fd12b7b3262e26f9ff6822d344a33d07e",
+      "gasUsed": "1076482",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle6",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xfceb0fbfdd6f908f89c5622fa09fd118c565ed43efdabefb99f9554846ba764c",
+      "gasUsed": "1078482",
+      "args": []
+    },
+    {
+      "label": "campaign.repay7",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xc3d0b60e7cfecd283d9d529bb43208046d3f0e3a6cbbaf956b5c60469f55ae97",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle7",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x6300df8c6d74f0692bd9c4722f11b2c7b6400f0a89e8ba49b4edc6c131fd9f9f",
+      "gasUsed": "1076482",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle7",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xbd5bb76266b9fbf98d1e373e3a972e13f2a741a1217873d2c4aee38e7b5da53e",
+      "gasUsed": "1154332",
+      "args": []
+    },
+    {
+      "label": "campaign.repay8",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xfa24fd0f884d9195c6d3d8abc895bfb50e319ec64a386a8c2dab190a4fe05dd7",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle8",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x1f99340e66624ff959ae47288477705ac704231b91c834f22d3f6f2746274d8c",
+      "gasUsed": "1078233",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle8",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xaf50818227e606c5cad4ab8f2173ec63ec840136d7ee33f908238c817fb38476",
+      "gasUsed": "1078482",
+      "args": []
+    },
+    {
+      "label": "campaign.repay9",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xcf59fd149b36e16270e9548b03f93b56f0d79cd47604e5fb1acfd60d21f284e6",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle9",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x9c890b24feec3fcf47ffed38a93c6cd7e8c915328ceaff70a8b8838d96114c6d",
+      "gasUsed": "1076482",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle9",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x4f03a03590c8371c63fc41abcff81bb5a2c830af9156f20e9bfc799d4a49db38",
+      "gasUsed": "1084329",
+      "args": []
+    },
+    {
+      "label": "campaign.repay10",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xbb184e0856706aafea9116615b9f0bc6bb8320a5f58116238134ee900f9deafa",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle10",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x3d2bd3c19c2f3d01b24e0abcb9fd3ea89887fb2565e124edc5953fcb70ea6316",
+      "gasUsed": "1076482",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle10",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x9bb01e452233d02196d17376bbd4c3511389669cb162d6fb360f55ebf11bba70",
+      "gasUsed": "1081832",
+      "args": []
+    },
+    {
+      "label": "campaign.repay11",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x1a6d52486c9d40b674634f674b9d4d84f7dffc45ff09269501695e4f1f1a44b5",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle11",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x830cf2b208be378a5f3133373557a9b5c46683604eb369bdfa3cdae0d41b35d2",
+      "gasUsed": "1076482",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle11",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x0314db18a0721cee09c10ea62bebb52f076e2eda852a6ee6eb34730280fc2e90",
+      "gasUsed": "1080124",
+      "args": []
+    },
+    {
+      "label": "campaign.repay12",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x98a6ccd8d0db57e6c0cb1a922568e9ba6e6e50b46aaa2642fde6cd6a8f9d9813",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle12",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x1cca25a23cc51351ae5b8656726fdd64650d19a4b464048e351f6f2ccd383fd5",
+      "gasUsed": "1078124",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle12",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x10908f8b5169afeca47cf97b1f184e924a71296d11b153125a8e1a3fb70caf50",
+      "gasUsed": "1081832",
+      "args": []
+    },
+    {
+      "label": "campaign.repay13",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x4be71695afeb113d5ca36963fad21697de5d962c855f9dd44ed7e5f0436a181d",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle13",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x0e7e7f6d4048826f247f1a3c19bcd82e3d8a5dc692e37fdcca8891209cafa490",
+      "gasUsed": "1076482",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle13",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x6de23fdf6a152ba2f59ae5014700a9f8225320b92a226309a40ce407428240e8",
+      "gasUsed": "1078482",
+      "args": []
+    },
+    {
+      "label": "campaign.repay14",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xf1d2543500cbf5f47a997aa6a6dd4a8fa705bf6fa6f3390a9afdc7ee1b29ddda",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle14",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x01eeb7bbc29d06f39a441e14a99137b06c06276dfc07aabf8c8e909908130daa",
+      "gasUsed": "1406427",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle14",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x9ff1691ca02ef3d2316bfe319fc11ffe4fdf8a4da61b024a01c9010031a14007",
+      "gasUsed": "1078482",
+      "args": []
+    },
+    {
+      "label": "campaign.repay15",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x3bf3bb697302b4cc54c1a8f44478d12ba401c4d93e2720664815efbcf266b0c9",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle15",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xa09d6e9c622459757b2a9a381d6dee06854c7b3eb15fff53ef1d91bb1869339d",
+      "gasUsed": "754492",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle15",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xc682839af70390128dbb8ed28607b765aa07999709eb39b7cea5e7b9b88cce7e",
+      "gasUsed": "1078482",
+      "args": []
+    },
+    {
+      "label": "campaign.repay16",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x960ccbb65374a2cca14521fbec4821f5a05fe1519d5e94e29550901042c12195",
+      "gasUsed": "1440100",
+      "args": []
+    },
+    {
+      "label": "campaign.0xdc64a140aa3e981100a9beca4e685f962f0cf6c9.settle16",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x41c6aca005d628dfce5c8e4fb626e576d708607f950b14efd7750f24c0bc9924",
+      "gasUsed": "740760",
+      "args": []
+    },
+    {
+      "label": "campaign.0xc5a5c42992decbae36851359345fe25997f5c42d.settle16",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0x8c6b08740828c49270bd64486b025df2d2294ad5308aeb6b846e23719f4ce2e5",
+      "gasUsed": "1410346",
+      "args": []
+    },
+    {
+      "label": "campaign.user0.claim",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x495fa2422aa7a2a1414108de6eec7682f51456e77e5edfbb6c8e5c55efd9f899",
+      "gasUsed": "128888",
+      "args": [
+        "0",
+        "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      ]
+    },
+    {
+      "label": "campaign.user1.claim",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x7a211985a7511f1b662051820bfa08630d0dad40c7ef6ce56911e7ff943b15e6",
+      "gasUsed": "114488",
+      "args": [
+        "1",
+        "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+      ]
+    },
+    {
+      "label": "campaign.user2.claim",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xd3b941dcba6ed68d155f9d27da0fb16896e661f261bed88c87eb0ddc528d9c9b",
+      "gasUsed": "128888",
+      "args": [
+        "0",
+        "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      ]
+    },
+    {
+      "label": "campaign.user3.claim",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "transactionHash": "0xc95c11a7374e6862bdff840b9cb73b0e5119ff5267344209ce3ffd7ed7930136",
+      "gasUsed": "114488",
+      "args": [
+        "1",
+        "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+      ]
+    },
+    {
+      "label": "campaign.user0.claimSurplus",
+      "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      "transactionHash": "0xf4443960420a98b01122dafafd2dcf64e386040097f4e076191e55dee75b4d18",
+      "gasUsed": "91979",
+      "args": [
+        "0"
+      ]
+    },
+    {
+      "label": "campaign.user1.claimSurplus",
+      "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      "transactionHash": "0x4ebc8a8aa549f21287a62240c5f59f592e7487b8b67d9cdb7daa0f8fc1400888",
+      "gasUsed": "91991",
+      "args": [
+        "1"
+      ]
+    },
+    {
+      "label": "campaign.user2.claimSurplus",
+      "address": "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+      "transactionHash": "0xeb4a4c307b7f8bef9d955fdcda8aa073b3cb1e0a425d93b04db41927cc67e6e3",
+      "gasUsed": "74879",
+      "args": [
+        "0"
+      ]
+    },
+    {
+      "label": "campaign.user3.claimSurplus",
+      "address": "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+      "transactionHash": "0x82f87b8df22add220ddcc609ff7f40daa663a58b011c3ddd211456df7e04b4dd",
+      "gasUsed": "74891",
+      "args": [
+        "1"
+      ]
+    }
+  ],
+  "checks": {
+    "immutableHelper": {
+      "address": "0xa16E02E87b7454126E5E10d957A927A7F5B5d2be",
+      "runtimeBytes": 4974,
+      "codeHash": "0xf6414eb60e2a68ac03f5f7af11f9b3f503592ed8b79af2c329e68fb178e0378c"
+    },
+    "noSponsoredOperatingCapital": true,
+    "feeBinding": true,
+    "initialFeeBps": 500,
+    "discountInstalledAndRegistered": true,
+    "discountRateUpdateAndReset": true,
+    "committeeRateRole": true,
+    "entryOracleFloorRejected": true,
+    "strictSlippageNotWidened": true,
+    "nativeAccruedInterestServicedByHarvest": true,
+    "nativeMultiUserMultiVaultRealRouteHarvest": true,
+    "nativeFourPublicPositionsPaidInFull": true,
+    "constructorHelperMatchesArtifact": true,
+    "deployedCodeMatchesLocalArtifacts": true,
+    "proxyImplementationSlots": true,
+    "exitOwnershipAndPendingSourceClaims": true
+  },
+  "fork": {
+    "chainId": 222222,
+    "block": "14937805",
+    "hash": "0xfa8eb3c9631c556b63ba14391d22eb228a3e288ee805fbaa91ce005103d2458f",
+    "runtime": {
+      "specName": "hydradx",
+      "implName": "hydradx",
+      "authoringVersion": 1,
+      "specVersion": 443,
+      "implVersion": 0,
+      "apis": [
+        [
+          "0xdf6acb689907609b",
+          5
+        ],
+        [
+          "0x37e397fc7c91f5e4",
+          2
+        ],
+        [
+          "0x40fe3ad401f8959a",
+          6
+        ],
+        [
+          "0xd2bc9897eed08f15",
+          3
+        ],
+        [
+          "0xf78b278be53f454c",
+          2
+        ],
+        [
+          "0xab3c0572291feb8b",
+          1
+        ],
+        [
+          "0xdd718d5cc53262d4",
+          1
+        ],
+        [
+          "0xea93e3f16f3d6962",
+          3
+        ],
+        [
+          "0x695c80446b8b3d4e",
+          1
+        ],
+        [
+          "0x9af86751b70c112d",
+          1
+        ],
+        [
+          "0xbc9d89904f5b923f",
+          1
+        ],
+        [
+          "0x37c8bb1350a9a2a8",
+          4
+        ],
+        [
+          "0x582211f65bb14b89",
+          6
+        ],
+        [
+          "0xe65b00e46cedd0aa",
+          2
+        ],
+        [
+          "0x0bb67a52fcd040ff",
+          1
+        ],
+        [
+          "0x34a3d488166b5a55",
+          1
+        ],
+        [
+          "0x542334fe4fd7cada",
+          1
+        ],
+        [
+          "0x6ff52ee858e6c5bd",
+          1
+        ],
+        [
+          "0xd7bdd8a272ca0d65",
+          2
+        ],
+        [
+          "0x04e70521a0d3d2f8",
+          1
+        ],
+        [
+          "0x91b1c8b16328eb92",
+          2
+        ],
+        [
+          "0x9ffb505aa738d69c",
+          1
+        ],
+        [
+          "0x2b5f5bcd2460e4f0",
+          1
+        ],
+        [
+          "0xa2b2b484fcb86943",
+          1
+        ],
+        [
+          "0x75fc5fbf0e9c71bc",
+          1
+        ],
+        [
+          "0x6aa673a4e69ae9a5",
+          1
+        ],
+        [
+          "0xfbc577b9d747efd6",
+          1
+        ]
+      ],
+      "transactionVersion": 1,
+      "stateVersion": 1
+    }
+  },
+  "upstream": "wss://hdx.tarn.hydration.cloud",
+  "gasPrice": "9542400",
+  "overrides": [
+    "Parachain relay-parent override for local block production",
+    "Fund public development deployer with local HDX/WETH",
+    "Whitelist development deployer; no runtime/code-size/gas-limit overrides",
+    "Scheduler/preimage injection to simulate governance execution of synthetic reserve listing and HOLLAR discount installation",
+    "Fund three public development accounts with local gas/collateral/PRIME fixtures",
+    "Fork-only governance price update assuming wYLDS=$1. Not a verified USD redemption quote, production price approval, or proof after full pool-peg convergence."
+  ],
+  "market": {
+    "pool": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+    "hollar": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+    "collateral": "0x0000000000000000000000000000000100000022",
+    "prime": "0x000000000000000000000000000000010000002B",
+    "aEth": "0x11a8f7fFbB7e0fbEd88BC20179Dd45B4Bd6874ff",
+    "aPrime": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+    "hollarDebt": "0x342923782cCaEBf9c38DD9cb40436e82C42c73B5"
+  },
+  "addresses": {
+    "vaultImpl": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+    "synth": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+    "subImpl": "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
+    "source": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+    "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+    "harvester": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+    "fees": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+    "buffer": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+    "aSynthetic": "0xa8f540FB7852024Da35D30947bE0899299ba42F1",
+    "discount": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+    "tbtcVault": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+    "tbtcBuffer": "0x67d269191c92caf3cd7723f116c85e6e9bf55933",
+    "testRouteAdapter": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44"
+  },
+  "status": "native-multi-user-multi-vault-campaign-passed",
+  "testOnlyPolicy": {
+    "slippagePpm": 10000,
+    "trancheHollar": "100",
+    "productionApproval": false
+  },
+  "infrastructureCaveat": "Chopsticks eth_getStorageAt uses H256 encoding for runtime U256 slot index; implementation slots read from native EVM.AccountStorages instead.",
+  "campaignAccountsFunded": true,
+  "adapterBuild": {
+    "artifact": "/tmp/propeller-adapter-20260923/out/HydraAugustus.sol/HydraAugustus.json",
+    "metadata": {
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "language": "Solidity",
+      "output": {
+        "abi": [
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "dispatch",
+                "type": "address"
+              }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "token",
+                "type": "address",
+                "indexed": true
+              },
+              {
+                "internalType": "uint32",
+                "name": "assetId",
+                "type": "uint32",
+                "indexed": true
+              }
+            ],
+            "type": "event",
+            "name": "AssetIdSet",
+            "anonymous": false
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "tokenIn",
+                "type": "address",
+                "indexed": true
+              },
+              {
+                "internalType": "address",
+                "name": "tokenOut",
+                "type": "address",
+                "indexed": true
+              },
+              {
+                "internalType": "uint256",
+                "name": "amountIn",
+                "type": "uint256",
+                "indexed": false
+              },
+              {
+                "internalType": "uint256",
+                "name": "amountOut",
+                "type": "uint256",
+                "indexed": false
+              }
+            ],
+            "type": "event",
+            "name": "Bought",
+            "anonymous": false
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "previousOwner",
+                "type": "address",
+                "indexed": true
+              },
+              {
+                "internalType": "address",
+                "name": "newOwner",
+                "type": "address",
+                "indexed": true
+              }
+            ],
+            "type": "event",
+            "name": "OwnershipTransferred",
+            "anonymous": false
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "tokenIn",
+                "type": "address",
+                "indexed": true
+              },
+              {
+                "internalType": "address",
+                "name": "tokenOut",
+                "type": "address",
+                "indexed": true
+              },
+              {
+                "internalType": "uint256",
+                "name": "amountIn",
+                "type": "uint256",
+                "indexed": false
+              },
+              {
+                "internalType": "uint256",
+                "name": "amountOut",
+                "type": "uint256",
+                "indexed": false
+              }
+            ],
+            "type": "event",
+            "name": "Sold",
+            "anonymous": false
+          },
+          {
+            "inputs": [],
+            "stateMutability": "view",
+            "type": "function",
+            "name": "DISPATCH",
+            "outputs": [
+              {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+              }
+            ],
+            "stateMutability": "view",
+            "type": "function",
+            "name": "assetId",
+            "outputs": [
+              {
+                "internalType": "uint32",
+                "name": "",
+                "type": "uint32"
+              }
+            ]
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "tokenIn",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "tokenOut",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "maxAmountIn",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "amountOut",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "dispatchData",
+                "type": "bytes"
+              }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function",
+            "name": "buy",
+            "outputs": [
+              {
+                "internalType": "uint256",
+                "name": "amountIn",
+                "type": "uint256"
+              }
+            ]
+          },
+          {
+            "inputs": [],
+            "stateMutability": "view",
+            "type": "function",
+            "name": "getTokenTransferProxy",
+            "outputs": [
+              {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "inputs": [],
+            "stateMutability": "view",
+            "type": "function",
+            "name": "owner",
+            "outputs": [
+              {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "tokenIn",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "tokenOut",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "amountIn",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "minAmountOut",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "dispatchData",
+                "type": "bytes"
+              }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function",
+            "name": "sell",
+            "outputs": [
+              {
+                "internalType": "uint256",
+                "name": "amountOut",
+                "type": "uint256"
+              }
+            ]
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+              },
+              {
+                "internalType": "uint32",
+                "name": "id",
+                "type": "uint32"
+              }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function",
+            "name": "setAssetId"
+          },
+          {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "newOwner",
+                "type": "address"
+              }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function",
+            "name": "transferOwnership"
+          }
+        ],
+        "devdoc": {
+          "kind": "dev",
+          "methods": {
+            "buy(address,address,uint256,uint256,bytes)": {
+              "details": "Two modes (see `sell`): empty `dispatchData` → build      `route_executor.buy(assetId[tokenIn], assetId[tokenOut], amountOut, maxAmountIn, [])`      with an EMPTY route; non-empty → patch amounts into the caller-supplied call.⚠️ Param order here is `(maxAmountIn, amountOut)` — the debt-swap adapter      convention, and the REVERSE of Propeller's `ISwapper.buy(…, amountOut, maxIn, …)`,      which shares the same 4-arg selector. Propeller only ever calls `sell()`      (verified: `CollateralVault.compound` is the sole swapper caller), so this      divergence is intentional. Do NOT route Propeller's `buy` here via the ISwapper      cast without first aligning the two uint256 args, or they will be swapped silently.",
+              "params": {
+                "amountOut": "The exact amount of `tokenOut` desired (must fit u128).",
+                "dispatchData": "Empty to build from the asset-id map, or a SCALE-encoded        `route_executor.buy` call whose amounts are patched.",
+                "maxAmountIn": "The maximum amount of `tokenIn` willing to spend (must fit u128).",
+                "tokenIn": "The token to spend.",
+                "tokenOut": "The token to receive."
+              },
+              "returns": {
+                "amountIn": "The actual amount of `tokenIn` consumed."
+              }
+            },
+            "sell(address,address,uint256,uint256,bytes)": {
+              "details": "Two modes:      - empty `dispatchData` → build `route_executor.sell(assetId[tokenIn],        assetId[tokenOut], amountIn, minAmountOut, [])` with an EMPTY route, so the        router uses its governance-set on-chain route (keeper path);      - non-empty `dispatchData` → treat it as a caller-supplied SCALE call and patch        the amounts at offsets [10..26)/[26..42) (frontend / debt-swap path).",
+              "params": {
+                "amountIn": "The exact amount of `tokenIn` to sell (must fit u128).",
+                "dispatchData": "Empty to build from the asset-id map, or a SCALE-encoded        `route_executor.sell` call whose amounts are patched.",
+                "minAmountOut": "The minimum acceptable amount of `tokenOut` (must fit u128).",
+                "tokenIn": "The token to sell.",
+                "tokenOut": "The token to receive."
+              },
+              "returns": {
+                "amountOut": "The amount of `tokenOut` received."
+              }
+            },
+            "setAssetId(address,uint32)": {
+              "details": "Consumed by the empty-`dispatchData` path in `sell`/`buy`. A token must be      registered here (non-zero id) to swap via that path, so HDX (asset 0) is not      reachable this way — pass explicit `dispatchData` for it. The route is resolved      by the on-chain router, not stored here.",
+              "params": {
+                "id": "The substrate asset id used inside the SCALE call.",
+                "token": "The ERC-20 / precompile token address."
+              }
+            }
+          },
+          "version": 1
+        },
+        "userdoc": {
+          "kind": "user",
+          "methods": {
+            "assetId(address)": {
+              "notice": "EVM token address → Hydration substrate asset id (governance-set)."
+            },
+            "buy(address,address,uint256,uint256,bytes)": {
+              "notice": "Execute an exact-output swap via the substrate route executor."
+            },
+            "owner()": {
+              "notice": "Governance owner permitted to configure asset ids and routes."
+            },
+            "sell(address,address,uint256,uint256,bytes)": {
+              "notice": "Execute an exact-input swap via the substrate route executor."
+            },
+            "setAssetId(address,uint32)": {
+              "notice": "Map an EVM token address to its Hydration substrate asset id."
+            },
+            "transferOwnership(address)": {
+              "notice": "Transfer governance ownership (e.g. deployer → Hydration governance)."
+            }
+          },
+          "version": 1
+        }
+      },
+      "settings": {
+        "remappings": [
+          "@aave/core-v3/=/tmp/propeller-consolidation-20260922/node_modules/@aave/core-v3/",
+          "aave-address-book/=lib/aave-address-book/src/",
+          "aave-helpers/=lib/aave-helpers/src/",
+          "aave-v3-core/=lib/aave-v3-core/",
+          "aave-v3-periphery/=lib/aave-v3-periphery/",
+          "forge-std/=/tmp/propeller-consolidation-20260922/bil-vault/lib/forge-std/src/",
+          "solidity-utils/=lib/solidity-utils/src/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/contracts/hydra/HydraAugustus.sol": "HydraAugustus"
+        },
+        "evmVersion": "london",
+        "libraries": {}
+      },
+      "sources": {
+        "/tmp/propeller-consolidation-20260922/node_modules/@aave/core-v3/contracts/dependencies/openzeppelin/contracts/IERC20.sol": {
+          "keccak256": "0xf57d62241e553696a1324d225663ba2e1a51db0a51ca236d0c1b009d89b6284c",
+          "urls": [
+            "bzz-raw://d327db93b636790909aa137124f30a856ac1631cb79c476aa188f9627fda8d03",
+            "dweb:/ipfs/QmaxpmEoBFioeNYmpxJemyZ7aYF2nX1NKW1XDqREm7i6es"
+          ],
+          "license": "AGPL-3.0"
+        },
+        "src/contracts/dependencies/paraswap/IParaSwapAugustus.sol": {
+          "keccak256": "0xf06966029060c2937c9b1c8c6bb4531c97cbbd68615db21bac8f623754536838",
+          "urls": [
+            "bzz-raw://9f6a8238fd17c3188fa3647957303f49ca8525662616814e40a99b4324e946cc",
+            "dweb:/ipfs/QmPEh7dJ3MRB3Wyc7wFgEqLLApT5dStyx68m6qbRTu4YpE"
+          ],
+          "license": "MIT"
+        },
+        "src/contracts/hydra/HydraAugustus.sol": {
+          "keccak256": "0x69748f0a6db35a445ba75c29d80b71c9b35ccea3bcd7f0f31b1d1e76ffed4417",
+          "urls": [
+            "bzz-raw://01feebabfae302a66d57f7ba5bc440d6604b0ef31d85f5c1674ec0cd8ec3ca17",
+            "dweb:/ipfs/QmUam2BNBDWpK9RFtp77SHp8xqsUF3r6qWwAie9FxJiEt3"
+          ],
+          "license": "MIT"
+        },
+        "src/contracts/hydra/HydraRouteEncoder.sol": {
+          "keccak256": "0xd3cf8c116fdf34782e008b09914e774ab911aea7aec19bf380bca694e83beffc",
+          "urls": [
+            "bzz-raw://0f1d68ccbf31c71a309866c0e428c268fb677b099f5ae96776a2bca37f417753",
+            "dweb:/ipfs/Qme9KFQX1r4NM2VR7w5SyPPeHTAmmYcZwoLBdCBg1GrAGU"
+          ],
+          "license": "MIT"
+        }
+      },
+      "version": 1
+    }
+  },
+  "operatingBootstrap": {
+    "hollarPerVault": "0",
+    "source": "none; no sponsored operating capital"
+  },
+  "roundingPolicies": [
+    {
+      "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "assetId": 34,
+      "minimum": "10746910263300",
+      "target": "21494820526600"
+    },
+    {
+      "vault": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "assetId": 1000765,
+      "minimum": "213606749974",
+      "target": "428213499948"
+    }
+  ],
+  "routeCalibration": {
+    "block": "14937867",
+    "hash": "0x62919ecdf3b1eefab3bc02d9757911bd71e175f504edda21973218a8deb8ecc3",
+    "oracle": "0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760",
+    "primeOracleSource": "0xDEe587cC569bf1FcBdcD6d1472031d225f34C307",
+    "prices": {
+      "34": {
+        "id": 34,
+        "address": "0x0000000000000000000000000000000100000022",
+        "decimals": 18,
+        "price": "274478661066"
+      },
+      "43": {
+        "id": 43,
+        "address": "0x000000000000000000000000000000010000002B",
+        "decimals": 6,
+        "price": "105050000"
+      },
+      "222": {
+        "id": 222,
+        "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "decimals": 18,
+        "price": "100000000"
+      },
+      "1043": {
+        "id": 1043,
+        "address": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+        "decimals": 6,
+        "price": "105050000"
+      },
+      "1000765": {
+        "id": 1000765,
+        "address": "0x00000000000000000000000000000001000f453d",
+        "decimals": 18,
+        "price": "8649612013192"
+      }
+    },
+    "pool143": {
+      "assets": [
+        43,
+        222
+      ],
+      "initialAmplification": 100,
+      "finalAmplification": 100,
+      "initialBlock": 11434337,
+      "finalBlock": 11434337,
+      "fee": 400
+    },
+    "pegs143": {
+      "source": [
+        {
+          "mmOracle": "0xdee587cc569bf1fcbdcd6d1472031d225f34c307"
+        },
+        {
+          "value": [
+            1,
+            1
+          ]
+        }
+      ],
+      "updatedAt": 14932135,
+      "maxPegUpdate": 40,
+      "current": [
+        [
+          "0xb61f57af57a86574996108908dfb4496",
+          "0xad5e0c8e0e7a875355b10d647139458f"
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    "rows": [
+      {
+        "input": 222,
+        "output": 1043,
+        "dollars": 1,
+        "amount": "1000000000000000000",
+        "fair": "951927",
+        "kind": "native-loop",
+        "outputAmount": "942099",
+        "oracleLossBps": 103.24,
+        "minOut100bps": "942407",
+        "strict100bps": false,
+        "strictError": "AssertionError [ERR_ASSERTION]: route rejected: {\"err\":{\"postInfo\":{\"actualWeight\":null,\"paysFee\":\"Yes\"},\"error\":{\"module\":{\"index\":67,\"error\":\"0x00000000\"}}}}"
+      },
+      {
+        "input": 222,
+        "output": 1043,
+        "dollars": 10,
+        "amount": "10000000000000000000",
+        "fair": "9519276",
+        "kind": "native-loop",
+        "outputAmount": "9420986",
+        "oracleLossBps": 103.25,
+        "minOut100bps": "9424083",
+        "strict100bps": false,
+        "strictError": "AssertionError [ERR_ASSERTION]: route rejected: {\"err\":{\"postInfo\":{\"actualWeight\":null,\"paysFee\":\"Yes\"},\"error\":{\"module\":{\"index\":67,\"error\":\"0x00000000\"}}}}"
+      },
+      {
+        "input": 222,
+        "output": 1043,
+        "dollars": 25,
+        "amount": "25000000000000000000",
+        "fair": "23798191",
+        "kind": "native-loop",
+        "outputAmount": "23552452",
+        "oracleLossBps": 103.25,
+        "minOut100bps": "23560209",
+        "strict100bps": false,
+        "strictError": "AssertionError [ERR_ASSERTION]: route rejected: {\"err\":{\"postInfo\":{\"actualWeight\":null,\"paysFee\":\"Yes\"},\"error\":{\"module\":{\"index\":67,\"error\":\"0x00000000\"}}}}"
+      },
+      {
+        "input": 222,
+        "output": 1043,
+        "dollars": 100,
+        "amount": "100000000000000000000",
+        "fair": "95192765",
+        "kind": "native-loop",
+        "outputAmount": "94209523",
+        "oracleLossBps": 103.28,
+        "minOut100bps": "94240837",
+        "strict100bps": false,
+        "strictError": "AssertionError [ERR_ASSERTION]: route rejected: {\"err\":{\"postInfo\":{\"actualWeight\":null,\"paysFee\":\"Yes\"},\"error\":{\"module\":{\"index\":67,\"error\":\"0x00000000\"}}}}"
+      },
+      {
+        "input": 222,
+        "output": 1043,
+        "dollars": 250,
+        "amount": "250000000000000000000",
+        "fair": "237981913",
+        "kind": "native-loop",
+        "outputAmount": "235522376",
+        "oracleLossBps": 103.34,
+        "minOut100bps": "235602093",
+        "strict100bps": false,
+        "strictError": "AssertionError [ERR_ASSERTION]: route rejected: {\"err\":{\"postInfo\":{\"actualWeight\":null,\"paysFee\":\"Yes\"},\"error\":{\"module\":{\"index\":67,\"error\":\"0x00000000\"}}}}"
+      },
+      {
+        "input": 222,
+        "output": 1043,
+        "dollars": 500,
+        "amount": "500000000000000000000",
+        "fair": "475963826",
+        "kind": "native-loop",
+        "outputAmount": "471039976",
+        "oracleLossBps": 103.45,
+        "minOut100bps": "471204187",
+        "strict100bps": false,
+        "strictError": "AssertionError [ERR_ASSERTION]: route rejected: {\"err\":{\"postInfo\":{\"actualWeight\":null,\"paysFee\":\"Yes\"},\"error\":{\"module\":{\"index\":67,\"error\":\"0x00000000\"}}}}"
+      },
+      {
+        "input": 222,
+        "output": 1043,
+        "dollars": 1000,
+        "amount": "1000000000000000000000",
+        "fair": "951927653",
+        "kind": "native-loop",
+        "outputAmount": "942060808",
+        "oracleLossBps": 103.65,
+        "minOut100bps": "942408376",
+        "strict100bps": false,
+        "strictError": "AssertionError [ERR_ASSERTION]: route rejected: {\"err\":{\"postInfo\":{\"actualWeight\":null,\"paysFee\":\"Yes\"},\"error\":{\"module\":{\"index\":67,\"error\":\"0x00000000\"}}}}"
+      },
+      {
+        "input": 222,
+        "output": 1043,
+        "dollars": 2500,
+        "amount": "2500000000000000000000",
+        "fair": "2379819133",
+        "kind": "native-loop",
+        "outputAmount": "2355007709",
+        "oracleLossBps": 104.25,
+        "minOut100bps": "2356020941",
+        "strict100bps": false,
+        "strictError": "AssertionError [ERR_ASSERTION]: route rejected: {\"err\":{\"postInfo\":{\"actualWeight\":null,\"paysFee\":\"Yes\"},\"error\":{\"module\":{\"index\":67,\"error\":\"0x00000000\"}}}}"
+      },
+      {
+        "input": 222,
+        "output": 1043,
+        "dollars": 5000,
+        "amount": "5000000000000000000000",
+        "fair": "4759638267",
+        "kind": "native-loop",
+        "outputAmount": "4709529500",
+        "oracleLossBps": 105.27,
+        "minOut100bps": "4712041884",
+        "strict100bps": false,
+        "strictError": "AssertionError [ERR_ASSERTION]: route rejected: {\"err\":{\"postInfo\":{\"actualWeight\":null,\"paysFee\":\"Yes\"},\"error\":{\"module\":{\"index\":67,\"error\":\"0x00000000\"}}}}"
+      },
+      {
+        "input": 1043,
+        "output": 222,
+        "dollars": 1,
+        "amount": "951927",
+        "fair": "999999313500000000",
+        "kind": "native-loop",
+        "outputAmount": "1009623743714732586",
+        "oracleLossBps": -96.24,
+        "minOut100bps": "989999320365000000",
+        "strict100bps": true
+      },
+      {
+        "input": 1043,
+        "output": 222,
+        "dollars": 10,
+        "amount": "9519276",
+        "fair": "9999999438000000000",
+        "kind": "native-loop",
+        "outputAmount": "10096240084648650611",
+        "oracleLossBps": -96.24,
+        "minOut100bps": "9899999443620000000",
+        "strict100bps": true
+      },
+      {
+        "input": 1043,
+        "output": 222,
+        "dollars": 25,
+        "amount": "23798191",
+        "fair": "24999999645500000000",
+        "kind": "native-loop",
+        "outputAmount": "25240585789190647626",
+        "oracleLossBps": -96.23,
+        "minOut100bps": "24749999649045000000",
+        "strict100bps": true
+      },
+      {
+        "input": 1043,
+        "output": 222,
+        "dollars": 100,
+        "amount": "95192765",
+        "fair": "99999999632500000000",
+        "kind": "native-loop",
+        "outputAmount": "100962034628967456249",
+        "oracleLossBps": -96.2,
+        "minOut100bps": "98999999636175000000",
+        "strict100bps": true
+      },
+      {
+        "input": 1043,
+        "output": 222,
+        "dollars": 250,
+        "amount": "237981913",
+        "fair": "249999999606500000000",
+        "kind": "native-loop",
+        "outputAmount": "252403540065201601160",
+        "oracleLossBps": -96.14,
+        "minOut100bps": "247499999610435000000",
+        "strict100bps": true
+      },
+      {
+        "input": 1043,
+        "output": 222,
+        "dollars": 500,
+        "amount": "475963826",
+        "fair": "499999999213000000000",
+        "kind": "native-loop",
+        "outputAmount": "504801928690650641116",
+        "oracleLossBps": -96.03,
+        "minOut100bps": "494999999220870000000",
+        "strict100bps": true
+      },
+      {
+        "input": 1043,
+        "output": 222,
+        "dollars": 1000,
+        "amount": "951927653",
+        "fair": "999999999476500000000",
+        "kind": "native-loop",
+        "outputAmount": "1009583292708387533400",
+        "oracleLossBps": -95.83,
+        "minOut100bps": "989999999481735000000",
+        "strict100bps": true
+      },
+      {
+        "input": 1043,
+        "output": 222,
+        "dollars": 2500,
+        "amount": "2379819133",
+        "fair": "2499999999216500000000",
+        "kind": "native-loop",
+        "outputAmount": "2523804784139232256273",
+        "oracleLossBps": -95.21,
+        "minOut100bps": "2474999999224335000000",
+        "strict100bps": true
+      },
+      {
+        "input": 1043,
+        "output": 222,
+        "dollars": 5000,
+        "amount": "4759638267",
+        "fair": "4999999999483500000000",
+        "kind": "native-loop",
+        "outputAmount": "5047103299785871462548",
+        "oracleLossBps": -94.2,
+        "minOut100bps": "4949999999488665000000",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 34,
+        "dollars": 1,
+        "amount": "951927",
+        "fair": "364326796704806",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "366618632934660",
+        "oracleLossBps": -62.9,
+        "minOut100bps": "360683528737757",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 34,
+        "dollars": 10,
+        "amount": "9519276",
+        "fair": "3643270263401438",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "3666132985338526",
+        "oracleLossBps": -62.75,
+        "minOut100bps": "3606837560767423",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 34,
+        "dollars": 25,
+        "amount": "23798191",
+        "fair": "9108176041229159",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "9165100961975888",
+        "oracleLossBps": -62.49,
+        "minOut100bps": "9017094280816867",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 34,
+        "dollars": 100,
+        "amount": "95192765",
+        "fair": "36432704547642199",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "36655767145445917",
+        "oracleLossBps": -61.22,
+        "minOut100bps": "36068377502165777",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 34,
+        "dollars": 250,
+        "amount": "237981913",
+        "fair": "91081761560468278",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "91616240642929154",
+        "oracleLossBps": -58.68,
+        "minOut100bps": "90170943944863595",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 34,
+        "dollars": 500,
+        "amount": "475963826",
+        "fair": "182163523120936557",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "183155270757016649",
+        "oracleLossBps": -54.44,
+        "minOut100bps": "180341887889727191",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 34,
+        "dollars": 1000,
+        "amount": "951927653",
+        "fair": "364327046624598678",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "366002055600728896",
+        "oracleLossBps": -45.97,
+        "minOut100bps": "360683776158352691",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 34,
+        "dollars": 2500,
+        "amount": "2379819133",
+        "fair": "910817616752859477",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "912698581195749148",
+        "oracleLossBps": -20.65,
+        "minOut100bps": "901709440585330882",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 34,
+        "dollars": 5000,
+        "amount": "4759638267",
+        "fair": "1821635233888444517",
+        "kind": "HydraAugustus.sell",
+        "error": "ContractFunctionExecutionError: Execution reverted with reason: 0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000145452414e534645525f46524f4d5f4641494c4544000000000000000000000000.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000000000000000000000000000000000010000002b000000000000000000000000"
+      },
+      {
+        "input": 43,
+        "output": 1000765,
+        "dollars": 1,
+        "amount": "951927",
+        "fair": "11561204271068",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "11678887874932",
+        "oracleLossBps": -101.79,
+        "minOut100bps": "11445592228357",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 1000765,
+        "dollars": 10,
+        "amount": "9519276",
+        "fair": "115612115581004",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "116787183919851",
+        "oracleLossBps": -101.63,
+        "minOut100bps": "114455994425193",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 1000765,
+        "dollars": 25,
+        "amount": "23798191",
+        "fair": "289030301097565",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "291960603832633",
+        "oracleLossBps": -101.38,
+        "minOut100bps": "286139998086589",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 1000765,
+        "dollars": 100,
+        "amount": "95192765",
+        "fair": "1156121216535313",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "1167695083239841",
+        "oracleLossBps": -100.1,
+        "minOut100bps": "1144560004369959",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 1000765,
+        "dollars": 250,
+        "amount": "237981913",
+        "fair": "2890303047410811",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "2918501246668736",
+        "oracleLossBps": -97.56,
+        "minOut100bps": "2861400016936702",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 1000765,
+        "dollars": 500,
+        "amount": "475963826",
+        "fair": "5780606094821622",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "5834549106796291",
+        "oracleLossBps": -93.31,
+        "minOut100bps": "5722800033873405",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 1000765,
+        "dollars": 1000,
+        "amount": "951927653",
+        "fair": "11561212201788298",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "11659295952440796",
+        "oracleLossBps": -84.83,
+        "minOut100bps": "11445600079770415",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 1000765,
+        "dollars": 2500,
+        "amount": "2379819133",
+        "fair": "28903030510543273",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "29074947434751312",
+        "oracleLossBps": -59.48,
+        "minOut100bps": "28614000205437840",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 1000765,
+        "dollars": 5000,
+        "amount": "4759638267",
+        "fair": "57806061033231599",
+        "kind": "HydraAugustus.sell",
+        "error": "ContractFunctionExecutionError: Execution reverted with reason: 0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000145452414e534645525f46524f4d5f4641494c4544000000000000000000000000.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000000000000000000000000000000000010000002b000000000000000000000000"
+      },
+      {
+        "input": 34,
+        "output": 222,
+        "dollars": 1,
+        "amount": "364327046815323",
+        "fair": "999999999999997564",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "996676044437194792",
+        "oracleLossBps": 33.23,
+        "minOut100bps": "989999999999997588",
+        "strict100bps": true
+      },
+      {
+        "input": 34,
+        "output": 222,
+        "dollars": 10,
+        "amount": "3643270468153238",
+        "fair": "9999999999999997599",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "9966614268519565435",
+        "oracleLossBps": 33.38,
+        "minOut100bps": "9899999999999997623",
+        "strict100bps": true
+      },
+      {
+        "input": 34,
+        "output": 222,
+        "dollars": 25,
+        "amount": "9108176170383097",
+        "fair": "24999999999999999488",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "24915926626518271541",
+        "oracleLossBps": 33.62,
+        "minOut100bps": "24749999999999999493",
+        "strict100bps": true
+      },
+      {
+        "input": 34,
+        "output": 222,
+        "dollars": 100,
+        "amount": "36432704681532388",
+        "fair": "99999999999999997953",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "99651527183667344518",
+        "oracleLossBps": 34.84,
+        "minOut100bps": "98999999999999997973",
+        "strict100bps": true
+      },
+      {
+        "input": 34,
+        "output": 222,
+        "dollars": 250,
+        "amount": "91081761703830971",
+        "fair": "249999999999999997628",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "249067941002055328366",
+        "oracleLossBps": 37.28,
+        "minOut100bps": "247499999999999997651",
+        "strict100bps": true
+      },
+      {
+        "input": 34,
+        "output": 222,
+        "dollars": 500,
+        "amount": "182163523407661943",
+        "fair": "499999999999999998002",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "497933075205679776994",
+        "oracleLossBps": 41.33,
+        "minOut100bps": "494999999999999998021",
+        "strict100bps": true
+      },
+      {
+        "input": 34,
+        "output": 222,
+        "dollars": 1000,
+        "amount": "364327046815323887",
+        "fair": "999999999999999998748",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "995055795009830127822",
+        "oracleLossBps": 49.44,
+        "minOut100bps": "989999999999999998760",
+        "strict100bps": true
+      },
+      {
+        "input": 34,
+        "output": 222,
+        "dollars": 2500,
+        "amount": "910817617038309718",
+        "fair": "2499999999999999998244",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "2481579200687210650939",
+        "oracleLossBps": 73.68,
+        "minOut100bps": "2474999999999999998261",
+        "strict100bps": true
+      },
+      {
+        "input": 34,
+        "output": 222,
+        "dollars": 5000,
+        "amount": "1821635234076619437",
+        "fair": "4999999999999999999233",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "4943072546066726143735",
+        "oracleLossBps": 113.85,
+        "minOut100bps": "4949999999999999999240",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e40000000000000000000000000000000000000000000000000000000100000022000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a0000000000000000000000000000000000000000000000001947bf980d78f2ad00000000000000000000000000000000000000000000010c570cb5c6a797fd0800000000000000000000000000000000"
+      },
+      {
+        "input": 1000765,
+        "output": 222,
+        "dollars": 1,
+        "amount": "11561212207840",
+        "fair": "999999999999948695",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "993462385364040544",
+        "oracleLossBps": 65.37,
+        "minOut100bps": "989999999999949208",
+        "strict100bps": true
+      },
+      {
+        "input": 1000765,
+        "output": 222,
+        "dollars": 10,
+        "amount": "115612122078405",
+        "fair": "9999999999999919433",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "9934478995650401619",
+        "oracleLossBps": 65.52,
+        "minOut100bps": "9899999999999920238",
+        "strict100bps": true
+      },
+      {
+        "input": 1000765,
+        "output": 222,
+        "dollars": 25,
+        "amount": "289030305196014",
+        "fair": "24999999999999928327",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "24835593935280938227",
+        "oracleLossBps": 65.76,
+        "minOut100bps": "24749999999999929043",
+        "strict100bps": true
+      },
+      {
+        "input": 1000765,
+        "output": 222,
+        "dollars": 100,
+        "amount": "1156121220784059",
+        "fair": "99999999999999972796",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "99330306214131719630",
+        "oracleLossBps": 66.96,
+        "minOut100bps": "98999999999999973068",
+        "strict100bps": true
+      },
+      {
+        "input": 1000765,
+        "output": 222,
+        "dollars": 250,
+        "amount": "2890303051960148",
+        "fair": "249999999999999975240",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "248265437272018031017",
+        "oracleLossBps": 69.38,
+        "minOut100bps": "247499999999999975487",
+        "strict100bps": true
+      },
+      {
+        "input": 1000765,
+        "output": 222,
+        "dollars": 500,
+        "amount": "5780606103920296",
+        "fair": "499999999999999950480",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "496329895047691680734",
+        "oracleLossBps": 73.4,
+        "minOut100bps": "494999999999999950975",
+        "strict100bps": true
+      },
+      {
+        "input": 1000765,
+        "output": 222,
+        "dollars": 1000,
+        "amount": "11561212207840593",
+        "fair": "999999999999999987457",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "991856731345465032599",
+        "oracleLossBps": 81.43,
+        "minOut100bps": "989999999999999987582",
+        "strict100bps": true
+      },
+      {
+        "input": 1000765,
+        "output": 222,
+        "dollars": 2500,
+        "amount": "28903030519601482",
+        "fair": "2499999999999999925395",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "2473636016409761319122",
+        "oracleLossBps": 105.45,
+        "minOut100bps": "2474999999999999926141",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e400000000000000000000000000000000000000000000000000000001000f453d000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a0000000000000000000000000000000000000000000000000066af27330d994a0000000000000000000000000000000000000000000000862b865ae353cadf7d00000000000000000000000000000000"
+      },
+      {
+        "input": 1000765,
+        "output": 222,
+        "dollars": 5000,
+        "amount": "57806061039202965",
+        "fair": "4999999999999999937287",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "4927366108706449338171",
+        "oracleLossBps": 145.26,
+        "minOut100bps": "4949999999999999937914",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e400000000000000000000000000000000000000000000000000000001000f453d000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a00000000000000000000000000000000000000000000000000cd5e4e661b329500000000000000000000000000000000000000000000010c570cb5c6a7970d7a00000000000000000000000000000000"
+      },
+      {
+        "input": 222,
+        "output": 43,
+        "dollars": 1,
+        "amount": "1000000000000000000",
+        "fair": "951927",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "942099",
+        "oracleLossBps": 103.24,
+        "minOut100bps": "942407",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a000000000000000000000000000000000000000000000000000000010000002b0000000000000000000000000000000000000000000000000de0b6b3a764000000000000000000000000000000000000000000000000000000000000000e614700000000000000000000000000000000"
+      },
+      {
+        "input": 222,
+        "output": 43,
+        "dollars": 10,
+        "amount": "10000000000000000000",
+        "fair": "9519276",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "9420986",
+        "oracleLossBps": 103.25,
+        "minOut100bps": "9424083",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a000000000000000000000000000000000000000000000000000000010000002b0000000000000000000000000000000000000000000000008ac7230489e8000000000000000000000000000000000000000000000000000000000000008fccd300000000000000000000000000000000"
+      },
+      {
+        "input": 222,
+        "output": 43,
+        "dollars": 25,
+        "amount": "25000000000000000000",
+        "fair": "23798191",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "23552452",
+        "oracleLossBps": 103.25,
+        "minOut100bps": "23560209",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a000000000000000000000000000000000000000000000000000000010000002b0000000000000000000000000000000000000000000000015af1d78b58c40000000000000000000000000000000000000000000000000000000000000167801100000000000000000000000000000000"
+      },
+      {
+        "input": 222,
+        "output": 43,
+        "dollars": 100,
+        "amount": "100000000000000000000",
+        "fair": "95192765",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "94209523",
+        "oracleLossBps": 103.28,
+        "minOut100bps": "94240837",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a000000000000000000000000000000000000000000000000000000010000002b0000000000000000000000000000000000000000000000056bc75e2d6310000000000000000000000000000000000000000000000000000000000000059e004500000000000000000000000000000000"
+      },
+      {
+        "input": 222,
+        "output": 43,
+        "dollars": 250,
+        "amount": "250000000000000000000",
+        "fair": "237981913",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "235522376",
+        "oracleLossBps": 103.34,
+        "minOut100bps": "235602093",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a000000000000000000000000000000000000000000000000000000010000002b00000000000000000000000000000000000000000000000d8d726b7177a80000000000000000000000000000000000000000000000000000000000000e0b00ad00000000000000000000000000000000"
+      },
+      {
+        "input": 222,
+        "output": 43,
+        "dollars": 500,
+        "amount": "500000000000000000000",
+        "fair": "475963826",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "471039976",
+        "oracleLossBps": 103.45,
+        "minOut100bps": "471204187",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a000000000000000000000000000000000000000000000000000000010000002b00000000000000000000000000000000000000000000001b1ae4d6e2ef500000000000000000000000000000000000000000000000000000000000001c16015b00000000000000000000000000000000"
+      },
+      {
+        "input": 222,
+        "output": 43,
+        "dollars": 1000,
+        "amount": "1000000000000000000000",
+        "fair": "951927653",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "942060808",
+        "oracleLossBps": 103.65,
+        "minOut100bps": "942408376",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a000000000000000000000000000000000000000000000000000000010000002b00000000000000000000000000000000000000000000003635c9adc5dea0000000000000000000000000000000000000000000000000000000000000382c02b800000000000000000000000000000000"
+      },
+      {
+        "input": 222,
+        "output": 43,
+        "dollars": 2500,
+        "amount": "2500000000000000000000",
+        "fair": "2379819133",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "2355007709",
+        "oracleLossBps": 104.25,
+        "minOut100bps": "2356020941",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a000000000000000000000000000000000000000000000000000000010000002b0000000000000000000000000000000000000000000000878678326eac900000000000000000000000000000000000000000000000000000000000008c6e06cd00000000000000000000000000000000"
+      },
+      {
+        "input": 222,
+        "output": 43,
+        "dollars": 5000,
+        "amount": "5000000000000000000000",
+        "fair": "4759638267",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "4709529500",
+        "oracleLossBps": 105.27,
+        "minOut100bps": "4712041884",
+        "strict100bps": false,
+        "strictError": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a000000000000000000000000000000000000000000000000000000010000002b00000000000000000000000000000000000000000000010f0cf064dd592000000000000000000000000000000000000000000000000000000000000118dc0d9c00000000000000000000000000000000"
+      },
+      {
+        "input": 43,
+        "output": 222,
+        "dollars": 1,
+        "amount": "951927",
+        "fair": "999999313500000000",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "1009623743714732586",
+        "oracleLossBps": -96.24,
+        "minOut100bps": "989999320365000000",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 222,
+        "dollars": 10,
+        "amount": "9519276",
+        "fair": "9999999438000000000",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "10096240084648650611",
+        "oracleLossBps": -96.24,
+        "minOut100bps": "9899999443620000000",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 222,
+        "dollars": 25,
+        "amount": "23798191",
+        "fair": "24999999645500000000",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "25240585789190647626",
+        "oracleLossBps": -96.23,
+        "minOut100bps": "24749999649045000000",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 222,
+        "dollars": 100,
+        "amount": "95192765",
+        "fair": "99999999632500000000",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "100962034628967456249",
+        "oracleLossBps": -96.2,
+        "minOut100bps": "98999999636175000000",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 222,
+        "dollars": 250,
+        "amount": "237981913",
+        "fair": "249999999606500000000",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "252403540065201601160",
+        "oracleLossBps": -96.14,
+        "minOut100bps": "247499999610435000000",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 222,
+        "dollars": 500,
+        "amount": "475963826",
+        "fair": "499999999213000000000",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "504801928690650641116",
+        "oracleLossBps": -96.03,
+        "minOut100bps": "494999999220870000000",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 222,
+        "dollars": 1000,
+        "amount": "951927653",
+        "fair": "999999999476500000000",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "1009583292708387533400",
+        "oracleLossBps": -95.83,
+        "minOut100bps": "989999999481735000000",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 222,
+        "dollars": 2500,
+        "amount": "2379819133",
+        "fair": "2499999999216500000000",
+        "kind": "HydraAugustus.sell",
+        "outputAmount": "2523804784139232256273",
+        "oracleLossBps": -95.21,
+        "minOut100bps": "2474999999224335000000",
+        "strict100bps": true
+      },
+      {
+        "input": 43,
+        "output": 222,
+        "dollars": 5000,
+        "amount": "4759638267",
+        "fair": "4999999999483500000000",
+        "kind": "HydraAugustus.sell",
+        "error": "ContractFunctionExecutionError: Execution reverted with reason: 0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000145452414e534645525f46524f4d5f4641494c4544000000000000000000000000.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000000000000000000000000000000000010000002b000000000000000000000000"
+      }
+    ],
+    "executions": [
+      {
+        "input": 43,
+        "output": 34,
+        "submitted": true,
+        "amount": "95192765",
+        "minimum": "36068377502165777",
+        "received": "36655767145899288",
+        "custodyEmpty": true,
+        "dispatchAllowance": "95192765"
+      },
+      {
+        "input": 43,
+        "output": 1000765,
+        "submitted": true,
+        "amount": "95192765",
+        "minimum": "1144560004369959",
+        "received": "1167587370416972",
+        "custodyEmpty": true,
+        "dispatchAllowance": "95192765"
+      },
+      {
+        "input": 34,
+        "output": 222,
+        "submitted": true,
+        "amount": "36432704681532388",
+        "minimum": "98999999999999997973",
+        "received": "99676304294586330614",
+        "custodyEmpty": true,
+        "dispatchAllowance": "36432704681532388"
+      },
+      {
+        "input": 1000765,
+        "output": 222,
+        "submitted": true,
+        "amount": "1156121220784059",
+        "minimum": "98999999999999973068",
+        "received": "99346694021026189552",
+        "custodyEmpty": true,
+        "dispatchAllowance": "1156121220784059"
+      },
+      {
+        "input": 222,
+        "output": 43,
+        "submitted": false,
+        "reason": "ContractFunctionExecutionError: Execution reverted with reason: 0x.\n\nRaw Call Arguments:\n  from:  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\n  to:    0x322813fd9a801c5507c9de605d63cea4f2ce6c44\n  data:  0x41da89e4000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a000000000000000000000000000000000000000000000000000000010000002b0000000000000000000000000000000000000000000000056bc75e2d6310000000000000000000000000000000000000000000000000000000000000059e004500000000000000000000000000000000"
+      },
+      {
+        "input": 43,
+        "output": 222,
+        "submitted": true,
+        "amount": "95192765",
+        "minimum": "98999999636175000000",
+        "received": "100960385091843959146",
+        "custodyEmpty": true,
+        "dispatchAllowance": "95192765"
+      }
+    ],
+    "limitation": "One pinned pool state. Dry-run quotes do not establish replenishment, sustained throughput or future fills.",
+    "primeOracleRound": [
+      "9",
+      "105050000",
+      "1785463206",
+      "1785463206",
+      "9"
+    ],
+    "primeOracleOwner": "0xAa7e0000000000000000000000000000000Aa7e0"
+  },
+  "entryFloorFinding": "Unmodified pinned market rejected entry at the existing 1% oracle-relative floor. See routeCalibration for measured amounts.",
+  "referenceScenario": {
+    "referenceFile": "/tmp/propeller-route-prime-reference-20260923.json",
+    "reference": {
+      "endpoint": "https://api.mainnet-beta.solana.com",
+      "program": "97V7JsExNC6yFWu5KjK1FLfVkNVvtMpAFL5QkLWKEGxY",
+      "slot": 449650994,
+      "retrievedAt": "2026-09-23T08:37:13.338Z",
+      "accounts": [
+        {
+          "address": "Ev92L9D2CsPczeKHF3UWybQSweQCG4NRfexwJfVwyqsn",
+          "priceRaw": "1060805520790895911",
+          "scale": "1000000000000000000",
+          "wyldsPerPrime": 1.060805520790896,
+          "updatedAt": "2026-09-23T08:24:44.000Z",
+          "ageSeconds": 749.3380000591278,
+          "maxStalenessSeconds": 3600,
+          "fresh": true
+        }
+      ],
+      "raw": {
+        "jsonrpc": "2.0",
+        "result": {
+          "context": {
+            "slot": 449650994,
+            "apiVersion": "4.3.0-beta.2"
+          },
+          "value": [
+            {
+              "pubkey": "Ev92L9D2CsPczeKHF3UWybQSweQCG4NRfexwJfVwyqsn",
+              "account": {
+                "lamports": 2122800,
+                "data": [
+                  "D+Cs2bP2VRDr+XWMJ4xejU4oLCekDbMH4wWnY8Psx6A+aGk60l/qG/IxD8P0sJ0OH+pVTH30i86hDdp36td8qKCYKFqYoKLtZIjSz8DgJHS9o12KcUJfS4/vyCbOq8BAMKLCqvU9Z+IAB8jtFV2VLgA7HhXOdmb+p4XPviFld9V4/OOSDplycSe9gzIAvbgOAAAAAAAAAAAAAGSns7bgDcyMs2oAAAAAEA4AAAAAAAD9",
+                  "base64"
+                ],
+                "owner": "97V7JsExNC6yFWu5KjK1FLfVkNVvtMpAFL5QkLWKEGxY",
+                "executable": false,
+                "rentEpoch": 18446744073709552000,
+                "space": 177
+              }
+            }
+          ]
+        },
+        "id": 1
+      },
+      "caveat": "PRIME/wYLDS reference only. Does not verify pauses, executable size, USDC redemption funding, bridging, or a settlement commitment."
+    },
+    "price": "106080552",
+    "assumption": "Fork-only governance price update assuming wYLDS=$1. Not a verified USD redemption quote, production price approval, or proof after full pool-peg convergence."
+  },
+  "nativeTimeAdvance": {
+    "before": "1790239272",
+    "after": "1790844078",
+    "requestedSeconds": "604800"
+  },
+  "campaignInterestAdvanced": true,
+  "campaignPreHarvest": {
+    "eth": "210000067979894374",
+    "btc": "6100000558350231",
+    "buffers": [
+      {
+        "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "buffer": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+        "interest": "52177528293805244"
+      },
+      {
+        "vault": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+        "buffer": "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+        "interest": "50931227725303782"
+      }
+    ]
+  },
+  "campaignTimeAdvanced": true,
+  "campaignPayouts": [
+    {
+      "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "user": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "deposited": "100000000000000007",
+      "promised": "111809379676874400",
+      "paid": "111809379676874400"
+    },
+    {
+      "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "user": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "deposited": "100000000000000011",
+      "promised": "111809379671850502",
+      "paid": "111809379671850502"
+    },
+    {
+      "vault": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "user": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "deposited": "3000000000000013",
+      "promised": "3347058082178133",
+      "paid": "3347058082178133"
+    },
+    {
+      "vault": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "user": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "deposited": "3000000000000017",
+      "promised": "3347058082135598",
+      "paid": "3347058082135598"
+    }
+  ],
+  "campaignLimitations": [
+    "HydraAugustus candidate from separately pinned external source; not an independent audit",
+    "Donated PRIME fixture tests harvest execution, not realized yield",
+    "Explicit external HOLLAR donations for swap friction and recovery",
+    "Seven-day native time advance; 90-day paths are separate modeled tests"
+  ],
+  "verifiedPolicy": {
+    "slippagePpm": 10000,
+    "deployTrancheWei": "1000000000000000000000",
+    "unwindTranchePrimeUnits": "900000000"
+  },
+  "finalBufferExits": [
+    {
+      "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "id": "0",
+      "owner": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "unpaidSourceClaim": "0"
+    },
+    {
+      "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "id": "1",
+      "owner": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "unpaidSourceClaim": "0"
+    },
+    {
+      "vault": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "id": "0",
+      "owner": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "unpaidSourceClaim": "0"
+    },
+    {
+      "vault": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "id": "1",
+      "owner": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "unpaidSourceClaim": "0"
+    }
+  ],
+  "verifiedThroughBlock": "14938010",
+  "nativeResize": {
+    "scope": "Remaining seed position, local governance LTV reduction by 1500bp, not a live collateral-price crash. Existing campaign recovery cash is recorded.",
+    "calls": [
+      {
+        "functionName": "setTranches",
+        "hash": "0xb566ea88d8a558589bb70f5206c3c24a73e73d18058084970f19204f77f16abf",
+        "gasUsed": "36990"
+      },
+      {
+        "functionName": "pokeRepay",
+        "hash": "0x624f148d8c3ebbf0cd5a9e6fd1dd1d44cfe6178e6dd3d82985c4d57e6346ecf2",
+        "gasUsed": "1440080"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0xc9c3d7da58d558007c7f07de94119fcb60f0e8d24b3eeeff58909bd7cb62a394",
+        "gasUsed": "768120"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0xd7151481ec50a7d45beadf24041a62be69ecc5cc845a35b1b479ccc79e1e53ff",
+        "gasUsed": "772216"
+      },
+      {
+        "functionName": "pokeRepay",
+        "hash": "0x6041d44786b6a9b9cdf093fb548a677c79c5b03a019a7646cbcaabb87361806b",
+        "gasUsed": "1440080"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x48b63c6fc640cc7daa4d8eebde1b7c9991a9c694ef34f5635d1e0ac2aecc25e3",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x8edcaf605fc5aa55cd0b814e145906706af6365ba8e464c1897735d01f163984",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeRepay",
+        "hash": "0xbc3cb4323a18fb0087ca5466deb9de2eebf618d46eca8bd27494b6ce2e405100",
+        "gasUsed": "1440080"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x0e2f8be668c093f1ca6adbbfc1b47bca38b81e94bf48208fb3a01e270fca84ce",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x69d42e2c5ae87ea97d132afde152585ba443d19430a1985bb491e2accae50516",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeRepay",
+        "hash": "0xd52eeb66357094699625815f93da8b80d2d105b09d60f83faeab6025cf060438",
+        "gasUsed": "1440080"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x45619f0ad6fb6e90c9f965cfdd99b224febec8587092da6e9247e507c726fbfd",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0xc3529adf6a86b944cc0b414ca3c7e09fe7ae832dd0346cedaa2bde9868f85a5f",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeRepay",
+        "hash": "0x0c62ef1723ffc912265beaacf9a56372866ba901f773560c254a2ed15063bd1b",
+        "gasUsed": "1440080"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0xb1d7e61c06729dc96c5fe9ec18e1830eed6f99bf72b2dc8164d283ad1f0a8c4f",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0xc870208234d3eb045e659caa21da13abf4a5ec66f8432e9e3ecdfcbb040c7210",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeRepay",
+        "hash": "0x3404fd58cefc6c77f4dc787d373263b4dc982f46be3eaae7d458b1027096ad29",
+        "gasUsed": "1440080"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x74bcaefff4d385fe296f6734dd457ca574b37a1b297d957d2572c5dbfaa9afd6",
+        "gasUsed": "744856"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x130da3802accc17157df10d83f1174ed0a8eb47494db3d181b441f8d6e2a7c64",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeRepay",
+        "hash": "0x65fcb529445653deb74fe51c5a388f8b4dcfdb2997781f92c565d41b663c7cd0",
+        "gasUsed": "1440080"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x84c2eb38e37a49e56242e0fe6ae617a0bd8c2801b026d8d8263879826144e88d",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x73e6c7dedea1d3594d5d443087e0b14b73fb312be2aeb4a020d96154b4184ed1",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeRepay",
+        "hash": "0xc5ddd2f43d0c9fa72e62b9594680ffee0a182acfe608586bfe28b4c7621f7c32",
+        "gasUsed": "1440080"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0xb99e376f127e04b0cf96f36b0c874a84be6fc6ec3730a719f25a29626aaffdcf",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x7e99ec217b8f47edcec2156e115704ac671517bd9fd12ca53ddac8712ac04951",
+        "gasUsed": "740760"
+      },
+      {
+        "functionName": "pokeRepay",
+        "hash": "0xa124389e72defefe493eeaf177e8c48444db51bfed8a8a17aece147e92ea2c79",
+        "gasUsed": "1435265"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0xab38e875d0f23b0d261db3b106dc3821d31e87d13f926dc0e00c92c14749b011",
+        "gasUsed": "762596"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x74a6de0bb52b823a03770d93b9d4049296512c8883f92f018be06fea44a551b4",
+        "gasUsed": "764800"
+      },
+      {
+        "functionName": "claimSurplus",
+        "hash": "0x08066477849ca5ac1f39107c6e8aef6632995430c5aca8a4bdb47b1c95a68348",
+        "gasUsed": "74879"
+      },
+      {
+        "functionName": "claimSurplus",
+        "hash": "0xcb0ae9f089f5444595cafd69b86beb105d71300c1069fa075b5ac9464c97685b",
+        "gasUsed": "74891"
+      },
+      {
+        "functionName": "claimSurplus",
+        "hash": "0x348ff6470bfbd0967e64c45e88c0d8565a4636a96a9827c13ad6388ab7631049",
+        "gasUsed": "74879"
+      },
+      {
+        "functionName": "claimSurplus",
+        "hash": "0x317ac81fb4bfc774c5c7d3209cbdf47efb1ac3598c57a24bdd99a18f1b1a4dfc",
+        "gasUsed": "74891"
+      },
+      {
+        "functionName": "rebalance",
+        "hash": "0x4ed53ece5b889f59baf975b81a73325817359c060aef601a57e5a668114a3645",
+        "gasUsed": "580651"
+      },
+      {
+        "functionName": "pokeRepay",
+        "hash": "0x3fd72bee0813d4b53eae8d1cc92105bdc05e66d0932243b4eac8aec8697a65d8",
+        "gasUsed": "1391697"
+      },
+      {
+        "functionName": "pokeSettle",
+        "hash": "0x28d1befd63e285d7b78495dfbc72aa01cfc66ca2082f8c66d05e14cf29fda095",
+        "gasUsed": "752900"
+      }
+    ],
+    "preDrain": {
+      "mainDebt": "20585901133719172161",
+      "loopDebt": "543136809775694975412",
+      "prime": "788002412",
+      "collateral": "11180938136123253",
+      "ownedCash": "4744524486095166971",
+      "target": "0"
+    },
+    "originalLtv": "7500",
+    "newLtv": "6000",
+    "localCandidateTranches": {
+      "hollar": "1000",
+      "prime": "900",
+      "productionApproved": false
+    },
+    "preDrainSourceClaims": [
+      {
+        "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "amount": "135503557274553353931"
+      },
+      {
+        "vault": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+        "amount": "125029400320000597110"
+      }
+    ],
+    "latePayouts": [
+      {
+        "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "id": "0",
+        "owner": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "paid": "67717671754280911041"
+      },
+      {
+        "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "id": "1",
+        "owner": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+        "paid": "67717671751238172532"
+      },
+      {
+        "vault": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+        "id": "0",
+        "owner": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+        "paid": "62483229670590760882"
+      },
+      {
+        "vault": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+        "id": "1",
+        "owner": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+        "paid": "62483229669796723999"
+      }
+    ],
+    "before": {
+      "mainDebt": "20585900444124569676",
+      "loopDebt": "56682186732760726764",
+      "prime": "82206062",
+      "collateral": "11180938144164439",
+      "ownedCash": "4744518279743952507",
+      "target": "0"
+    },
+    "scheduled": {
+      "mainDebt": "20585900788921868031",
+      "loopDebt": "56682187682141828813",
+      "prime": "82206062",
+      "collateral": "11180938144667013",
+      "ownedCash": "4744518279743952507",
+      "target": "2172327200344248105"
+    },
+    "after": {
+      "mainDebt": "18417546337784796044",
+      "loopDebt": "43248498829021190884",
+      "prime": "63961105",
+      "collateral": "11180938145169588",
+      "ownedCash": "4744518279743952507",
+      "target": "0"
+    },
+    "passed": true,
+    "ltvRestored": true
+  }
+}

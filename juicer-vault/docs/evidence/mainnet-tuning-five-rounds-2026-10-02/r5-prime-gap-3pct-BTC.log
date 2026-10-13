@@ -1,0 +1,37 @@
+Missing dependencies found. Installing now...
+
+No files changed, compilation skipped
+
+Ran 1 test for test/MainnetTuning.t.sol:MainnetTuningTest
+[PASS] test_mainnetTuning() (gas: 276562837)
+Logs:
+  fundedCryptoUsd: 123208375876116526375
+  unconvertedUsd: 0
+  mainDebtUsd: 8287258394073101441380
+  loopDebtUsd: 34731292532260733385347
+  sourceEquityUsd: 7065435543240000000000
+  cashUsd: 0
+  backingDeficitUsd: 1221822850833101441380
+  sourceReserveUsd: 41680609877850000000
+  protocolFeeUsd: 15451579835999131826
+  firstHarvestDay: 57
+  firstCryptoDay: 84
+  harvests: 14
+  borrows: 22
+  rebalances: 11
+  repays: 17
+  pegUpdates: 192
+  blockedDays: 223
+  mainInterestUsd: 357359618060905811639
+  loopInterestUsd: 1468464089653271385347
+  waivedInterestUsd: 0
+  sourceIncomeUsd: 2291633171000000000000
+  minimumHf: 1022969184435123562
+  maxHarvestUsd: 22526880000000000000
+  maxBorrowUsd: 5000000000000000000000
+  maxRebalanceUsd: 9851603230000000000
+  days: 365
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.13s (1.13s CPU time)
+
+Ran 1 test suite in 1.14s (1.13s CPU time): 1 tests passed, 0 failed, 0 skipped (1 total tests)

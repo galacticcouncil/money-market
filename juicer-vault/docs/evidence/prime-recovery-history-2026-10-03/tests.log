@@ -1,0 +1,22 @@
+✔ elapsed time without inventory recovery never replenishes a trade budget (0.809906ms)
+✔ both reserve legs must recover; competing buys remove earlier capacity (0.149193ms)
+✔ cumulative net recovery is credited once, and excess can serve later slices (0.184474ms)
+✔ LP issuance changes and missing observations censor the schedule (0.139173ms)
+✔ a one-slice order has no replenishment wait and no delay expense (0.134453ms)
+✔ hourly accrual reconstructs Hastra net APY without double-counting fees (1.192304ms)
+✔ zero-work safety observations cost RPC overhead, not invented chain fees (0.657353ms)
+✔ counts controlled deposits, service legs, useful settlement and failed writes (0.291536ms)
+✔ shared operators and deployment are allocated once by aggregate TVL (0.258325ms)
+✔ external bills larger than principal are visible; negative multi-year wealth has no CAGR (0.286676ms)
+✔ funded crypto, user carry, protocol carry, insolvency and closing costs stay distinct (1.028991ms)
+✔ cannot win on missing/duplicate asset, subsidy, missing admission or loss (0.52778ms)
+✔ parser rejects incomplete, failed and impossible service counts (5.209024ms)
+✔ each round retains the preceding baseline to expose non-improvements (0.99397ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 80.269717

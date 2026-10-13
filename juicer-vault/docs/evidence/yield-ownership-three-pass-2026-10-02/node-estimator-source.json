@@ -1,0 +1,8 @@
+{
+  "repository": "galacticcouncil/hydration-node",
+  "commit": "c08bba3689450788ea4bec671146f485d856e74b",
+  "path": "Cargo.toml",
+  "lines": [
+    "fc-rpc = { git = \"https://github.com/moonbeam-foundation/frontier\", branch = \"moonbeam-polkadot-stable2506\", default-features = false, features = [\"rpc-binary-search-estimate\"] }"
+  ]
+}

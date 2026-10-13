@@ -1,0 +1,484 @@
+{
+  "rpc": "https://4.lark.hydration.cloud",
+  "genesis": "0x0a1fba23f7897cb5cbb3289db93ab605774565149b0c87033b4f2af817c9f96c",
+  "runtime": 447,
+  "commit": "db0799c2c13cfea880b089d737c02cfb2e116be6",
+  "startedAt": "2026-10-06T22:41:11.205Z",
+  "testnetOnly": true,
+  "status": "testnet-active; deferred entry deployed and ramping; harvest mined and claimed",
+  "addresses": {
+    "vaultImpl": "0x7e7a0e795e14a11e62b20efaec48407003bfdc8f",
+    "compoundLogic": "0x9d5C73cd0B9F9515A44D788D0D92e4Fe9A06e4AE",
+    "synth": "0x40cca3da6cead6dada9e9ffc4c06e9039791876a",
+    "subImpl": "0x59ba6340a85e311f8f43071372de1d0f5fb90dc4",
+    "source": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+    "harvester": "0xe0983cedd797b38090e6dcde54af88aa6eb22edc",
+    "fees": "0x5f8d1d70c658fd0ffd79d3eaa692fc78306f39db",
+    "controller": "0xa64e418978482d5de91717cf6c77e1f40105f2ab",
+    "aSynthetic": "0xa8f540FB7852024Da35D30947bE0899299ba42F1",
+    "discount": "0x423e733c04e94f689f2dcbad88c3b71db44aad70"
+  },
+  "vaults": [
+    {
+      "name": "ETH",
+      "assetId": 34,
+      "asset": "0x0000000000000000000000000000000100000022",
+      "aToken": "0x11a8f7fFbB7e0fbEd88BC20179Dd45B4Bd6874ff",
+      "cap": "10000000000000000000",
+      "address": "0x3a1c0fa2f877c84d2930e59637c111a31878dcdf",
+      "mainDebt": "0x79b41c78a2b5ac1ddc3c80877449b1cc8f850c46",
+      "yieldAccounting": "0x4B80155b2607848503AcF77cCBdadd04091AFA4E",
+      "rounding": {
+        "vault": "0x3a1c0fa2f877c84d2930e59637c111a31878dcdf",
+        "assetId": 34,
+        "minimum": "10746910264300",
+        "target": "53735551316500"
+      }
+    },
+    {
+      "name": "TBTC",
+      "assetId": 1000765,
+      "asset": "0x00000000000000000000000000000001000f453d",
+      "aToken": "0x69003a65189f6Ed993D3bD3E2B74f1Db39F405ce",
+      "cap": "500000000000000000",
+      "address": "0x7b200b8c8a5ffd7720a48b0cb5a7f9fc6a512578",
+      "mainDebt": "0x2c66100c46d15d6b826ba2a89f2d31e3ca47a153",
+      "yieldAccounting": "0xaFd8bD5fF5D9AeC6ba929B7DCA335eF0C8A190f0",
+      "rounding": {
+        "vault": "0x7b200b8c8a5ffd7720a48b0cb5a7f9fc6a512578",
+        "assetId": 1000765,
+        "minimum": "213606750974",
+        "target": "1069033749870"
+      }
+    }
+  ],
+  "market": {
+    "pool": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+    "hollar": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+    "prime": "0x000000000000000000000000000000010000002b",
+    "aPrime": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+    "hollarDebt": "0x342923782cCaEBf9c38DD9cb40436e82C42c73B5",
+    "swapper": "0x538d2755b5fb9a4f7c5769bdcf5103e569d6e241",
+    "swapperCodeHash": "0xe919271c5e64381455344ce25acb283515bd954dbf7d56bebd2fe57d287e5189",
+    "deployedAdapter": true
+  },
+  "routes": [
+    {
+      "pair": {
+        "assetIn": 34,
+        "assetOut": 43
+      },
+      "route": [
+        {
+          "pool": {
+            "aave": null
+          },
+          "assetIn": 34,
+          "assetOut": 1007
+        },
+        {
+          "pool": {
+            "stableswap": 4200
+          },
+          "assetIn": 1007,
+          "assetOut": 4200
+        },
+        {
+          "pool": {
+            "aave": null
+          },
+          "assetIn": 4200,
+          "assetOut": 420
+        },
+        {
+          "pool": {
+            "omnipool": null
+          },
+          "assetIn": 420,
+          "assetOut": 222
+        },
+        {
+          "pool": {
+            "stableswap": 143
+          },
+          "assetIn": 222,
+          "assetOut": 43
+        }
+      ]
+    },
+    {
+      "pair": {
+        "assetIn": 43,
+        "assetOut": 1000765
+      },
+      "route": [
+        {
+          "pool": {
+            "stableswap": 143
+          },
+          "assetIn": 43,
+          "assetOut": 222
+        },
+        {
+          "pool": {
+            "omnipool": null
+          },
+          "assetIn": 222,
+          "assetOut": 1000765
+        }
+      ]
+    }
+  ],
+  "oracles": [
+    {
+      "assetId": 34,
+      "asset": "0x0000000000000000000000000000000100000022",
+      "name": "ETH",
+      "address": "0x13ad8e687f7d9aab96025497ba5a96968175cc22",
+      "sourceFeed": "0x1AF549Fe19A9B73D094173C41e18BF7F357F594b",
+      "sourcePrice": "269592741953",
+      "sourceUpdatedAt": "1791306023",
+      "sourceBlock": "15484834",
+      "sourceBlockHash": "0x49e77fa7587de2ea3433f29343bd826deb93f95d0d4526110eb9cc3c2f3eb0c7"
+    },
+    {
+      "assetId": 1000765,
+      "asset": "0x00000000000000000000000000000001000f453d",
+      "name": "tBTC",
+      "address": "0x5bb401114feb59200e4e3ceace6fc5a7dea998fa",
+      "sourceFeed": "0xe5AcDfB0d5EC5cE34F7448B41ef4a97c4e83D9c1",
+      "sourcePrice": "8566461161558",
+      "sourceUpdatedAt": "1791305783",
+      "sourceBlock": "15484834",
+      "sourceBlockHash": "0x49e77fa7587de2ea3433f29343bd826deb93f95d0d4526110eb9cc3c2f3eb0c7"
+    },
+    {
+      "assetId": 43,
+      "asset": "0x000000000000000000000000000000010000002b",
+      "name": "PRIME",
+      "address": "0xa5856f72103d42a904c3ff1361013e524743852e",
+      "sourceFeed": "0x09221057Cf7E75953D199FB319E606972A6A82Cd",
+      "sourcePrice": "106316094",
+      "sourceUpdatedAt": "1791316212",
+      "sourceBlock": "15484834",
+      "sourceBlockHash": "0x49e77fa7587de2ea3433f29343bd826deb93f95d0d4526110eb9cc3c2f3eb0c7"
+    }
+  ],
+  "feeRecipient": "0xE52567fF06aCd6CBe7BA94dc777a3126e180B6d9",
+  "committee": "0x146a5e57fa0b8b1e13c53bcf1d05183b1c02b51b",
+  "synthAssetId": 5551,
+  "discountBps": 0,
+  "testSigners": {
+    "deployer": "0xbDA5747bFD65F08deb54cb465eB87D40e51B197E",
+    "keeper": "0xdD2FD4581271e230360230F9337D5c0430Bf44C0",
+    "oracle": "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+    "keeperSecondary": "0x09DB0a93B389bEF724429898f539AEB7ac2Dd55f",
+    "ui": "0x3088c164994890ea0e444bf53623ccac3b307217",
+    "arb": "0x62479ab06a50167aff57755656923dce2a0b9d16"
+  },
+  "executionPolicy": {
+    "maxQuoteAge": 60,
+    "maxQuoteBlocks": 5,
+    "expiresAt": 1793919174,
+    "budgets": [
+      {
+        "name": "entry",
+        "group": "0x33df2d96973bfe9b09959368e3c33d22c41ada8679a87df5c8349880b27b44ce",
+        "token": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "capacity": "1000000000000000000000",
+        "refillPerSecond": "1000000000000000000",
+        "expiresAt": 1793919174,
+        "minIntervalSeconds": 60
+      },
+      {
+        "name": "unwind",
+        "group": "0x24a4e20c1dec14cab24161c57917ba40c41682b95fde667378eb5fc28efeeff7",
+        "token": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+        "capacity": "1000000000",
+        "refillPerSecond": "1000000",
+        "expiresAt": 1793919174,
+        "minIntervalSeconds": 60
+      },
+      {
+        "name": "harvest",
+        "group": "0x9b605cba51978d163ec70365f6dd261a4858e9abe0635d9db9b9045d5991e356",
+        "token": "0x000000000000000000000000000000010000002b",
+        "capacity": "1000000000",
+        "refillPerSecond": "1000000",
+        "expiresAt": 1793919174,
+        "minIntervalSeconds": 60
+      },
+      {
+        "name": "service-ETH",
+        "group": "0x27eacb01119bf615028672a408e44e904f309dce8cdc375edc70e20e1bde65f5",
+        "token": "0x0000000000000000000000000000000100000022",
+        "capacity": "1000000000000000000",
+        "refillPerSecond": "1000000000000000",
+        "expiresAt": 1793919174,
+        "minIntervalSeconds": 60
+      },
+      {
+        "name": "service-TBTC",
+        "group": "0x9a81d63186f91276e38e2d14af81d7393dbb799e4c115f70c8886665983b1321",
+        "token": "0x00000000000000000000000000000001000f453d",
+        "capacity": "100000000000000000",
+        "refillPerSecond": "100000000000000",
+        "expiresAt": 1793919174,
+        "minIntervalSeconds": 60
+      }
+    ],
+    "limits": [
+      {
+        "consumer": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+        "input": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "output": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+        "lane": "0xdadd7e079d82c7bc8c1933676748064fbcd4d164f9225974b5ab51cfb4cea116",
+        "group": "0x33df2d96973bfe9b09959368e3c33d22c41ada8679a87df5c8349880b27b44ce",
+        "minimum": "1000000000000000000",
+        "maximum": "50000000000000000000",
+        "maxShortfallBps": 6,
+        "safety": false
+      },
+      {
+        "consumer": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+        "input": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+        "output": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "lane": "0x80995217786f67151e983304d5b7cab1ae3e991c3c297d9c948c845fb9a6d119",
+        "group": "0x24a4e20c1dec14cab24161c57917ba40c41682b95fde667378eb5fc28efeeff7",
+        "minimum": "10000",
+        "maximum": "50000000",
+        "maxShortfallBps": 6,
+        "safety": true
+      },
+      {
+        "consumer": "0x3a1c0fa2f877c84d2930e59637c111a31878dcdf",
+        "input": "0x000000000000000000000000000000010000002b",
+        "output": "0x0000000000000000000000000000000100000022",
+        "lane": "0x74e16d96ebb0e3e48fa01ea496e51121b5fceeedf7b16364accfbed9969983fa",
+        "group": "0x9b605cba51978d163ec70365f6dd261a4858e9abe0635d9db9b9045d5991e356",
+        "minimum": "10000",
+        "maximum": "50000000",
+        "maxShortfallBps": 100,
+        "safety": false
+      },
+      {
+        "consumer": "0x3a1c0fa2f877c84d2930e59637c111a31878dcdf",
+        "input": "0x0000000000000000000000000000000100000022",
+        "output": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "lane": "0xb988a6ee28e2f03afa53ee91320a11530ae9a892557fd58c1fc08613e23c9388",
+        "group": "0x27eacb01119bf615028672a408e44e904f309dce8cdc375edc70e20e1bde65f5",
+        "minimum": "1000000000000",
+        "maximum": "20000000000000000",
+        "maxShortfallBps": 100,
+        "safety": false
+      },
+      {
+        "consumer": "0x79b41c78a2b5ac1ddc3c80877449b1cc8f850c46",
+        "input": "0x0000000000000000000000000000000100000022",
+        "output": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "lane": "0x5d44dfb577d5f9602065cccbc52d17738a0127e2caa1336d9544edf1b205260d",
+        "group": "0x27eacb01119bf615028672a408e44e904f309dce8cdc375edc70e20e1bde65f5",
+        "minimum": "1000000000000",
+        "maximum": "20000000000000000",
+        "maxShortfallBps": 100,
+        "safety": false
+      },
+      {
+        "consumer": "0x7b200b8c8a5ffd7720a48b0cb5a7f9fc6a512578",
+        "input": "0x000000000000000000000000000000010000002b",
+        "output": "0x00000000000000000000000000000001000f453d",
+        "lane": "0x0edb3cde3364a8cbe84ee1e4b7254b4f9801e24b0212c3c7749f58f6b199bb8d",
+        "group": "0x9b605cba51978d163ec70365f6dd261a4858e9abe0635d9db9b9045d5991e356",
+        "minimum": "10000",
+        "maximum": "50000000",
+        "maxShortfallBps": 100,
+        "safety": false
+      },
+      {
+        "consumer": "0x7b200b8c8a5ffd7720a48b0cb5a7f9fc6a512578",
+        "input": "0x00000000000000000000000000000001000f453d",
+        "output": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "lane": "0x6821fd65e8a69a95617c8479e52d666a2dfd2f0be7bb27b09de07a2d01cd4d3e",
+        "group": "0x9a81d63186f91276e38e2d14af81d7393dbb799e4c115f70c8886665983b1321",
+        "minimum": "10000000000",
+        "maximum": "1000000000000000",
+        "maxShortfallBps": 100,
+        "safety": false
+      },
+      {
+        "consumer": "0x2c66100c46d15d6b826ba2a89f2d31e3ca47a153",
+        "input": "0x00000000000000000000000000000001000f453d",
+        "output": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "lane": "0x31a0d551c9d4c08a0227f57f0523d3f13addc23c7c90f65f1122e331138b3cf5",
+        "group": "0x9a81d63186f91276e38e2d14af81d7393dbb799e4c115f70c8886665983b1321",
+        "minimum": "10000000000",
+        "maximum": "1000000000000000",
+        "maxShortfallBps": 100,
+        "safety": false
+      }
+    ]
+  },
+  "testnetApprovals": [
+    {
+      "id": "prime-six-bps",
+      "scope": "Lark only; PRIME/HOLLAR entry and unwind",
+      "maxShortfallBps": 6,
+      "userAnswer": "Use 6 bps on Lark only (Recommended)"
+    },
+    {
+      "id": "collateral-hundred-bps",
+      "scope": "Lark only; ETH/tBTC harvest and Main interest-sale lanes, vault compound floor",
+      "maxShortfallBps": 100,
+      "userAnswer": "0 price floor is unrealistic; make harvest work"
+    }
+  ],
+  "sourceSlippagePpm": 600,
+  "compoundSlippageBps": 100,
+  "checks": {
+    "testAccountsFunded": true,
+    "bootstrapNoBorrow": true,
+    "primePegCaughtUp": {
+      "current": "106316093",
+      "target": "106316094",
+      "restoredMaxPegUpdate": 40
+    },
+    "adapterWhitelisted": true,
+    "primeCollateralRoutes": true,
+    "harvestClaim": {
+      "vault": "0x3a1c0fa2f877c84d2930e59637c111a31878dcdf",
+      "claimable": "305037059110929",
+      "received": "305037059110929",
+      "assets": "305037062369664"
+    }
+  },
+  "testSubsidies": [
+    {
+      "vault": "0x3a1c0fa2f877c84d2930e59637c111a31878dcdf",
+      "mainDebt": "0x79b41c78a2b5ac1ddc3c80877449b1cc8f850c46",
+      "hollar": "1000000000000000000",
+      "reason": "entry-cost gap after deferred deployment"
+    },
+    {
+      "vault": "0x7b200b8c8a5ffd7720a48b0cb5a7f9fc6a512578",
+      "mainDebt": "0x2c66100c46d15d6b826ba2a89f2d31e3ca47a153",
+      "hollar": "1000000000000000000",
+      "reason": "entry-cost gap after deferred deployment"
+    },
+    {
+      "source": "0x5b153c8e24ca62436ef836a1f179dd8ade2d5acd",
+      "hollar": "500000000000000000",
+      "reason": "source entry-cost gap and initial ramp headroom"
+    }
+  ],
+  "previousOracles": [
+    {
+      "asset": "0x0000000000000000000000000000000100000022",
+      "source": "0x1AF549Fe19A9B73D094173C41e18BF7F357F594b"
+    },
+    {
+      "asset": "0x00000000000000000000000000000001000f453d",
+      "source": "0xe5AcDfB0d5EC5cE34F7448B41ef4a97c4e83D9c1"
+    },
+    {
+      "asset": "0x000000000000000000000000000000010000002b",
+      "source": "0x09221057Cf7E75953D199FB319E606972A6A82Cd"
+    }
+  ],
+  "previousPrimePeg": {
+    "source": [
+      {
+        "mmOracle": "0x09221057cf7e75953d199fb319e606972a6a82cd"
+      },
+      {
+        "value": [
+          1,
+          1
+        ]
+      }
+    ],
+    "updatedAt": 15483291,
+    "maxPegUpdate": 40,
+    "current": [
+      [
+        "0x97e4cb9697d8de1e896922bc2a712889",
+        "0x8edeb3e1eb7aecabeb3bedb68a766055"
+      ],
+      [
+        1,
+        1
+      ]
+    ]
+  },
+  "previousDiscount": {
+    "token": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+    "strategy": "0x33A7C640140FEBafEcC9801AF723A0C14420eEd7"
+  },
+  "harvest": {
+    "block": 568,
+    "tx": "0x609fe292e0564862ab3933522fa3f03f7605399040b24566da2752abdecac208",
+    "primeRealized": "1447131",
+    "signer": "hosted keeper"
+  },
+  "hosting": {
+    "stack": "propeller-oct2026",
+    "keeperImage": "galacticcouncil/propeller-lark-keeper@sha256:a3255dd2ace1439c6cdfbe1cd548c57da14f896bc303c5d1251aa6ff159070bc",
+    "keeperCommit": "db0799c",
+    "botImage": "galacticcouncil/propeller-lark-bots@sha256:032cb274ddb0e866a4410bcfa898dd771adf2e925867bb687a3dccd8781bcfb6",
+    "manifestConfig": "propeller-lark4-20261007-manifest-v2",
+    "botCommit": "9d81c0f",
+    "services": [
+      "keeper0",
+      "keeper1",
+      "mirror",
+      "markets",
+      "pools",
+      "replay"
+    ]
+  },
+  "fork": {
+    "stateBlock": "0x60a4017c85b923661d3b7123d69159d678cf4b5d2ce773e7e757df6d77746d99",
+    "stateBlockNumber": 15484030,
+    "stateRpc": "wss://rpc.hydradx.cloud",
+    "image": "galacticcouncil/fork@sha256:f0bef5c6b45f4a7e44b6ae648023339f9afe6f57869129ad4dba7c8d7c778d9f",
+    "node": "48.0.2"
+  },
+  "ui": {
+    "pr": 3978,
+    "commit": "cccd9effe"
+  },
+  "artifacts": {
+    "HydraAugustus": {
+      "sha256": "13c641745b24369b9392e0ca96a2284bb44b70a074127301721567fea1dbbab0"
+    },
+    "CollateralVault": {
+      "sha256": "cc90f85f3de3e3359e11632e9f70e0e808b76d5785d2324d3cebf1d4d4420080"
+    },
+    "CompoundLogic": {
+      "sha256": "6a41b89e9035cc887108cd43b142fe32f234aecf7f2d62b438fcb8274c0e078c"
+    },
+    "SyntheticToken": {
+      "sha256": "12b65c42e7a85526b0c9cd3451147e4a8bf7de585981df2736e234fc880f97da"
+    },
+    "SubLoop": {
+      "sha256": "3b7c79726ff5a615e9f6d0e9e9b769390fe51e6991f5063d111be41190455a6c"
+    },
+    "ERC1967Proxy": {
+      "sha256": "a5c0556809c3f8884027344be11fc50d36b502e6b6f7aef52e4ed9d05ab5e713"
+    },
+    "Harvester": {
+      "sha256": "2254cad55cb133414878712b9b4c85e56dcff00566fcf3bb570d00a7cb96db63"
+    },
+    "PropellerFeeController": {
+      "sha256": "889187172ad454fa24e4577d6f8bcd002a5b226b80d6c43281093ee675e557ed"
+    },
+    "ExecutionController": {
+      "sha256": "f58ccfc266b9b18dfd7d0854c5e0f01e02dcce67c653b7a3b5a1cf848f1e61af"
+    },
+    "PropellerMainDebt": {
+      "sha256": "65e2e30d5cf08fc8a0f623282bd6764beb46c8ef17d912192c1381a46abf3995"
+    },
+    "PropellerDiscount": {
+      "sha256": "c3c2a15fa0072cd1152e7c6a371e0550ce874706017003406faa3ebfd372e084"
+    }
+  }
+}

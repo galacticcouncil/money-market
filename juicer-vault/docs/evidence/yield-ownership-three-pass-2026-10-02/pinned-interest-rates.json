@@ -1,0 +1,13 @@
+{
+  "blockNumber": "15306846",
+  "markets": {
+    "PRIME": {
+      "liquidityRate": "357603428002358711848728",
+      "variableBorrowRate": "3452551848523826353457221"
+    },
+    "HOLLAR": {
+      "liquidityRate": "0",
+      "variableBorrowRate": "44016888917752794000000000"
+    }
+  }
+}

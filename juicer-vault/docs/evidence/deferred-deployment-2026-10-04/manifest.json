@@ -1,0 +1,59 @@
+{
+  "baseCommit": "71aff84595acffd26653be91f43010c2ff777f81",
+  "build": {
+    "foundry": "1.5.1",
+    "solc": "0.8.22",
+    "evm": "london",
+    "viaIR": true,
+    "optimizerRuns": 200
+  },
+  "files": {
+    "bytecode-parity.json": "723499f10749bf6dc199bf677f0ebc2658dd317d6a17606e3d62cd3124c33bdb",
+    "checks.json": "65b017819053638f2d6cbad2446fb7709df4c6c45bec42111018cd5208ce79b6",
+    "keeper-ci.log": "edcac1f530edc16c84116bae58f27bb9da29d522312ade60ec58f422fae7206e",
+    "keeper-tests.log": "63bfc9422d7f2f4fa1e6f4e3279bfc486bd92766679c4ceb127ff4d36e901de4",
+    "native-bounded-gas-probes.log": "11225d78791221ac2c4b8ad8671e8d63314380936247c643e49dbdb624b44b65",
+    "native-deferred.log": "6c47e3ee424b893c9ca5b0d7ff37e1e7122f42ec31b282eebf620f5ae1e77386",
+    "native-result.json": "66f601a032791b7a20851561e31248f1dbbfae10235dde5dc853a50f05461ca5",
+    "production-build.log": "54b00dbe60789ee50c002d00384872898e196a91e3a66daa547740a525ecbed3",
+    "solidity.log": "7d75831cd39132e3238ad4f4d1f229fa42de2d2ffd43e98df5320612511b6624"
+  },
+  "sources": {
+    "propeller-vault/looper/src/config.ts": "0d4ccbb80f8bd35fd321353f6dae3e9d65a91457131c4fd43b55c746f00fd497",
+    "propeller-vault/looper/src/execution-policy.ts": "9766ecd25a6889b58e51f14fbce2d70141ecebb6c5d004dcc57dfa61140276ff",
+    "propeller-vault/looper/src/index.ts": "daddf780242cfafaa5421507f8df0fe50fbcd40f00e5fff6de06bc5dfc8ee21e",
+    "propeller-vault/looper/src/looper.ts": "b4d1f3f2ce470f87a7e2262423f545c67a8b228b033472c56f1502f491d19977",
+    "propeller-vault/looper/src/rounding-policy.ts": "9bdf8f9cb4e3b8de392c7e587821daea7043bae48c7ed65ed97ae91a06cb656a",
+    "propeller-vault/src/CollateralVault.sol": "b6006b68d9deeed5fe6eb305d1948a98596bac0cd0978350e8cacbc2a482329c",
+    "propeller-vault/src/ExecutionController.sol": "5d257f53957a897df31603be1943157e7b8d7267e887d9177aff40cf9395d704",
+    "propeller-vault/src/Harvester.sol": "d24cda0705c654122b88a34e0938b932cc1d51a6d635fd14d6d61f4cfc50680c",
+    "propeller-vault/src/PropellerDiscount.sol": "aee101868f612e77dda4291f48b4e0ff54a1842b480cb77bc599edb536809f56",
+    "propeller-vault/src/PropellerFeeController.sol": "984ffed716231212dd409d444d5fb4302792ba88f4b5bff7d43cbc900f386052",
+    "propeller-vault/src/PropellerMainDebt.sol": "9a02d7e4ab7f5f30f5e2f35b956d732c22623898b3a275f5a7e8d6171dfab14a",
+    "propeller-vault/src/PropellerYieldAccounting.sol": "4cccc974de1fb8de8da5d7e916b64c58ad51caebe665644bea0a111d5919a32a",
+    "propeller-vault/src/SubLoop.sol": "27fe9c4f830e2c2abd1d02d6910f3277a4403ff6ae599f984c3c5a76d54c2696",
+    "propeller-vault/src/SyntheticToken.sol": "d429ec73e0379b4fddbfcb27c94d38e6e1ca88b4736c33279c4496def179ee07",
+    "propeller-vault/src/interfaces/IAavePool.sol": "668abed1251b5a5f56a3f7a85866a56cb8574bbdbe6f4b83dc1d1b6fd6334225",
+    "propeller-vault/src/interfaces/IMainDebt.sol": "a283cc417482a2ace94d02eada8a06b3a2a100270dc24b352b839e45a798fced",
+    "propeller-vault/src/interfaces/IPropellerDiscount.sol": "acc6d8c987884127614c4905cbf44ac1b2caaf520083284fc459b97798ff3d2a",
+    "propeller-vault/src/interfaces/IPropellerFeeController.sol": "30238b01625d365ec62935b402228f33dc82e6e69de970f8d1e4a5b81f2afde8",
+    "propeller-vault/src/interfaces/ISubLoop.sol": "dbff17c76fbd028cd3e0d86a9cff4a0c4554c6bf5afaaaed9934d8b6d39fd30e",
+    "propeller-vault/src/interfaces/ISwapper.sol": "bfee02ccfd61bbc85c9c02279423be2bd9b10f0a7b0dddcadd416a39b1b460e0",
+    "propeller-vault/src/interfaces/ISyntheticToken.sol": "c1753bd8c2f86c959efd5b8ead8c96fdea7d3e461fbd2247c1fc39b4910afa00",
+    "propeller-vault/src/interfaces/IYieldSource.sol": "b2afc98425222c5754905cce6efe190b40ed3bc07e9a2ae9c962870f67b23b08",
+    "propeller-vault/src/lib/CompoundLogic.sol": "c9f920943650181defefaede42e131897067250825dce0e737625b3e4ed0d76b",
+    "propeller-vault/src/lib/DcaDispatch.sol": "705d55724ae7f61f27079daf4558b9e31fe6f54a57085471187e068508414a1c",
+    "scripts/propeller/native-deferred-deposit.mjs": "228ac36f48ccdbd4e021e67b668b0a5d3934219663d17489e6d971dbd5cf3d01",
+    "scripts/propeller/verify-readiness.ts": "4642d4c323ab895fcff778498d9ef9cac83fea425ec5ba5b2acb9fbd124526b7"
+  },
+  "productionActivation": false,
+  "rawLogSha256": {
+    "native-bounded-gas-probes.log": "11225d78791221ac2c4b8ad8671e8d63314380936247c643e49dbdb624b44b65",
+    "native-deferred.log": "6c47e3ee424b893c9ca5b0d7ff37e1e7122f42ec31b282eebf620f5ae1e77386",
+    "production-build.log": "2d36f273c935fede6a3f69696e52b7325dba018b740a9b49fb8a173d95beb721",
+    "keeper-ci.log": "edcac1f530edc16c84116bae58f27bb9da29d522312ade60ec58f422fae7206e",
+    "keeper-tests.log": "63bfc9422d7f2f4fa1e6f4e3279bfc486bd92766679c4ceb127ff4d36e901de4",
+    "solidity.log": "7d75831cd39132e3238ad4f4d1f229fa42de2d2ffd43e98df5320612511b6624"
+  },
+  "normalization": "Archived logs strip trailing whitespace and extra blank lines at EOF; raw hashes retained."
+}

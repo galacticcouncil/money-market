@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: new collateral shares buy no old source yield and retain their full collateral claim
+ok 1 - new collateral shares buy no old source yield and retain their full collateral claim
+  ---
+  duration_ms: 1.001468
+  type: 'test'
+  ...
+# Subtest: partial harvest keeps source NAV and the entrant claim unchanged
+ok 2 - partial harvest keeps source NAV and the entrant claim unchanged
+  ---
+  duration_ms: 0.446259
+  type: 'test'
+  ...
+# Subtest: retained yield stays with its owner through entry and a later release
+ok 3 - retained yield stays with its owner through entry and a later release
+  ---
+  duration_ms: 0.927447
+  type: 'test'
+  ...
+# Subtest: actual execution output pays fees, then owned Main interest, then rewards
+ok 4 - actual execution output pays fees, then owned Main interest, then rewards
+  ---
+  duration_ms: 0.255225
+  type: 'test'
+  ...
+# Subtest: insufficient fresh yield leaves interest unpaid without spending collateral
+ok 5 - insufficient fresh yield leaves interest unpaid without spending collateral
+  ---
+  duration_ms: 0.207144
+  type: 'test'
+  ...
+# Subtest: an entrant cannot harvest the incumbent reserve or source principal
+ok 6 - an entrant cannot harvest the incumbent reserve or source principal
+  ---
+  duration_ms: 0.444228
+  type: 'test'
+  ...
+# Subtest: yield earned after entry follows each cohort source units
+ok 7 - yield earned after entry follows each cohort source units
+  ---
+  duration_ms: 0.149393
+  type: 'test'
+  ...
+# Subtest: many partial realizations preserve funded collateral and untouched source ownership
+ok 8 - many partial realizations preserve funded collateral and untouched source ownership
+  ---
+  duration_ms: 4.165737
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15.599098

@@ -1,0 +1,461 @@
+{
+  "contractBaseCommit": "5692f7a90b771a9b2979e417f47d3d6c7bb1f64b",
+  "productionContractsAndKeeperUnchanged": true,
+  "toolchain": {
+    "forge": "1.5.1 b0a9dd9ceda36f63e2326ce530c10e6916f4b8a2",
+    "solc": "0.8.22",
+    "evmVersion": "london",
+    "viaIR": true,
+    "optimizerRuns": 200,
+    "node": "25.7.0"
+  },
+  "validation": {
+    "campaignCases": 88,
+    "simulatedDays": 32850,
+    "modelTestsPassed": 5,
+    "solidityRegressionsPassed": 16,
+    "regressionFuzzRuns": 256,
+    "failed": 0
+  },
+  "sources": {
+    "propeller-vault/test/MainnetTuning.t.sol": "14df35c2ad9afe341696007f50f01db49f20c22373a2d1122d21eb46336c13bf",
+    "propeller-vault/docs/mainnet-tuning-five-rounds-2026-10-02.md": "dd14ed5c43deac0cb5738291853f9dcbc858477590a3fbf4fcd2e49aad2a37cf",
+    "scripts/propeller/tune-mainnet.mjs": "ae3a9a71656ca5cf2c90d37cad80df07e09f8b8c6aa55be7f66504454bfa2f10",
+    "scripts/propeller/tune-mainnet.test.mjs": "087defa3cee5f07c748a8cd1af802f9605bfcbdeaba5b4a47927017e9720bb66",
+    "scripts/propeller/tuning-routes.mjs": "0d9f935ee6245bef3fe45488d82370b4eb6b51772063474c7f2065670306f637",
+    "scripts/propeller/probe-maintenance-gas.mjs": "b4a9e16ef8d7b56bbe69e24412bd8f05a6fa39b2e640e52a53c3d7c653df7a77",
+    "scripts/propeller/summarize-mainnet-tuning.mjs": "355245b18bc7fc7fa00f71f658f19f5099e547b16369425a493e21ed48b2fa3c"
+  },
+  "files": {
+    "comparison.csv": {
+      "sha256": "73d96ec3f6e6b1e8b55ed25c42cffb5c0eb8988f4bbffc37e0fcdd436e7b57c2",
+      "bytes": 18431
+    },
+    "hastra-por.json": {
+      "sha256": "7aedeab3c2e2448fd4d01b99e66e71f695f2eeae2050b57f7f0e061190d51de1",
+      "bytes": 4466
+    },
+    "holdout-hastra-por.json": {
+      "sha256": "7efe441949ef8b61a72e3305a5ca282b954276a18007d0168a613649b225fc58",
+      "bytes": 4466
+    },
+    "holdout-market.json": {
+      "sha256": "d501ffb851fbb2be086c74e0a3ee9e05134f0ea090abf58a70b83c93aa38359e",
+      "bytes": 28603
+    },
+    "holdout-routes.json": {
+      "sha256": "e7fc8d1d64f6f3abfbe3c4c91e41a2dfdc2390a5651367124cbb8b8b3bbe3e1d",
+      "bytes": 5525
+    },
+    "maintenance-gas.json": {
+      "sha256": "53236cab6f334f710b0d732d0c91124d2120aff6a1757cb58c3c8640a94690ff",
+      "bytes": 8786
+    },
+    "maintenance-gas.log": {
+      "sha256": "b4963144e895e444097f8bfe07823eec1e531f2adfd63769ba1203c9c96025ba",
+      "bytes": 159
+    },
+    "market.json": {
+      "sha256": "f3efa1cdd45cabdef84da2bca63dcffa0658187e97e5649dc83f5fd90b2458f6",
+      "bytes": 28603
+    },
+    "model-tests.log": {
+      "sha256": "6df9e69316753e0513e520212e98343d030f48c2c437e4e742ff74cb6da9ef24",
+      "bytes": 576
+    },
+    "prime-reference.json": {
+      "sha256": "8ece41bd87dcb48c6af31a3238a881dd9832b08ffec5442f5b9925a55de94f80",
+      "bytes": 1526
+    },
+    "r1-current-BTC.log": {
+      "sha256": "ac3f7cca1c23161db47b1a03095f863a7daa51e5e59cd256a934d60c6ec503a2",
+      "bytes": 1101
+    },
+    "r1-current-ETH.log": {
+      "sha256": "210513d38c4d110c37a39218900173df82d81d32e973af0c038a5bfd4a240f54",
+      "bytes": 1154
+    },
+    "r2-reserve-10-BTC.log": {
+      "sha256": "8262cd5e62194770979bbbdfa05f9c36e88d00c4c66b1299d4fbae628f6ba94d",
+      "bytes": 1137
+    },
+    "r2-reserve-10-ETH.log": {
+      "sha256": "c95740668c124cee5f301e2aa237a37cf683f54d8584afa67d345c928a3b8b46",
+      "bytes": 1136
+    },
+    "r2-reserve-100-BTC.log": {
+      "sha256": "e87e1e6d12a2ba1993ffbec2e21b49ce5bf5b0ba607be7cfe76831a33f006a45",
+      "bytes": 1101
+    },
+    "r2-reserve-100-ETH.log": {
+      "sha256": "ff4a77727d4c840272735573a9887352b694a2edb329c5642c8fca142cd42289",
+      "bytes": 1100
+    },
+    "r2-reserve-15-BTC.log": {
+      "sha256": "3008f7afa2a159faeeff25ae6a843a8d91568b7e8bf8d8aa12213ff7606a68e5",
+      "bytes": 1138
+    },
+    "r2-reserve-15-ETH.log": {
+      "sha256": "9a97e659e184303d145a3c8da6ae21ef232b5b647ef6573067d1fa6291dda85e",
+      "bytes": 1137
+    },
+    "r2-reserve-25-BTC.log": {
+      "sha256": "5b55cc8abb22ee7ddf3c283ef36789ceaba34bf00afe0e718847ce3e3063b7c3",
+      "bytes": 1140
+    },
+    "r2-reserve-25-ETH.log": {
+      "sha256": "edb32cbb4bb330669610e2102b0178dcc27df187ba49ba159466f4a79f7b2f8f",
+      "bytes": 1139
+    },
+    "r2-reserve-50-BTC.log": {
+      "sha256": "9dee029ebb59638cdd4bb7e6b7dceed8e95bab1ef0f680b7cb8b63f409a1fcd6",
+      "bytes": 1142
+    },
+    "r2-reserve-50-ETH.log": {
+      "sha256": "683683d4fa1ee2933c3db454ca47486d95f3fedf2dc60b209e69e3a5d61de98d",
+      "bytes": 1141
+    },
+    "r3-cadence-3-BTC.log": {
+      "sha256": "30175d275acb71b37f7af9485d1c9e7d86f82ef59214cd46f1b8a7030796f2b8",
+      "bytes": 1137
+    },
+    "r3-cadence-3-ETH.log": {
+      "sha256": "a63b6d24b17d802313b5bad86693155e2366afca6466286565b4bead8435581c",
+      "bytes": 1137
+    },
+    "r3-cadence-7-BTC.log": {
+      "sha256": "4c91db27632b8ecb7915b7b365520e1a5966af0c43be0d5c54175a0cdf44d66c",
+      "bytes": 1137
+    },
+    "r3-cadence-7-ETH.log": {
+      "sha256": "bfd1cc08694cc84f8d933c23054c1c59eecce8afc78f6b897c0300d7e5583871",
+      "bytes": 1137
+    },
+    "r3-minimum-10-BTC.log": {
+      "sha256": "206d3eed1c466b7bbab994c858341c1ab7304b5693d79aa487359557125d7803",
+      "bytes": 1140
+    },
+    "r3-minimum-10-ETH.log": {
+      "sha256": "34f2c3e22743449788e48f65afd8d75cbd38982829db419bcda654dd3943cad1",
+      "bytes": 1153
+    },
+    "r3-minimum-100-BTC.log": {
+      "sha256": "b82ead7beba62edabf1a9523223e5afe866589d9a81c0bd4006ddd45957f0fcd",
+      "bytes": 1138
+    },
+    "r3-minimum-100-ETH.log": {
+      "sha256": "47be23736cfae019ca77d71268706af4081ca07f4cc8c61d02114f97437f1084",
+      "bytes": 1137
+    },
+    "r3-minimum-25-BTC.log": {
+      "sha256": "3b2e2a9b4bf9dc719c0366b775ac2394eab57fec9dade2928675739f9f34f8f0",
+      "bytes": 1138
+    },
+    "r3-minimum-25-ETH.log": {
+      "sha256": "26c74a84b48a4da401b54c7a18919d2b8b54eb894a8f203ab5fd4c0d3fcc75e4",
+      "bytes": 1138
+    },
+    "r3-minimum-50-BTC.log": {
+      "sha256": "ab6a5f5f617ce81fb0708f22e01426a394656f431b8f6821f003eeb5d059ab60",
+      "bytes": 1138
+    },
+    "r3-minimum-50-ETH.log": {
+      "sha256": "0daa55f1b43aa7b7667ba8d939e8e49d427f3c966bfbec457be6d7a8b873360c",
+      "bytes": 1138
+    },
+    "r3-threshold-0-BTC.log": {
+      "sha256": "0bdc21c73fc391352dcda7a4f65124272ec69c082df8d4a1c6a28b007bb616a0",
+      "bytes": 1142
+    },
+    "r3-threshold-0-ETH.log": {
+      "sha256": "0039e7949f06dfbb001a2ba5d8f210aa304f3a2acb7313fd009d9e0b9fe3e09e",
+      "bytes": 1152
+    },
+    "r3-threshold-1-BTC.log": {
+      "sha256": "802eba2ea7348f597f61ff6596b2ae7771d8999aaabfd762b580fa5bc4d911d6",
+      "bytes": 1141
+    },
+    "r3-threshold-1-ETH.log": {
+      "sha256": "af64c923a1e9f65ff5878259493859dbd5d68825f281ac64b199175ebf06fbce",
+      "bytes": 1152
+    },
+    "r3-threshold-10-BTC.log": {
+      "sha256": "c25a03abb5be76044e4b261287e8e84b4c00aa29c0dbd1e577b29bc001630c32",
+      "bytes": 1137
+    },
+    "r3-threshold-10-ETH.log": {
+      "sha256": "73edfda085000e9582a791ad934c5ff59307ffa8faa74042286ab1e462d6f400",
+      "bytes": 1136
+    },
+    "r3-threshold-25-BTC.log": {
+      "sha256": "7780fdfa6e3c902283d7364e65da380541f670bfb9baa69c59789ebc8335cc21",
+      "bytes": 1142
+    },
+    "r3-threshold-25-ETH.log": {
+      "sha256": "b10140bde3eb5d8f6e48c339fa441a8293c0e399fb04466912126eb667efe872",
+      "bytes": 1153
+    },
+    "r3-threshold-5-BTC.log": {
+      "sha256": "4fcab935e2d7fe71a6d23b586b0aacbe73eef7b2491d8ecf56a8043bf8dc49d5",
+      "bytes": 1142
+    },
+    "r3-threshold-5-ETH.log": {
+      "sha256": "3ad494e36b5d992d7c9bf938e8090cf4c5e3797d12c7ce068656b63c2b1d8a1e",
+      "bytes": 1153
+    },
+    "r4-ramp-1d-1000-BTC.log": {
+      "sha256": "1a369c4d9a0fe97fa8854213960e4a47820e02b793692fd7329c11366e309418",
+      "bytes": 1142
+    },
+    "r4-ramp-1d-1000-ETH.log": {
+      "sha256": "5ad2de7205451b099a027f79c97ff55b29ebf6fa8e8a530b216e6c087039dd23",
+      "bytes": 1153
+    },
+    "r4-ramp-1d-250-BTC.log": {
+      "sha256": "5ecdd89edf75ca8644cb1bedad1eff6c6a06376bc12c89e25cd4d9764213819a",
+      "bytes": 1138
+    },
+    "r4-ramp-1d-250-ETH.log": {
+      "sha256": "073e065c84744b0dc9c47ecced029cd6a8aae5a8ff09ed1012e2d62273e39dd8",
+      "bytes": 1153
+    },
+    "r4-ramp-1d-5000-BTC.log": {
+      "sha256": "84ab0ab5c50bde315fedffa7a76453c31b2df036bb86aa0bf97cb8c9f30e9907",
+      "bytes": 1138
+    },
+    "r4-ramp-1d-5000-ETH.log": {
+      "sha256": "9b023835bc6a516b40790c80ab220440f09267c7a901d118d294fbe5f2a40719",
+      "bytes": 1137
+    },
+    "r4-ramp-3d-1000-BTC.log": {
+      "sha256": "3f227a2399ef0233602841be9068fb20a086c61f7995aa5a58359c73a60f19a6",
+      "bytes": 1138
+    },
+    "r4-ramp-3d-1000-ETH.log": {
+      "sha256": "59ef00a8f6a010911639e07673283681b4fb7a5888e10c02b8a58a33f6b5c116",
+      "bytes": 1137
+    },
+    "r4-ramp-3d-250-BTC.log": {
+      "sha256": "ed6824b0196dec12bead6bb1bee8eb3fd0adc863ebe10951c335650a92bd6203",
+      "bytes": 1139
+    },
+    "r4-ramp-3d-250-ETH.log": {
+      "sha256": "1b4b2bacf9022bd2eb3761f55d5c0e566442c04af24781c521431069caead172",
+      "bytes": 1138
+    },
+    "r4-ramp-3d-5000-BTC.log": {
+      "sha256": "f3bf9163dda7a2b85809f5141bd495c128b323001db33b050171225708989aa4",
+      "bytes": 1138
+    },
+    "r4-ramp-3d-5000-ETH.log": {
+      "sha256": "17584657379e0ab723efbb8abc626b8496862d80b0d0b05621041761c9175f0f",
+      "bytes": 1137
+    },
+    "r4-ramp-7d-1000-BTC.log": {
+      "sha256": "c76b9b5d2a142ee381c20b6c1ab4c54438a33a060c42f694b6eea0373cfebf23",
+      "bytes": 1138
+    },
+    "r4-ramp-7d-1000-ETH.log": {
+      "sha256": "4bf1a6f0c801f4e16d740754218a2b7b8c691a37dd29ef9b8d2929031a92c35d",
+      "bytes": 1137
+    },
+    "r4-ramp-7d-250-BTC.log": {
+      "sha256": "6994ba4d2b38f6b729f524dbb20f237ee1f3afd7b57f95b64a85bedfea8dea0a",
+      "bytes": 1139
+    },
+    "r4-ramp-7d-250-ETH.log": {
+      "sha256": "db22ea68bf8847942da762ffd8bae6f27da8490e1b4cee839ca46ef11f783df7",
+      "bytes": 1138
+    },
+    "r4-ramp-7d-5000-BTC.log": {
+      "sha256": "643775d5b7e3ed908af8b1cd633f142fe5a8200b5d1dbc47507775b48e8837f3",
+      "bytes": 1142
+    },
+    "r4-ramp-7d-5000-ETH.log": {
+      "sha256": "958e3af0417f3c350484cccfe00d05d1b61d5d79d05a5cf0339b743177fa59ed",
+      "bytes": 1137
+    },
+    "r5-full-discount-zero-fee-BTC.log": {
+      "sha256": "9572ecc98c426e480ab38b9227f06e741a1b5b3d202cb9c266798b5b15286124",
+      "bytes": 1117
+    },
+    "r5-full-discount-zero-fee-ETH.log": {
+      "sha256": "2f2012f4c54fd9be564f7042fd0829ba703da325539d4e153559318519d7489f",
+      "bytes": 1117
+    },
+    "r5-holdout-quotes-BTC.log": {
+      "sha256": "3c7ad7822e70130b859c9868a6c214322ebdd64c94a63026f4f3b5ad01c6bcd8",
+      "bytes": 1139
+    },
+    "r5-holdout-quotes-ETH.log": {
+      "sha256": "b9ac4fccfc8c780d1f564a858307b4103186f498e4f5819c41563e7f7147194e",
+      "bytes": 1154
+    },
+    "r5-keeper-outage-14d-BTC.log": {
+      "sha256": "9ed7eb5d68bfceb3838047a52b8f441e652fae7c88a6eac9fc4c39a3f6e031d4",
+      "bytes": 1142
+    },
+    "r5-keeper-outage-14d-ETH.log": {
+      "sha256": "cba2f7e9c5741b982417215fa6b3d6320578a31b080b230de78246c8bc8d9cf3",
+      "bytes": 1154
+    },
+    "r5-main-discount-100pct-BTC.log": {
+      "sha256": "c7dee0d224ad91045a36a688fa5c05ff071918d92635d60db83d473bd4a23e66",
+      "bytes": 1136
+    },
+    "r5-main-discount-100pct-ETH.log": {
+      "sha256": "666b65f99e22194e4e6ca0068271e8eb1150f52b560aed8f69ac4e438ad02ea5",
+      "bytes": 1136
+    },
+    "r5-main-discount-50pct-BTC.log": {
+      "sha256": "f86dc65249eca4c66808801bfb1484678e186ccaf18ded57b25239aefa406238",
+      "bytes": 1158
+    },
+    "r5-main-discount-50pct-ETH.log": {
+      "sha256": "758f9f6eb4afcea906d158bdc3065e77282be2ba5395c260e8bf10cb3ffc1489",
+      "bytes": 1158
+    },
+    "r5-negative-spread-BTC.log": {
+      "sha256": "773c2619d351f5ed97eb9ecd9a26ddb20e6d69574745975fcc875c3bdf064968",
+      "bytes": 1159
+    },
+    "r5-negative-spread-ETH.log": {
+      "sha256": "03589c27c8494e35a00db1a0fe89d84fec81403da9a36c84b5b089d6f57e30e9",
+      "bytes": 1160
+    },
+    "r5-prime-gap-3pct-BTC.log": {
+      "sha256": "5af133f826f20a27a6c93dfedd0e967062f580a10c5b824899602e45c81eb0a1",
+      "bytes": 1142
+    },
+    "r5-prime-gap-3pct-ETH.log": {
+      "sha256": "3a635925811693b3f4351aa39d3a7e974a5d9ed0b1ada21c8452aec6822e92d8",
+      "bytes": 1142
+    },
+    "r5-protocol-fee-1pct-BTC.log": {
+      "sha256": "c55ee20e4aad008aad2ed41f7742cd2e296a5c13660796ce1d4b5bba03df07af",
+      "bytes": 1137
+    },
+    "r5-protocol-fee-1pct-ETH.log": {
+      "sha256": "01dc2ce3ed84b3b79615286b71a3b8873e354259bab4cd906890660adb6bd541",
+      "bytes": 1136
+    },
+    "r5-protocol-fee-zero-BTC.log": {
+      "sha256": "9be67bd03fdb8f31211160c234835891fd00a226d7b9a4748b5d0e6835c6fc89",
+      "bytes": 1119
+    },
+    "r5-protocol-fee-zero-ETH.log": {
+      "sha256": "b0f4931ab2ebdf5f0aa3fb793fc8cc11157e71c3bf6411b0baeaef0619cf82a6",
+      "bytes": 1118
+    },
+    "r5-reserve-25-BTC.log": {
+      "sha256": "852e8474463b036a0968b3d861cdf61ae84ac6da856fd26eaac2e25523ec46c3",
+      "bytes": 1141
+    },
+    "r5-reserve-25-ETH.log": {
+      "sha256": "0601f7463dfa019124e292c84445c0991c2c43363622fbe540ed8ea17ccef3ae",
+      "bytes": 1156
+    },
+    "r5-reserve-25-worse-fills-BTC.log": {
+      "sha256": "a04635e3e27e845408011c3ba2e47139f0c6cd5ddc890e078420cf7d6110ac45",
+      "bytes": 1140
+    },
+    "r5-reserve-25-worse-fills-ETH.log": {
+      "sha256": "aa481e4c7a20ff01ea954fcb5b1e77555956433379e3fdaa30f235d080bfd87a",
+      "bytes": 1139
+    },
+    "r5-selected-BTC.log": {
+      "sha256": "40083d2c0fcb43091d87308842e492c96e74dfdbfebcf752892c8ebbba0dea2f",
+      "bytes": 1138
+    },
+    "r5-selected-ETH.log": {
+      "sha256": "c50153bb24a44422b993aa4145cb2905a80d185f9fa1371bc8ae5094ee70b808",
+      "bytes": 1191
+    },
+    "r5-small-vault-BTC.log": {
+      "sha256": "8d458d539f6ed4811fc325bf83a77c272e729e45b87430cf6476667c150c3952",
+      "bytes": 1125
+    },
+    "r5-small-vault-ETH.log": {
+      "sha256": "5ea9aeb691a14487b49e48da3a9e635330fd07ace365ffbba094609d24966c0b",
+      "bytes": 1124
+    },
+    "r5-small-vault-minimum-10-BTC.log": {
+      "sha256": "5ac0b1eb58715224576b067cb01b14702117cd87fcde6c6906e39c40a640f344",
+      "bytes": 1125
+    },
+    "r5-small-vault-minimum-10-ETH.log": {
+      "sha256": "b7e667f5826323b0160c6446f4cea48114e32bb7af92167f8fe4717996f9674e",
+      "bytes": 1124
+    },
+    "r5-small-vault-minimum-25-BTC.log": {
+      "sha256": "76dcedd5a6547a8962095837e78c6283e32d4f368d78d2b20ec23fb889d6c3aa",
+      "bytes": 1128
+    },
+    "r5-small-vault-minimum-25-ETH.log": {
+      "sha256": "7faae451f44a6252a85ae08baeb79171e93d5d2a7d144c13aef98f9577a493c5",
+      "bytes": 1128
+    },
+    "r5-trailing-nav-rate-BTC.log": {
+      "sha256": "e4ccecf610f4a6727f2320d8157b6088d3387eb8df781fcf2662c0a306bb5727",
+      "bytes": 1142
+    },
+    "r5-trailing-nav-rate-ETH.log": {
+      "sha256": "7dd348ce73c4fae43f1528736fe7f65023e1d250392b4492db0986fefca6f473",
+      "bytes": 1154
+    },
+    "r5-two-years-BTC.log": {
+      "sha256": "df14fe93f10a3319d1a8d879d9c7adf6de187b84c599f716c960124d9b032015",
+      "bytes": 1138
+    },
+    "r5-two-years-ETH.log": {
+      "sha256": "abe7ee0e95a962a96ed50b809d533b7463b35bdf085291474750c270e14fc4d4",
+      "bytes": 1137
+    },
+    "r5-worse-fills-BTC.log": {
+      "sha256": "49dd0c9729cf9de25fab24364c8ce109f7086b6c5bd67699042f6718349b8e49",
+      "bytes": 1139
+    },
+    "r5-worse-fills-ETH.log": {
+      "sha256": "8ef9d29bf3f06eb3b5621209d016c6694a52f3a3637636c4963d6f2a4c132d9c",
+      "bytes": 1138
+    },
+    "regression.log": {
+      "sha256": "0acf045d0be97a1f861f64512f0ecda4efaf7cf50ba7012f70ac1cf9f081c277",
+      "bytes": 1973
+    },
+    "round-1.json": {
+      "sha256": "ec2d686a35e121b9f940911b87aee57afa6c45b5c05f18de17ef33e012e49b3f",
+      "bytes": 5300
+    },
+    "round-2.json": {
+      "sha256": "226bd73a51dfcc39c7c03412c67e5553c4aa0d92b648f90bd54e66670f33ad0b",
+      "bytes": 22415
+    },
+    "round-3.json": {
+      "sha256": "ca1fc33d6f97eb433662580624ca9fc283b083bbaf034098733a94301df58d66",
+      "bytes": 47388
+    },
+    "round-4.json": {
+      "sha256": "256d4f9ce0e69a8038368d08e4e3aebed6662aea2d86964d27f4feb578298326",
+      "bytes": 39021
+    },
+    "round-5.json": {
+      "sha256": "3b32726bfb0ffae575db0bddbb78d2de1532ef9189b1f91c144f5e2fff0828bc",
+      "bytes": 76765
+    },
+    "routes.json": {
+      "sha256": "63a7d6e8bf5c89b2618b2369b5fdddd44ea903d9d002ffac91091f474c3eb3aa",
+      "bytes": 5519
+    },
+    "summary.json": {
+      "sha256": "8b74d8db8b7ebac9f95c3884e110d8352c651afea39af44c255c8da0a3427f53",
+      "bytes": 31783
+    }
+  },
+  "notes": [
+    "Only successful final campaign cases are archived. Earlier draft calibration runs remain outside the PR.",
+    "Native maintenance probes use the existing local runtime-447 fork and eth_call only.",
+    "Node scoring includes the native maintenance budget; funding-adjusted economic score is derived from raw successful contract metrics.",
+    "Model safety scheduling was corrected to handle an existing deLever target as the live keeper does; the complete final stress round was rerun."
+  ]
+}

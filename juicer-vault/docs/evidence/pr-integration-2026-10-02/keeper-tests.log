@@ -1,0 +1,84 @@
+
+> propeller-looper@1.0.0 test
+> node --import tsx --test test/*.test.ts
+
+✔ rounding policy uses exact base units and covers every vault (1.707021ms)
+✔ rounding policy rejects ambiguous or unsafe thresholds (0.520969ms)
+✔ monitor distinguishes low reserve from missing custody (0.293145ms)
+
+[2026-10-01T22:53:29.539Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-01T22:53:29.541Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-01T22:53:29.542Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-01T22:53:29.542Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-01T22:53:29.542Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-01T22:53:29.543Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-01T22:53:29.543Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+[ALERT] 0x0000000000000000000000000000000000000002: Main debt backing or source allocation incomplete; new ramp disabled
+[ALERT] 0x0000000000000000000000000000000000000002: Main debt backing or source allocation incomplete; new ramp disabled
+
+[2026-10-01T22:53:29.543Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-01T22:53:29.543Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-01T22:53:29.544Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-01T22:53:29.544Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-01T22:53:29.544Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-01T22:53:29.545Z] maintainer cycle #1
+  HF 2.100 → target 1.050
+
+[2026-10-01T22:53:29.545Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-01T22:53:29.545Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-01T22:53:29.545Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+
+[2026-10-01T22:53:29.545Z] maintainer cycle #1
+  HF 1.050 → target 1.050
+✔ low HF schedules and services safety repayment without user redemptions (2.378593ms)
+✔ an existing safety target is serviced even if HF recovered (0.266425ms)
+✔ Main down-rebalance is settled with an empty redemption queue (0.302426ms)
+✔ active exits prevent ramping and share a single source repayment (0.282545ms)
+✔ source pause stops swaps but not settlement of already freed funds (0.327236ms)
+✔ idle healthy loop ramps normally (0.264704ms)
+✔ unfunded operating buffer blocks ramp but not repayment (0.389467ms)
+✔ late source recoveries are pulled even after collateral exits completed (0.190794ms)
+✔ idle recovery surplus is not a repayment obligation (0.219364ms)
+✔ cooldown-only requests do not start source repayment or ramping (0.296245ms)
+✔ eligible requests start before a single source repayment and settlement (0.214394ms)
+✔ local vault freeze prevents starts, FIFO settlement and new ramping (0.164373ms)
+✔ emergency freeze stops existing exit servicing without a safety target (0.141063ms)
+✔ source emergency preserves safety repayment and Main committed repayment (0.184563ms)
+✔ source swap pause postpones starting otherwise eligible unwinds (0.153552ms)
+✔ rounding monitor read failure alerts without blocking debt service (2.228809ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 490.894458
