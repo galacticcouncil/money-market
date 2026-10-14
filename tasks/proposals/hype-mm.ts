@@ -12,8 +12,8 @@
 //      liquidation protocol fee                                 (aave manager)
 //   2. assetRegistry.register aHYPE (1010) at the predicted aToken address,
 //      multiTransactionPayment.addCurrency                     (root)
-//   3. routes HDX/WETH -> aHYPE (fee currency pricing), and the PAXG set of
-//      liquidation routes with HYPE in PAXG's place             (root)
+//   3. routes HDX/WETH -> aHYPE (fee currency pricing), and a liquidation route
+//      between HYPE and every reserve outside the Omnipool       (root)
 //   4. router.sellAll HYPE -> aHYPE for the treasury's whole free HYPE (dispatchAsTreasury)
 //
 // The aToken address is predicted from the PoolConfigurator nonce: rebuild if any
@@ -51,16 +51,30 @@ const HOLLAR = 222;
 const HYPE = 1001355;
 const aHYPE = 1010;
 
-// aDOT, aUSDT, aUSDC, aETH; GETH and its share; GDOT share; 3-Pool; H-pools
+const VDOT = 15;
+const PRIME = 43;
+const EURC = 44;
+const APYUSD = 46;
+const SOL = 1000752;
+
+// aTokens, GIGA tokens and the stableswap shares the routes pass through
 const ADOT = 1001;
 const AUSDT = 1002;
 const AUSDC = 1003;
 const AETH = 1007;
+const ASOL = 1009;
+const AEURC = 1044;
 const GETH = 420;
 const GETH_POOL = 4200;
 const GDOT_POOL = 690;
+const GSOL = 9001;
+const GSOL_POOL = 90001;
 const THREE_POOL = 103;
-const H_POOLS = [110, 111, 112, 113];
+const PRIME_POOL = 143;
+const APYUSD_POOL = 146;
+const HEURC_POOL = 10044;
+// HOLLAR-paired shares listed as collateral: H-pools, 2-Pool-PRIME/apyUSD/HEURC/BIL, 3-Pool-MRL
+const HOLLAR_POOLS = [110, 111, 112, 113, PRIME_POOL, APYUSD_POOL, HEURC_POOL, 10055, 105];
 
 const HYPE_ED = "114285714285714"; // aHYPE ED = HYPE ED (aPRIME precedent)
 const HDX_FEED = "0xea63e594ee00590938E856F2134E6C792bA92d13";
@@ -138,11 +152,19 @@ task(`hype-mm`, `HYPE money-market listing + aHYPE registration + treasury HYPE 
       [USDT, HYPE, [aave(USDT, AUSDT), ss(111, AUSDT, HOLLAR), omni(HOLLAR, HYPE)]],
       [DOT, HYPE, [aave(DOT, ADOT), omni(ADOT, HYPE)]],
       [ETH, HYPE, [aave(ETH, AETH), ss(GETH_POOL, AETH, GETH_POOL), aave(GETH_POOL, GETH), omni(GETH, HYPE)]],
+      [HYPE, VDOT, [omni(HYPE, ADOT), ss(GDOT_POOL, ADOT, VDOT)]],
+      [HYPE, PRIME, [omni(HYPE, HOLLAR), ss(PRIME_POOL, HOLLAR, PRIME)]],
+      [HYPE, SOL, [omni(HYPE, GSOL), aave(GSOL, GSOL_POOL), ss(GSOL_POOL, GSOL_POOL, ASOL), aave(ASOL, SOL)]],
+      [HYPE, EURC, [omni(HYPE, HOLLAR), ss(HEURC_POOL, HOLLAR, AEURC), aave(AEURC, EURC)]],
+      [HYPE, APYUSD, [omni(HYPE, HOLLAR), ss(APYUSD_POOL, HOLLAR, APYUSD)]],
       // liquidations: HYPE debt vs share collateral
       [HYPE, GDOT_POOL, [omni(HYPE, ADOT), ss(GDOT_POOL, ADOT, GDOT_POOL)]],
       [HYPE, GETH_POOL, [omni(HYPE, GETH), aave(GETH, GETH_POOL)]],
+      [HYPE, GSOL_POOL, [omni(HYPE, GSOL), aave(GSOL, GSOL_POOL)]],
       [HYPE, THREE_POOL, [omni(HYPE, HOLLAR), ss(111, HOLLAR, AUSDT), ss(THREE_POOL, AUSDT, THREE_POOL)]],
-      ...H_POOLS.map((p) => [HYPE, p, [omni(HYPE, HOLLAR), ss(p, HOLLAR, p)]]),
+      ...HOLLAR_POOLS.map((p) => [HYPE, p, [omni(HYPE, HOLLAR), ss(p, HOLLAR, p)]]),
+      // no route: SIGIL (no venue, no supply) and WBTC (frozen; pool 101 has no Omnipool leg)
+      // default Omnipool hop covers HOLLAR, PAXG, tBTC
     ];
     for (const [assetIn, assetOut, route] of routes) {
       rootTxs.push(hydrationTx.router.forceInsertRoute({ assetIn, assetOut }, route));
