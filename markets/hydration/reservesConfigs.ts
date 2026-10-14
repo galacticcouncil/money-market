@@ -303,6 +303,26 @@ export const strategySOL: IReserveParams = {
   borrowableIsolation: false,
 };
 
+// HYPE (Wormhole NTT, asset 1001355) — raw Omnipool asset, SOL-style params.
+// Caps sized to $1M supply / $500k borrow at the HYPE/USD feed at listing ($79.69).
+export const strategyHYPE: IReserveParams = {
+  strategy: rateStrategyDOT,
+  baseLTVAsCollateral: "7000",
+  liquidationThreshold: "7500",
+  liquidationBonus: "10700",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: true,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "18",
+  aTokenImpl: eContractid.AToken,
+  reserveFactor, // 20%
+  supplyCap: "12,500".replace(/,/g, ""),
+  borrowCap: "6,250".replace(/,/g, ""),
+  debtCeiling,
+  borrowableIsolation: false,
+};
+
 export const strategyGSOL: IReserveParams = {
   strategy: rateStrategyDOT,
   baseLTVAsCollateral: "6000",
