@@ -27,11 +27,12 @@ export class DailySummary {
 
   get lastAttempt() { return this.state.lastAttempt; }
 
-  reserve(now: number, hasPositions: boolean): boolean {
+  reserve(now: number, hasProblems: boolean): boolean {
+    if (!hasProblems) return false;
     if (now - this.state.lastAttempt < this.interval) return false;
-    if (!hasPositions && !this.state.hadPositions) return false;
     const previous = this.state;
-    this.state = { version: 1, lastAttempt: now, hadPositions: hasPositions };
+    // Keep the v1 field for compatibility with state written by older deployments.
+    this.state = { version: 1, lastAttempt: now, hadPositions: true };
     try {
       // Persist BEFORE sending: a crash after Discord accepts a message cannot duplicate it.
       this.save();

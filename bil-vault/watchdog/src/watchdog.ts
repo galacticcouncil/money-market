@@ -140,12 +140,14 @@ export class BILWatchdog {
     }
 
     // Position arrivals, ageing, state changes and recoveries never post individually.
+    // Healthy matured positions stay silent; only actionable or unusually slow states
+    // are included in the daily summary.
     // The wall clock controls delivery even if the chain stalls or its timestamp jumps.
     const d = snapshot.decentral;
     const positionIssues = [...issues].filter(([key]) => isPositionIssue(key));
-    const hasPositions = snapshot.matured.length > 0 || positionIssues.length > 0;
+    const hasProblems = positionIssues.length > 0 || d.slowCount > 0 || d.overdueCount > 0;
     try {
-      if (CONFIG.ALERT_WEBHOOK && this.summary.reserve(Math.floor(Date.now() / 1000), hasPositions)) {
+      if (CONFIG.ALERT_WEBHOOK && this.summary.reserve(Math.floor(Date.now() / 1000), hasProblems)) {
         const counts = new Map<string, number>();
         for (const p of snapshot.matured) {
           const name = STATE_NAMES[p.state] ?? String(p.state);
@@ -158,13 +160,13 @@ export class BILWatchdog {
         await this.post(
           positionIssues.some(([, issue]) => issue.level === 'error') ? 'error' : d.overdueCount ? 'warn' : 'info',
           'BIL — daily position summary',
-          hasPositions ? [
+          [
             `${snapshot.matured.length} matured, unredeemed positions: ${fmt(total)} HOLLAR principal; oldest ${dur(oldest)} past maturity.`,
             ...[...counts].map(([state, count]) => `• ${state}: ${count}`),
             `Decentral approvals: ${d.waitingCount} waiting (${fmt(d.waitingPrincipal)} HOLLAR principal + ${fmt(d.waitingYield)} yield); ${d.slowCount} over ${dur(CONFIG.DIGEST_MIN_WAIT_SECONDS)}, ${d.overdueCount} over ${dur(CONFIG.APPROVAL_SLA_SECONDS)}; oldest wait ${dur(d.oldestWait)}.`,
             `Needs investigation: ${uniqueIssues.size} positions not progressing; ${claims} unclaimed auto-claim requests.`,
             `Decentral pool balance: ${fmt(d.poolHollar)} HOLLAR. Approval waits require Decentral approval.`,
-          ].join('\n') : 'All previously reported matured positions and auto-claim issues have cleared.',
+          ].join('\n'),
         );
       }
     } catch (err) {

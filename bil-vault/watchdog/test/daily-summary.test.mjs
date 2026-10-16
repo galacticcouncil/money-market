@@ -34,13 +34,14 @@ test('restart, clock rollback and ambiguous delivery cannot repeat a summary', t
   assert.equal(afterSend.reserve(100 + 2 * DAY, true), true);
 });
 
-test('one daily all-clear, then quiet until there is a new backlog', t => {
+test('healthy periods stay quiet, including after a reported problem clears', t => {
   const summary = new DailySummary(fixture(t), 100);
   assert.equal(summary.reserve(100 + DAY, false), false);
   assert.equal(summary.reserve(100 + DAY, true), true);
   assert.equal(summary.reserve(101 + DAY, false), false);
-  assert.equal(summary.reserve(100 + 2 * DAY, false), true);
+  assert.equal(summary.reserve(100 + 2 * DAY, false), false);
   assert.equal(summary.reserve(100 + 3 * DAY, false), false);
+  assert.equal(summary.reserve(100 + 3 * DAY, true), true);
 });
 
 test('invalid persisted state fails closed', t => {
@@ -88,6 +89,17 @@ test('runCycle aggregates many arriving/resolved positions without individual al
   assert.equal(posts[0][1], 'BIL — daily position summary');
   assert.match(posts[0][2], /24 positions not progressing/);
   assert.ok(posts[0][2].length < 1000);
+  await watchdog.runCycle();
+  assert.equal(posts.length, 1);
+  // A matured position in normal processing is status data, not a problem.
+  // Even after the summary window elapses, it must not produce an all-clear digest.
+  issues = new Map();
+  watchdog.open.clear();
+  snapshot.matured.push({ index: 1n, tokenId: 1n, principal: 1n, maturity: 999999, state: 0, waiting: null, requestedAt: null });
+  const afterSummary = JSON.parse(readFileSync(process.env.SUMMARY_STATE_FILE, 'utf8'));
+  afterSummary.lastAttempt -= DAY;
+  writeFileSync(process.env.SUMMARY_STATE_FILE, JSON.stringify(afterSummary));
+  watchdog.summary = new DailySummary(process.env.SUMMARY_STATE_FILE, 0);
   await watchdog.runCycle();
   assert.equal(posts.length, 1);
   issues.set('keeper:gas', { level: 'warn', text: 'Low keeper gas' });
