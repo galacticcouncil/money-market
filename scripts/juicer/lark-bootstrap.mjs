@@ -5,7 +5,7 @@ try{
  const {r,read,readSig,write,evmSend,save}=c;
  assert.ok(r.governance.find(g=>g.label==='testnet-guardians-and-open-bootstrap')?.verified);
  for(const vault of r.vaults){
-   const seed=vault.assetId===34?10n**16n:10n**14n;
+   const seed=vault.name==='ETH'?10n**16n:10n**14n;
    const reserve=BigInt(vault.rounding.target),amount=seed+reserve;
    await evmSend(`bootstrap.${vault.name}.approve`,vault.asset,v.encodeFunctionData({abi:v.parseAbi(['function approve(address,uint256) returns(bool)']),functionName:'approve',args:[vault.address,amount]}));
    await write(`bootstrap.${vault.name}.rounding`,'CollateralVault',vault.address,'fundRoundingReserve',[reserve]);

@@ -135,3 +135,16 @@ test('lark 4 is already up: only --plan runs against it', () => {
  assert.match(out.stderr,/already up/);
  assert.equal(run(['--plan'],{LARK_STATE_DIR:dir}).status,0);
 });
+
+test('--plan shows next from zero under the deployment id it is given, and writes nothing', () => {
+ const dir=scratch();
+ const out=run(['--profile=next','--plan'],{LARK_STATE_DIR:dir,LARK_DEPLOYMENT:'next-20261020'});
+ assert.equal(out.status,0,out.stderr);
+ assert.match(out.stdout,/bring-up next: deployment next-20261020, chain unpinned, genesis unpinned/);
+ assert.match(out.stdout,/stack juicer-next-20261020: \S+juicer-lark-stack-next-20261020\.json/);
+ assert.match(out.stdout,/unset: LARK_CHAIN_NAME, LARK_GENESIS, LARK_RPC, LARK_COMMIT, JUICER_ARTIFACT_DIR, JUICER_ADAPTER_ARTIFACT, KEEPER_IMAGE, BOT_IMAGE/);
+ assert.ok(!existsSync(join(dir,'juicer-lark-bringup-next-20261020.json')));
+ const unnamed=run(['--profile=next','--plan'],{LARK_STATE_DIR:dir});
+ assert.notEqual(unnamed.status,0);
+ assert.match(unnamed.stderr,/set LARK_DEPLOYMENT/);
+});

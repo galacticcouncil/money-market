@@ -1,7 +1,10 @@
 # New Lark bring-up for the next version
 
 The next version deploys to **Lark 0** ("Lark 0 Hydration"), reforked from
-mainnet after the rename; it needs a runtime with ICE (447 or later).
+mainnet after the rename, and next to a new testnet with GIGAETH behind jETH
+and a PRIME arb that trades only for profit (profile `next`,
+[below](#gigaeth-on-next) and [below](#prime-arb-on-next)); both need a runtime
+with ICE (447 or later).
 [Lark 4](lark-deployment-2026-10-07.md) keeps running from the same scripts. Every Lark script and bot takes its chain from a
 profile in `scripts/juicer/lark-pins.mjs`. **This is a testnet procedure: no
 step targets mainnet, and nothing here has been run with `--live` yet.**
@@ -12,17 +15,23 @@ step targets mainnet, and nothing here has been run with `--live` yet.**
 | --- | --- | --- |
 | `lark4` (default) | Lark 4, pinned genesis, scripts on `node4.lark`; the `4.lark` gateway stays the journal's identity, the keepers' fallback and the readiness WS, as before | `propeller-lark-20261007.json`, `juicer-lark-stack.json` |
 | `lark0` | Lark 0 on `node0.lark`, for scripts, the journal and the bots; keepers fall back to the `0.lark` subway gateway as on Lark 4. Genesis and commit open until the refork (`LARK_GENESIS`, `LARK_COMMIT`) | `propeller-lark-lark0-20261009.json`, `propeller-lark-stack-lark0-20261009.json` |
+| `next` | The next testnet, not forked yet: Lark 0's plan with GIGAETH behind jETH, a PRIME arb at mainnet's thresholds and 27 bps PRIME lanes. Chain name, genesis, commit, endpoints and deployment id open (`LARK_CHAIN_NAME`, `LARK_GENESIS`, `LARK_COMMIT`, `LARK_RPC`, `LARK_WS`, `LARK_DEPLOYMENT`) | `juicer-lark-<deployment>.json`, `juicer-lark-stack-<deployment>.json` |
 
-- Select with `--profile=lark0` or `LARK_PROFILE=lark0`. The environment only
+- Select with `--profile=<name>` or `LARK_PROFILE=<name>`. The environment only
   fills a profile's open pins; it never overrides a pinned one, and a chain whose
   name is not a Lark is refused.
 - After the refork, pin the genesis and the contracts commit in the `lark0`
   profile before the first `--live` run. Everything else is pinned, including
   the deployment id `lark0-20261009` that names the journal, manifest, stack and
   bring-up log.
-- The shares are "Juicer ETH" `jETH` and "Juicer tBTC" `jtBTC`, the synthetic
-  "Juicer Synthetic HOLLAR" `jsHOLLAR` with reserve tokens `aJSYNTH`,
-  `vdJSYNTH` and `sdJSYNTH`: the names the rename gives mainnet.
+- `next` has no deployment id until it is pinned: `LARK_DEPLOYMENT` (lowercase
+  letters, digits and dashes, never another profile's) names its files, stack
+  and config, and its chain name must still be a Lark's.
+- Each profile names its vaults' collateral. On Lark 0 the shares are
+  "Juicer ETH" `jETH` on ETH (34) and "Juicer tBTC" `jtBTC` on tBTC (1000765);
+  on `next`, `jETH` on GIGAETH (4200) and "Juicer BTC" `jBTC` on tBTC. The
+  synthetic is "Juicer Synthetic HOLLAR" `jsHOLLAR` with reserve tokens
+  `aJSYNTH`, `vdJSYNTH` and `sdJSYNTH`.
 - `JUICER_ARTIFACT_DIR` must point at the London build of the merged next
   version ([build commands](deferred-deployment-validation-2026-10-04.md#reproduce)),
   `JUICER_ADAPTER_ARTIFACT` at the pinned HydraAugustus build.
@@ -54,22 +63,23 @@ node scripts/juicer/lark-bringup.mjs --live    # runs pending steps in order
 | --- | --- | --- |
 | `chain` | `lark-chain-check.mjs` (new, read-only) | runtime ≥ 447 with ICE (records the intent call indices), money-market reserves and oracles, pool 143 and its stored route, synthetic asset ID 5551 free |
 | `prepare` | `lark-prepare.mjs` | isolated test accounts, contract deployer |
-| `prime-pool` | `lark-prime-pool.mjs` (new) | pool 143 depth; under $100k it is topped up to $400k at its current ratio by one referendum; first HOLLAR mint creates the facilitator bucket (5M on the new Lark) |
+| `prime-pool` | `lark-prime-pool.mjs` (new) | pool 143 depth; under $100k it is topped up to $400k at its current ratio by one referendum; first HOLLAR mint creates the facilitator bucket (5M on the new Lark); `--fee-ppm` (or the profile's `primePool.feePpm`) sets the pool fee by referendum |
 | `deploy`, `wire` | `lark-deploy.mjs`, `lark-wire.mjs` | adapter, contracts, synthetic listing and reserve, wiring, execution lanes; shares `jETH`/`jtBTC` from the profile |
 | `prices`, `discount` | `lark-prices-deploy.mjs`, `lark-discount-deploy.mjs` | price mirrors and zero discount, in the prices journal |
-| `market` … `harvest-cap` | `lark-market-setup.mjs`, `lark-bootstrap.mjs`, `lark-approve-prime-cap.mjs`, `lark-protect-adapter.mjs`, `lark-routes-setup.mjs`, `lark-approve-harvest-cap.mjs` | as on Lark 4: mirrors installed, bot accounts, bootstrap, 6 bps PRIME and 100 bps collateral lanes, routes |
-| `throughput` | `lark-prime-throughput.mjs` | PRIME entry and unwind lanes and source tranches: 2,500 a trade, 25,000 budget, 50/s refill, 6 bps cap and 60 s pacing kept |
+| `market` … `harvest-cap` | `lark-market-setup.mjs`, `lark-bootstrap.mjs`, `lark-approve-prime-cap.mjs`, `lark-protect-adapter.mjs`, `lark-routes-setup.mjs`, `lark-approve-harvest-cap.mjs` | as on Lark 4: mirrors installed, bot accounts, bootstrap, PRIME lanes at the profile's cap (6 bps; `next` 27, [below](#prime-arb-on-next)) and 100 bps collateral lanes, routes |
+| `throughput` | `lark-prime-throughput.mjs` | PRIME entry and unwind lanes and source tranches: 2,500 a trade, 25,000 budget, 50/s refill; the PRIME cap and 60 s pacing kept |
 | `sync` … `release` | `lark-mainnet-sync-*.mjs`, `lark-wrap-inventory.mjs`, `lark-stable-inventory.mjs`, `lark-release-deposits.mjs` | feeds, pools and replay inventory |
 | `seed` | `lark-seed-bots.mjs --round=baseline` | everything the Lark 4 bots reported missing (rounds 463 and 464) |
 | `params` | `lark-next-params.mjs` (new) | `harvestThreshold` 2e14, `fundReserve` 1,000 HOLLAR per vault from governance |
 | `guardian` | `lark-deposit-guardian.mjs` (new) | `DEPOSIT_GUARDIAN_ROLE` on both vaults for both keepers and nothing else; it gates only `setDeficitStop`, while `pauseDeposits` and `pause` stay with governance |
 | `ice` | `lark-ice-wiring.mjs` (new) | ICE for entries and routine exits: `configureIntents(300, 2)`, SubLoop `KEEPER_ROLE` for both keepers, `configureAsync` on the loop's entry and unwind lanes, and WETH on the loop's mapped account for the callback fee |
-| `depositors`, `depositor-approve` | `lark-depositor-setup.mjs`, `lark-depositor-approve.mjs` | eight public test depositors with ~$100k of test ETH and tBTC, TVL caps to fit, u128 approvals |
+| `depositors`, `depositor-approve` | `lark-depositor-setup.mjs`, `lark-depositor-approve.mjs` | eight public test depositors with ~$100k of test collateral, TVL caps to fit, u128 approvals |
 | `manifest`, `stack` | `lark-manifest.mjs`, `lark-stack.mjs --keepers --depositor` | rerun on every live pass; the stack needs `KEEPER_IMAGE` and `BOT_IMAGE` by digest |
 
 The outputs are config `propeller-lark0-20261009-manifest-v1` and stack
 `propeller-lark0-20261009`.
-Keepers get `QUOTE_DEPTH_BLOCKS` 3 and markets `PEG_BAND_BPS` 0.5. Lark 0 runs
+Keepers get `QUOTE_DEPTH_BLOCKS` 3 and markets `PEG_BAND_BPS` 0.5 (on `next`,
+`PEG_SELL_PROFIT_BPS` 15 and `PEG_BUY_PROFIT_BPS` 4). Lark 0 runs
 the renamed images, `galacticcouncil/juicer-lark-keeper` and `juicer-lark-bots`,
 by digest; Lark 4 keeps its `juicer-lark-*` digests. Creating the Swarm config
 and stack stays a manual, stop-first step.
@@ -96,6 +106,68 @@ The $100k depositor plan has to land and lever within 12 hours:
 There is no nurse and no Main cushion on the new chain: `lark-nurse.mjs`,
 `lark-fund-main.mjs`, `lark-recap-source.mjs` and `lark-fund-exit.mjs` refuse
 any profile but Lark 4.
+
+## PRIME arb on `next`
+
+Lark 0's markets bot pays pool 143's 4 bps fee to hold the pool within a bp
+of the oracle, which no mainnet arbitrageur does. On `next` it trades only for
+profit, at the thresholds mainnet's arbitrageurs showed over the last 30 days
+(900 archive samples of pool 143 against the AaveOracle, 19 September to
+16 October):
+
+- **Selling PRIME into a rich pool: 15 bps** (`PEG_SELL_PROFIT_BPS`). From
+  8 October nobody sold PRIME into the pool at up to 15.2 bps over the oracle.
+  It has sat 18.7 bps rich since 13 October.
+- **Buying PRIME from a cheap pool: 4 bps** (`PEG_BUY_PROFIT_BPS`). While the
+  Treasury DCA sold 943k PRIME into the pool (26 September to 3 October), buyers
+  held a $50 buy's gain over the oracle to 4.9 bps at p90.
+
+The pool then rests up to 19 bps rich and 8 bps cheap (the fee plus each
+profit), so the fork starts where mainnet stands and the arb leaves it there.
+A loop trade at the edge pays the fee again plus its own impact, and an
+unmatched intent the solver's 1 bp too.
+
+- **PRIME cap:** `prime-cap` sets 27 bps (`configurePrice` on both PRIME lanes,
+  `dcaSlippagePpm` 2,700) instead of 6. It refuses a cap below twice the live
+  pool fee plus the larger profit plus 2 bps (25 here).
+- **Pool fee, the fallback:** `lark-prime-pool.mjs --fee-ppm=200` halves the
+  fee by referendum (`stableswap.updatePoolFee`, dry-run as Root against
+  mainnet). Each loop trade then pays 4 bps less, and the cap needs 21.
+- **Simulated from mainnet's pool 143** at block 15,856,782 (456k PRIME, 586k
+  HOLLAR, PRIME $1.0648, amplification 100), with the bot's sizing code and
+  Hydration's stableswap math, 160 loop buys then 160 loop sells of 2,500:
+
+  | Arb | Loop buys (first / worst) | Loop sells (worst) | Arb result |
+  | --- | --- | --- | --- |
+  | Lark 0's peg | 4.5 / 4.5 bps | 4.5 bps | −$257, the fee it pays |
+  | profit only, break-even | 8.5 / 8.5 bps | 8.5 bps | +$65 |
+  | **mainnet thresholds (`next`)** | **23.2 / 23.5 bps** | **12.5 bps** | **+$764** |
+  | mainnet thresholds, 2 bps fee | 19.5 / 19.5 bps | 8.5 bps | +$777 |
+
+  With mainnet's thresholds the first loop buy costs what mainnet charges
+  today (23.2 bps for 2,500), and the first sells gain 14.5 bps from the rich pool.
+- **Inventory:** the arb still sells back what the loop buys past the band, so
+  `inventory-refill-needed` and the refiller work as on Lark 0. Mainnet's
+  arbitrageurs' capacity and delays (bridging, Hastra minting) are not modelled.
+
+## GIGAETH on `next`
+
+GIGAETH is pool 4200's share (aETH 1007 + 1000809) and its oracle reads that
+pool: ETH/USD times the pool's 10-minute share rate. The tooling never mints it.
+
+- **Funding:** test accounts get ETH (34) and buy GIGAETH through the router as
+  themselves, Aave 34 → 1007 then Stableswap 4200 1007 → 4200, exact-out, with at
+  most 1% over the MM-oracle price. The deployer buys 1 for the bootstrap and the
+  arb 10 for its quotes, from the ETH `prepare` gives them; the UI buys 0.05;
+  each depositor buys its split with minted ETH. Each buy is priced once and
+  journaled (`testBuys`, the depositor plan's `buy`), dry-run before its
+  referendum and checked in the enactment events.
+- **Prices:** GIGAETH keeps its forked source; `prices` records it with
+  `mirror: false` and mirrors tBTC and PRIME only. ETH keeps its DIA source, so
+  `sync` hands ETH/USD to the mirror signer and the bots keep it on mainnet's.
+- **Routes and swaps:** `routes` stores PRIME → GIGAETH from pool 143 and the
+  stored HOLLAR → aGETH → GIGAETH route; GIGAETH → HOLLAR is that route
+  reversed. The adapter maps asset 4200 instead of 34.
 
 ## Tracks A and B
 

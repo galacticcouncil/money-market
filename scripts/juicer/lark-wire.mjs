@@ -36,7 +36,9 @@ try{
   const custody=[a.source,a.harvester,a.fees,...r.vaults.flatMap(x=>[x.address,x.mainDebt,x.yieldAccounting])];
   await enact('protect-october-custody',await Promise.all(custody.map(async address=>api.tx.duster.whitelistAccount(await c.nativeAccount(address)))));
   const expiry=r.executionPolicy?.expiresAt??Number((await pub.getBlock()).timestamp+30n*86400n);
-  const definitions=[['entry',HOLLAR,1000n*10n**18n,10n**18n,60],['unwind',r.market.aPrime,1000n*10n**6n,10n**6n,60],['harvest',token(43),1000n*10n**6n,10n**6n,60],['service-ETH',token(34),10n**18n,10n**15n,60],['service-TBTC',token(1000765),10n**17n,10n**14n,60]];
+  // in the vault's collateral units: the ETH vault's is worth about an ETH (ETH or GIGAETH)
+  const service={ETH:{capacity:10n**18n,refill:10n**15n,min:10n**12n,max:2n*10n**16n},TBTC:{capacity:10n**17n,refill:10n**14n,min:10n**10n,max:10n**15n}};
+  const definitions=[['entry',HOLLAR,1000n*10n**18n,10n**18n,60],['unwind',r.market.aPrime,1000n*10n**6n,10n**6n,60],['harvest',token(43),1000n*10n**6n,10n**6n,60],...r.vaults.map(x=>[`service-${x.name}`,x.asset,service[x.name].capacity,service[x.name].refill,60])];
   r.executionPolicy={maxQuoteAge:60,maxQuoteBlocks:5,expiresAt:expiry,budgets:[],limits:[]};
   for(const [name,asset,capacity,refill,interval]of definitions){
    const group=v.keccak256(v.toHex(`lark-october-${name}`));
@@ -46,7 +48,7 @@ try{
   const lanes=[[a.source,HOLLAR,r.market.aPrime,'entry',10n**18n,50n*10n**18n,false],[a.source,r.market.aPrime,HOLLAR,'unwind',10000n,50n*10n**6n,true]];
   for(const vault of r.vaults){
    lanes.push([vault.address,token(43),vault.asset,'harvest',10000n,50n*10n**6n,false]);
-   for(const consumer of [vault.address,vault.mainDebt])lanes.push([consumer,vault.asset,HOLLAR,`service-${vault.name}`,vault.assetId===34?10n**12n:10n**10n,vault.assetId===34?2n*10n**16n:10n**15n,false]);
+   for(const consumer of [vault.address,vault.mainDebt])lanes.push([consumer,vault.asset,HOLLAR,`service-${vault.name}`,service[vault.name].min,service[vault.name].max,false]);
   }
   for(const [consumer,input,output,groupName,minimum,maximum,safety]of lanes){
    const group=policy.budgets.find(x=>x.name===groupName).group,lane=v.keccak256(v.encodeAbiParameters(v.parseAbiParameters('address,address,address'),[consumer,input,output]));

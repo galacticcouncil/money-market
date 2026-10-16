@@ -123,6 +123,7 @@ const ICE_SEND_ABI = parseAbi([
 const KEEPER_ROLE = keccak256(toHex('KEEPER_ROLE'));
 const ORACLE_ABI = parseAbi([
   'function getSourceOfAsset(address asset) view returns (address)',
+  'function getAssetPrice(address asset) view returns (uint256)',
   'function latestRoundData() view returns (uint80, int256 answer, uint256, uint256 updatedAt, uint80)',
 ]);
 
@@ -450,8 +451,11 @@ export class JuicerLooper {
       try {
         const source = (await this.read(ORACLE_ABI, oracle, 'getSourceOfAsset', [asset]) as Address).toLowerCase();
         if (/^0x0{40}$/.test(source)) continue;
-        const round = await this.read(ORACLE_ABI, source as Address, 'latestRoundData') as readonly bigint[];
-        const feed = feedUpdate(seen.get(source), round[1], round[3], now);
+        // a composite source without rounds (gigaeth) is watched through the oracle's price
+        const [answer, updatedAt] = await this.read(ORACLE_ABI, source as Address, 'latestRoundData')
+          .then(round => [(round as readonly bigint[])[1], (round as readonly bigint[])[3]])
+          .catch(async () => [await this.read(ORACLE_ABI, oracle, 'getAssetPrice', [asset]) as bigint, 0n]);
+        const feed = feedUpdate(seen.get(source), answer, updatedAt, now);
         seen.set(source, feed);
         updates.set(asset, feed.at);
       } catch (error) {
