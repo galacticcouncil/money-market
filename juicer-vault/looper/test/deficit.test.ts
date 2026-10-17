@@ -130,14 +130,36 @@ test('a deficit above the stop halts the ramp and sets the flags on any operator
 test('the fee gross-up alone can stop a vault whose debt is otherwise backed', async () => {
   const c = chain([ETH]);
   c.vaults[ETH].grossUp = 60n * 10n ** 18n;
-  assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, ['k0:setDeficitStop:eth(true)']);
+  assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, ['k0:setDeficitStop:eth(true)', 'k0:pokeBorrow']);
 });
 
-test('a single vault deficit sets only that vault\'s flag but stops the shared ramp', async () => {
+test('a single vault deficit stops only that vault\'s deposits; the shared ramp goes on', async () => {
   const c = chain();
-  c.vaults[BTC].deficit = 51n;
-  assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, ['k0:setDeficitStop:btc(true)']);
-  assert.equal(c.vaults[ETH].stop, false);
+  const k = keeper(c, 'k0', 0);
+  c.carry = 1n;
+  c.vaults[ETH].deficit = 51n;
+  c.vaults[BTC].deficit = 2n;
+  assert.deepEqual((await run(c, k)).calls, ['k0:setDeficitStop:eth(true)', 'k0:pokeBorrow']);
+  assert.equal(c.vaults[BTC].stop, false);
+  assert.deepEqual((await run(c, k)).calls, ['k0:pokeBorrow'], 'the other vault\'s cash keeps levering');
+});
+
+test('only the loop\'s own deficit holds the shared ramp, with the same hysteresis', async () => {
+  const c = chain();
+  const k = keeper(c, 'k0', 0);
+  c.carry = 60n;
+  const held = await run(c, k);
+  assert.deepEqual(held.calls, ['k0:setDeficitStop:eth(true)', 'k0:setDeficitStop:btc(true)']);
+  assert.ok(held.alerts.includes('[ALERT] loop deficit 60 bps: ramp held until below 25'));
+  c.carry = 40n;
+  assert.deepEqual((await run(c, k)).calls, [], 'the band keeps the ramp held');
+  c.carry = 24n;
+  assert.deepEqual((await run(c, k)).calls, ['k0:setDeficitStop:eth(false)', 'k0:setDeficitStop:btc(false)', 'k0:pokeBorrow']);
+  c.carry = 40n;
+  assert.deepEqual((await run(c, k)).calls, ['k0:pokeBorrow'], 'rising into the band does not hold it');
+  assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, [], 'a restarted keeper treats the band as held');
+  c.carry = 20n;
+  assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, ['k0:pokeBorrow']);
 });
 
 test('the band leaves the flag as it is; below resume the operator on duty clears it', async () => {
@@ -146,11 +168,13 @@ test('the band leaves the flag as it is; below resume the operator on duty clear
   c.vaults[ETH].deficit = 40n;
   assert.deepEqual((await run(c, k)).calls, ['k0:pokeBorrow'], 'rising into the band does not stop');
   c.vaults[ETH].deficit = 60n;
-  assert.deepEqual((await run(c, k)).calls, ['k0:setDeficitStop:eth(true)']);
+  assert.deepEqual((await run(c, k)).calls, ['k0:setDeficitStop:eth(true)', 'k0:pokeBorrow']);
   c.vaults[ETH].deficit = 40n;
-  assert.deepEqual((await run(c, k)).calls, [], 'falling into the band keeps the stop');
+  assert.deepEqual((await run(c, k)).calls, ['k0:pokeBorrow'], 'falling into the band keeps the stop');
+  assert.equal(c.vaults[ETH].stop, true);
   c.vaults[ETH].deficit = 25n;
-  assert.deepEqual((await run(c, k)).calls, []);
+  assert.deepEqual((await run(c, k)).calls, ['k0:pokeBorrow']);
+  assert.equal(c.vaults[ETH].stop, true);
   c.vaults[ETH].deficit = 24n;
   const resumed = await run(c, k);
   assert.deepEqual(resumed.calls, ['k0:setDeficitStop:eth(false)', 'k0:pokeBorrow']);
@@ -161,7 +185,7 @@ test('the band leaves the flag as it is; below resume the operator on duty clear
 test('governance\'s depositsPaused is neither read nor touched; the keeper only owns deficitStop', async () => {
   const c = chain([ETH]);
   const k = keeper(c, 'k0', 0);
-  for (const [deficit, expected] of [[0n, ['k0:pokeBorrow']], [70n, ['k0:setDeficitStop:eth(true)']],
+  for (const [deficit, expected] of [[0n, ['k0:pokeBorrow']], [70n, ['k0:setDeficitStop:eth(true)', 'k0:pokeBorrow']],
     [10n, ['k0:setDeficitStop:eth(false)', 'k0:pokeBorrow']]] as const) {
     c.vaults[ETH].deficit = deficit;
     const {calls, alerts} = await run(c, k);
@@ -175,7 +199,8 @@ test('a restarted keeper takes the band state from the flag', async () => {
   c.vaults[ETH].deficit = 60n;
   await run(c, keeper(c, 'k0', 0));
   c.vaults[ETH].deficit = 40n;
-  assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, [], 'no ramp and no clear in the band after a restart');
+  assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, ['k0:pokeBorrow'], 'no clear in the band after a restart');
+  assert.equal(c.vaults[ETH].stop, true);
   c.vaults[ETH].deficit = 10n;
   assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, ['k0:setDeficitStop:eth(false)', 'k0:pokeBorrow']);
 });
@@ -185,7 +210,7 @@ test('two instances: one flag between them, cleared on the duty slot without fla
   const k0 = keeper(c, 'k0', 0), k1 = keeper(c, 'k1', 1);
   c.vaults[ETH].deficit = 60n;
   assert.deepEqual((await run(c, k0, false)).calls, ['k0:setDeficitStop:eth(true)']);
-  assert.deepEqual((await run(c, k1, true)).calls, [], 'the second instance sees the flag and adds nothing');
+  assert.deepEqual((await run(c, k1, true)).calls, ['k1:pokeBorrow'], 'the second instance sees the flag and only ramps');
   c.vaults[ETH].deficit = 10n;
   assert.deepEqual((await run(c, k0, false)).calls, [], 'clearing waits for the duty slot');
   assert.deepEqual((await run(c, k1, true)).calls, ['k1:setDeficitStop:eth(false)', 'k1:pokeBorrow']);
@@ -229,16 +254,16 @@ test('an unreadable or unallocated view holds the flag and the ramp', async () =
   assert.ok((await run(c, k)).calls.includes('k0:setDeficitStop:eth(true)'));
 });
 
-test('a keeper without the deposit guardian role still stops the ramp and alerts once, retrying every cycle', async () => {
+test('a keeper without the deposit guardian role alerts once and retries every cycle', async () => {
   const c = chain([ETH]);
   const k = keeper(c, 'k0', 0);
   c.denied.add('k0');
   c.vaults[ETH].deficit = 70n;
   const first = await run(c, k);
-  assert.deepEqual(first.calls, ['k0:setDeficitStop:eth(true)']);
+  assert.deepEqual(first.calls, ['k0:setDeficitStop:eth(true)', 'k0:pokeBorrow']);
   assert.ok(first.alerts.includes(`[ALERT] deficit stop ${ETH}: setDeficitStop(true) not confirmed; retrying every cycle`));
   const second = await run(c, k);
-  assert.deepEqual(second.calls, ['k0:setDeficitStop:eth(true)']);
+  assert.deepEqual(second.calls, ['k0:setDeficitStop:eth(true)', 'k0:pokeBorrow']);
   assert.deepEqual(second.alerts, []);
   c.denied.clear();
   assert.ok((await run(c, k)).alerts.some(a => a.includes('deficitStop set')));
