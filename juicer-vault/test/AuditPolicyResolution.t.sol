@@ -38,6 +38,35 @@ contract AdmissionBackstopTest is HarvestTest {
         vault.deposit(1e18, NEWCOMER);
         vm.stopPrank();
     }
+
+    function test_adminRaisesTheAdmissibleDeficit() public {
+        _depositAndRamp();
+        pool.setPrice(address(prime), 0.99e18);
+        loop.setAdmissionMaxDeficitBps(10_000);
+        assertEq(loop.admissionMaxDeficitBps(), 10_000);
+        assertGt(_attemptDeposit(), 0);
+    }
+
+    function test_unsetAdmissionClosesOnAnyShortfall() public {
+        _depositAndRamp();
+        pool.setPrice(address(prime), 0.9994e18);
+        loop.setAdmissionMaxDeficitBps(0);
+        eth.mint(NEWCOMER, 1e18);
+        vm.startPrank(NEWCOMER);
+        eth.approve(address(vault), 1e18);
+        vm.expectRevert(CollateralVault.PrincipalShortfall.selector);
+        vault.deposit(1e18, NEWCOMER);
+        vm.stopPrank();
+    }
+
+    function test_onlyAdminSetsTheAdmissibleDeficit() public {
+        vm.prank(NEWCOMER);
+        vm.expectRevert();
+        loop.setAdmissionMaxDeficitBps(300);
+        vm.expectRevert(SubLoop.InvalidParameters.selector);
+        loop.setAdmissionMaxDeficitBps(10_001);
+        assertEq(loop.admissionMaxDeficitBps(), 50);
+    }
 }
 
 contract RecoveryHighWaterTest is HarvestTest {

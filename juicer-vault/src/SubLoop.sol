@@ -96,6 +96,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         deLeverTrigger = _deLeverTrigger;
         deployHfFloor = _targetHf; // borrow down to target; swap lag keeps actual HF above
         harvestThreshold = 1e15; // 0.1%
+        _admissionMaxDeficitBps = 50;
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(ADMIN_ROLE, _admin);
@@ -374,6 +375,11 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     }
 
     /// @inheritdoc IYieldSource
+    function admissionMaxDeficitBps() external view override returns (uint16) {
+        return _admissionMaxDeficitBps;
+    }
+
+    /// @inheritdoc IYieldSource
     function equityOf(address vault) external view override returns (uint256) {
         if (_totalShares == 0) return 0;
         return (_liveEquity18() * _sharesOf[vault]) / _totalShares / 1e10;
@@ -458,6 +464,12 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         deployHfFloor = _deployHfFloor;
         deLeverTrigger = _deLeverTrigger;
         harvestThreshold = _harvestThreshold;
+    }
+
+    /// @notice entries cost about their fee times leverage, so this follows the target; an upgraded loop reads 0
+    function setAdmissionMaxDeficitBps(uint16 bps) external onlyRole(ADMIN_ROLE) {
+        if (bps > 10_000) revert InvalidParameters();
+        _admissionMaxDeficitBps = bps;
     }
 
     /// @notice set the carry recipient; can't be zeroed, which would silently stop harvests.

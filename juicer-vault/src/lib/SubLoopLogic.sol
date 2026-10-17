@@ -105,6 +105,7 @@ abstract contract SubLoopStorage is
     uint64 public intentNonce;
     /// @notice the in-flight ICE intent; one at a time keeps both directions' balance deltas apart
     PendingIntent public pendingIntent;
+    uint16 internal _admissionMaxDeficitBps;
 
     event Borrowed(uint256 amount, uint256 hfAfter);
     event Repaid(uint256 amount, uint256 hfAfter);

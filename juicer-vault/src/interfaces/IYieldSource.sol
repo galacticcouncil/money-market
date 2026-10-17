@@ -57,6 +57,9 @@ interface IYieldSource {
     /// @notice equity shortfall below cost basis in bps (0 at or above basis); monitoring only.
     function negativeCarryBps() external view returns (uint256);
 
+    /// @notice a vault's deposits revert while its backing shortfall exceeds this many bps of its Main debt.
+    function admissionMaxDeficitBps() external view returns (uint16);
+
     // yield realisation
 
     /// @notice realise carry to the harvester; only the harvester calls this.

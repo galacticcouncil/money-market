@@ -56,7 +56,6 @@ interface ICompoundVault is IMainDebtVault {
 contract CompoundLogic {
     using SafeERC20 for IERC20;
     uint256 internal constant BPS = 10_000;
-    uint256 internal constant ADMISSION_MAX_DEFICIT_BPS = 50;
     // rebalance hysteresis around the reserve's max LTV: relever when utilization
     // drifts this far below it, delever when a price drop pushes it this far above
     uint256 internal constant LTV_BAND_LOW_GAP_BPS = 500;
@@ -99,7 +98,8 @@ contract CompoundLogic {
         (uint256 debt,,) = ledger.activePosition();
         if (debt != 0) {
             JuicerYieldAccounting accounting = v.yieldAccounting();
-            uint256 equity = v.yieldSource().equityOf(address(this)) * 1e10;
+            IYieldSource source = v.yieldSource();
+            uint256 equity = source.equityOf(address(this)) * 1e10;
             uint256 sourceValue = accounting.sourceValue();
             uint256 backing = equity > sourceValue ? equity - sourceValue : 0;
             uint256 cash = ledger.activeFunds();
@@ -108,7 +108,7 @@ contract CompoundLogic {
             uint256 required = accounting.requiredSourceBacking();
             uint256 unbacked = required > backing ? required - backing : 0;
             uint256 shortfall = Math.max(uncovered, unbacked);
-            if (Math.mulDiv(shortfall, BPS, debt, Math.Rounding.Up) > ADMISSION_MAX_DEFICIT_BPS) {
+            if (Math.mulDiv(shortfall, BPS, debt, Math.Rounding.Up) > source.admissionMaxDeficitBps()) {
                 revert PrincipalShortfall();
             }
         }

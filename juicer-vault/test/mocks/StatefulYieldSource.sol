@@ -30,6 +30,7 @@ contract StatefulYieldSource is IYieldSource {
     function admissionCapacity() external pure returns (uint256) { return type(uint256).max; }
     function accountingLocked() external pure returns (bool) { return false; }
     function negativeCarryBps() external pure returns (uint256) { return 0; }
+    function admissionMaxDeficitBps() external pure returns (uint16) { return 50; }
     function harvestCapacity() external view returns (uint256) { return totalShares; }
     function previewHarvest(uint256 shares) public view returns (uint256) { return Math.mulDiv(shares, rate, 1e18); }
     function equityOf(address owner) external view returns (uint256) { return previewHarvest(sharesOf[owner]) / 1e10; }
