@@ -40,12 +40,14 @@ contract JuicerFeeController is AccessControl, ReentrancyGuard, IJuicerFeeContro
     using SafeERC20 for IERC20;
 
     uint16 public constant INITIAL_FEE_BPS = 500;
+    uint16 public constant MAX_ENTRY_FEE_BPS = 200;
     uint16 public constant BPS = 10_000;
 
     struct Binding {
         address asset;
         address harvester;
         uint16 feeBps;
+        uint16 entryFeeBps;
     }
 
     mapping(address => Binding) public bindings;
@@ -62,6 +64,7 @@ contract JuicerFeeController is AccessControl, ReentrancyGuard, IJuicerFeeContro
 
     event VaultBound(address indexed vault, address indexed asset, address indexed harvester);
     event ProtocolFeeUpdated(address indexed vault, uint16 previousBps, uint16 newBps);
+    event EntryFeeUpdated(address indexed vault, uint16 previousBps, uint16 newBps);
     event FeeRecipientUpdated(address indexed previousRecipient, address indexed newRecipient);
     event ProtocolFeeAccrued(address indexed vault, address indexed asset, uint256 gross, uint256 fee, uint256 net);
     event ProtocolFeesClaimed(address indexed asset, address indexed recipient, uint256 amount);
@@ -111,6 +114,22 @@ contract JuicerFeeController is AccessControl, ReentrancyGuard, IJuicerFeeContro
         if (bps > BPS) revert InvalidFee();
         emit ProtocolFeeUpdated(vault, b.feeBps, bps);
         b.feeBps = bps;
+        ++configurationVersion;
+    }
+
+    /// @notice Share of a deposit's collateral the vault keeps for its existing holders, zero
+    /// until governance sets it. It is taken from the depositor's principal.
+    function entryFeeBps(address vault) external view returns (uint16) {
+        if (bindings[vault].asset == address(0)) revert NotRegistered();
+        return bindings[vault].entryFeeBps;
+    }
+
+    function setEntryFeeBps(address vault, uint16 bps) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        Binding storage b = bindings[vault];
+        if (b.asset == address(0)) revert NotRegistered();
+        if (bps > MAX_ENTRY_FEE_BPS) revert InvalidFee();
+        emit EntryFeeUpdated(vault, b.entryFeeBps, bps);
+        b.entryFeeBps = bps;
         ++configurationVersion;
     }
 

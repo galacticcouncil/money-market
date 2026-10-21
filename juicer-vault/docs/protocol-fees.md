@@ -29,8 +29,10 @@ The fee is a fraction of harvested collateral yield, not of principal or TVL.
 - At 100%, newly checkpointed yield belongs to the protocol. Previously allocated
   user earnings keep their ownership. Main borrowing interest still applies,
   so net user yield can be negative and servicing can be delayed.
-- Deposits, principal, collateral price gains, Main aToken interest and
-  caller-funded compound donations are not taxed. Explicit Main recovery funding
+- Collateral price gains, Main aToken interest and caller-funded compound
+  donations are not taxed. Deposits and principal are not taxed either, except by
+  the [entry fee](#entry-fee): zero unless governance sets it, and then taken from
+  the deposit's principal. Explicit Main recovery funding
   that releases source principal is allocated without a yield fee.
   Unconverted user rewards following an exit are already net of vested fees.
   Corresponding protocol units follow the same unwind and share its execution
@@ -91,6 +93,8 @@ no fee-disabled fallback during incomplete deployment wiring.
 | `collectSourceFee(amount)` | Bound Main ledger only; receives accounted HOLLAR fees from actual exit yield receipts. |
 | `protocolFeeBps(vault)` | Explicit stored rate; unknown vaults revert. |
 | `setProtocolFeeBps(vault, bps)` | Governance; rejects unknown vaults and values above 10000. |
+| `entryFeeBps(vault)` | Explicit stored entry fee, zero at registration; unknown vaults revert. |
+| `setEntryFeeBps(vault, bps)` | Governance; rejects unknown vaults and values above `MAX_ENTRY_FEE_BPS` (200). |
 | `setFeeRecipient(recipient)` | Governance/admin; redirects **all** unclaimed fees. |
 | `claimableProtocolFees(asset)` | Aggregate recorded claim for the underlying asset. |
 | `claimProtocolFees(asset)` | Permissionless; pays the full recorded claim to the current recipient. No destination argument or caller reward. |
@@ -160,6 +164,34 @@ The existing keeper still calls `harvest(uint256[])`; minimums are gross outputs
 and its empty minimum array still uses the oracle floor. Claiming fees is a
 separate permissionless transaction, not part of harvesting or user withdrawal.
 Do not run keeper configuration against old contracts that lack these hooks.
+
+## Entry fee
+
+A deposit's entry costs about the PRIME entry rate × loop leverage × target LTV,
+and the loop's holders pay it: later deposits ride on earlier ones, and a quick
+round trip leaves its entry with those who stay. The entry fee lets a vault charge
+it to the depositor instead.
+
+- **Rate:** `JuicerFeeController.setEntryFeeBps(vault, bps)`, governance only,
+  per vault, 0 at registration and at most 200 bps. The launch proposal sets none;
+  `JUICER_ENTRY_FEE_BPS` makes batch 4 set it, and readiness checks it (default 0).
+- **Where it goes:** nowhere. `deposit` mints shares on the deposit less the fee
+  and supplies all of it, so the fee stays in the vault as its holders' collateral.
+  No treasury income, no transfer. The bootstrap deposit pays none.
+- **Who pays what:** the depositor keeps its own share of the fee once it is a
+  holder. A fee equal to the entry cost therefore makes the vault's earlier holders
+  whole for their share of that cost and charges the depositor exactly its own.
+  A deposit that doubles the vault pays half the nominal fee to the others.
+- **Sizing:** entry cost rate × leverage × target LTV. At the 1 bp pool fee, 6.06×
+  and 75%, that is about 0.84% of the deposit (juicenomics, 21 October), against
+  ~1.5% at 4 bps. The rate is fixed between governance changes, not live swing pricing.
+- **Principal:** this fee is charged on principal. With it set, "deposits and
+  principal are not taxed" no longer holds; the redeemable principal is the
+  deposit less the fee. The [from-yield alternative](../FUTURE_IMPROVEMENTS.md#potential-each-deposit-pays-its-own-entry-cost-2026-10-20)
+  keeps that promise and is not implemented.
+
+The vault reads the rate with one call; its policy and source-emptiness checks for
+`setDiscountController` and `setYieldSource` moved into `CompoundLogic` to make room.
 
 ## Revenue mix
 

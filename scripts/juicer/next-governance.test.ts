@@ -32,7 +32,7 @@ class Chain extends providers.StaticJsonRpcProvider {
 const v = (type: string, value: any) => () => [[type], [value]] as [string[], any[]];
 function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = false, threshold = "1000000000000000", reserve = "0", old = false,
   gaps = {} as Record<string, number[]>, ltv = { [ETH]: 7500, [BTC]: 8000 } as Record<string, number>,
-  installed = true, enrolled = true, main = 0, loopRate = 0 as number | null, fee = 500 as number | null } = {}) {
+  installed = true, enrolled = true, main = 0, loopRate = 0 as number | null, fee = 500 as number | null, entry = 0 as number | null } = {}) {
   const has = (role: string, who: string) => granted.has(`${role}:${who}`);
   const roles = (extra: Record<string, any>) => ({ "hasRole(bytes32,address)": (a: utils.Result) => [["bool"], [has(a[0], a[1])]] as [string[], any[]], ...extra });
   return new Chain({
@@ -55,7 +55,10 @@ function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = fa
       ...(loopRate === null ? {} : { "loopDiscountBps()": v("uint16", loopRate), "loop()": v("address", enrolled ? LOOP : ZERO) }),
     },
     [DEBT]: { "getDiscountToken()": v("address", installed ? DISC : ZERO), "getDiscountRateStrategy()": v("address", installed ? DISC : ZERO) },
-    [FEES]: fee === null ? {} : { "protocolFeeBps(address)": v("uint16", fee) },
+    [FEES]: {
+      ...(fee === null ? {} : { "protocolFeeBps(address)": v("uint16", fee) }),
+      ...(entry === null ? {} : { "entryFeeBps(address)": v("uint16", entry) }),
+    },
     ...(old ? {} : { [M1]: { "protocolReserve()": v("uint256", reserve) }, [M2]: { "protocolReserve()": v("uint256", reserve) } }),
     [C]: {
       "lane(address,address,address)": (a: utils.Result) => [["bytes32"], [lane(a[0], a[1], a[2])]],
@@ -215,4 +218,25 @@ test("the revenue mix waits for an installed discount and an enrolled loop", asy
   const bare = await read(nextChain()), all = await readAll(nextChain());
   assert.throws(() => nextCalls(bare, { revenue }), /JUICER_DISCOUNT_CONTROLLER/);
   assert.throws(() => nextCalls(all, { revenue: { ...revenue, protocolFeeBps: 10001 } }), /0\.\.10000/);
+});
+
+test("an approved entry fee is set on every vault, and none is set unless asked", async () => {
+  const state = await readAll(nextChain());
+  assert.deepEqual(state.vaults.map(v => v.entryFeeBps), [0, 0]);
+  assert.deepEqual(nextCalls(state, {}), []);
+  const calls = nextCalls(state, { entryFeeBps: 80 });
+  assert.deepEqual(calls.map(c => [c.to, ...decode("setEntryFeeBps(address,uint16)", c.data).map(String)]), [[FEES, V1, "80"], [FEES, V2, "80"]]);
+  const set = await readAll(nextChain({ entry: 80 }));
+  assert.deepEqual(nextCalls(set, { entryFeeBps: 80 }), []);
+  assert.ok(nextChecks(set, { entryFeeBps: 80 }).every(c => c.ok));
+  assert.deepEqual(nextChecks(state, { entryFeeBps: 80 }).map(c => c.ok), [false, false]);
+});
+
+test("the entry fee is bounded and needs a fee controller that has one", async () => {
+  const state = await readAll(nextChain());
+  for (const entryFeeBps of [201, -1, 1.5]) assert.throws(() => nextCalls(state, { entryFeeBps }), /entry fee/);
+  const old = await readAll(nextChain({ entry: null }));
+  assert.throws(() => nextCalls(old, { entryFeeBps: 50 }), /entryFeeBps \(or the vault is unregistered\) missing on chain/);
+  const bare = await read(nextChain());
+  assert.throws(() => nextCalls(bare, { entryFeeBps: 50 }), /needs JUICER_FEE_CONTROLLER/);
 });

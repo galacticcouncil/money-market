@@ -40,6 +40,13 @@ quick round trip leaves its entry cost with the others.
 - **Swing pricing:** `SubLoop.deposit` mints shares net of the expected entry
   cost (tranche cost × target leverage), or settles the deposit's own entries
   before minting; alternatively an entry fee paid into the source.
+- **Implemented (the collateral variant):** `JuicerFeeController.setEntryFeeBps`
+  lets governance keep up to 2% of each deposit in the vault for its holders
+  ([entry fee](docs/protocol-fees.md#entry-fee)). It comes out of principal.
+- **Still open (keeps principal untaxed):** charge the entry against the deposit's
+  own future yield. The account starts with its entry "to earn back"; an exit
+  before payback waives the rest. That needs a per-account entry debt in
+  `JuicerYieldAccounting` which follows transfers, and the formal model with it.
 - **Effect:** a quick exit costs only the leaver (transfer-proof, unlike a
   lock-up), the early-holder subsidy goes, and the admission cap only has to
   bound unexpected losses.

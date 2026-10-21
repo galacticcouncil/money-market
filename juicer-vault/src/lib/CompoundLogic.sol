@@ -13,6 +13,7 @@ import {IJuicerFeeController} from "../interfaces/IJuicerFeeController.sol";
 import {ISwapper} from "../interfaces/ISwapper.sol";
 import {IAavePool} from "../interfaces/IAavePool.sol";
 import {ISyntheticToken} from "../interfaces/ISyntheticToken.sol";
+import {IJuicerDiscount} from "../interfaces/IJuicerDiscount.sol";
 
 interface IEntrySource {
     function primeAToken() external view returns (address);
@@ -63,6 +64,8 @@ contract CompoundLogic {
     error PrincipalShortfall();
     error NoLoopEquity();
     error PrincipalNotFloored();
+    error InvalidDiscountController();
+    error SourceNotEmpty();
     event Rebalanced(uint256 ltvBefore, uint256 ltvAfter);
     event Harvested(uint256 collateralAmount);
 
@@ -88,6 +91,25 @@ contract CompoundLogic {
 
     /// @notice Supply collateral without borrowing or trading. Deployment is a
     /// separately quoted rebalance; waiting collateral incurs no HOLLAR debt.
+    /// @dev the vault's discount controller must cover its own HOLLAR debt and synthetic
+    function checkDiscountController(address controller) external view {
+        ICompoundVault v = ICompoundVault(address(this));
+        IJuicerDiscount policy = IJuicerDiscount(controller);
+        if (address(policy.debtToken()) != address(v.hollarDebtToken()) || policy.synthetic() != address(v.synthetic())) {
+            revert InvalidDiscountController();
+        }
+    }
+
+    /// @dev sweeps the old source's freed HOLLAR, then requires nothing of the vault left in it
+    function leaveSource() external returns (uint256 freed) {
+        ICompoundVault v = ICompoundVault(address(this));
+        IYieldSource source = v.yieldSource();
+        freed = source.pullFreed();
+        if (v.loopShares() != 0 || source.sharesOf(address(this)) != 0 || source.pendingUnwindOf(address(this)) != 0) {
+            revert SourceNotEmpty();
+        }
+    }
+
     function deposit(uint256 assets) external {
         ICompoundVault v = ICompoundVault(address(this));
         IMainDebt ledger = v.mainDebt();
