@@ -48,16 +48,18 @@ theorem prepareTransfer_activeFeeSafe (s : State) (a b n : Nat) (h : ActiveFeeSa
   split
   · dsimp only
     split
+    · trivial
     · split
-      · trivial
       · split
         · trivial
         · split
+          · trivial
           · split
-            · trivial
-            · exact moveUnits_activeFeeSafe _ a b _ _ ht
-          · exact ht
-    · exact ht
+            · split
+              · trivial
+              · exact moveUnits_activeFeeSafe _ a b _ _ ht
+            · exact ht
+      · exact ht
   · exact h
 
 theorem finishTransfer_activeFeeSafe (s : State) (a b n : Nat) (h : ActiveFeeSafe s) :

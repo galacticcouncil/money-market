@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {ExecutionController} from "../src/ExecutionController.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @dev stands in for a consumer contract (the SubLoop) holding the lane
 contract AsyncConsumer {
@@ -51,7 +52,7 @@ contract ExecutionAsyncTest is Test {
         vm.roll(100);
         hollar = new MockERC20("HOLLAR", "HOLLAR", 18);
         aPrime = new MockERC20("aPRIME", "aPRIME", 6);
-        control = new ExecutionController(address(this), 60, 5);
+        control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         consumer = new AsyncConsumer(control);
         other = new AsyncConsumer(control);
         control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18, uint64(block.timestamp + 30 days));
@@ -156,12 +157,20 @@ contract ExecutionAsyncTest is Test {
         assertEq(control.available(address(consumer), address(hollar), address(aPrime)), 0,
             "an async submit does not open its group to more trades in the block");
         vm.roll(block.number + 1);
-        vm.warp(block.timestamp + 59);
+        vm.warp(block.timestamp + 2);
         vm.expectRevert(ExecutionController.TradeSize.selector);
         consumer.consumeAsync(address(hollar), address(aPrime), 100e18, 94e6, 2);
         vm.warp(block.timestamp + 1);
         consumer.consumeAsync(address(hollar), address(aPrime), 100e18, 94e6, 2);
         consumer.recordAsync(entryLane, 2, 94e6);
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 3);
+        consumer.consumeAsync(address(hollar), address(aPrime), 2500e18, 2400e6, 3);
+        consumer.recordAsync(entryLane, 3, 2400e6);
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 59);
+        vm.expectRevert(ExecutionController.TradeSize.selector);
+        consumer.consumeAsync(address(hollar), address(aPrime), 100e18, 94e6, 4);
         vm.warp(block.timestamp + 31 days);
         vm.roll(block.number + 1);
         vm.expectRevert(ExecutionController.TradeSize.selector);

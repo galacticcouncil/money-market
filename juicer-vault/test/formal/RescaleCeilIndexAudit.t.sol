@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 import {ParityVault} from "./LeanRuntimeParity.t.sol";
 import {HarvestTest} from "../Harvest.t.sol";
+import {Artifacts} from "../helpers/Artifacts.t.sol";
 
 contract RescaleCeilIndexAuditTest is Test {
     uint256 constant RAY = 1e27;
@@ -23,7 +24,7 @@ contract RescaleCeilIndexAuditTest is Test {
         returns (JuicerYieldAccounting y, ParityVault v)
     {
         v = new ParityVault();
-        y = new JuicerYieldAccounting(address(v));
+        y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
         uint256[] memory input = new uint256[](14);
         input[6] = held;
         input[7] = equity;
@@ -106,11 +107,13 @@ contract RescaleCeilIndexPublicAuditTest is HarvestTest {
         _setPrime(lo);
         vault.sync();
         assertGt(y.totalAssets(), 0);
+        assertGt(y.sourceLossCarry() + y.protocolLossCarry(), 0);
         _setPrime(high);
         vault.sync();
+        assertEq(y.sourceLossCarry() + y.protocolLossCarry(), 0);
     }
 
-    function test_publicControlledCyclesKeepCeilShiftDefined() public {
+    function test_publicControlledCyclesRestoreLossWithoutRescale() public {
         _depositAndRamp();
         JuicerYieldAccounting y = vault.yieldAccounting();
         uint256 high = aPrime.balanceOf(address(loop)) * 105 / 100;
@@ -120,18 +123,18 @@ contract RescaleCeilIndexPublicAuditTest is HarvestTest {
         vault.transfer(address(this), 1);
         assertGt(y.accountIndex(address(this)), 0);
         uint256 rounds;
-        while (rounds < 40 && y.unitScale() < 256) {
+        while (rounds < 40) {
             _cycle(y, high);
             ++rounds;
         }
 
         emit log_named_uint("rounds", rounds);
         emit log_named_uint("unit scale", y.unitScale());
-        assertGe(y.unitScale(), 256, "controlled public fixture reached four cumulative shifts");
+        assertEq(y.unitScale(), 0, "high-water restoration closes the public refill rescale path");
         assertLe(y.balanceOf(address(this)), y.totalUnits());
     }
 
-    function test_publicWaitingRequestUsesCeilShift() public {
+    function test_publicWaitingRequestSurvivesLossCarryRestoration() public {
         vault.setTvlCap(type(uint256).max);
         eth.mint(address(this), RAY);
         eth.approve(address(vault), RAY);
@@ -154,22 +157,20 @@ contract RescaleCeilIndexPublicAuditTest is HarvestTest {
         uint256 requestId = vault.requestRedeem(RAY, REQUESTOR);
         assertEq(vault.walletOf(REQUESTOR), 0);
 
-        for (uint256 round; round < 20 && y.unitScale() == 0; ++round) {
+        for (uint256 round; round < 20; ++round) {
             _cycle(y, high);
         }
-        assertEq(y.unitScale(), 64);
+        assertEq(y.unitScale(), 0);
 
         uint256 shift = y.unitScale() - y.requestScale(requestId);
-        uint256 floorPrevious = y.requestIndex(requestId) >> shift;
-        uint256 ceilPrevious = floorPrevious;
-        if ((floorPrevious << shift) != y.requestIndex(requestId)) ++ceilPrevious;
-        assertEq(ceilPrevious, floorPrevious + 1, "request index has a shifted remainder");
-        uint256 ceilClaim = (y.requestUnits(requestId) >> shift) + RAY * (y.rewardIndex() - ceilPrevious) / RAY;
+        uint256 previous = y.requestIndex(requestId) >> shift;
+        uint256 requestClaim = (y.requestUnits(requestId) >> shift) + RAY * (y.rewardIndex() - previous) / RAY;
 
         uint256 ownerClaim = y.balanceOf(REQUESTOR);
         uint256 totalBefore = y.totalUnits();
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(1);
-        assertEq(y.totalUnits(), totalBefore - ownerClaim - ceilClaim, "start burns the ceil-shifted request claim");
+        assertEq(y.totalUnits(), totalBefore - ownerClaim - requestClaim,
+            "start burns the waiting request after every incumbent recovery is restored");
     }
 }

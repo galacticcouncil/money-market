@@ -8,6 +8,7 @@ import {CollateralVault} from "../../src/CollateralVault.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {IYieldSource} from "../../src/interfaces/IYieldSource.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Artifacts} from "../helpers/Artifacts.t.sol";
 
 contract ParityFeeSink {
     IERC20 immutable token;
@@ -79,7 +80,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
         for (uint256 i; i < _count("main"); ++i) {
             uint256 snap = vm.snapshotState();
             uint256[] memory r = _row("main", i);
-            JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+            JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
             hollarDebt.mint(address(vault), r[0]);
             vm.prank(address(vault)); ledger.borrowed(0);
             hollarDebt.mint(address(vault), r[1]);
@@ -98,7 +99,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
         for (uint256 i; i < _count("batch"); ++i) {
             uint256 snap = vm.snapshotState();
             uint256[] memory r = _row("batch", i);
-            JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+            JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
             vm.startPrank(address(vault));
             ledger.startExit(0, OWNER, 1, 2, r[0], r[0], 0);
             ledger.startExit(1, RECEIVER, 1, 1, r[1], r[1], 0);
@@ -120,7 +121,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
             uint256[] memory r = _row("fees", i);
             ParityFeeSink sink = new ParityFeeSink(IERC20(address(hollar)));
             vm.mockCall(address(vault), abi.encodeWithSelector(vault.feeController.selector), abi.encode(address(sink)));
-            JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+            JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
             vm.prank(address(vault)); ledger.startExit(0, OWNER, 1, 1, r[0], r[1], r[2]);
             (uint256 yieldLeft, uint256 feeLeft) = ledger.sourceFees(1);
             assertEq(yieldLeft, r[4]); assertEq(feeLeft, r[5]);
@@ -135,7 +136,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
     function test_leanPolicyAvailabilityAndRefresh() public {
         for (uint256 i; i < _count("policy"); ++i) {
             uint256[] memory r = _row("policy", i);
-            ParityPolicy c = new ParityPolicy();
+            ParityPolicy c = ParityPolicy(vm.deployCode("LeanCoverageParity.t.sol:ParityPolicy"));
             c.seed(r, address(this), address(1), address(2));
             vm.warp(r[10]); vm.roll(r[11]);
             assertEq(c.available(address(this), address(1), address(2)), r[12]);
@@ -148,7 +149,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
     function test_leanQuoteTightensOracleFloor() public {
         for (uint256 i; i < _count("prices"); ++i) {
             uint256[] memory r = _row("prices", i);
-            ExecutionController c = new ExecutionController(address(this), 60, 5);
+            ExecutionController c = ExecutionController(Artifacts.executionController(address(this), 60, 5));
             ParityConsumer consumer = new ParityConsumer(c);
             vm.roll(100); vm.setBlockhash(99, keccak256("quote"));
             c.configureBudget(bytes32(uint256(1)), address(1), 1000, 0, uint64(block.timestamp + 100));
@@ -163,10 +164,32 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
             assertEq(credit, 1000 - r[3]);
         }
     }
+    function test_leanProportionalPacing() public {
+        for (uint256 i; i < _count("pacing"); ++i) {
+            uint256[] memory r = _row("pacing", i);
+            ExecutionController c = ExecutionController(Artifacts.executionController(address(this), 60, 5));
+            ParityConsumer consumer = new ParityConsumer(c);
+            vm.warp(r[0]); vm.roll(100); vm.setBlockhash(99, keccak256("pacing"));
+            bytes32 group = bytes32(uint256(1));
+            c.configureBudget(group, address(1), 1000, 0, type(uint64).max);
+            c.configureLimit(address(consumer), address(1), address(2), group, 1, uint128(r[3]));
+            c.configurePacing(group, uint64(r[1]));
+            bytes32 key = c.lane(address(consumer), address(1), address(2));
+            c.configurePrice(key, 0, false);
+            c.configureAction(address(consumer), ParityConsumer.trade.selector, true);
+            ExecutionController.Quote[] memory quotes = new ExecutionController.Quote[](1);
+            quotes[0] = ExecutionController.Quote(key, r[3], r[3]);
+            c.execute(address(consumer), abi.encodeCall(ParityConsumer.trade, (r[2], r[2], r[2])),
+                99, keccak256("pacing"), block.timestamp + 5, quotes);
+            (, uint64 nextAt, uint256 lastBlock) = c.pacing(group);
+            assertEq(nextAt, r[4]); assertEq(lastBlock, block.number);
+        }
+    }
+
     function test_leanPartialAndFinalClaims() public {
         for (uint256 i; i < _count("claims"); ++i) {
             uint256[] memory r = _row("claims", i);
-            ParityQueue q = new ParityQueue(); MockERC20 token = new MockERC20("c", "c", 18);
+            ParityQueue q = ParityQueue(vm.deployCode("LeanCoverageParity.t.sol:ParityQueue")); MockERC20 token = new MockERC20("c", "c", 18);
             q.seed(r, OWNER, IERC20(address(token)), address(source)); token.mint(address(q), r[4]);
             uint256 amount = q.claim(0, RECEIVER);
             (,,,,,,uint256 settled,uint256 burned,bool active) = q.redemptions(0);

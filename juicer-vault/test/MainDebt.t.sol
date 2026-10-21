@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {PluggableYieldSourceTest} from "./PluggableYieldSource.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {JuicerMainDebt} from "../src/JuicerMainDebt.sol";
 import {Deficit} from "./helpers/Deficit.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 contract MainDebtTest is PluggableYieldSourceTest {
     function _ledger() internal view returns (JuicerMainDebt) {
@@ -48,16 +48,16 @@ contract MainDebtTest is PluggableYieldSourceTest {
     }
 
     function test_wiringRequiredButNoPrefundingOrPolicyRequired() public {
-        vault = CollateralVault(address(new ERC1967Proxy(address(new CollateralVault()),
+        vault = CollateralVault(Artifacts.proxy(Artifacts.collateralVault(),
             abi.encodeCall(CollateralVault.initialize, ("ETH", "jETH", address(eth), address(pool),
                 address(source), address(0), address(hollar), address(synth), address(aEth),
-                address(hollarDebt), 1_000e18, address(this))))));
+                address(hollarDebt), 1_000e18, address(this)))));
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
         eth.mint(address(this), 1e18);
         eth.approve(address(vault), 1e18);
         vm.expectRevert(CollateralVault.ZeroAddress.selector);
         vault.deposit(1e18, address(this));
-        JuicerMainDebt ledger = new JuicerMainDebt(address(vault));
+        JuicerMainDebt ledger = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
         vault.setMainDebt(address(ledger));
         vault.deposit(1e18, address(this));
         vault.rebalance();
@@ -310,7 +310,7 @@ contract MainDebtTest is PluggableYieldSourceTest {
 
     function test_noLiveLedgerReplacement() public {
         _deposit(1e18);
-        address replacement = address(new JuicerMainDebt(address(vault)));
+        address replacement = Artifacts.mainDebt(address(vault));
         vm.expectRevert(CollateralVault.SourceNotEmpty.selector);
         vault.setMainDebt(replacement);
     }

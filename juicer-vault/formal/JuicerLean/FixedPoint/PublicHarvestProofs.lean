@@ -34,7 +34,8 @@ def harvestFunding (s : State) (burned : Nat) : State :=
 theorem harvestFunding_public (s : State) (burned : Nat) (h : PublicInvariant s) (hb : burned ≤ s.held) :
     PublicInvariant (harvestFunding s burned) :=
   let slice := harvestSlice (harvestable s) s.book.source s.book.protocol burned
-  bookFunding_public _ (s.book.source-slice.1) (s.book.protocol-slice.2) s.basis (withdrawSource_public s burned h hb)
+  bookFunding_public _ (s.book.source-slice.1) (s.book.protocol-slice.2) s.basis
+    (withdrawSource_public s burned h hb)
 
 theorem lastHarvest_public (s : State) (time : Nat) (h : PublicInvariant s) :
     PublicInvariant { s with lastHarvest := time } := h

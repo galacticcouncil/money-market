@@ -13,6 +13,7 @@ import {MockDiscountDebtToken, MockDiscountAToken} from "./mocks/MockDiscount.so
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {Deficit} from "./helpers/Deficit.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice parameter campaign on real contracts with mocked accrual and execution costs;
 /// static crypto prices, no income donations or recovery funding
@@ -255,7 +256,7 @@ contract OperationsTuningTest is HarvestTest {
     }
 
     function _controls(Config memory c) private {
-        control = new ExecutionController(address(this), 60, 5);
+        control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         uint64 expiry = uint64(block.timestamp + (c.days_ + 1) * 1 days);
         control.configureBudget(ENTRY, address(hollar), uint128(c.entryBurst * 1e18),
             uint128(c.entryDaily * 1e18 / 1 days), expiry);
@@ -360,7 +361,9 @@ contract OperationsTuningTest is HarvestTest {
     function _discount(uint256 bps) private {
         vm.etch(address(hollarDebt), address(new MockDiscountDebtToken(address(pool))).code);
         vm.etch(address(aSynth), address(new MockDiscountAToken(address(pool), address(synth))).code);
-        JuicerDiscount policy = new JuicerDiscount(address(hollarDebt), address(synth), address(aSynth), address(this), address(this));
+        JuicerDiscount policy = JuicerDiscount(
+            Artifacts.discount(address(hollarDebt), address(synth), address(aSynth), address(this), address(this))
+        );
         MockDiscountDebtToken(address(hollarDebt)).setPolicy(address(policy));
         vault.setDiscountController(address(policy));
         policy.registerVault(address(vault));

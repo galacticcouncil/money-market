@@ -77,16 +77,18 @@ theorem prepareTransfer_initializationSafe (s : State) (a b n : Nat) (h : Initia
   split
   · dsimp only
     split
+    · trivial
     · split
-      · trivial
       · split
         · trivial
         · split
+          · trivial
           · split
-            · trivial
-            · exact moveUnits_initializationSafe _ a b _ _ ht
-          · exact ht
-    · exact ht
+            · split
+              · trivial
+              · exact moveUnits_initializationSafe _ a b _ _ ht
+            · exact ht
+      · exact ht
   · exact h
 
 theorem finishTransfer_initializationSafe (s : State) (a b n : Nat)
@@ -278,8 +280,12 @@ theorem compoundFunds_initializationSafe (s : State) (out reward service feeAmou
 theorem unwindCommitted_initializationSafe (s : State) (q : UnwindNumbers)
     (h : InitializationSafe s) : InitializationSafe (unwindCommitted s q) := by
   have hn : InitializationSafe (commitExitAccount s) := by
-    simpa only [InitializationSafe, InitialMintSafe, commitExitAccount, setAccount,
-      waitingExit, startExit] using h
+    refine ⟨?_, h.2.1, h.2.2⟩
+    intro hz
+    change s.supply = 0 at hz
+    change (waitingExit s).book.index = 0
+    rw [waitingExit, startExit_index]
+    exact h.1 hz
   have hw := moveWallets_initializationSafe (commitExitAccount s) fundId vaultId
     (waitingExit s).folded hn (by decide)
   exact hw

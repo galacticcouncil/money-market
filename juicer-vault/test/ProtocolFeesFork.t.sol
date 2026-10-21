@@ -3,7 +3,6 @@ pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {Harvester} from "../src/Harvester.sol";
 import {JuicerFeeController} from "../src/JuicerFeeController.sol";
@@ -12,6 +11,7 @@ import {IAavePool, IPoolAddressesProvider, IAaveOracle} from "../src/interfaces/
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockFeeSwapper} from "./mocks/MockFeeAttack.sol";
 import {Deficit} from "./helpers/Deficit.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 interface IFeeForkPool {
     struct ReserveData {
@@ -98,33 +98,31 @@ contract ProtocolFeesForkTest is Test {
         MockFeeSwapper swapper = new MockFeeSwapper();
         swapper.configure(GROSS, GROSS, 10_000);
         vault = CollateralVault(
-            address(
-                new ERC1967Proxy(
-                    address(new CollateralVault()),
-                    abi.encodeCall(
-                        CollateralVault.initialize,
-                        (
-                            "Fork ETH",
-                            "jETH",
-                            ETH,
-                            POOL,
-                            address(source),
-                            address(swapper),
-                            HOLLAR,
-                            address(0),
-                            address(aToken),
-                            hollarReserve.variableDebtTokenAddress,
-                            1_000e18,
-                            address(this)
-                        )
+            Artifacts.proxy(
+                Artifacts.collateralVault(),
+                abi.encodeCall(
+                    CollateralVault.initialize,
+                    (
+                        "Fork ETH",
+                        "jETH",
+                        ETH,
+                        POOL,
+                        address(source),
+                        address(swapper),
+                        HOLLAR,
+                        address(0),
+                        address(aToken),
+                        hollarReserve.variableDebtTokenAddress,
+                        1_000e18,
+                        address(this)
                     )
                 )
             )
         );
-        harvester = new Harvester(address(source), address(prime), address(this));
+        harvester = Harvester(Artifacts.harvester(address(source), address(prime), address(this)));
         source.configure(address(harvester), address(vault));
-        fees = new JuicerFeeController(address(this), TREASURY);
-        JuicerMainDebt buffer = new JuicerMainDebt(address(vault));
+        fees = JuicerFeeController(Artifacts.feeController(address(this), TREASURY));
+        JuicerMainDebt buffer = JuicerMainDebt(Artifacts.mainDebt(address(vault)));
         vault.setMainDebt(address(buffer));
         harvester.setFeeController(address(fees));
         harvester.addVault(address(vault));

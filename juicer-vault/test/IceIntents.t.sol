@@ -2,14 +2,13 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {ExecutionController} from "../src/ExecutionController.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockIntentDispatch} from "./mocks/MockIntentDispatch.sol";
-import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice ICE entries: the ramp submits HOLLAR→aPRIME intents; the lazy executor's callback (or a
 ///         permissionless reconcile) settles them. The intent mock at 0x0401 plays the pallet:
@@ -54,8 +53,8 @@ contract IceIntentsTest is Test {
         // live PRIME is isolated: an aPRIME arrival is not collateral until the loop enables it
         pool.setIsolationMode(address(prime), true);
 
-        loop = SubLoop(address(new ERC1967Proxy(address(new SubLoop(address(new SubLoopLogic()))), abi.encodeCall(SubLoop.initialize,
-            (address(pool), address(hollar), address(prime), address(aPrime), TARGET_HF, 1.10e18, address(this))))));
+        loop = SubLoop(Artifacts.proxy(Artifacts.subLoop(), abi.encodeCall(SubLoop.initialize,
+            (address(pool), address(hollar), address(prime), address(aPrime), TARGET_HF, 1.10e18, address(this)))));
 
         vm.etch(DcaDispatch.DISPATCH, address(new MockIntentDispatch()).code);
         dispatch = MockIntentDispatch(payable(DcaDispatch.DISPATCH));
@@ -263,19 +262,24 @@ contract IceIntentsTest is Test {
         assertEq(_callback(id, out), SubLoop.execute.selector);
     }
 
-    function test_vaultFlowsWhileInFlightAreNotMistakenForARefund() public {
+    function test_vaultDepositWaitsForEntryIntentSettlement() public {
         _deposit(SEED);
         _rampSteps(2);
         loop.pokeBorrowQuoted(ENTRY_RATE);
         (,,, uint256 amountIn,) = _pending();
         uint256 equity = loop.totalEquity();
-        // a vault deposit larger than the in-flight input lands as cash
-        _deposit(amountIn * 2);
-        assertEq(loop.reconcile(), WAITING, "own deposit is not the refund");
-        assertApproxEqAbs(loop.totalEquity(), equity + amountIn * 2 / 1e10, 1);
+        hollar.mint(address(this), amountIn * 2);
+        hollar.approve(address(loop), amountIn * 2);
+        vm.expectRevert(SubLoop.IntentRejected.selector);
+        loop.deposit(amountIn * 2);
+        assertEq(loop.reconcile(), WAITING, "the pending intent remains unchanged");
+        assertApproxEqAbs(loop.totalEquity(), equity, 1);
         _resolve();
         (,, uint8 kind,,) = _pending();
         assertEq(kind, 0);
+        equity = loop.totalEquity();
+        loop.deposit(amountIn * 2);
+        assertApproxEqAbs(loop.totalEquity(), equity + amountIn * 2 / 1e10, 1);
     }
 
     function test_deLeverCountsInFlightHollarAsDebtBackedCash() public {
@@ -340,7 +344,7 @@ contract IceIntentsTest is Test {
     }
 
     function test_controllerAsyncLaneOpensAndCloses() public {
-        ExecutionController control = new ExecutionController(address(this), 60, 5);
+        ExecutionController control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         bytes32 entryGroup = keccak256("entry");
         control.configureBudget(entryGroup, address(hollar), 5_000e18, 1e18, uint64(block.timestamp + 30 days));
         control.configureLimit(address(loop), address(hollar), address(aPrime), entryGroup, 10e18, 2_500e18);
@@ -475,15 +479,18 @@ contract IceIntentsTest is Test {
         assertEq(kind, EXIT, "the slice goes out again");
     }
 
-    function test_entryInFlightHoldsBackTheUnwind() public {
+    function test_entryInFlightFreezesNewUnwindMembership() public {
         _deposit(SEED);
         _rampSteps(2);
         loop.pokeBorrowQuoted(ENTRY_RATE);
-        loop.requestUnwind(loop.sharesOf(address(this)) / 2);
+        uint256 shares = loop.sharesOf(address(this)) / 2;
+        vm.expectRevert(SubLoop.IntentRejected.selector);
+        loop.requestUnwind(shares);
         uint256 submitted = dispatch.counter();
         assertEq(loop.pokeRepayQuoted(EXIT_RATE), 0);
         assertEq(dispatch.counter(), submitted, "one intent at a time");
         _resolve();
+        loop.requestUnwind(shares);
         loop.pokeRepayQuoted(EXIT_RATE);
         (,, uint8 kind,,) = _pending();
         assertEq(kind, EXIT);
@@ -547,7 +554,7 @@ contract IceIntentsTest is Test {
 
     function test_controllerExitLaneUsesItsAsyncPrepare() public {
         _rampToTarget();
-        ExecutionController control = new ExecutionController(address(this), 60, 5);
+        ExecutionController control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         bytes32 group = keccak256("unwind");
         control.configureBudget(group, address(aPrime), 5_000e6, 1e6, uint64(block.timestamp + 30 days));
         control.configureLimit(address(loop), address(aPrime), address(hollar), group, 1e6, 100e6);

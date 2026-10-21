@@ -2,13 +2,12 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
-import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice P-4: the emergency pause on both `CollateralVault` and `SubLoop` is
 ///         gated `onlyRole(GUARDIAN_ROLE)`, but `initialize` grants only
@@ -53,7 +52,7 @@ contract GuardianPauseTest is Test {
         prime = new MockERC20("PRIME", "PRIME", 6);
         aPrime = new MockERC20("aPRIME", "aPRIME", 6);
         primeDebt = new MockERC20("dPRIME", "dPRIME", 6);
-        synth = new SyntheticToken("Juicer Synthetic", "jsHOLLAR", address(this));
+        synth = SyntheticToken(Artifacts.syntheticToken("Juicer Synthetic", "jsHOLLAR", address(this)));
         aSynth = new MockERC20("aSYNTH", "aSYNTH", 18);
         synthDebt = new MockERC20("dSYNTH", "dSYNTH", 18);
 
@@ -64,45 +63,41 @@ contract GuardianPauseTest is Test {
         pool.initReserve(address(synth), address(aSynth), address(synthDebt), 9800, 100, 18, 1e18);
 
         loop = SubLoop(
-            address(
-                new ERC1967Proxy(
-                    address(new SubLoop(address(new SubLoopLogic()))),
-                    abi.encodeCall(
-                        SubLoop.initialize,
-                        (
-                            address(pool),
-                            address(hollar),
-                            address(prime),
-                            address(aPrime),
-                            1.05e18,
-                            1.10e18,
-                            address(this)
-                        )
+            Artifacts.proxy(
+                Artifacts.subLoop(),
+                abi.encodeCall(
+                    SubLoop.initialize,
+                    (
+                        address(pool),
+                        address(hollar),
+                        address(prime),
+                        address(aPrime),
+                        1.05e18,
+                        1.10e18,
+                        address(this)
                     )
                 )
             )
         );
 
         vault = CollateralVault(
-            address(
-                new ERC1967Proxy(
-                    address(new CollateralVault()),
-                    abi.encodeCall(
-                        CollateralVault.initialize,
-                        (
-                            "Juicer ETH",
-                            "jETH",
-                            address(eth),
-                            address(pool),
-                            address(loop),
-                            address(0),
-                            address(hollar),
-                            address(synth),
-                            address(aEth),
-                            address(hollarDebt),
-                            1_000e18,
-                            address(this)
-                        )
+            Artifacts.proxy(
+                Artifacts.collateralVault(),
+                abi.encodeCall(
+                    CollateralVault.initialize,
+                    (
+                        "Juicer ETH",
+                        "jETH",
+                        address(eth),
+                        address(pool),
+                        address(loop),
+                        address(0),
+                        address(hollar),
+                        address(synth),
+                        address(aEth),
+                        address(hollarDebt),
+                        1_000e18,
+                        address(this)
                     )
                 )
             )
@@ -160,7 +155,7 @@ contract GuardianPauseTest is Test {
         bytes32 guardian = vault.GUARDIAN_ROLE();
         bytes32 admin = vault.ADMIN_ROLE();
         bytes32 upgrader = vault.UPGRADER_ROLE();
-        address next = address(new CollateralVault());
+        address next = Artifacts.collateralVault();
         vault.grantRole(depositGuardian, keeper);
         vault.pauseDeposits();
 

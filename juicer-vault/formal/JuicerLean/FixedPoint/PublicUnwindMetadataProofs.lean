@@ -44,7 +44,13 @@ theorem commitExitAccount_metadata (s : State) (h : PublicMetadata s) :
     PublicMetadata (commitExitAccount s) := by
   have ha := metadata_setAccount s (request s s.unwind).owner
     ⟨(waitingExit s).owned,s.book.index,s.book.epoch,s.book.scale⟩ h ⟨le_rfl,fun _ => le_rfl⟩
-  exact metadata_bookProgress _ (waitingExit s).book ha ⟨le_rfl,fun _ => le_rfl⟩
+  apply metadata_bookProgress _ (waitingExit s).book ha
+  constructor
+  · simp only [setAccount,waitingExit,startExit_epoch]
+    exact le_rfl
+  · intro _
+    simp only [setAccount,waitingExit,startExit_scale]
+    exact le_rfl
 
 theorem prepareExitOwnership_metadata (s : State) (h : PublicMetadata s) :
     PublicMetadata (prepareExitOwnership s) := commitExitAccount_metadata s h
@@ -112,7 +118,7 @@ theorem unwindHead_preserves (s : State) (h : PublicInvariant s) (hr : UnwindRea
         split
         · trivial
         next hreserve =>
-          have hpositive : 0 < (unwindNumbers s).owed := by simp only [beq_iff_eq] at hzero; omega
+          have hpositive := unwindNumbers_redemption s hzero
           have hbudget : (unwindNumbers s).rounding ≤ s.reserve := by omega
           have facts := unwindNumbers_facts s h hr.2.1 hi (hb (Bool.eq_false_iff.mpr hpending)) hpositive hbudget
           exact ⟨unwindCommitted_public s _ h hi ho facts,unwindCommitted_ready s _ hr hi facts⟩

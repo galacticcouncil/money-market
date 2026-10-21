@@ -55,6 +55,7 @@ interface ICompoundVault is IMainDebtVault {
 /// reentrancy and pause guards. no storage, delegate targets or approvals survive a call.
 contract CompoundLogic {
     using SafeERC20 for IERC20;
+    uint256 internal constant BPS = 10_000;
     // rebalance hysteresis around the reserve's max LTV: relever when utilization
     // drifts this far below it, delever when a price drop pushes it this far above
     uint256 internal constant LTV_BAND_LOW_GAP_BPS = 500;
@@ -69,6 +70,7 @@ contract CompoundLogic {
     event Rebalanced(uint256 ltvBefore, uint256 ltvAfter);
     event Harvested(uint256 collateralAmount);
 
+    /// @dev `paid` is cash spent, a de-lever target's unit; the synthetic burn follows the debt reduction
     function repay(uint256 key, uint256 amount, uint256 recovery)
         external returns (uint256 principalPaid, uint256 burn, uint256 paid)
     {
@@ -77,9 +79,10 @@ contract CompoundLogic {
         IERC20 hollar = v.hollar();
         IMainDebt buffer = v.mainDebt();
         hollar.forceApprove(address(buffer), recovery);
-        (, principalPaid, paid) = buffer.repay(key, amount, recovery);
+        uint256 reduced;
+        (paid, principalPaid, reduced) = buffer.repay(key, amount, recovery);
         hollar.forceApprove(address(buffer), 0);
-        burn = debt == 0 ? 0 : v.syntheticSupplied() * paid / debt;
+        burn = debt == 0 ? 0 : v.syntheticSupplied() * reduced / debt;
         if (burn != 0) {
             ISyntheticToken synthetic = v.synthetic();
             v.pool().withdraw(address(synthetic), burn, address(this));
@@ -91,6 +94,24 @@ contract CompoundLogic {
     /// separately quoted rebalance; waiting collateral incurs no HOLLAR debt.
     function deposit(uint256 assets) external {
         ICompoundVault v = ICompoundVault(address(this));
+        IMainDebt ledger = v.mainDebt();
+        (uint256 debt,,) = ledger.activePosition();
+        if (debt != 0) {
+            JuicerYieldAccounting accounting = v.yieldAccounting();
+            IYieldSource source = v.yieldSource();
+            uint256 equity = source.equityOf(address(this)) * 1e10;
+            uint256 sourceValue = accounting.sourceValue();
+            uint256 backing = equity > sourceValue ? equity - sourceValue : 0;
+            uint256 cash = ledger.activeFunds();
+            uint256 afterBacking = debt > backing ? debt - backing : 0;
+            uint256 uncovered = afterBacking > cash ? afterBacking - cash : 0;
+            uint256 required = accounting.requiredSourceBacking();
+            uint256 unbacked = required > backing ? required - backing : 0;
+            uint256 shortfall = Math.max(uncovered, unbacked);
+            if (Math.mulDiv(shortfall, BPS, debt, Math.Rounding.Up) > source.admissionMaxDeficitBps()) {
+                revert PrincipalShortfall();
+            }
+        }
         IAavePool pool = v.pool();
         IERC20 collateral = v.collateral();
         ExecutionController control = v.executionController();

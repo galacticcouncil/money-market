@@ -2,6 +2,8 @@ out/
 cache/
 out-production/
 cache-production/
+out-fast/
+cache-fast/
 broadcast/
 lcov.info
 .env

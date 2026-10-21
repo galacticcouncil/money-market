@@ -721,7 +721,8 @@ callback. `pending[lane]` holds at most one intent per lane, keyed by nonce; a p
 de-lever keeps the synchronous router (`State.deLever` above).
 
 `IceLoop` is an idealized equity book. Each input counts once while in flight, then as whatever
-landed. `grossHF` weights all gross assets by PRIME LT; it is not the runtime HF. Proven:
+landed. `grossHF` weights all gross assets by PRIME LT. runtime HF uses this form for in-flight
+input, but includes available idle cash only while unwinding and rounds USD8 conversions. proven:
 * `submit_equity` / `expire_equity` / `callback_equity` / `reconcile_equity` — submitting, expiring
   and recording an outcome leave equity unchanged; `fill_equity` — a fill moves it by exactly the
   execution difference, `fill_equity_ge` bounded by the slippage allowance, `fill_equity_fair` zero
@@ -741,10 +742,11 @@ landed. `grossHF` weights all gross assets by PRIME LT; it is not the runtime HF
 * `onto_loopEquity` / `onto_subHF` / `oracleSaleOk_iff_valid` — a quiescent loop is the `State` loop.
 -/
 
-/-! This is an idealized multi-lane equity book. The deployed SubLoop has one pending slot,
-uses token-balance deltas to infer outcomes, nets ENTRY input against debt for HF, and restores
-EXIT input to collateral. `grossHF` and `oracleSaleOk` are algebraic helpers only. The executable
-single-slot runtime model and its Solidity checks live in `FixedPoint/Runtime.lean`. -/
+/-! this is an idealized multi-lane equity book. the deployed SubLoop has one pending slot,
+uses 99% token-balance deltas to infer outcomes, and adds either kind of in-flight input to
+collateral for HF without changing debt. available idle HOLLAR also backs collateral while an
+unwind target is active. `grossHF` includes all idle cash; `oracleSaleOk` remains an algebraic
+helper. the integer single-slot model and Solidity checks live in `FixedPoint/Runtime.lean`. -/
 
 /-- An ICE intent as the SubLoop records it in `pending[lane]`. -/
 structure Intent where
@@ -814,7 +816,7 @@ def effColl (L : IceLoop Lane) : ℝ := L.holdings + L.inFlight
 /-- signed equity before the runtime clamps at zero and subtracts reserved freed cash. -/
 def equity (L : IceLoop Lane) : ℝ := L.effColl - L.debt
 
-/-- a cash-weighted abstract ratio, not `SubLoop.effectiveHealthFactor`; see `Runtime.lean`. -/
+/-- ideal gross ratio; runtime additionally gates idle cash on unwinding and rounds. -/
 noncomputable def grossHF (L : IceLoop Lane) : ℝ := L.effColl * L.lt / L.debt
 
 /-- Aave's health factor: aPRIME collateral only. -/

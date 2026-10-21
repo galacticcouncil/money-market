@@ -66,16 +66,18 @@ theorem prepareTransfer_metadata (s : State) (a b n : Nat) (h : PublicMetadata s
   split
   · dsimp only
     split
+    · trivial
     · split
-      · trivial
       · split
         · trivial
         · split
+          · trivial
           · split
-            · trivial
-            · exact moveUnits_metadata _ a b _ _ ht
-          · exact ht
-    · exact ht
+            · split
+              · trivial
+              · exact moveUnits_metadata _ a b _ _ ht
+            · exact ht
+      · exact ht
   · exact h
 
 theorem finishTransfer_metadata (s : State) (a b n : Nat) (h : PublicMetadata s) :

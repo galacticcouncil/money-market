@@ -89,16 +89,18 @@ theorem prepareTransfer_callBounds (s : State) (a b n : Nat) (h : PublicCallBoun
   split
   · dsimp only
     split
+    · trivial
     · split
-      · trivial
       · split
         · trivial
         · split
+          · trivial
           · split
-            · trivial
-            · exact moveUnits_callBounds _ a b _ _ ht
-          · exact ht
-    · exact ht
+            · split
+              · trivial
+              · exact moveUnits_callBounds _ a b _ _ ht
+            · exact ht
+      · exact ht
   · exact h
 
 theorem finishTransfer_callBounds (s : State) (a b n : Nat) (h : PublicCallBounds s) :

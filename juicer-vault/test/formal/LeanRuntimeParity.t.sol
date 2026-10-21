@@ -10,6 +10,8 @@ import {IAavePool} from "../../src/interfaces/IAavePool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Artifacts} from "../helpers/Artifacts.t.sol";
+import {ExecutionController} from "../../src/ExecutionController.sol";
 
 contract ParityVault is MockERC20 {
     address public yieldSource = address(this);
@@ -68,6 +70,15 @@ contract ParityPool {
     function setUserUseReserveAsCollateral(address, bool) external {}
 }
 
+contract ParitySizingController {
+    uint128 immutable minimum;
+    constructor(uint128 minimum_) { minimum = minimum_; }
+    function lane(address, address, address) external pure returns (bytes32) { return bytes32(0); }
+    function limits(bytes32) external view returns (bytes32, uint128, uint128) {
+        return (bytes32(0), minimum, type(uint128).max);
+    }
+}
+
 contract ParityLoop is SubLoopLogic {
     function seed(uint256[] memory r, address pool_, address hollar_, address prime_) external {
         pool = IAavePool(pool_); hollar = IERC20(hollar_); prime = IERC20(prime_); primeAToken = IERC20(prime_);
@@ -75,6 +86,7 @@ contract ParityLoop is SubLoopLogic {
             0, uint128(r[4]), uint128(r[5]));
         intentNonce = uint64(r[1]);
         if (r.length > 13) reservedFreed = r[13];
+        if (r.length > 24 && r[24] != 0) unwindTargetEquity = 1;
         targetHf = 1.05e18; deLeverTrigger = 1.10e18;
     }
     function setLastNonce(uint64 n) external { intentNonce = n; }
@@ -82,6 +94,14 @@ contract ParityLoop is SubLoopLogic {
     function flight() external view returns (uint8, uint256) { return _inFlight8(); }
     function effective() external view returns (uint256, uint256, uint256, uint256) { return _effectiveAccount(); }
     function equity() external view returns (uint256) { return _totalEquity(); }
+    function sizing(uint256[] memory r, address token, address control) external returns (uint256, uint256, uint256) {
+        hollar = IERC20(token);
+        executionController = ExecutionController(control);
+        reservedFreed = r[3]; unwindTargetEquity = r[4]; deleverDebtTarget = r[5];
+        dcaSlippagePpm = uint32(r[8]);
+        return (_unwindNeedAPrime(r[0], r[1], r[7]), _deleverNeedAPrime(r[6], r[7]),
+            deleverDebtTarget == 0 ? STEP_HF_FLOOR : SAFETY_STEP_HF_FLOOR);
+    }
     function pendingKind() external view returns (uint8) { return pendingIntent.kind; }
 }
 
@@ -133,7 +153,7 @@ contract LeanRuntimeParityTest is Test {
         for (uint256 i; i < _count("take"); ++i) {
             uint256[] memory r = _row("take", i);
             ParityVault v = new ParityVault();
-            JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+            JuicerYieldAccounting y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
             v.mint(address(y), r[0]); _store(y, 2, r[1]); _map(y, 4, uint160(OWNER), r[2]);
             vm.prank(address(v));
             if (r[4] == 0) { vm.expectRevert(); y.settle(OWNER, RECEIVER, r[3]); }
@@ -153,7 +173,7 @@ contract LeanRuntimeParityTest is Test {
         uint256 vUnits = (t - u) / 2;
         uint256 slice = f * u / t;
         uint256 shares = slice == 0 ? 1 : sSeed % 4 == 0 ? slice : bound(sSeed, 1, slice);
-        ParityVault v = new ParityVault(); JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+        ParityVault v = new ParityVault(); JuicerYieldAccounting y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
         v.mint(address(y), f); _store(y, 2, t);
         _map(y, 4, uint160(OWNER), u); _map(y, 4, uint160(RECEIVER), vUnits);
         uint256 recipientBefore = y.fundedOf(RECEIVER);
@@ -185,7 +205,7 @@ contract LeanRuntimeParityTest is Test {
     }
 
     function test_fineUnitsCapProportionalRounding() public {
-        ParityVault v = new ParityVault(); JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+        ParityVault v = new ParityVault(); JuicerYieldAccounting y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
         v.mint(address(y), 2); _store(y, 2, 3); _map(y, 4, uint160(OWNER), 3);
         vm.prank(address(v)); y.settle(OWNER, RECEIVER, 1);
         assertEq(y.fundedOf(OWNER), 1);
@@ -196,7 +216,7 @@ contract LeanRuntimeParityTest is Test {
     function test_leanAccountEpochAndRescale() public {
         for (uint256 i; i < _count("accounts"); ++i) {
             uint256[] memory r = _row("accounts", i);
-            ParityVault v = new ParityVault(); JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+            ParityVault v = new ParityVault(); JuicerYieldAccounting y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
             _book(y, r); _account(y, r, 6); v.mint(OWNER, r[10]);
             assertEq(y.balanceOf(OWNER), r[11]);
             vm.prank(address(v)); y.settle(OWNER, RECEIVER, 0);
@@ -209,7 +229,7 @@ contract LeanRuntimeParityTest is Test {
     function test_leanAllocationWriteOffAndRescale() public {
         for (uint256 i; i < _count("allocations"); ++i) {
             uint256[] memory r = _row("allocations", i);
-            ParityVault v = new ParityVault(); JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+            ParityVault v = new ParityVault(); JuicerYieldAccounting y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
             v.configure(r); _book(y, r);
             v.mint(address(y), r[10]); v.mint(OWNER, r[9] - r[10]);
             vm.prank(address(v)); y.checkpoint(address(0), address(0));
@@ -220,7 +240,7 @@ contract LeanRuntimeParityTest is Test {
     function test_leanExitFold() public {
         for (uint256 i; i < _count("exits"); ++i) {
             uint256[] memory r = _row("exits", i);
-            ParityVault v = new ParityVault(); JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+            ParityVault v = new ParityVault(); JuicerYieldAccounting y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
             _book(y, r); _account(y, r, 6);
             _map(y, 16, 1, r[10]); _map(y, 6, 1, r[11]); _map(y, 12, 1, r[12]); _map(y, 15, 1, r[13]);
             v.mint(OWNER, r[14]); v.mint(address(y), r[16]);
@@ -241,7 +261,7 @@ contract LeanRuntimeParityTest is Test {
             uint256[] memory r = _row("ice", i);
             MockERC20 h = new MockERC20("h", "h", 18); MockERC20 p = new MockERC20("p", "p", 6);
             ParityPool pool = new ParityPool(); pool.configure(r);
-            ParityLoop loop = new ParityLoop(); loop.seed(r, address(pool), address(h), address(p));
+            ParityLoop loop = ParityLoop(vm.deployCode("LeanRuntimeParity.t.sol:ParityLoop")); loop.seed(r, address(pool), address(h), address(p));
             h.mint(address(loop), r[0] == 1 ? r[6] : r[7]); p.mint(address(loop), r[0] == 1 ? r[7] : r[6]);
             (uint8 observed, uint256 output) = loop.observed(); assertEq(observed, r[14]); assertEq(output, r[15]);
             (uint8 kind, uint256 value) = loop.flight(); assertEq(kind, r[16]); assertEq(value, r[17]);
@@ -252,11 +272,23 @@ contract LeanRuntimeParityTest is Test {
         }
     }
 
+    function test_leanUnwindAndSafetySizing() public {
+        for (uint256 i; i < _count("sizing"); ++i) {
+            uint256[] memory r = _row("sizing", i);
+            MockERC20 token = new MockERC20("h", "h", 18);
+            ParityLoop loop = ParityLoop(vm.deployCode("LeanRuntimeParity.t.sol:ParityLoop"));
+            token.mint(address(loop), r[2]);
+            address control = r[9] == 0 ? address(0) : address(new ParitySizingController(uint128(r[9])));
+            (uint256 unwind, uint256 safety, uint256 floor) = loop.sizing(r, address(token), control);
+            assertEq(unwind, r[10]); assertEq(safety, r[11]); assertEq(floor, r[12]);
+        }
+    }
+
     function test_leanCallbackGuards() public {
         for (uint256 i; i < _count("callbacks"); ++i) {
             uint256[] memory r = _row("callbacks", i);
             MockERC20 h = new MockERC20("h", "h", 18); MockERC20 p = new MockERC20("p", "p", 6);
-            ParityLoop loop = new ParityLoop(); loop.seed(r, address(new ParityPool()), address(h), address(p));
+            ParityLoop loop = ParityLoop(vm.deployCode("LeanRuntimeParity.t.sol:ParityLoop")); loop.seed(r, address(new ParityPool()), address(h), address(p));
             loop.setLastNonce(uint64(r[6]));
             address caller = r[10] == 1 ? address(loop) : address(this);
             vm.prank(caller);
@@ -268,7 +300,7 @@ contract LeanRuntimeParityTest is Test {
     }
 
     function test_leanRequiredBacking() public {
-        ParityVault v = new ParityVault(); JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+        ParityVault v = new ParityVault(); JuicerYieldAccounting y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
         for (uint256 i; i < _count("funding"); ++i) {
             uint256[] memory r = _row("funding", i);
             v.configureFunding(r[0], r[1], r[2], r[3]);
@@ -277,7 +309,7 @@ contract LeanRuntimeParityTest is Test {
     }
 
     function test_leanHarvestSplit() public {
-        ParityVault v = new ParityVault(); JuicerYieldAccounting y = new JuicerYieldAccounting(address(v));
+        ParityVault v = new ParityVault(); JuicerYieldAccounting y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
         for (uint256 i; i < _count("harvest"); ++i) {
             uint256[] memory r = _row("harvest", i);
             v.configureFunding(0, 0, 0, r[4]);

@@ -12,7 +12,7 @@ is Lark 0, reforked from mainnet on the latest runtime with ICE (step 9).
 | # | Change | Decided |
 | - | ------ | ------- |
 | 0 | Protocol reserve, one-signature exit, keeper delivery (already on the branch) | approved |
-| 1 | Underfunding checked off-chain only | 50 bps keeper stop, keeper pauses/unpauses deposits |
+| 1 | Underfunding admission bound | 50 bps on-chain ceiling plus keeper stop/resume hysteresis |
 | 2 | Event-driven yield allocation, cheap transfers | transfers settle the two holders only |
 | 3 | Aave-style jETH: balance includes funded earnings, nobody claims | funded only; pending shown in UI |
 | 4 | ICE intents for entries, harvests and exits | router kept for safety de-lever |
@@ -22,11 +22,15 @@ is Lark 0, reforked from mainnet on the latest runtime with ICE (step 9).
 Dropped: earn-after-deploy (worth ~$1 per $100k deposit).
 Parked for the rates topic: fee/discount mix, loop discount, entry cost from yield, band width, share-price jETH.
 
-## 1. Underfunding off-chain
+## 1. Underfunding admission
 
 Contracts:
 - `CollateralVault.deposit`:
-  - Drop `isUnderfunded()`.
+  - Drop the former broad `isUnderfunded()` gate.
+  - Enforce a narrow 50 bps admission ceiling from the live active-position Main
+    debt, source backing net of owned yield, active Main cash and required source
+    backing. Debt already assigned to queued exits is excluded from this active
+    admission comparison.
   - Keep the `deleverTarget != 0` guard, renamed `DeleverPending`.
   - Keep `beforeDeposit` for the allocation-integrity guard and `_repay(0, 0)`.
 - `CollateralVault.isUnderfunded`, `CompoundLogic.isUnderfunded`: remove. Also
@@ -53,8 +57,13 @@ Keeper:
   `deficitStop`. Below `DEFICIT_RESUME_BPS` (default 25, hysteresis) it clears it.
 - Alert on every transition.
 
+The direct admission ceiling is independent of keeper timing. The keeper flag
+remains useful for hysteresis and for stopping the source ramp before deposits
+reach the hard boundary.
+
 Tests:
-- Deposits succeed during a sub-threshold deficit; the stop blocks them.
+- Deposits succeed through 50 bps and reject a rounded-up 51 bps deficit even
+  before the keeper flag lands; the flag may stop them earlier.
 - The synthetic floor (`PrincipalNotFloored`) still holds.
 - The deposit guardian can't pause, unpause governance's pause, configure or
   upgrade.
@@ -180,6 +189,9 @@ As implemented (9 Oct):
   `pokeBorrow`/`pokeRepay` stay permissionless (quote 0).
 - Landed outcomes count once, in views too (Lean finding); de-lever uses the
   in-flight-aware `effectiveHealthFactor()`.
+- While the single intent remains waiting, `deposit`, `requestUnwind` and
+  `pullFreed` reject after reconciliation. This freezes the participating vault
+  set and unwind weights until that intent is filled or returned.
 - **ICE harvest is deferred:** the vault has 96 B left, and an async harvest
   would hold the accounting lock across blocks. Harvests stay on the router.
 - Open: which currency pays the lazy-executor callback fee for the SubLoop's

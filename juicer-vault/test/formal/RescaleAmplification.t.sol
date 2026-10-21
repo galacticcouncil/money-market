@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Test} from "forge-std/Test.sol";
 import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 import {ParityVault} from "./LeanRuntimeParity.t.sol";
+import {Artifacts} from "../helpers/Artifacts.t.sol";
 
 /// @notice regression search around lazy-rescale rounding. storage is seeded like
 /// LeanLazyHistoryParityTest, so this measures the arithmetic surface of _allocate and
@@ -33,7 +34,7 @@ contract RescaleAmplificationTest is Test {
         uint256 equity
     ) internal returns (JuicerYieldAccounting y, ParityVault v) {
         v = new ParityVault();
-        y = new JuicerYieldAccounting(address(v));
+        y = JuicerYieldAccounting(Artifacts.yieldAccounting(address(v)));
         uint256[] memory input = new uint256[](14);
         input[6] = held;
         input[7] = equity;

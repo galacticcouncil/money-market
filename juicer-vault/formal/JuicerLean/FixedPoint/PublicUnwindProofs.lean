@@ -28,7 +28,7 @@ theorem unwindNumbers_shares (s : State) :
 
 theorem unwindNumbers_facts (s : State) (h : PublicInvariant s) (hb : QueueBacking s)
     (hi : s.unwind < s.requests.size) (hr : s.book.source+s.book.protocol ≤ s.held)
-    (ho : 0 < (unwindNumbers s).owed) (hc : (unwindNumbers s).rounding ≤ s.reserve) :
+    (ho : 0 < (unwindNumbers s).owed ∨ ((unwindNumbers s).shares = 0 ∧ (unwindNumbers s).debt = 0)) (hc : (unwindNumbers s).rounding ≤ s.reserve) :
     UnwindFacts s (unwindNumbers s) := by
   have hs := waitingExit_shares_le_active s h.2.2.2.2.2 hi
   have hslice := waitingExit_source_slice s _ hs hr
@@ -43,11 +43,23 @@ theorem unwindNumbers_facts (s : State) (h : PublicInvariant s) (hb : QueueBacki
 
 def unwindHead (s : State) : Except Nat State :=
   let q := unwindNumbers s
-  if q.owed == 0 then .error 2
+  if q.owed == 0 && q.shares != 0 then .error 2
   else if pendingAccounting s then .error 18
   else if q.slice == 0 && q.debt > (position s 0).cash*q.shares/activeSupply s then .error 19
   else if s.reserve < q.rounding then .error 17
   else .ok (unwindCommitted s q)
+
+theorem unwindNumbers_redemption (s : State)
+    (hzero : ¬ ((unwindNumbers s).owed == 0 && (unwindNumbers s).shares != 0) = true) :
+    0 < (unwindNumbers s).owed ∨ ((unwindNumbers s).shares = 0 ∧ (unwindNumbers s).debt = 0) := by
+  simp only [Bool.and_eq_true, beq_iff_eq, bne_iff_ne] at hzero
+  by_cases hs : (unwindNumbers s).shares = 0
+  · refine Or.inr ⟨hs, ?_⟩
+    change mainDebtOf s.debt (mainExit (position s 0) s.mainUnits s.debt
+      (unwindNumbers s).shares (activeSupply s) 0).2.2
+      (mainExit (position s 0) s.mainUnits s.debt (unwindNumbers s).shares (activeSupply s) 0).2.1 = 0
+    simp [hs, mainExit, mainDebtOf, fundedOf]
+  · exact Or.inl (by omega)
 
 theorem unwindHead_public (s : State) (h : PublicInvariant s) (hb : QueueBacking s)
     (hi : s.unwind < s.requests.size) (ho : (request s s.unwind).owner < 5)
@@ -67,7 +79,7 @@ theorem unwindHead_public (s : State) (h : PublicInvariant s) (hb : QueueBacking
         split
         · trivial
         next hreserve =>
-          have hpositive : 0 < (unwindNumbers s).owed := by simp only [beq_iff_eq] at hzero; omega
+          have hpositive := unwindNumbers_redemption s hzero
           have hbudget : (unwindNumbers s).rounding ≤ s.reserve := by omega
           have hreserved := hr (Bool.eq_false_iff.mpr hpending)
           have facts := unwindNumbers_facts s h hb hi hreserved hpositive hbudget

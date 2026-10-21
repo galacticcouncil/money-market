@@ -40,16 +40,18 @@ theorem prepareTransfer_creditReady (s : State) (a b n : Nat) (h : CreditReadyHi
   split
   · dsimp only
     split
+    · trivial
     · split
-      · trivial
       · split
         · trivial
         · split
+          · trivial
           · split
-            · trivial
-            · exact moveUnits_creditReady _ a b _ _ ht
-          · exact ht
-    · exact ht
+            · split
+              · trivial
+              · exact moveUnits_creditReady _ a b _ _ ht
+            · exact ht
+      · exact ht
   · exact h
 
 theorem finishTransfer_creditReady (s : State) (a b n : Nat) (h : CreditReadyHistory s) :

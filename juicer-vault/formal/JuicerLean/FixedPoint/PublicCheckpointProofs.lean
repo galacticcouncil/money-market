@@ -39,8 +39,7 @@ theorem publicStored_outside (s : State) (h : PublicInvariant s) :
 
 def allocateState (s : State) : State :=
   let v := allocationInput s
-  let trimmed := trimLoss s.book (allocationAvailable v)
-  let added := allocationAvailable v-trimmed.source-trimmed.protocol
+  let added := allocationFresh s.book v
   let released := if v.held != 0 && v.supply != 0 && added != 0 then
     min (added*v.equity/v.held) (v.basis-v.required) else 0
   { s with book := allocate s.book v, basis := s.basis-released }

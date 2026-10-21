@@ -44,16 +44,18 @@ theorem prepareTransfer_queue (s : State) (a b n : Nat) (h : QueueBacking s) :
   split
   · dsimp only
     split
+    · trivial
     · split
-      · trivial
       · split
         · trivial
         · split
+          · trivial
           · split
-            · trivial
-            · exact moveUnits_queue _ a b _ _ ht
-          · exact ht
-    · exact ht
+            · split
+              · trivial
+              · exact moveUnits_queue _ a b _ _ ht
+            · exact ht
+      · exact ht
   · exact h
 
 theorem finishTransfer_queue (s : State) (a b n : Nat) (h : QueueBacking s) :

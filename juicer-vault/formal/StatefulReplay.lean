@@ -17,6 +17,7 @@ def fieldName (n : Nat) : String :=
     "source shares", "source principal", "source freed", "reinvestment", "waiting shares",
     "queued shares", "queued collateral", "queued debt", "queue head", "queue unwind", "queue tail",
     "reward source", "protocol source", "reward units", "reward index", "epoch", "scale",
+    "source loss carry", "protocol loss carry",
     "Main units", "Main cash", "source outstanding", "source head", "source tail", "unallocated cash",
     "paused", "deposits paused", "source paused", "timestamp"]
   if n < globals.size then globals[n]! else s!"snapshot[{n}]"
@@ -180,9 +181,7 @@ def main (args : List String) : IO Unit := do
             (← IO.ofExcept (numbers j "status"))[0]! != 0 then
           throw (IO.userError "invalid harvest regression sequence")
     let expanded := genesis[4]! != 0
-    let collateral := if genesis[4]! == 2 then #[10^30, 10^30, 10^30, 10^30, 0, 0, 0, 0]
-      else #[10^24, 10^24, 10^24, 10^24, 0, 0, 0, 0]
-    let mut state : State := { expanded, collateral, feeBps := if expanded then 1000 else 0 }
+    let mut state := fixtureGenesis genesis[4]!
     let mut row := 0
     for line in lines do
       let j ← IO.ofExcept (Json.parse line)
@@ -194,11 +193,11 @@ def main (args : List String) : IO Unit := do
       | .ok next =>
         if row == 1 || next.book.scale > state.book.scale then
           let actual ← IO.ofExcept (numbers j "state")
-          let baseFields := #[0, 12, 20, 21, 22, 23, 34, 36, 98]
-          let extra := 114 + next.requests.size * 15 + next.positions.size * 5
+          let baseFields := #[0, 12, 20, 21, 22, 23, 24, 25, 36, 38, 100]
+          let extra := 116 + next.requests.size * 15 + next.positions.size * 5
           let fields := if expanded then baseFields ++ #[extra + 1, extra + 5, extra + 10,
             extra + 12, extra + 14, extra + 16, extra + 25, extra + 26] else baseFields
-          let fields := if next.requests.isEmpty then fields else fields ++ #[125, 126, 127, 128]
+          let fields := if next.requests.isEmpty then fields else fields ++ #[127, 128, 129, 130]
           for field in fields do
             let changed := actual.set! field (actual[field]! + 1)
             let corrupt := Json.mkObj [("action", ← IO.ofExcept (j.getObjVal? "action")),

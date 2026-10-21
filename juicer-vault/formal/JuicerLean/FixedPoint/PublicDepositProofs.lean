@@ -130,10 +130,13 @@ theorem allocate_zero_index (b : Book) (v : AllocationInput) (hi : b.index = 0) 
   have ht : (trimLoss b (allocationAvailable v)).index = 0 := by
     unfold trimLoss
     split <;> exact hi
+  have hr (next : Book) (added : Nat) : (restoreLoss next added).1.index = next.index := by
+    simp only [restoreLoss]
+    split <;> rfl
   unfold allocate
   simp only [hs,bne_self_eq_false,Bool.and_false,Bool.false_and,Bool.not_false,
     Bool.and_true,ite_true]
-  split_ifs <;> first | exact ht | rfl
+  split_ifs <;> first | exact ht | rfl | (rw [hr]; exact ht)
 
 theorem allocateState_initialMintSafe (s : State) (h : InitialMintSafe s) :
     InitialMintSafe (allocateState s) := by
@@ -211,7 +214,8 @@ def depositTail (s : State) (caller receiver amount : Nat) : Result :=
   else
     let shares := if activeSupply s == 0 then amount-1000 else ceilDiv (amount*activeSupply s) (activeAssets s)
     let needed := if activeSupply s == 0 then amount else ceilDiv (shares*activeAssets s) (activeSupply s)
-    depositResult s caller receiver amount shares needed
+    if 50 < admissionDeficitBps s then .error 28 else
+      depositResult s caller receiver amount shares needed
 
 theorem depositTail_public (s : State) (caller receiver amount : Nat)
     (h : PublicInvariant s) (hz : InitialMintSafe s) (hr : receiver < actors)
@@ -227,7 +231,9 @@ theorem depositTail_public (s : State) (caller receiver amount : Nat)
       · trivial
       · apply onSuccess_if
         · trivial
-        · exact depositResult_public s caller receiver amount _ _ h hz hr hc
+        · apply onSuccess_if
+          · trivial
+          · exact depositResult_public s caller receiver amount _ _ h hz hr hc
 
 def depositResultRaw (input : State) (caller receiver amount shares needed : Nat) : Result := do
   let mut s := input
@@ -263,7 +269,8 @@ def depositTailRaw (s : State) (caller receiver amount : Nat) : Result :=
   else
     let shares := if activeSupply s == 0 then amount-1000 else ceilDiv (amount*activeSupply s) (activeAssets s)
     let needed := if activeSupply s == 0 then amount else ceilDiv (shares*activeAssets s) (activeSupply s)
-    depositResultRaw s caller receiver amount shares needed
+    if 50 < admissionDeficitBps s then .error 28 else
+      depositResultRaw s caller receiver amount shares needed
 
 theorem depositTail_factored (s : State) (caller receiver amount : Nat) :
     depositTailRaw s caller receiver amount = depositTail s caller receiver amount := by
@@ -277,6 +284,7 @@ theorem raw_deposit_factored (s : State) (caller owner receiver amount : Nat) :
       else if amount == 0 then .error 2
       else if s.delever != 0 then .error 24
       else if pendingAccounting s || s.activeRemaining != 0 then .error 18
+      else if receiver == fundId then .error 10
       else depositTailRaw (checkpoint { (pay s 0 0).1 with synth := s.synth } zeroId receiver)
         caller receiver amount) := by
   rfl
@@ -308,15 +316,17 @@ theorem raw_deposit_public (s : State) (caller owner receiver amount : Nat)
           · trivial
           · apply onSuccess_if
             · trivial
-            · rw [depositTail_factored]
-              let paid := { (pay s 0 0).1 with synth := s.synth }
-              have hp : PublicInvariant paid := synth_public _ _
-                (pay_public s 0 0 h.2.2.2.2.2.2.2.2.2.1 h)
-              have hpm : PublicMetadata paid := pay_metadata s 0 0 hm
-              have hpz : InitialMintSafe paid := pay_initialMintSafe s 0 0 hz
-              exact depositTail_public (checkpoint paid zeroId receiver) caller receiver amount
-                (checkpoint_public paid zeroId receiver hp hpm)
-                (checkpoint_initialMintSafe paid zeroId receiver hpz) hr
-                (fun hb => checkpoint_current_second paid zeroId receiver hb hp.2.2.2.2.2.2.1)
+            · apply onSuccess_if
+              · trivial
+              · rw [depositTail_factored]
+                let paid := { (pay s 0 0).1 with synth := s.synth }
+                have hp : PublicInvariant paid := synth_public _ _
+                  (pay_public s 0 0 h.2.2.2.2.2.2.2.2.2.1 h)
+                have hpm : PublicMetadata paid := pay_metadata s 0 0 hm
+                have hpz : InitialMintSafe paid := pay_initialMintSafe s 0 0 hz
+                exact depositTail_public (checkpoint paid zeroId receiver) caller receiver amount
+                  (checkpoint_public paid zeroId receiver hp hpm)
+                  (checkpoint_initialMintSafe paid zeroId receiver hpz) hr
+                  (fun hb => checkpoint_current_second paid zeroId receiver hb hp.2.2.2.2.2.2.1)
 
 end Juicer.PublicCalls

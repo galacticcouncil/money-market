@@ -45,3 +45,7 @@ import JuicerLean.FixedPoint.PublicBoundaryRegressions
 import JuicerLean.Solidity.BodyProofs
 import JuicerLean.Solidity.GuardProofs
 import JuicerLean.FixedPoint.ScaledDebt
+import JuicerLean.FixedPoint.AuditChanges
+import JuicerLean.FixedPoint.SharedIntent
+import JuicerLean.FixedPoint.AuditProgress
+import JuicerLean.FixedPoint.AuditLossAllocation

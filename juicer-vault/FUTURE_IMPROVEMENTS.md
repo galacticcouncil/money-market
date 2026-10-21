@@ -27,6 +27,26 @@ The [next-version plan](docs/next-version-plan.md) leaves these out:
   width, share-price jETH.
 - **Dropped:** earn-after-deploy, worth about $1 per $100k deposit.
 
+## Potential: each deposit pays its own entry cost (2026-10-20)
+
+A source deposit's PRIME entry costs ~24.5 bps × leverage (~1.5% of principal
+at 6×), and today it lands on every source holder; inside a vault a newcomer
+also shares the existing deficit up to the admission cap. So later deposits'
+entries are paid by earlier holders (Lark 4: jBTC 214 bps vs jETH 46), and a
+quick round trip leaves its entry cost with the others.
+
+- **Swing pricing:** `SubLoop.deposit` mints shares net of the expected entry
+  cost (tranche cost × target leverage), or settles the deposit's own entries
+  before minting; alternatively an entry fee paid into the source.
+- **Effect:** a quick exit costs only the leaver (transfer-proof, unlike a
+  lock-up), the early-holder subsidy goes, and the admission cap only has to
+  bound unexpected losses.
+- **Exits too:** `_chargeExecutionCost` charges an unwind's realized loss only
+  up to the leaver's un-compounded yield; the rest stays an unfunded source
+  liability. While the source sits under its principal that allowance is 0,
+  so every exit's unwind cost lands on those who stay.
+- Numbers: garden `wiki/note-juicer-loop-cost-study-2026-10-20`.
+
 ## Implemented (this branch, suite green)
 
 - **A [CRITICAL] harvest skimmed in-flight unwind equity** — `surplus18` now

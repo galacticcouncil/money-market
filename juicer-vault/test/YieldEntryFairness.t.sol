@@ -4,13 +4,13 @@ pragma solidity ^0.8.22;
 import {HarvestTest} from "./Harvest.t.sol";
 import {JuicerMainDebt} from "../src/JuicerMainDebt.sol";
 import {JuicerYieldAccounting} from "../src/JuicerYieldAccounting.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {Deficit} from "./helpers/Deficit.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice new capital must not receive carry earned before entry, even if it exits
 /// before the harvest runs
@@ -286,6 +286,8 @@ contract YieldEntryFairnessTest is HarvestTest {
             vault.sync();
             assertEq(y.totalUnits(), 0);
             assertEq(y.balanceOf(address(this)), 0);
+            assertEq(y.sourceLossCarry(), 0);
+            assertEq(y.protocolLossCarry(), 0);
             assertEq(y.epoch(), i + 1);
         }
     }
@@ -304,7 +306,7 @@ contract YieldEntryFairnessTest is HarvestTest {
             "unrealized released capital stays owned until safely convertible");
     }
 
-    function test_dustRemainingAfterLossRescalesUnitsWithoutChangingOwnership() public {
+    function test_dustRemainingAfterLossRestoresCarryWithoutChangingOwnership() public {
         uint256 shares = _depositAndRamp();
         hollar.mint(address(loop), loop.principalEquity() - loop.totalEquity() * 1e10);
         vault.transfer(NEWCOMER, shares / 2);
@@ -319,11 +321,15 @@ contract YieldEntryFairnessTest is HarvestTest {
             aPrime.burn(address(loop), 1_000e6 - 1);
             vault.sync();
             assertGt(y.totalUnits(), 0);
+            assertGt(y.sourceLossCarry() + y.protocolLossCarry(), 0,
+                "the partial write-down remains assigned to the incumbent cohort");
         }
-        assertGt(y.unitScale(), 0);
+        assertEq(y.unitScale(), 0, "restoring the high-water carry avoids refill unit inflation");
         aPrime.mint(address(loop), 1_000e6);
         prime.mint(address(pool), 1_000e6);
         harvester.harvest(new uint256[](1));
+        assertEq(y.sourceLossCarry() + y.protocolLossCarry(), 0,
+            "the refill restores the incumbent reserve before harvest");
         uint256 earned = _rewardValue(NEWCOMER);
         assertGt(y.fundedOf(NEWCOMER), 0, "earnings are in the balance, nothing to claim");
         assertApproxEqAbs(_rewardValue(address(this)), earned, 1e9);
@@ -521,10 +527,10 @@ contract YieldEntryFairnessTest is HarvestTest {
         aEth = new MockERC20("aBTC", "aBTC", 8);
         ethDebt = new MockERC20("dBTC", "dBTC", 8);
         pool.initReserve(address(eth), address(aEth), address(ethDebt), 8500, 7500, 8, 60_000e18);
-        vault = CollateralVault(address(new ERC1967Proxy(address(new CollateralVault()),
+        vault = CollateralVault(Artifacts.proxy(Artifacts.collateralVault(),
             abi.encodeCall(CollateralVault.initialize, ("Juicer BTC", "jBTC", address(eth), address(pool),
                 address(loop), address(swapper), address(hollar), address(synth), address(aEth),
-                address(hollarDebt), 1_000e8, address(this))))));
+                address(hollarDebt), 1_000e8, address(this)))));
         synth.grantRole(synth.MINTER_ROLE(), address(vault));
         RoundingReserveFixture.fund(vault);
         loop.registerVault(address(vault));

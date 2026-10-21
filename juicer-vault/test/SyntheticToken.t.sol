@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice Smoke tests for the one fully-implemented contract in the scaffold.
 ///         The vault/loop logic lands behind these once REQ-SWAP is available.
@@ -13,7 +14,7 @@ contract SyntheticTokenTest is Test {
     address internal user = address(0xCAFE);
 
     function setUp() public {
-        synth = new SyntheticToken("Juicer Synthetic HOLLAR", "jsHOLLAR", admin);
+        synth = SyntheticToken(Artifacts.syntheticToken("Juicer Synthetic HOLLAR", "jsHOLLAR", admin));
         bytes32 minter = synth.MINTER_ROLE();
         vm.prank(admin);
         synth.grantRole(minter, vault);

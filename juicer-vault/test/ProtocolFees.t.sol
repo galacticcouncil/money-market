@@ -2,7 +2,6 @@
 pragma solidity ^0.8.22;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {HarvestTest} from "./Harvest.t.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
@@ -13,6 +12,7 @@ import {JuicerDiscount} from "../src/JuicerDiscount.sol";
 import {MockDiscountAToken, MockDiscountDebtToken} from "./mocks/MockDiscount.sol";
 import {MockFeeSwapper, MockFeeCallbackToken} from "./mocks/MockFeeAttack.sol";
 import {Deficit} from "./helpers/Deficit.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 contract ProtocolFeesTest is HarvestTest {
     address constant TREASURY = address(0xFEE);
@@ -35,25 +35,23 @@ contract ProtocolFeesTest is HarvestTest {
 
     function _secondVault() internal returns (CollateralVault v) {
         v = CollateralVault(
-            address(
-                new ERC1967Proxy(
-                    address(new CollateralVault()),
-                    abi.encodeCall(
-                        CollateralVault.initialize,
-                        (
-                            "Second ETH",
-                            "jETH2",
-                            address(eth),
-                            address(pool),
-                            address(loop),
-                            address(swapper),
-                            address(hollar),
-                            address(synth),
-                            address(aEth),
-                            address(hollarDebt),
-                            1_000e18,
-                            address(this)
-                        )
+            Artifacts.proxy(
+                Artifacts.collateralVault(),
+                abi.encodeCall(
+                    CollateralVault.initialize,
+                    (
+                        "Second ETH",
+                        "jETH2",
+                        address(eth),
+                        address(pool),
+                        address(loop),
+                        address(swapper),
+                        address(hollar),
+                        address(synth),
+                        address(aEth),
+                        address(hollarDebt),
+                        1_000e18,
+                        address(this)
                     )
                 )
             )
@@ -318,7 +316,7 @@ contract ProtocolFeesTest is HarvestTest {
         vm.expectRevert(JuicerFeeController.InvalidBinding.selector);
         _harvest();
         assertEq(prime.balanceOf(address(harvester)), 3_000e6);
-        Harvester unwired = new Harvester(address(loop), address(prime), address(this));
+        Harvester unwired = Harvester(Artifacts.harvester(address(loop), address(prime), address(this)));
         vm.expectRevert(Harvester.FeeControllerUnset.selector);
         unwired.harvest(new uint256[](0));
     }
@@ -327,8 +325,12 @@ contract ProtocolFeesTest is HarvestTest {
         _park(6_000e6);
         CollateralVault second = _secondVault();
         fees.setProtocolFeeBps(address(second), 1_000);
-        uint256 grossFirst = (6_000e6 * loop.sharesOf(address(vault)) / loop.totalShares()) * 1e12 / 3_000;
-        uint256 grossSecond = (6_000e6 * loop.sharesOf(address(second)) / loop.totalShares()) * 1e12 / 3_000;
+        uint256 giftFirst = 6_000e6 * loop.sharesOf(address(vault)) / loop.totalShares();
+        // Harvest assigns the final vault the cumulative-rounding remainder so every donated
+        // PRIME unit keeps an owner instead of leaving shared-asset dust behind.
+        uint256 giftSecond = 6_000e6 - giftFirst;
+        uint256 grossFirst = giftFirst * 1e12 / 3_000;
+        uint256 grossSecond = giftSecond * 1e12 / 3_000;
         uint256 feeFirst = grossFirst * 500 / 10_000;
         uint256 feeSecond = grossSecond * 1_000 / 10_000;
         _harvest();
@@ -445,7 +447,7 @@ contract ProtocolFeesTest is HarvestTest {
     }
 
     function test_runtimeSizesRemainDeployable() public {
-        assertLe(address(new CollateralVault()).code.length, 24_576);
+        assertLe(Artifacts.collateralVault().code.length, 24_576);
         assertLe(address(fees).code.length, 24_576);
         assertLe(address(harvester).code.length, 24_576);
         assertLe(address(vault.yieldAccounting()).code.length, 24_576);
@@ -510,7 +512,7 @@ contract ProtocolFeesTest is HarvestTest {
         vm.etch(address(aSynth), address(new MockDiscountAToken(address(pool), address(synth))).code);
         MockDiscountDebtToken debt = MockDiscountDebtToken(address(hollarDebt));
         JuicerDiscount discount =
-            new JuicerDiscount(address(debt), address(synth), address(aSynth), address(this), STRANGER);
+            JuicerDiscount(Artifacts.discount(address(debt), address(synth), address(aSynth), address(this), STRANGER));
         debt.setPolicy(address(discount));
         vault.setDiscountController(address(discount));
         discount.registerVault(address(vault));

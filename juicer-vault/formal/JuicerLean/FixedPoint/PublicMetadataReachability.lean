@@ -48,19 +48,23 @@ theorem raw_deposit_metadata (s : State) (caller a b n : Nat) (h : PublicMetadat
           · trivial
           · apply onSuccess_if
             · trivial
-            · rw [depositTail_factored]
-              unfold depositTail
-              apply onSuccess_if
+            · apply onSuccess_if
               · trivial
-              · apply onSuccess_if
+              · rw [depositTail_factored]
+                unfold depositTail
+                apply onSuccess_if
                 · trivial
                 · apply onSuccess_if
                   · trivial
                   · apply onSuccess_if
                     · trivial
-                    · exact depositResult_metadata _ caller b n _ _
-                        (checkpoint_metadata _ zeroId b
-                          (metadata_synth (pay s 0 0).1 s.synth (pay_metadata s 0 0 h)))
+                    · apply onSuccess_if
+                      · trivial
+                      · apply onSuccess_if
+                        · trivial
+                        · exact depositResult_metadata _ caller b n _ _
+                            (checkpoint_metadata _ zeroId b
+                              (metadata_synth (pay s 0 0).1 s.synth (pay_metadata s 0 0 h)))
 
 theorem transfer_result_metadata (s : State) (a b n : Nat) (h : PublicMetadata s) :
     OnSuccess (fun result : State × Nat => PublicMetadata result.1)

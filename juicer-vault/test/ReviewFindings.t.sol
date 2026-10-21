@@ -8,8 +8,8 @@ import {SubLoop} from "../src/SubLoop.sol";
 import {Harvester} from "../src/Harvester.sol";
 import {JuicerMainDebt} from "../src/JuicerMainDebt.sol";
 import {JuicerYieldAccounting} from "../src/JuicerYieldAccounting.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {RoundingReserveFixture} from "./helpers/RoundingReserveFixture.sol";
+import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 /// @notice lane policy, waiting exits and pending source accounting must not
 /// freeze unrelated maintenance
@@ -23,7 +23,7 @@ contract ReviewFindingsTest is HarvestTest {
     address constant NEWCOMER = address(0xB0B);
 
     function _enable() private {
-        control = new ExecutionController(address(this), 60, 5);
+        control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         vm.roll(100);
         vm.setBlockhash(99, QUOTED_HASH);
         control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18, uint64(block.timestamp + 30 days));
@@ -72,10 +72,10 @@ contract ReviewFindingsTest is HarvestTest {
     }
 
     function _secondVault() private returns (CollateralVault second) {
-        second = CollateralVault(address(new ERC1967Proxy(address(new CollateralVault()),
+        second = CollateralVault(Artifacts.proxy(Artifacts.collateralVault(),
             abi.encodeCall(CollateralVault.initialize, ("Second ETH", "jETH2", address(eth), address(pool),
                 address(loop), address(swapper), address(hollar), address(synth), address(aEth),
-                address(hollarDebt), 1000e18, address(this))))));
+                address(hollarDebt), 1000e18, address(this)))));
         synth.grantRole(synth.MINTER_ROLE(), address(second));
         RoundingReserveFixture.fund(second);
         loop.registerVault(address(second));

@@ -6,8 +6,9 @@ Fresh deployments only. The old buffer evidence is historical, not verification
 of these revised contracts. No production slippage setting is approved here.
 
 The #62 [ownership ledger](yield-ownership.md) separates earlier earnings from
-new collateral deposits. In the next version no contract checks entry backing;
-the keepers check it off-chain and stop deposits (`deficitStop`, below).
+new collateral deposits. The next version rejects deposits above a 50 bps live
+Main-backing deficit on-chain; keepers also maintain the earlier hysteretic
+`deficitStop`.
 Active resize receivables remain Main backing while in flight;
 transfers cannot reassign previously earned rewards during a resize. Fees on
 source unwinds remain reserved until the corresponding claim closes, so late
@@ -22,6 +23,11 @@ well as execution costs and debt repaid. User collateral promises remain fixed.
 - Main interest is serviced from fresh harvested yield, after the existing
   per-vault protocol fee. The default fee remains 5% of collateral received by
   the harvest swap, before Main servicing. Only the remainder compounds.
+- Existing active-position HOLLAR also services Main interest through the
+  keeper's `pokeSettle` path, after reserving source fees. This works with an
+  empty withdrawal queue and no harvest. It does not initiate a source unwind
+  or draw protocol reserves; the keeper applies a minimum repayment and gas
+  budget ([keeper runbook](../looper/README.md)).
 - No HOLLAR cash target, duration/stress-rate policy, automatic sponsorship or
   sponsored withdrawal bonus remains. Binding a Main debt ledger does not
   require funding it. Governance's locked initial vault shares and collateral

@@ -21,6 +21,19 @@ theorem publicReady_genesis : PublicReady ({} : State) :=
   ⟨by decide, metadata_genesis, callBounds_genesis, initializationSafe_genesis,
     activeFeeSafe_genesis, queue_genesis, creditReadyHistory_genesis⟩
 
+def fixtureGenesis (fixture : Nat) : State :=
+  if fixture = 2 then
+    { expanded := true, feeBps := 1000,
+      collateral := #[10^30, 10^30, 10^30, 10^30, 0, 0, 0, 0] }
+  else if fixture = 1 then
+    { expanded := true, feeBps := 1000 }
+  else
+    {}
+
+theorem fixtureGenesis_ready (fixture : Nat) (h : fixture ≤ 2) : PublicReady (fixtureGenesis fixture) := by
+  interval_cases fixture <;>
+    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide, by decide⟩
+
 def OrdinaryAction (s : State) (a : Action) : Prop :=
   FixtureAction a ∧ (a.op = 2 → a.caller < 4) ∧
     (a.op = 7 → a.amount < s.unwind ∨ RawReverting s a)
@@ -107,5 +120,10 @@ theorem ordinaryTrace_genesis_ready (actions : List Action) (h : OrdinaryTrace {
 
 theorem ordinaryTrace_genesis_financial (actions : List Action) (h : OrdinaryTrace {} actions) :
     PublicInvariant (rawReplay {} actions) := (ordinaryTrace_genesis_ready actions h).financial
+
+theorem ordinaryTrace_fixture_ready (fixture : Nat) (actions : List Action) (hfixture : fixture ≤ 2)
+    (h : OrdinaryTrace (fixtureGenesis fixture) actions) :
+    PublicReady (rawReplay (fixtureGenesis fixture) actions) :=
+  ordinaryTrace_preserves _ actions (fixtureGenesis_ready fixture hfixture) h
 
 end Juicer.PublicCalls

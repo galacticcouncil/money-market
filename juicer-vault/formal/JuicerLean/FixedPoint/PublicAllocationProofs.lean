@@ -130,9 +130,21 @@ theorem finishAllocation_safe (b : Book) (v : AllocationInput) (accounts : List 
 
 theorem writeOff_safe (b : Book) (accounts : List (Account × Nat))
     (history : HistoriesValid b accounts) :
-    NormalizedSafe { b with total := 0, index := 0, scale := 0, epoch := b.epoch+1 } accounts := by
+    NormalizedSafe { b with
+      total := 0
+      index := 0
+      scale := 0
+      epoch := b.epoch+1
+      sourceLoss := 0
+      protocolLoss := 0 } accounts := by
   have hm : (accounts.map fun p =>
-      normalizeAccount { b with total := 0, index := 0, scale := 0, epoch := b.epoch+1 } p.1 p.2) =
+      normalizeAccount { b with
+        total := 0
+        index := 0
+        scale := 0
+        epoch := b.epoch+1
+        sourceLoss := 0
+        protocolLoss := 0 } p.1 p.2) =
       accounts.map fun p => (⟨0,0,p.2⟩ : LazyAccount ray) := by
     apply List.map_congr_left
     intro p hp
@@ -146,6 +158,11 @@ theorem trimLoss_safe (b : Book) (accounts : List (Account × Nat)) (available :
   unfold trimLoss
   split <;> exact h
 
+theorem restoreLoss_safe (b : Book) (accounts : List (Account × Nat)) (added : Nat)
+    (h : NormalizedSafe b accounts) : NormalizedSafe (restoreLoss b added).1 accounts := by
+  simp only [restoreLoss]
+  split <;> exact h
+
 theorem allocate_safe (b : Book) (v : AllocationInput) (accounts : List (Account × Nat))
     (history : HistoriesValid b accounts) (h : NormalizedSafe b accounts)
     (hw : (accounts.map Prod.snd).sum ≤ v.supply-v.funded) :
@@ -155,7 +172,16 @@ theorem allocate_safe (b : Book) (v : AllocationInput) (accounts : List (Account
   let allocating := v.held != 0 && v.supply != 0 && added != 0
   let before := (if v.held == 0 then 0 else v.equity*trimmed.source/v.held)+v.fundedValue
   let base := if trimmed.total != 0 && before == 0 then
-    { trimmed with total := 0, index := 0, scale := 0, epoch := trimmed.epoch+1 } else trimmed
+    { trimmed with
+      total := 0
+      index := 0
+      scale := 0
+      epoch := trimmed.epoch+1
+      sourceLoss := 0
+      protocolLoss := 0 } else trimmed
+  let restored := restoreLoss base added
+  let allocatingAfter := v.held != 0 && v.supply != 0 && restored.2 != 0
+  let beforeAfter := (if v.held == 0 then 0 else v.equity*restored.1.source/v.held)+v.fundedValue
   have htrim : NormalizedSafe trimmed accounts := trimLoss_safe b accounts _ h
   have htHist : HistoriesValid trimmed accounts :=
     histories_progress b trimmed accounts history (trimLoss_progress b _)
@@ -169,13 +195,17 @@ theorem allocate_safe (b : Book) (v : AllocationInput) (accounts : List (Account
     split
     · exact histories_progress trimmed _ accounts htHist (writeOff_progress trimmed)
     · exact htHist
+  have hr : NormalizedSafe restored.1 accounts := restoreLoss_safe base accounts added hb
+  have hrHist : HistoriesValid restored.1 accounts :=
+    histories_progress base restored.1 accounts hbHist (restoreLoss_progress base added)
   change NormalizedSafe (if trimmed.total == 0 && !allocating then trimmed
-    else if !allocating then base else finishAllocation base v added before) accounts
+    else if !allocatingAfter then restored.1
+    else finishAllocation restored.1 v restored.2 beforeAfter) accounts
   split
   · exact htrim
   · split
-    · exact hb
-    · exact finishAllocation_safe base v accounts added before hbHist hb hw
+    · exact hr
+    · exact finishAllocation_safe restored.1 v accounts restored.2 beforeAfter hrHist hr hw
 
 end Juicer.PublicCalls
 

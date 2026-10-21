@@ -50,19 +50,23 @@ theorem raw_deposit_creditReady (s : State) (caller a b n : Nat) (h : CreditRead
           · trivial
           · apply onSuccess_if
             · trivial
-            · rw [depositTail_factored]
-              unfold depositTail
-              apply onSuccess_if
+            · apply onSuccess_if
               · trivial
-              · apply onSuccess_if
+              · rw [depositTail_factored]
+                unfold depositTail
+                apply onSuccess_if
                 · trivial
                 · apply onSuccess_if
                   · trivial
                   · apply onSuccess_if
                     · trivial
-                    · exact depositResult_creditReady _ caller b n _ _
-                        (checkpoint_creditReady _ zeroId b
-                          (creditReady_synth (pay s 0 0).1 s.synth (pay_creditReady s 0 0 h)))
+                    · apply onSuccess_if
+                      · trivial
+                      · apply onSuccess_if
+                        · trivial
+                        · exact depositResult_creditReady _ caller b n _ _
+                            (checkpoint_creditReady _ zeroId b
+                              (creditReady_synth (pay s 0 0).1 s.synth (pay_creditReady s 0 0 h)))
 
 theorem transfer_result_creditReady (s : State) (a b n : Nat) (h : CreditReadyHistory s) :
     OnSuccess (fun result : State × Nat => CreditReadyHistory result.1)

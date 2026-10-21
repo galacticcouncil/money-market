@@ -8,6 +8,7 @@ import {MockSwapper} from "../mocks/MockSwapper.sol";
 import {Harvester} from "../../src/Harvester.sol";
 import {JuicerFeeController} from "../../src/JuicerFeeController.sol";
 import {JuicerMainDebt} from "../../src/JuicerMainDebt.sol";
+import {Artifacts} from "../helpers/Artifacts.t.sol";
 
 contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
     StatefulYieldSource internal market;
@@ -23,9 +24,9 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
         swapper = new MockSwapper(address(pool));
         vault.setSwapper(address(swapper));
         vault.setCompoundSlippageBps(100);
-        harvester = new Harvester(address(market), address(hollar), address(this));
+        harvester = Harvester(Artifacts.harvester(address(market), address(hollar), address(this)));
         market.setHarvester(address(harvester));
-        fees = new JuicerFeeController(address(this), actors[3]);
+        fees = JuicerFeeController(Artifacts.feeController(address(this), actors[3]));
         vault.setFeeController(address(fees));
         harvester.setFeeController(address(fees));
         fees.registerVault(address(vault), address(harvester));
