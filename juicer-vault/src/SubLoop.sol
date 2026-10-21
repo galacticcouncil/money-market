@@ -96,6 +96,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         deLeverTrigger = _deLeverTrigger;
         deployHfFloor = _targetHf; // borrow down to target; swap lag keeps actual HF above
         harvestThreshold = 1e15; // 0.1%
+        _admissionMaxDeficitBps = 50;
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(ADMIN_ROLE, _admin);
@@ -117,6 +118,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     {
         if (hollarAmount == 0) revert ZeroAmount();
         if (deployTranche != 0 && hollarAmount > deployTranche) revert InvalidParameters();
+        if (pendingIntent.kind != 0) revert IntentRejected();
         // Pending withdrawals are liabilities, not backing for live shares.
         // Quote before pulling cash, which is itself included in totalEquity.
         uint256 gross18 = _totalEquity() * 1e10;
@@ -159,6 +161,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     }
 
     function _requestUnwind(uint256 shares, uint256 protectedBasis) private returns (uint256 unwindId) {
+        if (pendingIntent.kind != 0) revert IntentRejected();
         uint256 held = _sharesOf[msg.sender];
         if (shares == 0) revert ZeroAmount();
         if (shares > held) revert InsufficientShares();
@@ -191,6 +194,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     function pullFreed()
         external override onlyRole(VAULT_ROLE) nonReentrant settlesIntents returns (uint256 hollarSent)
     {
+        if (pendingIntent.kind != 0) revert IntentRejected();
         hollarSent = freedHollar[msg.sender];
         if (hollarSent == 0) return 0;
         freedHollar[msg.sender] = 0;
@@ -323,6 +327,12 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         emit Harvested(amount);
     }
 
+    /// @notice unflag a reserve supplied on the loop's behalf; aave won't enable isolated PRIME beside it
+    function clearCollateral(address asset) external nonReentrant {
+        if (asset == address(prime)) revert InvalidParameters();
+        pool.setUserUseReserveAsCollateral(asset, false);
+    }
+
     /// @inheritdoc ILeveragedLoop
     /// @dev sets repay target x solving (coll − x)·lt / (debt − x) = targetHf; pokeRepay executes it
     function deLever() external override nonReentrant {
@@ -362,6 +372,11 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         uint256 equity18 = _totalEquity() * 1e10;
         if (equity18 >= reserved18) return 0;
         return ((reserved18 - equity18) * 1e4) / reserved18;
+    }
+
+    /// @inheritdoc IYieldSource
+    function admissionMaxDeficitBps() external view override returns (uint16) {
+        return _admissionMaxDeficitBps;
     }
 
     /// @inheritdoc IYieldSource
@@ -449,6 +464,12 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         deployHfFloor = _deployHfFloor;
         deLeverTrigger = _deLeverTrigger;
         harvestThreshold = _harvestThreshold;
+    }
+
+    /// @notice entries cost about their fee times leverage, so this follows the target; an upgraded loop reads 0
+    function setAdmissionMaxDeficitBps(uint16 bps) external onlyRole(ADMIN_ROLE) {
+        if (bps > 10_000) revert InvalidParameters();
+        _admissionMaxDeficitBps = bps;
     }
 
     /// @notice set the carry recipient; can't be zeroed, which would silently stop harvests.

@@ -44,7 +44,7 @@ contract CollateralVault is
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
-    /// @notice may only set the deficit stop (the keeper's off-chain deficit check)
+    /// @notice may only set the keeper's hysteretic deficit stop
     bytes32 public constant DEPOSIT_GUARDIAN_ROLE = keccak256("DEPOSIT_GUARDIAN_ROLE");
 
     // config
@@ -348,7 +348,8 @@ contract CollateralVault is
         uint256 assetsBefore = totalAssets();
         uint256 numerator = (assetsBefore - totalQueuedCollateral) * shares;
         uint256 collateralOwed = Math.ceilDiv(numerator, supply);
-        if (collateralOwed == 0) revert ZeroAmount();
+        // a funded-only request can fold to zero shares; it must not block the queue
+        if (collateralOwed == 0 && shares != 0) revert ZeroAmount();
         uint256 debt = hollarDebtToken.balanceOf(address(this));
         uint256 debtShare;
         (loopShares, debtShare) = abi.decode(Address.functionDelegateCall(compoundLogic,

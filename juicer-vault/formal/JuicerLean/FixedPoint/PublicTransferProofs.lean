@@ -402,10 +402,11 @@ def prepareTransfer (s : State) (a b n : Nat) : Except Nat (State × Nat) := do
   let mut s := s
   let mut moved := n
   if a != vaultId && b != vaultId && a != fundId then
+    if b == fundId then throw 10
     s := settleOwner (settleOwner s a) b
     let excess := n - wallet s a
     if excess != 0 then
-      if b == fundId || b == zeroId then throw 10
+      if b == zeroId then throw 10
       let owned := (account s a).units
       if excess > fundedOf (wallet s fundId) s.book.total owned then throw 11
       if a != b then
@@ -438,10 +439,11 @@ theorem current_normalized (s : State) (i : Nat) (h : CurrentAccount s i) :
 theorem prepareTransfer_eq (s : State) (a b n : Nat) :
     prepareTransfer s a b n =
       if a != vaultId && b != vaultId && a != fundId then
+        if b == fundId then .error 10 else
         let t := settleOwner (settleOwner s a) b
         let excess := n - wallet t a
         if excess != 0 then
-          if b == fundId || b == zeroId then .error 10
+          if b == zeroId then .error 10
           else if excess > fundedOf (wallet t fundId) t.book.total (account t a).units then .error 11
           else if a != b then
             match take (wallet t fundId) t.book.total (account t a).units excess with
@@ -462,44 +464,47 @@ theorem prepareTransfer_public (s : State) (a b n : Nat)
   rw [prepareTransfer_eq]
   split
   next hnormal =>
-    dsimp only
-    let t := settleOwner (settleOwner s a) b
-    have ht : PublicInvariant t := settleOwner_public _ b (settleOwner_public s a h)
-    have hsize : s.accounts.size = actors := h.2.2.2.2.2.2.1
-    have hats : a < s.accounts.size := by simp only [hsize, actors]; omega
-    have has : CurrentAccount t a :=
-      settleOwner_preserves_current _ a b (settleOwner_current s a ha hats)
-    have hbs : b < 5 → CurrentAccount t b := by
-      intro hb5
-      apply settleOwner_current _ b hb5
-      have hs' : (settleOwner s a).accounts.size = actors :=
-        (settleOwner_public s a h).2.2.2.2.2.2.1
-      simpa only [hs'] using hb
     split
-    next hexcess =>
+    · trivial
+    next hrecipient =>
+      dsimp only
+      let t := settleOwner (settleOwner s a) b
+      have ht : PublicInvariant t := settleOwner_public _ b (settleOwner_public s a h)
+      have hsize : s.accounts.size = actors := h.2.2.2.2.2.2.1
+      have hats : a < s.accounts.size := by simp only [hsize, actors]; omega
+      have has : CurrentAccount t a :=
+        settleOwner_preserves_current _ a b (settleOwner_current s a ha hats)
+      have hbs : b < 5 → CurrentAccount t b := by
+        intro hb5
+        apply settleOwner_current _ b hb5
+        have hs' : (settleOwner s a).accounts.size = actors :=
+          (settleOwner_public s a h).2.2.2.2.2.2.1
+        simpa only [hs'] using hb
       split
-      · trivial
-      next hbad =>
+      next hexcess =>
         split
         · trivial
-        next hfunded =>
+        next hbad =>
           split
-          next hab =>
+          · trivial
+          next hfunded =>
             split
-            · trivial
-            next taken left htake =>
-              have hb5 : b < 5 := by
-                simp only [Bool.or_eq_true, beq_iff_eq, vaultId, fundId, zeroId] at hnormal hbad
-                simp only [Bool.and_eq_true, bne_iff_ne] at hnormal
-                simp only [actors] at hb
-                omega
-              have hab' : a ≠ b := by simpa only [bne_iff_ne] using hab
-              have hcon := take_conserves (wallet t fundId) t.book.total
-                (account t a).units (n-wallet t a) taken left htake
-              exact ⟨moveUnits_public t a b taken left ht ha hb5 hab' has (hbs hb5) hcon,
-                fun _ => moveUnits_current t a b taken left b (hbs hb5)⟩
-          · exact ⟨ht,hbs⟩
-    · exact ⟨ht,hbs⟩
+            next hab =>
+              split
+              · trivial
+              next taken left htake =>
+                have hb5 : b < 5 := by
+                  simp only [beq_iff_eq, vaultId, fundId, zeroId] at hnormal hbad hrecipient
+                  simp only [Bool.and_eq_true, bne_iff_ne] at hnormal
+                  simp only [actors] at hb
+                  omega
+                have hab' : a ≠ b := by simpa only [bne_iff_ne] using hab
+                have hcon := take_conserves (wallet t fundId) t.book.total
+                  (account t a).units (n-wallet t a) taken left htake
+                exact ⟨moveUnits_public t a b taken left ht ha hb5 hab' has (hbs hb5) hcon,
+                  fun _ => moveUnits_current t a b taken left b (hbs hb5)⟩
+            · exact ⟨ht,hbs⟩
+      · exact ⟨ht,hbs⟩
   next hnormal =>
     refine ⟨h, ?_⟩
     intro hb5

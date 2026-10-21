@@ -6,7 +6,7 @@ import {JuicerMainDebt} from "../../src/JuicerMainDebt.sol";
 import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 import {IJuicerFeeController} from "../../src/interfaces/IJuicerFeeController.sol";
 
-/// @dev the deficit the keeper computes off-chain now that the contracts no longer guard it
+/// @dev the full deficit signal used by keepers; deposits also enforce the narrower 50 bps admission ceiling
 library Deficit {
     function active(JuicerMainDebt m) internal view returns (bool) {
         CollateralVault v = CollateralVault(m.vault());

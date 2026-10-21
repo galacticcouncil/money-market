@@ -37,7 +37,15 @@ import JuicerLean.FixedPoint.PublicPreservation
 import JuicerLean.FixedPoint.PublicCertificates
 import JuicerLean.FixedPoint.SolidityDispatch
 import JuicerLean.FixedPoint.PublicReachability
+import JuicerLean.FixedPoint.PublicMetadataReachability
+import JuicerLean.FixedPoint.PublicCallBoundsReachability
+import JuicerLean.FixedPoint.PublicReadyReachability
+import JuicerLean.FixedPoint.PublicInductionRegressions
 import JuicerLean.FixedPoint.PublicBoundaryRegressions
 import JuicerLean.Solidity.BodyProofs
 import JuicerLean.Solidity.GuardProofs
 import JuicerLean.FixedPoint.ScaledDebt
+import JuicerLean.FixedPoint.AuditChanges
+import JuicerLean.FixedPoint.SharedIntent
+import JuicerLean.FixedPoint.AuditProgress
+import JuicerLean.FixedPoint.AuditLossAllocation

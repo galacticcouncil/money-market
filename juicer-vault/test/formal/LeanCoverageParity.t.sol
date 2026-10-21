@@ -164,6 +164,28 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
             assertEq(credit, 1000 - r[3]);
         }
     }
+    function test_leanProportionalPacing() public {
+        for (uint256 i; i < _count("pacing"); ++i) {
+            uint256[] memory r = _row("pacing", i);
+            ExecutionController c = ExecutionController(Artifacts.executionController(address(this), 60, 5));
+            ParityConsumer consumer = new ParityConsumer(c);
+            vm.warp(r[0]); vm.roll(100); vm.setBlockhash(99, keccak256("pacing"));
+            bytes32 group = bytes32(uint256(1));
+            c.configureBudget(group, address(1), 1000, 0, type(uint64).max);
+            c.configureLimit(address(consumer), address(1), address(2), group, 1, uint128(r[3]));
+            c.configurePacing(group, uint64(r[1]));
+            bytes32 key = c.lane(address(consumer), address(1), address(2));
+            c.configurePrice(key, 0, false);
+            c.configureAction(address(consumer), ParityConsumer.trade.selector, true);
+            ExecutionController.Quote[] memory quotes = new ExecutionController.Quote[](1);
+            quotes[0] = ExecutionController.Quote(key, r[3], r[3]);
+            c.execute(address(consumer), abi.encodeCall(ParityConsumer.trade, (r[2], r[2], r[2])),
+                99, keccak256("pacing"), block.timestamp + 5, quotes);
+            (, uint64 nextAt, uint256 lastBlock) = c.pacing(group);
+            assertEq(nextAt, r[4]); assertEq(lastBlock, block.number);
+        }
+    }
+
     function test_leanPartialAndFinalClaims() public {
         for (uint256 i; i < _count("claims"); ++i) {
             uint256[] memory r = _row("claims", i);

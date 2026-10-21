@@ -6,6 +6,8 @@ import {JuicerYieldAccounting} from "../../src/JuicerYieldAccounting.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract LeanRescaleStatefulParityTest is LeanMarketStatefulParityTest {
+    // Selects the large-balance replay fixture; the campaign itself now checks that public
+    // loss/recovery histories stay at scale zero under high-water restoration.
     function _allowRescale() internal pure override returns (bool) { return true; }
 
     function _configure() internal override {
@@ -14,13 +16,18 @@ contract LeanRescaleStatefulParityTest is LeanMarketStatefulParityTest {
     }
 
     function _cycle(uint256 high) internal {
+        JuicerYieldAccounting y = vault.yieldAccounting();
         uint256 target = vault.yieldAccounting().requiredSourceBacking() + 1e13;
         uint256 low = Math.mulDiv(target, 1e18, market.sharesOf(address(vault)), Math.Rounding.Up);
         _act(17, 0, 0, 0, low);
         _act(8, 0, 0, 0, 0);
-        assertGt(vault.yieldAccounting().totalAssets(), 0, "loss retained a nonzero reward denominator");
+        assertGt(y.totalAssets(), 0, "loss retained a nonzero reward denominator");
+        assertGt(y.sourceLossCarry() + y.protocolLossCarry(), 0, "loss recorded high-water carry");
+        assertEq(y.unitScale(), 0, "loss did not rescale units");
         _act(17, 0, 0, 0, high);
         _act(8, 0, 0, 0, 0);
+        assertEq(y.sourceLossCarry() + y.protocolLossCarry(), 0, "recovery restored prior holders");
+        assertEq(y.unitScale(), 0, "recovery did not rescale units");
     }
 
     function _campaign(uint256 seed, uint256 depth, bool) internal override {
@@ -38,15 +45,16 @@ contract LeanRescaleStatefulParityTest is LeanMarketStatefulParityTest {
         _act(2, 0, 0, 0, 1);
         _act(4, 0, 0, 0, 1e27);
         JuicerYieldAccounting y = vault.yieldAccounting();
-        for (uint256 round; round < 48 && y.unitScale() < 256; ++round) {
+        for (uint256 round; round < 48; ++round) {
             _cycle(high);
             _act(2, 2, 0, 3, 1e12 + round);
             _act(1, 3, 0, 2, round);
             _act(3, 2, 3, 2, round + 1);
         }
-        assertGe(y.unitScale(), 256, "four cumulative shifts executed");
-        assertEq(y.accountScale(actors[0]), 0, "holder remained stale");
-        assertEq(y.requestScale(0), 0, "waiting request remained stale");
+        assertEq(y.unitScale(), 0, "public loss/recovery cycles preserve the original scale");
+        assertEq(y.sourceLossCarry() + y.protocolLossCarry(), 0, "all high-water carry restored");
+        assertEq(y.accountScale(actors[0]), 0, "holder scale remained current");
+        assertEq(y.requestScale(0), 0, "waiting request scale remained current");
         _act(2, 0, 0, 0, 1);
         _act(10, 0, 0, 0, 10);
         _act(5, 0, 0, 0, 1);

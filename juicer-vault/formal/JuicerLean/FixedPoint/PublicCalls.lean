@@ -115,12 +115,31 @@ def allocationInput (s : State) : AllocationInput :=
   ⟨s.held, sourceEquity s, required + (if required == 0 then 0 else 2*10^10),
     activeSupply s, wallet s fundId, quoteHollar s (toAssets s (wallet s fundId)), s.basis, s.feeBps⟩
 
+def activeFunds (s : State) : Nat :=
+  let gross := (position s 0).cash + s.activeRemaining
+  gross - min gross (fee s 0).feeLeft
+
+def admissionBacking (s : State) : Nat :=
+  let equity := sourceEquity s
+  let retained := min (s.book.source + s.book.protocol) (allocationAvailable (allocationInput s))
+  let excluded := if s.held == 0 then 0 else equity * retained / s.held
+  equity - excluded
+
+def admissionDeficitBps (s : State) : Nat :=
+  let debt := mainDebtOf s.debt s.mainUnits (position s 0)
+  if debt == 0 then 0 else
+  let backing := admissionBacking s
+  let cash := activeFunds s
+  let uncovered := debt - backing - cash
+  let required := requiredBacking debt (position s 0).principal cash s.feeBps
+  let unbacked := required - backing
+  ceilDiv (max uncovered unbacked * 10000) debt
+
 def checkpoint (s : State) (a b : Nat) : State := Id.run do
   let mut s := s
   if !pendingAccounting s then
     let v := allocationInput s
-    let trimmed := trimLoss s.book (allocationAvailable v)
-    let added := allocationAvailable v - trimmed.source - trimmed.protocol
+    let added := allocationFresh s.book v
     let released := if v.held != 0 && v.supply != 0 && added != 0 then
       min (added * v.equity / v.held) (v.basis - v.required) else 0
     s := { s with book := allocate s.book v, basis := s.basis - released }
@@ -133,10 +152,11 @@ def transfer (s : State) (a b n : Nat) : Except Nat State := do
   let mut s := s
   let mut moved := n
   if a != vaultId && b != vaultId && a != fundId then
+    if b == fundId then throw 10
     s := settleOwner (settleOwner s a) b
     let excess := n - wallet s a
     if excess != 0 then
-      if b == fundId || b == zeroId then throw 10
+      if b == zeroId then throw 10
       let owned := (account s a).units
       if excess > fundedOf (wallet s fundId) s.book.total owned then throw 11
       if a != b then
@@ -197,7 +217,7 @@ def pay (s : State) (key limit : Nat) : State × Nat × Nat :=
     protocolReserve := s.protocolReserve - drawn + unused,
     repayCalls := s.repayCalls + (if amount == 0 then 0 else 1) + (if retry then 1 else 0),
     debt := s.debt - reduced, synth := s.synth - synthBurn } key next,
-    p.principal - principal, reduced)
+    p.principal - principal, spent)
 
 def cover (s : State) (n : Nat) : Except Nat State :=
   if s.reserve < n then .error 17
@@ -218,7 +238,7 @@ def startOne (s : State) (id : Nat) : Except Nat State := do
   let shares := escrowed + out.folded
   let numerator := activeAssets s * shares
   let owed := ceilDiv numerator supply
-  if owed == 0 then throw 2
+  if owed == 0 && shares != 0 then throw 2
   s := { s with reinvest := s.reinvest - s.reinvest * shares / supply }
   let activeSlice := (s.held - s.book.source - s.book.protocol - out.reward - out.fee) * shares / supply
   let slice := activeSlice + out.reward + out.fee
@@ -370,19 +390,31 @@ def compoundFunds (input : State) (out reward service feeAmount : Nat) : Except 
     supplied := s.supplied + returned, reinvest := s.reinvest + returned,
     feesCollateral := s.feesCollateral + feeAmount }
 
+def harvestBurn (s : State) : Nat := min (harvestable s) s.held
+
+def harvestSlice (available rewards protocol burned : Nat) : Nat × Nat :=
+  let reserved := rewards + protocol
+  let realized := burned - (available - reserved)
+  let reward := if reserved == 0 then 0 else realized * rewards / reserved
+  (reward, realized - reward)
+
+def harvestFundState (s : State) (burned amount : Nat) (slice : Nat × Nat) : State :=
+  { s with
+    held := s.held - burned, sourceCash := s.sourceCash - amount,
+    book := { s.book with source := s.book.source - slice.1, protocol := s.book.protocol - slice.2 } }
+
 def harvestAll (s : State) (minimum : Nat) : Except Nat (State × Nat) := do
   let mut s := checkpoint s zeroId zeroId
-  let burned := harvestable s
+  let burned := harvestBurn s
   if burned == 0 then return (s, 0)
   let amount := sourceValue s burned
   let fair := quoteCollateral s amount
   let out := fair * (10000 - s.haircut) / 10000
   if out < max minimum (fair * 9900 / 10000) then throw 26
   if out == 0 then throw 28
-  let (reward, service, feeAmount) := splitHarvest out burned s.book.source s.book.protocol s.feeBps
-  s := { s with
-    held := s.held - burned, sourceCash := s.sourceCash - amount,
-    book := { s.book with source := 0, protocol := 0 } }
+  let slice := harvestSlice (harvestable s) s.book.source s.book.protocol burned
+  let (reward, service, feeAmount) := splitHarvest out burned slice.1 slice.2 s.feeBps
+  s := harvestFundState s burned amount slice
   s ← compoundFunds s out reward service feeAmount
   return ({ s with lastHarvest := s.time }, amount)
 
@@ -414,6 +446,7 @@ def rawRunCall (input : State) (action : Action) : Result := do
     let oldSynth := s.synth
     s := (pay s 0 0).1
     s := { s with synth := oldSynth }
+    if b == fundId then throw 10
     s := checkpoint s zeroId b
     if s.supply == 0 && caller != 0 then throw 5
     if s.assets + n > s.tvlCap then throw 6
@@ -422,6 +455,8 @@ def rawRunCall (input : State) (action : Action) : Result := do
     if supply != 0 && activeAssets s == 0 then throw 8
     let shares := if supply == 0 then n - 1000 else ceilDiv (n * supply) (activeAssets s)
     let needed := if supply == 0 then n else ceilDiv (shares * activeAssets s) supply
+    if 50 < admissionDeficitBps s then throw 28
+    if s.collateral[caller]! < n then throw 15
     if s.supply == 0 then s := setWallet { s with supply := 1000 } 4 1000
     s := setWallet s b (wallet s b + shares)
     s := { s with
@@ -430,8 +465,8 @@ def rawRunCall (input : State) (action : Action) : Result := do
       supplied := s.supplied + n,
       reinvest := s.reinvest + n,
       collateral := s.collateral.set! caller (s.collateral[caller]! - n) }
-    s ← cover s (needed - n)
     if s.synth * 9800 / 10000 < s.debt then throw 23
+    s ← cover s (needed - n)
     return (s, shares)
   else if op == 1 then
     return ({ s with approvals := s.approvals.set! (caller * 4 + b) n }, 1)
@@ -475,8 +510,8 @@ def rawRunCall (input : State) (action : Action) : Result := do
     s := credit { s with
       freed := s.freed - gross, sourceCash := s.sourceCash - gross,
       sourceCost := s.sourceCost + cost } freed cost
-    let (next, _, reduced) := pay s 0 s.delever
-    s := { next with delever := if next.debt == 0 then 0 else next.delever - reduced }
+    let (next, _, paid) := pay s 0 s.delever
+    s := { next with delever := if next.debt == 0 then 0 else next.delever - paid }
     s := settleMany 32 s
     return (s, freed + (input.debt - s.debt) + (s.head - input.head) + (if pending then 1 else 0))
   else if op == 7 then
@@ -605,7 +640,8 @@ def snapshot (s : State) : Array Nat := Id.run do
   let mut out := #[s.supply, s.assets, s.supplied, s.liquid, s.reserve, s.debt, s.synth,
     s.held, s.basis, s.freed, s.reinvest, s.pending, s.queued, s.owed, s.queuedDebt,
     s.head, s.unwind, s.requests.size, s.book.source, s.book.protocol, s.book.total,
-    s.book.index, s.book.epoch, s.book.scale, s.mainUnits, s.ownedCash, s.outstanding,
+    s.book.index, s.book.epoch, s.book.scale, s.book.sourceLoss, s.book.protocolLoss,
+    s.mainUnits, s.ownedCash, s.outstanding,
     s.sourceHead, s.positions.size, s.unallocated, (s.paused || s.sourcePaused).toNat, s.depositsPaused.toNat,
     s.sourcePaused.toNat, s.time]
   for i in [:actors] do

@@ -51,6 +51,20 @@ theorem trimLoss_junior (b : Book) (a : ℕ) :
     · exact le_rfl
   · omega
 
+theorem restoreLoss_partition (b : Book) (added : ℕ) :
+    let restored := restoreLoss b added
+    restored.1.source + restored.1.protocol + restored.2 = b.source + b.protocol + added := by
+  simp only [restoreLoss]
+  split
+  · rfl
+  · rename_i h
+    simp only
+    have hs : min added (b.sourceLoss + b.protocolLoss) * b.sourceLoss /
+        (b.sourceLoss + b.protocolLoss) ≤ min added (b.sourceLoss + b.protocolLoss) :=
+      proportional_le _ _ _ (Nat.le_add_right _ _)
+    have hr : min added (b.sourceLoss + b.protocolLoss) ≤ added := min_le_left _ _
+    omega
+
 theorem finishAllocation_reserved (b : Book) (v : AllocationInput) (a before : ℕ) (hf : v.fee ≤ 10000) :
     (finishAllocation b v a before).source + (finishAllocation b v a before).protocol = b.source + b.protocol + a := by
   unfold finishAllocation
@@ -64,11 +78,22 @@ theorem finishAllocation_reserved (b : Book) (v : AllocationInput) (a before : �
 theorem allocate_reserved_bounded (b : Book) (v : AllocationInput) (hf : v.fee ≤ 10000) :
     (allocate b v).source + (allocate b v).protocol ≤ allocationAvailable v := by
   have h := (trimLoss_junior b (allocationAvailable v)).2
+  let trimmed := trimLoss b (allocationAvailable v)
+  let added := allocationAvailable v - (trimmed.source + trimmed.protocol)
+  let written : Book := { trimmed with
+    total := 0
+    index := 0
+    scale := 0
+    epoch := trimmed.epoch + 1
+    sourceLoss := 0
+    protocolLoss := 0 }
+  have hrt := restoreLoss_partition trimmed added
+  have hrw := restoreLoss_partition written added
+  dsimp only [trimmed,added,written] at hrt hrw
   simp only [allocate]
   split_ifs
   all_goals try rw [finishAllocation_reserved _ _ _ _ hf]
-  all_goals try dsimp only
-  all_goals omega
+  all_goals first | exact h | omega
 
 theorem allocation_respects_Main_backing (b : Book) (v : AllocationInput) (hf : v.fee ≤ 10000) :
     (allocate b v).source + (allocate b v).protocol ≤ v.held := by
@@ -102,15 +127,24 @@ theorem allocation_retains_Main_backing (b : Book) (v : AllocationInput) (hf : v
 
 theorem startExit_source_conserved (b : Book) (o r : Account) (w s f : ℕ) :
     (startExit b o r w s f).book.source + (startExit b o r w s f).reward = b.source := by
-  simp only [startExit]
+  have hsource : (startExit b o r w s f).book.source =
+      b.source - (startExit b o r w s f).reward := by
+    simp only [startExit]
+    split <;> split <;> split <;> rfl
+  rw [hsource]
   apply Nat.sub_add_cancel
+  simp only [startExit]
   exact proportional_le _ _ _ (min_le_left _ _)
 
 theorem startExit_fee_conserved (b : Book) (o r : Account) (w s f : ℕ) :
     (startExit b o r w s f).book.protocol + (startExit b o r w s f).fee = b.protocol := by
   have hr : (startExit b o r w s f).reward ≤ b.source := by
     simp only [startExit]; exact proportional_le _ _ _ (min_le_left _ _)
-  change b.protocol - (startExit b o r w s f).fee + (startExit b o r w s f).fee = b.protocol
+  have hprotocol : (startExit b o r w s f).book.protocol =
+      b.protocol - (startExit b o r w s f).fee := by
+    simp only [startExit]
+    split <;> split <;> split <;> rfl
+  rw [hprotocol]
   apply Nat.sub_add_cancel
   simp only [startExit]
   split

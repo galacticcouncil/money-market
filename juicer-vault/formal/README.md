@@ -69,6 +69,10 @@ JuicerLean/
    ├─ Checked.lean        uint256 arithmetic failures and atomic transaction semantics
    ├─ CheckedRefinement.lean successful checked operations refine the natural-number models
    ├─ Environment.lean    external observation guards and ICE authentication limits
+   ├─ AuditChanges.lean   PR #79 arithmetic, pacing, fund and empty-request regressions
+   ├─ SharedIntent.lean   shared SubLoop intents, two vaults, gifts and harvest ordering
+   ├─ AuditProgress.lean  conditional queue and pacing progress proofs
+   ├─ AuditLossAllocation.lean executable audit counterexamples for loss assignment
    └─ Refine.lean         Phase 3: integer floor guard conservatively refines the real floor,
                            incl. the loop-yield (accrueLoop) and re-peg fixed-point refinements
 ```
@@ -92,6 +96,7 @@ JuicerLean/
 | `solidity_dispatch_corresponds` | the complete source-pinned 31-opcode fixture dispatcher selects the same raw model call for every action |
 | `validSolidityTrace_invariant` | every arbitrary finite raw trace in the certified Solidity action domain preserves the combined public invariant |
 | `validSolidityReachable_invariant` | every state reachable through certified raw fixture transitions satisfies the combined public invariant |
+| `ordinaryTrace_fixture_ready` | every arbitrary finite ordinary trace from any of the three Solidity fixture genesis states preserves the financial invariant and all public-call readiness premises |
 | `agg_synthConserved` | no over-mint of the synthetic across the **whole book** of positions at once |
 | `agg_collateral_out_ge_in` | portfolio-wide redemption solvency: aggregate collateral out ≥ in, under `freedBacked` |
 | `deposit_conserved` / `deposit_isolation` | shared-loop deposit conserves total shares and cannot move another vault's balance |
@@ -102,10 +107,10 @@ JuicerLean/
 
 ## Runtime correspondence
 
-aligned with the checked-in allowance and ceil-rescale fixes. `solidity-manifest.json` records the
+aligned with PR #79's audit fixes, including the earlier allowance and ceil-rescale fixes. `solidity-manifest.json` records the
 exact source snapshot. the real-number models prove ideal accounting properties;
 `FixedPoint/Runtime.lean` adds current integer arithmetic, epoch and rescale behavior.
-Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 1,430 Lean cases with the
+Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 1,526 Lean cases with the
 actual Solidity, and detect source, compiled-artifact or storage-layout drift. Same integrity bar: 0 `sorry`, axioms
 `propext`/`Classical.choice`/`Quot.sound` only.
 
@@ -151,7 +156,7 @@ describes the separate ideal-arithmetic models.
 | `State.startExit_requestRedeem` / `State.startExit_escrowOk` | seen by the redemption state the fold is `requestRedeem fold`, so `escrowOk` survives it |
 | `ShareBook.startExit_quote` / `ShareBook.runExit_totalBalance_add` | quoting after the fold pays the folded shares at the same per-share value and keeps the remaining holders'; the balance identity holds through any trace with exits |
 | `IceLoop.submit_equity` / `IceLoop.run_equity_noFill` | in-flight input counts in equity at oracle value; submit, expiry, callback and reconcile keep equity — only a fill moves it, by exactly the execution difference (`fill_equity`; no worse than the slippage floor, `fill_equity_ge`) |
-| `IceLoop.submit_grossHF` / `IceLoop.ramp_fill_grossHF` / `IceLoop.ramp_aaveHF_lt` | abstract gross-asset ratio only; runtime HF instead nets ENTRY input against debt and restores EXIT input to collateral |
+| `IceLoop.submit_grossHF` / `IceLoop.ramp_fill_grossHF` / `IceLoop.ramp_aaveHF_lt` | abstract gross-asset ratio only; runtime HF adds in-flight input and available unwind cash to collateral, leaving debt unchanged |
 | `IceLoop.submit_oracleSaleOk_iff` / `IceLoop.deLever_raises_grossHF` | the abstract oracle-fair sale preserves signed equity and raises its gross-asset ratio; the runtime trigger is modeled separately |
 | `IceLoop.submit_busy` / `IceLoop.late_callback` / `IceLoop.reconcile_eq_callback` | one intent per lane, never overwritten; once reconciled, a late callback changes nothing after any further trace; callback and reconcile record the same thing |
 | `IceLoop.naiveEquity_sub_equity` | an equity view that keeps counting a pending record after its outcome landed overstates by exactly that input |
@@ -197,19 +202,69 @@ account/request epochs and scales consistent with the book's history. requestRed
 an ordinary owner; deposit requires a bounded receiver and a zero reward index when supply is zero.
 rebalance additionally requires zero fee remainder when the active source remainder is zero.
 pokeSettle requires backed queue collateral, consistent batch weights/budgets, backed fees and
-source pull/cost rates at most 10000 basis points. harvest requires its post-checkpoint amount to
-fit source capacity. startUnwinds requires consistent metadata, queue backing, ordinary waiting
-owners and a fee rate at most 10000 basis points; its proof covers arbitrary loop lengths.
-all 31 opcodes now have preservation proofs based on inputs. domain admission uses those rules
-or a raw revert, with no successful post-state certificate fallback. the additional
-input premises are replay-checked but not yet proved inductive across every raw call.
+source pull/cost rates at most 10000 basis points. harvest burns the minimum of its quote and
+the single-vault fixture's held-share capacity; the capacity bound is unconditional. startUnwinds
+requires consistent metadata, queue backing, ordinary waiting owners and a fee rate at most
+10000 basis points; its proof covers arbitrary loop lengths. all 31 opcodes have preservation
+proofs based on inputs. domain admission uses those rules or a raw revert, with no successful
+post-state certificate fallback.
+
+account/request metadata is inductive across every raw call, including reverts and unsupported
+opcodes, without financial or fixture-domain premises. `PublicCallBounds` proves that source
+pull/cost rates and fee rates stay at most 10000 basis points and every stored request retains an
+ordinary owner across arbitrary finite fixture-call histories. `PublicReady` combines those facts
+with initialization, active-fee, queue-backing, credit-readiness and the financial invariant.
+`OrdinaryAction` retains the source-pinned fixture restrictions, limits direct transfer callers
+to the four external holders, and requires a started claim or a raw revert; it assumes none of
+the accounting readiness predicates. `ordinaryTrace_fixture_ready` derives the complete
+certificate for arbitrary finite ordinary histories from each concrete fixture genesis, including
+rollback. credit readiness keeps the source prefix empty during suspended batches and preserves
+fee backing through repayments and appended exits.
+
+negative regressions make the domain and model corrections explicit. the permissive old fixture
+domain can impersonate the locked-share address, drain supply to zero, and retain a nonzero reward
+index; the initialization theorem excludes that caller. a public harvest history quotes
+`750000000000000002` source shares while holding `750000000000000000`. Solidity already caps the
+burn. the model now applies that cap and consumes only the realized source/protocol reserve slice,
+preserving the two remaining reward units until the next checkpoint. deposits also reject amounts
+above the caller's collateral balance before consuming it; raising the TVL cap previously exposed
+a successful model deposit where ERC20 transfer reverts. Solidity rollback regressions and
+kernel-checked model cases cover both fixture balance scales.
 the baseline covers vault/Main queues and claims; the
 market fixture adds harvests, compounding, nonzero fees/costs, interest, debt rounding and
-price-driven deleveraging. the rescale fixture keeps ray-scale holders and a waiting request stale
-across four 64-bit shifts, then settles, starts, claims, writes off and refills. larger campaigns
-are configurable. the default 24 campaigns cover 7,338 recorded steps, 1,411 expected reverts and
-1,072 corrupted-output checks. see [stateful parity](STATEFUL_PARITY.md) for coverage gates and external mock
-boundaries. `check-runtime.py` includes all three default fixtures.
+price-driven deleveraging. the loss/recovery fixture keeps ray-scale holders and a waiting request
+live across repeated partial write-downs and recoveries, verifies that carry restores incumbent
+claims before new weight can mint units, and then settles, starts, claims, writes off and refills.
+the public history must remain at scale zero. larger campaigns are configurable. see
+[stateful parity](STATEFUL_PARITY.md) for generated counts, coverage gates and external mock
+boundaries. `check-runtime.py` includes all three default fixtures plus two focused ten-call
+harvest-capacity replays.
+
+`AuditChanges.lean` covers the first allocation's whole-fund units, the 99% arrival threshold,
+effective backing, proportional pacing and cash-based delever repayment. empty requests may
+start with zero shares, owed collateral and debt; the queue proofs retain their cumulative payout
+and burn bounds. the gate also runs the PR #79 public-flow regressions for fund rejection,
+empty queues, foreign collateral flags, safety sales and harvest reconciliation.
+
+`SharedIntent.lean` follows two vaults through actual SubLoop intent inputs and outputs, landed
+fills, refunds, balance rebasing, unwind cost checkpoints and Harvester weight reads. six traces
+execute the production SubLoop and Harvester for 1,176 public calls and compare every modeled
+field and return or revert. mutation coverage delays Harvester reconciliation and is rejected in
+six states. the traces also retain a separate pallet state, so a near-full unsolicited arrival
+can clear SubLoop's slot while the original pallet intent remains open.
+
+`AuditProgress.lean` states liveness assumptions explicitly: mature requests, enough repayment
+cash and debt capacity, positive lane capacity, no uint64 wrap and continued keeper calls. under
+those assumptions it proves bounded progress for arbitrary empty and funded queues, target
+clearance despite repayment rounding, and at most one extra pacing quantum per fragment.
+`AuditLossAllocation.lean` retains the original loss-allocation counterexamples and adds the
+implemented policy boundaries: deposits admit at most a rounded-up 50 bps deficit, a pending
+intent freezes deposits/requests/pulls, parked gifts keep a per-vault owner, and partial reserve
+recovery restores the prior loss carry before current wallet weight can mint units. capped exit
+cost above a request's earned allowance remains an explicit source liability under the principal
+preservation policy. this maps audit findings #3/#19 and #32/#39 to the shared replay,
+#5/#12/#29/#30/#31 to conditional progress, and #6/#13/#15/#22/#25/#35/#38 to the executable
+loss-allocation boundaries.
 
 `check-dispatch.py` independently checks all 31 target, selector and action-argument mappings
 against the pinned Solidity `perform` functions. `solidity_dispatch_corresponds` and
@@ -221,21 +276,23 @@ the pinned solc 0.8.22, optimizer-200, via-ir, Paris settings. it also checks th
 by the production-target fixture branches. constructor immutables remain template references, so
 this is an artifact-identity check rather than a deployed-address or semantic-equivalence proof.
 
-`solidity_bodies.py` additionally extracts the actual solc AST for `_shiftIndex`. a typed,
-checked uint256 interpreter proves this body equals `Runtime.ceilShift` for all uint256 inputs,
-including shifts of at least 256 bits. unsupported syntax is rejected. the formal build uses
-fixed relative remappings and cache keys that change with them. see [body proof scope](SOLIDITY_BODIES.md)
-for the extractor, arithmetic semantics and compiler/EVM trust boundary.
+`solidity_bodies.py` extracts the actual solc AST for `_shiftIndex` and five stateful bodies:
+vault `deposit`, `startUnwinds`, `pokeSettle`, and accounting `beginHarvest`, `splitHarvest`.
+the pure helper uses a checked uint256 interpreter. the stateful bindings check signatures,
+selectors, modifier order, complete normalized AST digests and ordered block/branch/loop/call/
+write traces. Lean composes the three vault bindings with their exact guard prefixes and public
+transition models, and proves the two harvest arithmetic transitions and reserve bounds.
+unsupported opaque syntax is rejected. see [body proof scope](SOLIDITY_BODIES.md) for the exact
+compiler/EVM trust boundary.
 
 `solidity_guards.py` checks compiled authorization and reentrancy guard bodies, 32 leading
 entrypoint prefixes and the explicit transfer check. the proofs cover rejection, lock reset and
 composition with the raw public invariant. role administration, upgrades and whole-protocol
 callback safety remain outside this coverage.
 
-the stateful rescale campaigns and focused integration checks reach 64-bit and cumulative 256-bit
-accounting scales through public vault calls in controlled loss/refill environments, including a
-waiting request, and replay 516
-calls against Aave v3's actual
+seeded rescale fixtures reach 64-bit and cumulative 256-bit accounting scales for both account and
+waiting-request arithmetic. public loss/refill campaigns instead prove that the high-water carry
+restores the existing cohort without a rescale. focused integration checks replay 516 calls against Aave v3's actual
 `VariableDebtToken`, run repeated harvests across two vaults sharing one loop, and exercise a long
 ICE entry/expiry/reconcile/exit sequence. the Aave pool/index driver and ICE dispatch remain mocks;
 these checks do not claim deployed-protocol equivalence.

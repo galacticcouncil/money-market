@@ -325,8 +325,12 @@ contract ProtocolFeesTest is HarvestTest {
         _park(6_000e6);
         CollateralVault second = _secondVault();
         fees.setProtocolFeeBps(address(second), 1_000);
-        uint256 grossFirst = (6_000e6 * loop.sharesOf(address(vault)) / loop.totalShares()) * 1e12 / 3_000;
-        uint256 grossSecond = (6_000e6 * loop.sharesOf(address(second)) / loop.totalShares()) * 1e12 / 3_000;
+        uint256 giftFirst = 6_000e6 * loop.sharesOf(address(vault)) / loop.totalShares();
+        // Harvest assigns the final vault the cumulative-rounding remainder so every donated
+        // PRIME unit keeps an owner instead of leaving shared-asset dust behind.
+        uint256 giftSecond = 6_000e6 - giftFirst;
+        uint256 grossFirst = giftFirst * 1e12 / 3_000;
+        uint256 grossSecond = giftSecond * 1e12 / 3_000;
         uint256 feeFirst = grossFirst * 500 / 10_000;
         uint256 feeSecond = grossSecond * 1_000 / 10_000;
         _harvest();

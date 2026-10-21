@@ -36,6 +36,8 @@ structure Book where
   index : ℕ := 0
   epoch : ℕ := 0
   scale : ℕ := 0
+  sourceLoss : ℕ := 0
+  protocolLoss : ℕ := 0
   deriving Repr, BEq
 
 structure Account where
@@ -126,11 +128,47 @@ structure AllocationInput where
 def trimLoss (b : Book) (available : ℕ) : Book :=
   if available < b.source + b.protocol then
     let source := b.source * available / (b.source + b.protocol)
-    { b with source, protocol := available - source }
+    let protocol := available - source
+    { b with
+      source := source
+      protocol := protocol
+      sourceLoss := b.sourceLoss + (b.source - source)
+      protocolLoss := b.protocolLoss + (b.protocol - protocol) }
   else b
+
+def restoreLoss (b : Book) (added : ℕ) : Book × ℕ :=
+  let loss := b.sourceLoss + b.protocolLoss
+  if b.total == 0 || added == 0 || loss == 0 then (b, added) else
+  let restored := min added loss
+  let source := restored * b.sourceLoss / loss
+  let protocol := restored - source
+  ({ b with
+      source := b.source + source
+      protocol := b.protocol + protocol
+      sourceLoss := b.sourceLoss - source
+      protocolLoss := b.protocolLoss - protocol },
+    added - restored)
 
 def allocationAvailable (v : AllocationInput) : ℕ :=
   if v.required < v.equity then (v.equity - v.required) * v.held / v.equity else 0
+
+def allocationMinted (total before value outside denominator : ℕ) : ℕ :=
+  if total == 0 then before + value else outside * (total + 1) / denominator
+
+def allocationFresh (b : Book) (v : AllocationInput) : ℕ :=
+  let available := allocationAvailable v
+  let b := trimLoss b available
+  let added := available - (b.source + b.protocol)
+  let before := (if v.held == 0 then 0 else v.equity * b.source / v.held) + v.fundedValue
+  let b := if b.total != 0 && before == 0 then
+    { b with
+      total := 0
+      index := 0
+      scale := 0
+      epoch := b.epoch + 1
+      sourceLoss := 0
+      protocolLoss := 0 } else b
+  (restoreLoss b added).2
 
 def finishAllocation (b : Book) (v : AllocationInput) (added before : ℕ) : Book :=
   let released := min (added * v.equity / v.held) (v.basis - v.required)
@@ -144,7 +182,7 @@ def finishAllocation (b : Book) (v : AllocationInput) (added before : ℕ) : Boo
   let denominator := before + selfValue + 1
   let limit := 2 ^ 160 * denominator / max denominator outsideValue
   let b := rescale 4 b limit
-  let minted := outsideValue * (b.total + 1) / denominator
+  let minted := allocationMinted b.total before value outsideValue denominator
   { b with
     source := b.source + rewardShares
     protocol := b.protocol + feeShares
@@ -159,7 +197,18 @@ def allocate (b : Book) (v : AllocationInput) : Book :=
   if b.total == 0 && !allocating then b else
   let before := (if v.held == 0 then 0 else v.equity * b.source / v.held) + v.fundedValue
   let b := if b.total != 0 && before == 0 then
-    { b with total := 0, index := 0, scale := 0, epoch := b.epoch + 1 } else b
+    { b with
+      total := 0
+      index := 0
+      scale := 0
+      epoch := b.epoch + 1
+      sourceLoss := 0
+      protocolLoss := 0 } else b
+  let restored := restoreLoss b added
+  let b := restored.1
+  let added := restored.2
+  let allocating := v.held != 0 && v.supply != 0 && added != 0
+  let before := (if v.held == 0 then 0 else v.equity * b.source / v.held) + v.fundedValue
   if !allocating then b else finishAllocation b v added before
 
 structure ExitResult where
@@ -182,13 +231,46 @@ def startExit (b : Book) (owner request : Account) (wallet shares funded : ℕ) 
   let reward := b.source * burned / b.total
   let fee := if b.source == 0 then 0 else b.protocol * reward / b.source
   let folded := funded * burned / b.total
-  ⟨{ b with total := b.total - burned, source := b.source - reward, protocol := b.protocol - fee },
+  let remaining := b.total - burned
+  let book := { b with total := remaining, source := b.source - reward, protocol := b.protocol - fee }
+  let book := if remaining == 0 then { book with sourceLoss := 0, protocolLoss := 0 } else book
+  ⟨book,
     owned - exiting, reward, fee, folded, burned⟩
+
+theorem startExit_total (b : Book) (o r : Account) (w s f : ℕ) :
+    (startExit b o r w s f).book.total = b.total - (startExit b o r w s f).burned := by
+  simp only [startExit]
+  split <;> split <;> split <;> rfl
+
+theorem startExit_source (b : Book) (o r : Account) (w s f : ℕ) :
+    (startExit b o r w s f).book.source = b.source - (startExit b o r w s f).reward := by
+  simp only [startExit]
+  split <;> split <;> split <;> rfl
+
+theorem startExit_protocol (b : Book) (o r : Account) (w s f : ℕ) :
+    (startExit b o r w s f).book.protocol = b.protocol - (startExit b o r w s f).fee := by
+  simp only [startExit]
+  split <;> split <;> split <;> rfl
+
+theorem startExit_index (b : Book) (o r : Account) (w s f : ℕ) :
+    (startExit b o r w s f).book.index = b.index := by
+  simp only [startExit]
+  split <;> split <;> split <;> rfl
+
+theorem startExit_epoch (b : Book) (o r : Account) (w s f : ℕ) :
+    (startExit b o r w s f).book.epoch = b.epoch := by
+  simp only [startExit]
+  split <;> split <;> split <;> rfl
+
+theorem startExit_scale (b : Book) (o r : Account) (w s f : ℕ) :
+    (startExit b o r w s f).book.scale = b.scale := by
+  simp only [startExit]
+  split <;> split <;> split <;> rfl
 
 theorem startExit_units_conserved (b : Book) (o r : Account) (w s f : ℕ) :
     (startExit b o r w s f).book.total + (startExit b o r w s f).burned = b.total := by
-  simp only [startExit]
-  exact Nat.sub_add_cancel (min_le_left _ _)
+  rw [startExit_total]
+  exact Nat.sub_add_cancel (by simp only [startExit]; exact min_le_left _ _)
 
 theorem startExit_fold_le (b : Book) (o r : Account) (w s f : ℕ) :
     (startExit b o r w s f).folded ≤ f := by
@@ -212,25 +294,46 @@ structure Intent where
   outBase : ℕ := 0
   deriving Repr
 
+def arrivalThreshold (amount : ℕ) : ℕ := amount - amount / 100
+
 def outcome (p : Intent) (input output : ℕ) : ℕ × ℕ :=
-  if p.outBase < output && (p.minimum + 1) / 2 ≤ output - p.outBase then (2, output - p.outBase)
-  else if p.inBase < input && (p.amount + 1) / 2 ≤ input - p.inBase then (3, 0)
+  if p.outBase < output && arrivalThreshold p.minimum ≤ output - p.outBase then (2, output - p.outBase)
+  else if p.inBase < input && arrivalThreshold p.amount ≤ input - p.inBase then (3, 0)
   else (1, 0)
 
 def inFlight (p : Intent) (input output price : ℕ) : ℕ × ℕ :=
   if p.kind == 0 || (outcome p input output).1 != 1 then (0, 0)
   else if p.kind == 1 then (1, p.amount / 10 ^ 10) else (2, p.amount * price / 10 ^ 6)
 
-def effectiveAccount (p : Intent) (input output price coll debt lt aaveHF : ℕ) : ℕ × ℕ × ℕ :=
-  let (kind, value) := inFlight p input output price
-  if kind == 0 then (coll, debt, aaveHF) else
-  let coll := if kind == 1 then coll else coll + value
-  let debt := if kind == 1 then debt - min debt value else debt
+def effectiveExtra (p : Intent) (input output price : ℕ) (unwinding : Bool) (cash reserved : ℕ) : ℕ :=
+  (inFlight p input output price).2 + (if unwinding then (cash - reserved) / 10^10 else 0)
+
+def effectiveAccount (p : Intent) (input output price coll debt lt aaveHF : ℕ)
+    (unwinding : Bool := false) (cash reserved : ℕ := 0) : ℕ × ℕ × ℕ :=
+  let extra := effectiveExtra p input output price unwinding cash reserved
+  if extra == 0 then (coll, debt, aaveHF) else
+  let coll := coll + extra
   (coll, debt, if debt == 0 then max256 else coll * lt * 10 ^ 14 / debt)
 
 def totalEquity (p : Intent) (input output price coll unflagged debt cash reserved : ℕ) : ℕ :=
-  let base := if coll == 0 then unflagged else coll
+  let base := if coll < unflagged / 2 then coll + unflagged else coll
   base + (cash - reserved) / 10 ^ 10 + (inFlight p input output price).2 - debt
+
+def unwindNeed (coll debt cash reserved target primePrice slippage : ℕ) : ℕ :=
+  let idle := (cash - reserved) / 10^10
+  let gross := coll + idle
+  if gross ≤ debt then max256 else
+  let need := ceilDiv (ceilDiv target (10^10) * gross) (gross - debt)
+  if need ≤ idle then 0 else ceilDiv ((need - idle) * 10^12) (primePrice * (1000000 - slippage))
+
+def deleverNeed (target cash reserved hollarPrice primePrice slippage minimum : ℕ) : ℕ :=
+  let idle := cash - reserved
+  if target ≤ idle then 0 else
+  max (ceilDiv ((target - idle) * (hollarPrice * 1000000))
+    (primePrice * 10^12 * (1000000 - slippage))) minimum
+
+def stepHfFloor (deleverTarget : ℕ) : ℕ :=
+  if deleverTarget == 0 then 102 * 10^16 else 1005 * 10^15
 
 def deLeverTarget (coll debt lt hf target trigger previous : ℕ) : Option ℕ :=
   let ltWad := lt * 10 ^ 14

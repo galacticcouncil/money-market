@@ -190,6 +190,7 @@ export class JuicerLooper {
   private evidence?: Map<string, LatestLog>;
   private feeds?: Map<string, FeedSeen>;
   private synced?: Map<Address, bigint>;
+  private rampHeld?: boolean;
   private mainServiceAttempt?: Map<Address, bigint>;
 
   // drains a submitted transaction but never starts another write
@@ -604,8 +605,9 @@ export class JuicerLooper {
     return this.loopId ??= await sub.accountOf(this.subLoop);
   }
 
-  // the vault's deficitStop flag is the hysteresis state both operators share. true while any
-  // vault is stopped or unreadable: the ramp then waits
+  // the vault's deficitStop flag is the hysteresis state both operators share; it stops only that
+  // vault's deposits. true while the loop's own deficit holds the shared ramp or a view is unknown:
+  // the ramp then waits
   private async checkDeficits(frozen: ReadonlySet<Address>, turn: boolean): Promise<boolean> {
     const stop = BigInt(CONFIG.DEFICIT_STOP_BPS), resume = BigInt(CONFIG.DEFICIT_RESUME_BPS);
     let source: bigint | undefined;
@@ -614,7 +616,13 @@ export class JuicerLooper {
     } catch (error) {
       console.error(`[ALERT] source deficit read failed; ramp held: ${shortErr(error)}`);
     }
-    let blocked = source === undefined;
+    // a restarted keeper treats a loop already in the band as held
+    const held = source === undefined || deficitStopped(source, this.rampHeld ?? source >= resume, stop, resume);
+    if (source !== undefined) {
+      this.rampHeld = held;
+      this.note('deficit:loop', held ? `[ALERT] loop deficit ${source} bps: ramp held until below ${resume}` : undefined);
+    }
+    let blocked = held;
     for (const vault of this.vaults) {
       let stopped: boolean, vaultBps: bigint | undefined;
       try {
@@ -640,7 +648,7 @@ export class JuicerLooper {
       }
       const level = deficitLevel([source, vaultBps], stop);
       const want = level === undefined ? stopped : deficitStopped(level, stopped, stop, resume);
-      blocked ||= level === undefined || want;
+      blocked ||= level === undefined;
       const view = `source ${source ?? '?'} bps, vault ${vaultBps ?? '?'} bps`;
       console.log(`  deficit ${short(vault)}: ${view}${want ? ', stopped' : ''}`);
       if (want === stopped || (!want && (!turn || frozen.has(vault)))) continue;
@@ -651,8 +659,8 @@ export class JuicerLooper {
         continue;
       }
       this.note(`deficit:${vault}`);
-      console.error(want ? `[ALERT] deficit stop ${vault}: ${view}, above ${stop}; ramp stopped, deficitStop set`
-        : `[ALERT] deficit resume ${vault}: ${view}, below ${resume}; ramp allowed, deficitStop cleared`);
+      console.error(want ? `[ALERT] deficit stop ${vault}: ${view}, above ${stop}; deposits stopped, deficitStop set`
+        : `[ALERT] deficit resume ${vault}: ${view}, below ${resume}; deposits allowed, deficitStop cleared`);
     }
     return blocked;
   }

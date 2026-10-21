@@ -101,6 +101,10 @@ contract MockYieldSource is IYieldSource {
         return 0; // 1:1 custody, no yield/loss modelled → never underwater
     }
 
+    function admissionMaxDeficitBps() external pure returns (uint16) {
+        return 50;
+    }
+
     function harvest() external returns (uint256 surplus) {
         return 0; // no yield modelled
     }

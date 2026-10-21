@@ -27,7 +27,7 @@ theorem normalized_exit_total (b : Book) (owner request : Account) (wallet share
     (startExit b owner request wallet shares funded).book.total =
       b.total - exitBurned b.total b.index (normalizeAccount b owner wallet) (normalizeAccount b request shares) := by
   rw [← normalized_exit_burn b owner request wallet shares funded]
-  rfl
+  exact startExit_total b owner request wallet shares funded
 
 theorem normalized_exit_fold (b : Book) (owner request : Account) (wallet shares funded : ℕ) :
     (startExit b owner request wallet shares funded).folded =

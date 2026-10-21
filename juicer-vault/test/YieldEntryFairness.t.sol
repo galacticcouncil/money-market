@@ -286,6 +286,8 @@ contract YieldEntryFairnessTest is HarvestTest {
             vault.sync();
             assertEq(y.totalUnits(), 0);
             assertEq(y.balanceOf(address(this)), 0);
+            assertEq(y.sourceLossCarry(), 0);
+            assertEq(y.protocolLossCarry(), 0);
             assertEq(y.epoch(), i + 1);
         }
     }
@@ -304,7 +306,7 @@ contract YieldEntryFairnessTest is HarvestTest {
             "unrealized released capital stays owned until safely convertible");
     }
 
-    function test_dustRemainingAfterLossRescalesUnitsWithoutChangingOwnership() public {
+    function test_dustRemainingAfterLossRestoresCarryWithoutChangingOwnership() public {
         uint256 shares = _depositAndRamp();
         hollar.mint(address(loop), loop.principalEquity() - loop.totalEquity() * 1e10);
         vault.transfer(NEWCOMER, shares / 2);
@@ -319,11 +321,15 @@ contract YieldEntryFairnessTest is HarvestTest {
             aPrime.burn(address(loop), 1_000e6 - 1);
             vault.sync();
             assertGt(y.totalUnits(), 0);
+            assertGt(y.sourceLossCarry() + y.protocolLossCarry(), 0,
+                "the partial write-down remains assigned to the incumbent cohort");
         }
-        assertGt(y.unitScale(), 0);
+        assertEq(y.unitScale(), 0, "restoring the high-water carry avoids refill unit inflation");
         aPrime.mint(address(loop), 1_000e6);
         prime.mint(address(pool), 1_000e6);
         harvester.harvest(new uint256[](1));
+        assertEq(y.sourceLossCarry() + y.protocolLossCarry(), 0,
+            "the refill restores the incumbent reserve before harvest");
         uint256 earned = _rewardValue(NEWCOMER);
         assertGt(y.fundedOf(NEWCOMER), 0, "earnings are in the balance, nothing to claim");
         assertApproxEqAbs(_rewardValue(address(this)), earned, 1e9);

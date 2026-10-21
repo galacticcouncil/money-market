@@ -33,7 +33,7 @@ theorem activateWaiting_liability (s : State) (shares owed debt synth : Nat) :
   rfl
 
 theorem activateWaiting_operational (s : State) (shares owed debt synth : Nat) (h : OperationalInvariant s)
-    (hi : s.unwind < s.requests.size) (ho : 0 < owed)
+    (hi : s.unwind < s.requests.size) (ho : 0 < owed ∨ (shares = 0 ∧ debt = 0))
     (he : s.pending-(request s s.unwind).claim.shares+s.queued+shares ≤ wallet s vaultId) :
     OperationalInvariant (activateWaiting s shares owed debt synth) := by
   have hactive := activeRequests_activate s shares owed debt synth hi
@@ -48,7 +48,11 @@ theorem activateWaiting_operational (s : State) (shares owed debt synth : Nat) (
     rw [hactive,List.mem_append,List.mem_singleton] at hr
     rcases hr with hold | rfl
     · exact hvalid r hold
-    · exact fresh_redemption_valid shares owed debt ho
+    · rcases ho with positive | ⟨rfl,rfl⟩
+      · exact fresh_redemption_valid shares owed debt positive
+      · by_cases hz : owed = 0
+        · subst owed; exact fresh_empty_redemption_valid
+        · exact fresh_redemption_valid 0 owed 0 (by omega)
   · rw [hwaiting]
     rw [hhead,List.map_cons,List.sum_cons] at hpend
     change s.pending-(request s s.unwind).claim.shares = _
