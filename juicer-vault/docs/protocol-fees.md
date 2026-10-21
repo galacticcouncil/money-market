@@ -14,8 +14,8 @@ The fee is a fraction of harvested collateral yield, not of principal or TVL.
 ## Policy
 
 - Every registered collateral vault starts at **5% (500 bps)**.
-- The next-version launch proposal (batch 4, `NEXT.revenue`) sets **77%** with a
-  100% Main and 78% loop HOLLAR discount. The treasury then takes about 80% of its
+- The next-version launch proposal (batch 4, `NEXT.revenue`) sets **69%** with a
+  40% Main and 90% loop HOLLAR discount. The treasury then takes about 80% of its
   income in collateral instead of HOLLAR interest, at roughly the same total and
   user APY ([revenue mix](#revenue-mix)).
 - Governance sets each vault independently in `0..10000` bps, inclusive. There
@@ -172,10 +172,18 @@ barely does.
 juicenomics, 21 Oct, $450k TVL at the launch settings (1 bp pool fee, 65/75/83
 bands, steady state); 64 Monte Carlo paths for the right-hand column:
 
-| Main / loop discount, fee | In collateral (closed form) | In collateral (Monte Carlo) | User APY (closed form / MC) |
-| --- | --- | --- | --- |
-| 0 / 0, 5% | 2.2% | 1.9% | 5.46% / 5.8–5.9% |
-| 100% / 78%, 77% | 81.7% | 80.6% | 5.07% / 6.1–6.2% |
+| Main / loop discount, fee | In collateral (closed form / MC) | User APY (closed form / MC) |
+| --- | --- | --- |
+| 0 / 0, 5% | 2.2% / 1.9% | 5.46% / 5.8–5.9% |
+| 40% / 90%, 69% (launch) | 81.4% / 80.6% | 5.49% / 6.5% |
+| 100% / 78%, 77% | 81.7% / 80.6% | 5.07% / 6.1–6.2% |
+
+The loop takes most of the discount. Its interest reaches the treasury only when
+the loop repays, while Main interest is repaid in HOLLAR from every harvest, so
+most of the remaining HOLLAR income arrives rather than accrues, and the fee is
+lower for the same user APY. In exchange users carry 60% of the Main interest:
+each point on the HOLLAR rate moves their APY by about 0.6 points, against 0.2
+with a full Main discount.
 
 The proportions follow the HOLLAR rate (4.40%) and PRIME yield (5.93%). Either
 can move them, and so can a loop cap below the loop's HOLLAR debt, which thins

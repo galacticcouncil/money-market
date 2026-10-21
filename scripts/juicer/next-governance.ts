@@ -15,9 +15,10 @@ export const NEXT = {
   band: { relever: 6500, target: 7500, delever: 8300 },
   // PRIME/HOLLAR stableswap fee at launch, Permill: 1 bp, from 4
   primePoolFeePpm: 100,
-  // ~80% of treasury income in collateral: juicenomics at $450k, 21 Oct (81.7% closed form,
-  // 80.6% Monte Carlo); users stay within half a point of a 5% fee with no discounts
-  revenue: { protocolFeeBps: 7700, mainDiscountBps: 10000, loopDiscountBps: 7800 },
+  // ~80% of treasury income in collateral: juicenomics at $450k, 21 Oct (81.4% closed form,
+  // 80.6% Monte Carlo); users as with a 5% fee and no discounts. the loop takes most of the
+  // discount: Main interest is repaid from every harvest, loop interest only when the loop repays
+  revenue: { protocolFeeBps: 6900, mainDiscountBps: 4000, loopDiscountBps: 9000 },
 };
 export const KEEPER_ROLE = utils.id("KEEPER_ROLE");
 export const DEPOSIT_GUARDIAN_ROLE = utils.id("DEPOSIT_GUARDIAN_ROLE");

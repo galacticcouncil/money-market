@@ -65,8 +65,8 @@ own enrollment and rate:
   deployment. It refreshes only the loop; `setDiscountBps` and `refreshAll()`
   refresh it as well.
 
-The next-version launch proposal sets the Main rate to 100% and the loop's to 78%
-in batch 4, with a 77% protocol fee ([revenue mix](protocol-fees.md#revenue-mix)).
+The next-version launch proposal sets the Main rate to 40% and the loop's to 90%
+in batch 4, with a 69% protocol fee ([revenue mix](protocol-fees.md#revenue-mix)).
 That batch refuses to emit them until the discount is installed and the loop
 enrolled, since the calls would otherwise revert unseen inside the dispatch.
 

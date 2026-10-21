@@ -117,9 +117,9 @@ compounded user yield are not implemented. See [principal and emergency policy](
 
 | Control                | Authority and RC behavior                                                                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Main interest discount | Governance and Technical Committee set one rate across eligible Main vaults; deployment defaults to zero, and the launch proposal sets 100%. |
-| Loop interest discount | Governance enrolls the loop with a cap on its discounted HOLLAR; governance and the committee set its separate rate, zero until the launch proposal sets 78%. |
-| Protocol fee           | Governance sets a rate per vault, 5% at registration; the launch proposal sets 77%, so about 80% of treasury income arrives in collateral ([revenue mix](docs/protocol-fees.md#revenue-mix)). Yield ownership and its fee vest at checkpoint; collection waits for realization. |
+| Main interest discount | Governance and Technical Committee set one rate across eligible Main vaults; deployment defaults to zero, and the launch proposal sets 40%. |
+| Loop interest discount | Governance enrolls the loop with a cap on its discounted HOLLAR; governance and the committee set its separate rate, zero until the launch proposal sets 90%. |
+| Protocol fee           | Governance sets a rate per vault, 5% at registration; the launch proposal sets 69%, so about 80% of treasury income arrives in collateral ([revenue mix](docs/protocol-fees.md#revenue-mix)). Yield ownership and its fee vest at checkpoint; collection waits for realization. |
 | Treasury recipient     | Owner-configurable; all unclaimed fees follow the new recipient. Anyone may trigger payment to that recipient.                                        |
 | Withdrawal delay       | Governance-configurable per vault, initially 12 hours before unwinding; existing requests retain their eligibility time.                              |
 | Emergency freeze       | Guardian can freeze; governance reopens. Local vault freeze and source-wide emergency freeze are distinct from the source route kill switch.          |
