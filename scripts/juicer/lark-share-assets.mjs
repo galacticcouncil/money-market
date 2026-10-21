@@ -1,5 +1,5 @@
-// The shares (jETH, jtBTC) as sufficient Erc20 assets at the ids after the synthetic's, as the
-// mainnet proposal registers them (share-assets.ts). The existential deposit is the collateral's.
+// The vault shares (jETH, jBTC) as sufficient Erc20 assets at the ids after the synthetic's.
+// The existential deposit is the collateral's.
 import assert from 'node:assert/strict';
 import {context,live} from './lark-context.mjs';
 import {profile} from './lark-pins.mjs';

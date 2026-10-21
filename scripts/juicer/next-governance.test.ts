@@ -141,10 +141,13 @@ test("the protocol reserve comes from the governance caller's HOLLAR or its faci
 
 test("mainnet and lark agree on the next-version parameters", async () => {
   const { ICE } = await import("./lark-ice-plan.mjs");
-  const { NEXT_PARAMS } = await import("./lark-pins.mjs");
+  const { NEXT_PARAMS, bandGaps: larkGaps } = await import("./lark-pins.mjs");
   assert.deepEqual([ICE.ttl, ICE.driftBps], [NEXT.intentTtl, NEXT.intentDriftBps]);
   assert.equal(NEXT_PARAMS.harvestThreshold.toString(), NEXT.harvestThreshold.toString());
   assert.equal(NEXT_PARAMS.reserve.toString(), utils.parseUnits(NEXT.reserveHollar, 18).toString());
+  assert.deepEqual([NEXT_PARAMS.band, NEXT_PARAMS.revenue, NEXT_PARAMS.primePoolFeePpm], [NEXT.band, NEXT.revenue, NEXT.primePoolFeePpm]);
+  for (const maxLtv of [7500, 8000, 8250]) assert.deepEqual(larkGaps(maxLtv, NEXT.band), bandGaps(maxLtv, NEXT.band));
+  for (const maxLtv of [7000, 12600]) assert.throws(() => larkGaps(maxLtv, NEXT.band), /within 50% under/);
 });
 
 test("the approved band becomes per-vault gaps against each collateral's live max LTV", async () => {

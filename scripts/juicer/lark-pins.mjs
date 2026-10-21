@@ -7,12 +7,22 @@ import {join} from 'node:path';
 import {LARK4_IDENTITY as L4} from './lark4-identity.mjs';
 const SIGNERS={markets:'//Alice//propeller-20261005-arb',pools:'//Alice//propeller-20261007-pools',replay:'//Alice//propeller-20261007-replay'};
 // the next version's parameters, as the mainnet proposal sets them (next-governance.ts)
-export const NEXT_PARAMS={harvestThreshold:2n*10n**14n,reserve:1000n*10n**18n};
+export const NEXT_PARAMS={harvestThreshold:2n*10n**14n,reserve:1000n*10n**18n,
+ band:{relever:6500,target:7500,delever:8300},
+ revenue:{protocolFeeBps:6900,mainDiscountBps:4000,loopDiscountBps:9000},
+ primePoolFeePpm:100};
+// the loop keeps each band relative to the collateral's live max LTV, as bandGaps in next-governance.ts
+export function bandGaps(maxLtv,{relever,target,delever}){
+ assert.ok(target<=maxLtv&&maxLtv-target<=5000,`band target ${target} bps must sit within 50% under the max LTV ${maxLtv}`);
+ return {target:maxLtv-target,relever:target-relever,delever:delever-target};
+}
 const BOTS={mirror:{BOT_INTERVAL_MS:'30000'},markets:{BOT_INTERVAL_MS:'5000',PEG_BAND_BPS:'0.5'},pools:{BOT_INTERVAL_MS:'30000'},replay:{BOT_INTERVAL_MS:'6000'}};
 // a token collateral is minted for tests and priced by a mainnet mirror; a pool share is bought
 // with buy.from instead (a minted share moves the price its oracle reads) and keeps its own source
 const TOKENS={ETH:{assetId:34,symbol:'ETH'},TBTC:{assetId:1000765,symbol:'tBTC'}};
 const NEXT_PEG={sellProfitBps:15,buyProfitBps:4};
+// pool 4200's share, priced by ETH/USD times the pool's share rate
+const GIGAETH={assetId:4200,symbol:'GIGAETH',mirror:false,buy:{from:34,route:[{pool:'Aave',assetIn:34,assetOut:1007},{pool:{Stableswap:4200},assetIn:1007,assetOut:4200}]}};
 export const PROFILES={
  // the 7 october mainnet fork, #62 contracts; its operations keep running from here
  lark4:{
@@ -36,11 +46,12 @@ export const PROFILES={
   images:L4.images,statePrefix:L4.statePrefix,
   stack:{file:L4.stackFile,name:'propeller-oct2026',manifestConfig:'propeller-lark4-20261007-manifest-v3',keeperRpcUrls:['https://node4.lark.hydration.cloud','https://4.lark.hydration.cloud'],keeperEnv:{},bots:BOTS},
  },
- // the next version on Lark 0, reforked from mainnet after the rename; pin its genesis and
- // the contracts commit then (LARK_GENESIS and LARK_COMMIT fill them until that edit)
+ // the release candidate on Lark 0, reforked from mainnet: GIGAETH behind jETH, jBTC on tBTC, the
+ // PRIME arb at mainnet's thresholds and pool 143 at the launch fee. pin its genesis and the
+ // contracts commit after the refork (LARK_GENESIS and LARK_COMMIT fill them until that edit)
  lark0:{
   chainName:'Lark 0 Hydration',genesis:null,commit:null,
-  deployment:'lark0-20261009',
+  deployment:'lark0-20261022',
   // 0.lark goes through subway: scripts stay on node0, keepers fall back to it as on lark 4
   rpc:'https://node0.lark.hydration.cloud',ws:'wss://node0.lark.hydration.cloud',
   // the merged next-version london build: JUICER_ARTIFACT_DIR, JUICER_ADAPTER_ARTIFACT
@@ -51,9 +62,9 @@ export const PROFILES={
   names:{
    synth:['Juicer Synthetic HOLLAR','jsHOLLAR'],asset:'Juicer Synthetic HOLLAR',
    aToken:['Juicer aSynth','aJSYNTH'],variableDebt:['Juicer Variable Debt Synth','vdJSYNTH'],stableDebt:['Juicer Stable Debt Synth','sdJSYNTH'],
-   vaults:{ETH:['Juicer ETH','jETH'],TBTC:['Juicer tBTC','jtBTC']},
+   vaults:{ETH:['Juicer ETH','jETH'],TBTC:['Juicer BTC','jBTC']},
   },
-  collateral:TOKENS,
+  collateral:{ETH:GIGAETH,TBTC:TOKENS.TBTC},
   hollarBucket:5000000,
   // one 2,500 HOLLAR trade a minute (60 s pacing; 50/s refills a trade in 50 s) buys the
   // ~400k PRIME the $100k plan levers into in under 3 h of trading, inside its 10 h window.
@@ -62,25 +73,20 @@ export const PROFILES={
   // the $100k depositor plan in 10 h, one deposit per vault every 10 min, an hour after the stack
   depositor:{durationS:36000,everyS:600,delayS:3600},
   images:{keeper:'galacticcouncil/juicer-lark-keeper',bots:'galacticcouncil/juicer-lark-bots'},
-  stack:{keeperRpcUrls:['https://node0.lark.hydration.cloud','https://0.lark.hydration.cloud'],keeperEnv:{QUOTE_DEPTH_BLOCKS:'3'},bots:BOTS},
+  primePool:{minDepthUsd:100000,targetDepthUsd:400000,feePpm:NEXT_PARAMS.primePoolFeePpm},
+  // its PRIME arb trades only for profit, at mainnet's thresholds: from 8 to 16 october nobody sold
+  // into pool 143 at up to 15.2 bps over the oracle, while buyers held the treasury's dump within
+  // ~4 bps (p90 4.9). the pool rests up to 19 bps rich and 8 cheap, and the PRIME lanes take that
+  peg:NEXT_PEG,
+  primeCap:{shortfallBps:27,approval:'nerf prime arbitrager to make sure it stays profitable; as much as current mainnet state to test realistic scenario'},
+  stack:{keeperRpcUrls:['https://node0.lark.hydration.cloud','https://0.lark.hydration.cloud'],keeperEnv:{QUOTE_DEPTH_BLOCKS:'3'},
+   bots:{...BOTS,markets:{BOT_INTERVAL_MS:'5000',PEG_SELL_PROFIT_BPS:String(NEXT_PEG.sellProfitBps),PEG_BUY_PROFIT_BPS:String(NEXT_PEG.buyProfitBps)}}},
  },
 };
-// the next testnet, not forked yet: lark 0's plan with GIGAETH behind jETH and jtBTC renamed
-// jBTC. its chain name, genesis, commit, endpoints and deployment id (LARK_DEPLOYMENT) stay open
+// the next testnet after lark 0: its plan on a chain to come, whose chain name, genesis, commit,
+// endpoints and deployment id (LARK_DEPLOYMENT) stay open
 PROFILES.next={...PROFILES.lark0,chainName:null,deployment:null,rpc:null,ws:null,
- names:{...PROFILES.lark0.names,vaults:{ETH:['Juicer ETH','jETH'],TBTC:['Juicer BTC','jBTC']}},
- collateral:{
-  // pool 4200's share, priced by ETH/USD times the pool's share rate
-  ETH:{assetId:4200,symbol:'GIGAETH',mirror:false,buy:{from:34,route:[{pool:'Aave',assetIn:34,assetOut:1007},{pool:{Stableswap:4200},assetIn:1007,assetOut:4200}]}},
-  TBTC:TOKENS.TBTC,
- },
- // its PRIME arb trades only for profit, at mainnet's thresholds: from 8 to 16 october nobody sold
- // into pool 143 at up to 15.2 bps over the oracle, while buyers held the treasury's dump within
- // ~4 bps (p90 4.9). the pool rests up to 19 bps rich and 8 cheap, and the PRIME lanes take that
- peg:NEXT_PEG,
- primeCap:{shortfallBps:27,approval:'nerf prime arbitrager to make sure it stays profitable; as much as current mainnet state to test realistic scenario'},
- stack:{keeperEnv:{QUOTE_DEPTH_BLOCKS:'3'},bots:{...BOTS,markets:{BOT_INTERVAL_MS:'5000',PEG_SELL_PROFIT_BPS:String(NEXT_PEG.sellProfitBps),PEG_BUY_PROFIT_BPS:String(NEXT_PEG.buyProfitBps)}}},
-};
+ stack:{keeperEnv:PROFILES.lark0.stack.keeperEnv,bots:PROFILES.lark0.stack.bots}};
 // the least PRIME lane cap (bps) inside a profit-seeking arb's band: the pool rests up to its fee
 // plus the arb's profit off the oracle, the loop pays the fee again, and a bp each goes to its own
 // impact and an unmatched intent's solver haircut

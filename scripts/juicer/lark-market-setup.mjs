@@ -1,4 +1,4 @@
-// Fresh Lark-only oracle mirrors, public bot funding and zero-discount wiring.
+// Fresh Lark-only oracle mirrors, public bot funding and zero-discount wiring, the loop enrolled.
 // No mainnet writes. Every governance payload and receipt is recorded.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -26,6 +26,8 @@ try {
    discountCalls.push(contract('CollateralVault',vault.address,'setDiscountController',[r.addresses.discount]));
    discountCalls.push(contract('JuicerDiscount',r.addresses.discount,'registerVault',[vault.address]));
  }
+ // the loop funds the vaults just registered; its cap is the HOLLAR the bucket can ever lend it
+ if(!profile.legacy)discountCalls.push(contract('JuicerDiscount',r.addresses.discount,'registerLoop',[r.addresses.source,profile.hollarBucket]));
  discountCalls.push(contract('JuicerDiscount',r.addresses.discount,'setDiscountBps',[0]));
  await enact('install-zero-discount',discountCalls);
  if(!r.previousOracles){

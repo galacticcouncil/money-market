@@ -10,7 +10,7 @@ import {createRequire} from 'node:module';
 const here=fileURLToPath(new URL('.',import.meta.url));
 const {mnemonicToAccount}=createRequire(import.meta.url)('viem/accounts'),{toHex}=createRequire(import.meta.url)('viem');
 const key=index=>toHex(mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:index}).getHdKey().privateKey);
-const LARK0={LARK_PROFILE:'lark0',LARK_GENESIS:`0x${'77'.repeat(32)}`},NODE0='https://node0.lark.hydration.cloud',ID='lark0-20261009';
+const LARK0={LARK_PROFILE:'lark0',LARK_GENESIS:`0x${'77'.repeat(32)}`},NODE0='https://node0.lark.hydration.cloud',ID='lark0-20261022';
 const IMAGES={KEEPER_IMAGE:`galacticcouncil/juicer-lark-keeper@sha256:${'c'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/juicer-lark-bots@sha256:${'d'.repeat(64)}`};
 const run=(script,args,env)=>spawnSync(process.execPath,[join(here,script),...args],{env:{PATH:process.env.PATH,...env},encoding:'utf8'});
 // the synthetic lark 4 journal, moved to the new chain
@@ -49,8 +49,8 @@ test('the lark 0 stack names its own chain, stack and config, never lark 4', () 
   assert.equal(b.environment.BOT_MODE,mode);
   assert.deepEqual([b.environment.LARK_RPC,b.environment.LARK_WS],[NODE0,'wss://node0.lark.hydration.cloud']);
  }
- assert.equal(compose.services.markets.environment.PEG_BAND_BPS,'0.5');
- assert.deepEqual(Object.keys(compose.services.markets.environment),['BOT_MODE','BOT_LIVE','BOT_MANIFEST','BOT_INTERVAL_MS','PEG_BAND_BPS','LARK_RPC','LARK_WS']);
+ assert.deepEqual([compose.services.markets.environment.PEG_SELL_PROFIT_BPS,compose.services.markets.environment.PEG_BUY_PROFIT_BPS],['15','4']);
+ assert.deepEqual(Object.keys(compose.services.markets.environment),['BOT_MODE','BOT_LIVE','BOT_MANIFEST','BOT_INTERVAL_MS','PEG_SELL_PROFIT_BPS','PEG_BUY_PROFIT_BPS','LARK_RPC','LARK_WS']);
 });
 
 test('images go in by digest only, and keepers stay drained without --keepers', () => {

@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {LARK4_IDENTITY as L4} from './lark4-identity.mjs';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
-import {PROFILES,resolveProfile,requirePins,primeCapNeed,primeCapIds} from './lark-pins.mjs';
+import {PROFILES,NEXT_PARAMS,resolveProfile,requirePins,primeCapNeed,primeCapIds} from './lark-pins.mjs';
 const here=fileURLToPath(new URL('.',import.meta.url)),fixture=name=>join(here,'fixtures',name);
 const {mnemonicToAccount}=createRequire(import.meta.url)('viem/accounts'),{toHex}=createRequire(import.meta.url)('viem');
 const key=index=>toHex(mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:index}).getHdKey().privateKey);
@@ -58,12 +58,12 @@ test('lark 0 is pinned but for the genesis and commit its refork brings', () => 
  assert.deepEqual(p.gateway,{rpc:p.rpc,ws:p.ws},'scripts and the journal stay on node0, off subway');
  assert.deepEqual([p.genesis,p.commit],[null,null]);
  assert.throws(()=>requirePins(p),/not pinned: set LARK_GENESIS or/);
- assert.equal(p.journal,'/tmp/juicer-lark-lark0-20261009.json');
+ assert.equal(p.journal,'/tmp/juicer-lark-lark0-20261022.json');
  assert.notEqual(p.stack.file,resolveProfile('lark4',{}).stack.file,'never overwrites the lark 4 stack');
- assert.deepEqual([p.stack.file,p.stack.name,p.stack.manifestConfig],['/tmp/juicer-lark-stack-lark0-20261009.json','juicer-lark0-20261009','juicer-lark0-20261009-manifest-v1']);
+ assert.deepEqual([p.stack.file,p.stack.name,p.stack.manifestConfig],['/tmp/juicer-lark-stack-lark0-20261022.json','juicer-lark0-20261022','juicer-lark0-20261022-manifest-v1']);
  assert.deepEqual(p.stack.keeperRpcUrls,['https://node0.lark.hydration.cloud','https://0.lark.hydration.cloud']);
  assert.deepEqual(p.stack.botEnv,{LARK_RPC:'https://node0.lark.hydration.cloud',LARK_WS:'wss://node0.lark.hydration.cloud'});
- assert.deepEqual(p.names.vaults,{ETH:['Juicer ETH','jETH'],TBTC:['Juicer tBTC','jtBTC']});
+ assert.deepEqual(p.names.vaults,{ETH:['Juicer ETH','jETH'],TBTC:['Juicer BTC','jBTC']});
  assert.deepEqual(p.names.synth,['Juicer Synthetic HOLLAR','jsHOLLAR']);
  assert.ok(Buffer.byteLength(p.names.asset)<=32,'asset registry string limit');
  assert.equal(p.hollarBucket,5000000n*10n**18n);
@@ -117,11 +117,20 @@ test('the lark 4 manifest and stack come out exactly as before profiles', () => 
  }
 });
 
-test('lark 4 and lark 0 keep minted, mirrored ETH and tBTC behind their vaults', () => {
- for(const name of ['lark4','lark0'])assert.deepEqual(resolveProfile(name,{}).collateral,{ETH:{assetId:34,symbol:'ETH'},TBTC:{assetId:1000765,symbol:'tBTC'}},name);
+test('lark 4 keeps minted, mirrored ETH and tBTC behind its vaults', () => {
+ assert.deepEqual(resolveProfile('lark4',{}).collateral,{ETH:{assetId:34,symbol:'ETH'},TBTC:{assetId:1000765,symbol:'tBTC'}});
 });
 
-test('next is lark 0\'s plan on a chain to come: GIGAETH behind jETH, jBTC on tBTC', () => {
+test('lark 0 runs the release candidate\'s plan: GIGAETH behind jETH, jBTC on tBTC, pool 143 at the launch fee', () => {
+ const p=resolveProfile('lark0',{});
+ const {ETH,TBTC}=p.collateral;
+ assert.deepEqual([ETH.assetId,ETH.symbol,ETH.mirror,ETH.buy.from],[4200,'GIGAETH',false,34]);
+ assert.deepEqual(ETH.buy.route,[{pool:'Aave',assetIn:34,assetOut:1007},{pool:{Stableswap:4200},assetIn:1007,assetOut:4200}],'ETH into aETH, then pool 4200 shares');
+ assert.deepEqual(TBTC,{assetId:1000765,symbol:'tBTC'});
+ assert.equal(p.primePool.feePpm,NEXT_PARAMS.primePoolFeePpm,'the fee the mainnet proposal sets');
+});
+
+test('next is lark 0\'s plan on a chain to come', () => {
  const p=resolveProfile('next',{LARK_DEPLOYMENT:'next-20261020'}),lark0=resolveProfile('lark0',{});
  assert.equal(p.legacy,false);
  assert.deepEqual([p.chainName,p.genesis,p.commit,p.rpc,p.ws],[null,null,null,null,null]);
@@ -130,31 +139,28 @@ test('next is lark 0\'s plan on a chain to come: GIGAETH behind jETH, jBTC on tB
  assert.deepEqual([p.stack.file,p.stack.name,p.stack.manifestConfig],['/tmp/juicer-lark-stack-next-20261020.json','juicer-next-20261020','juicer-next-20261020-manifest-v1']);
  assert.deepEqual(p.names.vaults,{ETH:['Juicer ETH','jETH'],TBTC:['Juicer BTC','jBTC']});
  for(const k of ['synth','asset','aToken','variableDebt','stableDebt'])assert.deepEqual(p.names[k],lark0.names[k],k);
- const {ETH,TBTC}=p.collateral;
- assert.deepEqual([ETH.assetId,ETH.symbol,ETH.mirror,ETH.buy.from],[4200,'GIGAETH',false,34]);
- assert.deepEqual(ETH.buy.route,[{pool:'Aave',assetIn:34,assetOut:1007},{pool:{Stableswap:4200},assetIn:1007,assetOut:4200}],'ETH into aETH, then pool 4200 shares');
- assert.deepEqual(TBTC,lark0.collateral.TBTC);
- for(const k of ['signers','hollarBucket','primeLanes','primePool','depositor','images'])assert.deepEqual(p[k],lark0[k],k);
+ for(const k of ['signers','collateral','hollarBucket','primeLanes','primePool','peg','primeCap','depositor','images'])assert.deepEqual(p[k],lark0[k],k);
  assert.deepEqual([p.stack.keeperEnv,p.stack.keeperRpcUrls],[lark0.stack.keeperEnv,[]]);
- assert.deepEqual(p.stack.bots,{...lark0.stack.bots,markets:{BOT_INTERVAL_MS:'5000',PEG_SELL_PROFIT_BPS:'15',PEG_BUY_PROFIT_BPS:'4'}});
+ assert.deepEqual(p.stack.bots,lark0.stack.bots);
+ assert.deepEqual(p.stack.bots.markets,{BOT_INTERVAL_MS:'5000',PEG_SELL_PROFIT_BPS:'15',PEG_BUY_PROFIT_BPS:'4'});
 });
 
-test('next\'s PRIME arb trades at mainnet\'s thresholds, and its lanes take the band it leaves', () => {
- const p=resolveProfile('next',{LARK_DEPLOYMENT:'next-1'}),lark0=resolveProfile('lark0',{});
- assert.deepEqual([lark0.peg,lark0.primeCap,lark0.primePool.feePpm],[null,{shortfallBps:6,approval:'Use 6 bps on Lark only (Recommended)'},null],'lark 0 keeps its fee-paying peg at 6 bps');
+test('lark 0\'s PRIME arb trades at mainnet\'s thresholds, and its lanes take the band it leaves', () => {
+ const p=resolveProfile('lark0',{});
  assert.deepEqual(p.peg,{sellProfitBps:15,buyProfitBps:4});
  assert.deepEqual([p.stack.bots.markets.PEG_SELL_PROFIT_BPS,p.stack.bots.markets.PEG_BUY_PROFIT_BPS],[String(p.peg.sellProfitBps),String(p.peg.buyProfitBps)]);
  assert.equal(primeCapNeed(400,p.peg),25,'pool 143 charges 4 bps on mainnet');
  assert.ok(p.primeCap.shortfallBps>=primeCapNeed(400,p.peg)+2,'two bps to spare for replayed flow');
+ assert.equal(primeCapNeed(p.primePool.feePpm,p.peg),19,'at the 1 bp launch fee');
  assert.equal(primeCapNeed(200,p.peg),21,'a 2 bps fee saves the loop 4');
  assert.equal(primeCapNeed(400,{sellProfitBps:0,buyProfitBps:0}),10,'a break-even arb needs 10');
- assert.deepEqual(primeCapIds(lark0.primeCap.shortfallBps),{approval:'prime-six-bps',label:'approved-lark-only-prime-six-bps'},'lark 0 resumes its own referendum');
+ assert.deepEqual(primeCapIds(6),{approval:'prime-six-bps',label:'approved-lark-only-prime-six-bps'},'a 6 bps profile resumes its own referendum');
  assert.deepEqual(primeCapIds(p.primeCap.shortfallBps),{approval:'prime-27-bps',label:'approved-lark-only-prime-27-bps'});
 });
 
 test('next takes its chain, endpoints and deployment id from the environment, never another profile\'s files', () => {
  assert.throws(()=>resolveProfile('next',{}),/no deployment id: set LARK_DEPLOYMENT/);
- for(const d of ['lark0-20261009','20261007'])assert.throws(()=>resolveProfile('next',{LARK_DEPLOYMENT:d}),/belongs to another profile/);
+ for(const d of ['lark0-20261022','20261007'])assert.throws(()=>resolveProfile('next',{LARK_DEPLOYMENT:d}),/belongs to another profile/);
  for(const d of ['../lark','Next','next 1'])assert.throws(()=>resolveProfile('next',{LARK_DEPLOYMENT:d}),/LARK_DEPLOYMENT/);
  assert.throws(()=>resolveProfile('next',{LARK_DEPLOYMENT:'next-1',LARK_CHAIN_NAME:'Hydration'}),/non-lark/);
  const p=resolveProfile('next',{LARK_DEPLOYMENT:'next-1',LARK_CHAIN_NAME:'Lark 9 Hydration',LARK_GENESIS:'0x09',LARK_COMMIT:'abc',LARK_RPC:'https://node9.lark.hydration.cloud',LARK_STATE_DIR:'/var/lark'});
@@ -164,7 +170,7 @@ test('next takes its chain, endpoints and deployment id from the environment, ne
  assert.equal(p.journal,'/var/lark/juicer-lark-next-1.json');
  assert.deepEqual(p.stack.keeperRpcUrls,['https://node9.lark.hydration.cloud']);
  assert.deepEqual(p.stack.botEnv,{LARK_RPC:'https://node9.lark.hydration.cloud',LARK_WS:'wss://node9.lark.hydration.cloud'});
- assert.equal(resolveProfile('lark0',{LARK_DEPLOYMENT:'next-1'}).deployment,'lark0-20261009','a pinned id stays pinned');
+ assert.equal(resolveProfile('lark0',{LARK_DEPLOYMENT:'next-1'}).deployment,'lark0-20261022','a pinned id stays pinned');
 });
 
 test('scripts pick next from LARK_PROFILE and refuse it without a deployment id', () => {

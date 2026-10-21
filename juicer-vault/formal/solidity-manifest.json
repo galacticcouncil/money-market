@@ -9,7 +9,7 @@
     "src/SubLoop.sol": "ecd3c94ee76c99a876efdd59d65c759510c6b6390b8c51c10fd772205de30359",
     "src/lib/SubLoopLogic.sol": "839a6057831cbf8ecba47cbeaa0672715c00d6f266a7b22d849102c80ce59633",
     "src/lib/CompoundLogic.sol": "2e40b4b144ea767403ef586608c83c2d5be617f683af2f7ee2e3b600952e7f2b",
-    "../tasks/proposals/juicer.ts": "d4946277a19066d976c1d9467a8d4a5c9e63ec4e852f4ffe2fca020198195cfb",
+    "../tasks/proposals/juicer.ts": "af57914447e7256c0155a3ae7b25b3af587052ec127f3b94371e8287cb92da7f",
     "formal/JuicerLean/FixedPoint/Runtime.lean": "e71258a493dad52869742fcb51abcf8f57f718da5a893857ff13b45f76ed1fe6",
     "formal/ParityVectors.lean": "65828495a2e8d6c30c7d7669acd2878af195b3b61645497016b10165ada96f5f",
     "src/JuicerMainDebt.sol": "cb2f2871c88aa961d3aa58ad428f331fa371d9d9d1dfccbf27bf4aa08b3f0acd",

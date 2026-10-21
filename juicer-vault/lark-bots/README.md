@@ -41,13 +41,13 @@ $50 probe beats the oracle by the sell profit after the fee, and buys it only
 when a probe beats it by the buy profit. It sizes each trade so the next probe
 still does. A trade never fills under the oracle plus its profit, and logs its
 gain over the oracle as `profitUsd8`. The `next` profile uses mainnet's own
-thresholds, 15 and 4 bps ([runbook](../docs/lark-next-runbook.md#prime-arb-on-next)).
+thresholds, 15 and 4 bps ([runbook](../docs/lark-next-runbook.md#prime-arb-at-mainnets-thresholds)), as does Lark 0.
 The pool then rests up to the fee plus the profit off the oracle on each side,
 and the loop pays the fee again, so its PRIME lanes need a wider cap.
 `lark-approve-prime-cap.mjs` refuses a cap below twice the fee plus the larger
-profit plus 2 bps (`primeCapNeed`: 25 bps for `next` at mainnet's 4 bps fee;
-`next` sets 27). Each bp of pool fee cut saves the loop 2 bps
-(`lark-prime-pool.mjs --fee-ppm`).
+profit plus 2 bps (`primeCapNeed`: 25 bps at mainnet's 4 bps fee, 19 at Lark 0's
+1 bp; both set 27). Each bp of pool fee cut saves the loop 2 bps
+(`lark-prime-pool.mjs --fee-ppm`, or the profile's `primePool.feePpm`).
 
 `pools` keeps every Omnipool asset's price, measured against HOLLAR, within
 `POOL_BAND_BPS` of mainnet's live Omnipool price. It trades only a deviation
