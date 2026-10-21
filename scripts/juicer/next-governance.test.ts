@@ -8,6 +8,7 @@ import {
 const addr = (n: number) => utils.getAddress(`0x${n.toString(16).padStart(40, "0")}`);
 const LOOP = addr(0x10), H = addr(0x11), A = addr(0x12), C = addr(0x13), V1 = addr(0x21), V2 = addr(0x22), M1 = addr(0x31), M2 = addr(0x32);
 const K1 = addr(0x41), K2 = addr(0x42), P = addr(0x51), ETH = addr(0x61), BTC = addr(0x62);
+const DISC = addr(0x71), DEBT = addr(0x72), FEES = addr(0x73), ZERO = utils.getAddress(addr(0));
 const lane = (c: string, i: string, o: string) => utils.keccak256(utils.defaultAbiCoder.encode(["address", "address", "address"], [c, i, o]));
 const ENTRY = lane(LOOP, H, A), EXIT = lane(LOOP, A, H);
 const coder = utils.defaultAbiCoder;
@@ -30,7 +31,8 @@ class Chain extends providers.StaticJsonRpcProvider {
 }
 const v = (type: string, value: any) => () => [[type], [value]] as [string[], any[]];
 function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = false, threshold = "1000000000000000", reserve = "0", old = false,
-  gaps = {} as Record<string, number[]>, ltv = { [ETH]: 7500, [BTC]: 8000 } as Record<string, number> } = {}) {
+  gaps = {} as Record<string, number[]>, ltv = { [ETH]: 7500, [BTC]: 8000 } as Record<string, number>,
+  installed = true, enrolled = true, main = 0, loopRate = 0 as number | null, fee = 500 as number | null } = {}) {
   const has = (role: string, who: string) => granted.has(`${role}:${who}`);
   const roles = (extra: Record<string, any>) => ({ "hasRole(bytes32,address)": (a: utils.Result) => [["bool"], [has(a[0], a[1])]] as [string[], any[]], ...extra });
   return new Chain({
@@ -48,6 +50,12 @@ function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = fa
       ...(old ? {} : { "DEPOSIT_GUARDIAN_ROLE()": v("bytes32", DEPOSIT_GUARDIAN_ROLE) }),
     })])),
     [P]: { "getConfiguration(address)": (a: utils.Result) => [["uint256"], [BigNumber.from(8500).shl(16).or(ltv[a[0]])]] },
+    [DISC]: {
+      "debtToken()": v("address", DEBT), "discountBps()": v("uint16", main),
+      ...(loopRate === null ? {} : { "loopDiscountBps()": v("uint16", loopRate), "loop()": v("address", enrolled ? LOOP : ZERO) }),
+    },
+    [DEBT]: { "getDiscountToken()": v("address", installed ? DISC : ZERO), "getDiscountRateStrategy()": v("address", installed ? DISC : ZERO) },
+    [FEES]: fee === null ? {} : { "protocolFeeBps(address)": v("uint16", fee) },
     ...(old ? {} : { [M1]: { "protocolReserve()": v("uint256", reserve) }, [M2]: { "protocolReserve()": v("uint256", reserve) } }),
     [C]: {
       "lane(address,address,address)": (a: utils.Result) => [["bytes32"], [lane(a[0], a[1], a[2])]],
@@ -57,6 +65,7 @@ function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = fa
   });
 }
 const read = (chain: Chain) => readNextState(chain, { subLoop: LOOP, vaults: [V1, V2], controller: C, keepers: [K1, K2] });
+const readAll = (chain: Chain) => readNextState(chain, { subLoop: LOOP, vaults: [V1, V2], controller: C, keepers: [K1, K2], discount: DISC, fees: FEES });
 const expected = { keepers: [K1, K2], harvestThreshold: NEXT.harvestThreshold, intentTtl: NEXT.intentTtl, intentDriftBps: NEXT.intentDriftBps };
 const decode = (signature: string, data: string) => new utils.Interface([`function ${signature}`]).decodeFunctionData(signature.split("(")[0], data);
 
@@ -176,4 +185,31 @@ test("bands are validated and need the next loop", async () => {
   const old = await read(nextChain({ old: true }));
   assert.throws(() => nextCalls(old, { band: NEXT.band }), /rebalanceBand missing on chain/);
   assert.deepEqual(nextChecks(old, { band: NEXT.band }).map(c => c.detail), ["unreadable", "unreadable"]);
+});
+
+test("the revenue mix sets both discounts and every vault's fee, once", async () => {
+  const revenue = { protocolFeeBps: 6000, mainDiscountBps: 8000, loopDiscountBps: 8000 };
+  const calls = nextCalls(await readAll(nextChain()), { revenue });
+  assert.deepEqual(calls.map(c => c.label.split("(")[0]), ["discount.setDiscountBps", "discount.setLoopDiscountBps", "fees.setProtocolFeeBps", "fees.setProtocolFeeBps"]);
+  assert.deepEqual(calls.map(c => c.to), [DISC, DISC, FEES, FEES]);
+  assert.equal(Number(decode("setDiscountBps(uint16)", calls[0].data)[0]), 8000);
+  assert.equal(Number(decode("setLoopDiscountBps(uint16)", calls[1].data)[0]), 8000);
+  assert.deepEqual(decode("setProtocolFeeBps(address,uint16)", calls[3].data).map(String), [V2, "6000"]);
+  assert.deepEqual(nextCalls(await readAll(nextChain({ main: 8000, loopRate: 8000, fee: 6000 })), { revenue }), []);
+});
+
+test("the revenue mix waits for an installed discount and an enrolled loop", async () => {
+  const revenue = { protocolFeeBps: 6000, mainDiscountBps: 8000, loopDiscountBps: 8000 };
+  const cases: [Parameters<typeof nextChain>[0], RegExp][] = [
+    [{ installed: false }, /install JuicerDiscount/], [{ enrolled: false }, /enroll the loop/],
+    [{ loopRate: null }, /loop rate missing on chain/], [{ fee: null }, /not registered in the fee controller/],
+  ];
+  for (const [chain, error] of cases) {
+    const state = await readAll(nextChain(chain));
+    assert.throws(() => nextCalls(state, { revenue }), error);
+  }
+  assert.deepEqual(nextCalls(await readAll(nextChain({ enrolled: false })), { revenue: { ...revenue, loopDiscountBps: 0 } }).length, 3);
+  const bare = await read(nextChain()), all = await readAll(nextChain());
+  assert.throws(() => nextCalls(bare, { revenue }), /JUICER_DISCOUNT_CONTROLLER/);
+  assert.throws(() => nextCalls(all, { revenue: { ...revenue, protocolFeeBps: 10001 } }), /0\.\.10000/);
 });

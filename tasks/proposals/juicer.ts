@@ -518,17 +518,23 @@ task(
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  // BATCH 4 — next version: keeper roles, harvest threshold, ICE, rebalance bands
+  // BATCH 4 — next version: keeper roles, harvest threshold, ICE, rebalance bands,
+  //           revenue mix
   // ═════════════════════════════════════════════════════════════════════════
   // Keepers get SubLoop KEEPER_ROLE (quoted pokes) and each vault's DEPOSIT_GUARDIAN_ROLE,
   // which gates only setDeficitStop; pause stays with governance and the committee.
   // configureAsync reverts on a lane without a limit, so the execution lanes come first.
   // JUICER_REBALANCE_BAND (relever,target,delever LTV bps) is converted against each
   // collateral's live max LTV, so a target above it fails here rather than on chain.
+  // The revenue mix (protocol fee, Main and loop discounts) needs the discount installed
+  // and the loop enrolled first; JUICER_PROTOCOL_FEE_BPS, JUICER_DISCOUNT_BPS and
+  // JUICER_LOOP_DISCOUNT_BPS override NEXT.revenue.
   const keepers = (process.env.JUICER_KEEPERS || "").split(",").map((k) => k.trim()).filter(Boolean);
   const controller = await resolve("JUICER_EXECUTION_CONTROLLER", "ExecutionController-Juicer");
+  const discount = await resolve("JUICER_DISCOUNT_CONTROLLER", "JuicerDiscount-Juicer");
+  const fees = await resolve("JUICER_FEE_CONTROLLER", "JuicerFeeController-Juicer");
   const nextState = subLoop && vaults.length
-    ? await readNextState(hre.ethers.provider, { subLoop, vaults, controller, keepers })
+    ? await readNextState(hre.ethers.provider, { subLoop, vaults, controller, keepers, discount, fees })
     : undefined;
   let batch4: any[] = [];
   if (nextState && controller && keepers.length) {
@@ -538,7 +544,13 @@ task(
       intentTtl: Number(process.env.JUICER_INTENT_TTL ?? NEXT.intentTtl),
       intentDriftBps: Number(process.env.JUICER_INTENT_DRIFT_BPS ?? NEXT.intentDriftBps),
       band: process.env.JUICER_REBALANCE_BAND ? parseBand(process.env.JUICER_REBALANCE_BAND) : NEXT.band,
+      revenue: discount && fees ? {
+        protocolFeeBps: Number(process.env.JUICER_PROTOCOL_FEE_BPS ?? NEXT.revenue.protocolFeeBps),
+        mainDiscountBps: Number(process.env.JUICER_DISCOUNT_BPS ?? NEXT.revenue.mainDiscountBps),
+        loopDiscountBps: Number(process.env.JUICER_LOOP_DISCOUNT_BPS ?? NEXT.revenue.loopDiscountBps),
+      } : undefined,
     };
+    if (!expected.revenue) console.log("[4] revenue mix skipped — set JUICER_DISCOUNT_CONTROLLER and JUICER_FEE_CONTROLLER");
     for (const call of nextCalls(nextState, expected)) {
       console.log(`[4] ${call.label}`);
       evm(call.to, call.data);
@@ -607,7 +619,7 @@ task(
   await emit("BATCH 1 — list-reserve", batch1);
   await emit("BATCH 2 — configure", batch2);
   await emit("BATCH 3 — wire", batch3);
-  await emit("BATCH 4 — keepers, threshold, ICE, bands", batch4);
+  await emit("BATCH 4 — keepers, threshold, ICE, bands, revenue mix", batch4);
   await emit("BATCH 5 — protocol reserve", batch5);
 
   console.log(`
@@ -625,8 +637,8 @@ BATCH 4 needs the loop's execution lanes configured: configureAsync reverts on a
 without a limit. BATCH 5 is optional and needs its HOLLAR in place first.
 
 After enactment, run scripts/juicer/verify-readiness.ts before announcing (with
-JUICER_KEEPERS, JUICER_HARVEST_THRESHOLD, JUICER_INTENT_TTL, JUICER_REBALANCE_BAND
-and JUICER_RESERVE_HOLLAR it also checks batches 4 and 5) —
+JUICER_KEEPERS, JUICER_HARVEST_THRESHOLD, JUICER_INTENT_TTL, JUICER_REBALANCE_BAND,
+JUICER_PROTOCOL_FEE_BPS and JUICER_RESERVE_HOLLAR it also checks batches 4 and 5) —
 dispatcher.dispatchAsAaveManager reports EVM reverts as ExecutedFailed EVENTS,
 not extrinsic failures, so a batch can "succeed" with calls silently reverted.
 `);

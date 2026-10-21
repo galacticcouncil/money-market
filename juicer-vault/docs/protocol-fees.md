@@ -14,6 +14,10 @@ The fee is a fraction of harvested collateral yield, not of principal or TVL.
 ## Policy
 
 - Every registered collateral vault starts at **5% (500 bps)**.
+- The next-version launch proposal (batch 4, `NEXT.revenue`) sets **77%** with a
+  100% Main and 78% loop HOLLAR discount. The treasury then takes about 80% of its
+  income in collateral instead of HOLLAR interest, at roughly the same total and
+  user APY ([revenue mix](#revenue-mix)).
 - Governance sets each vault independently in `0..10000` bps, inclusive. There
   is no global rate, fallback, inherited default, or additional policy cap.
 - Yield checkpoints split eligible source units into user and protocol ownership
@@ -147,7 +151,7 @@ unconverted yield stays separate.
    each vault controller and controller registration. `SubLoop.harvester` must
    already point to that Harvester. Registration verifies that the source yield
    token matches Harvester's PRIME. Rehearse the complete batch on a fork.
-4. Verify `validateVault`, each 500 bps rate, zero claim ledgers, treasury address,
+4. Verify `validateVault`, each approved rate (`JUICER_PROTOCOL_FEE_BPS`), zero claim ledgers, treasury address,
    complete source-share registration and absence of unintended deployer roles.
 5. Deploy/wire the borrowing discount separately using `DeployDiscount.s.sol`.
    Fees default to 500 bps; the borrowing discount still starts at zero.
@@ -156,6 +160,28 @@ The existing keeper still calls `harvest(uint256[])`; minimums are gross outputs
 and its empty minimum array still uses the oracle floor. Claiming fees is a
 separate permissionless transaction, not part of harvesting or user withdrawal.
 Do not run keeper configuration against old contracts that lack these hooks.
+
+## Revenue mix
+
+The treasury's Juicer income is HOLLAR interest on the Main and loop debt, the
+collateral fee, and pool 143's LP fees, since the treasury holds that liquidity.
+Discounting HOLLAR interest raises the strategy yield the fee applies to, so
+the fee can take back the same income in collateral. The split moves; the total
+barely does.
+
+juicenomics, 21 Oct, $450k TVL at the launch settings (1 bp pool fee, 65/75/83
+bands, steady state); 64 Monte Carlo paths for the right-hand column:
+
+| Main / loop discount, fee | In collateral (closed form) | In collateral (Monte Carlo) | User APY (closed form / MC) |
+| --- | --- | --- | --- |
+| 0 / 0, 5% | 2.2% | 1.9% | 5.46% / 5.8–5.9% |
+| 100% / 78%, 77% | 81.7% | 80.6% | 5.07% / 6.1–6.2% |
+
+The proportions follow the HOLLAR rate (4.40%) and PRIME yield (5.93%). Either
+can move them, and so can a loop cap below the loop's HOLLAR debt, which thins
+its discount; set `DISCOUNT_LOOP_CAP` at or above it (the facilitator headroom
+bounds it: 2.13M HOLLAR on 21 Oct). Exits pay their small unharvested share of
+the fee in HOLLAR. The committee can retune both discounts and governance the fee.
 
 ## APY and rollout
 

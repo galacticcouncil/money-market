@@ -1,5 +1,5 @@
 // The next version's governance surface, shared by the mainnet proposal and the readiness
-// checker: keeper roles, the harvest threshold, ICE, rebalance bands and the protocol reserve.
+// checker: keeper roles, the harvest threshold, ICE, rebalance bands, the revenue mix and the protocol reserve.
 // One reader, then pure planning: callers get back only the calls still missing, or the checks.
 import { BigNumber, BigNumberish, Contract, utils } from "ethers";
 
@@ -15,6 +15,9 @@ export const NEXT = {
   band: { relever: 6500, target: 7500, delever: 8300 },
   // PRIME/HOLLAR stableswap fee at launch, Permill: 1 bp, from 4
   primePoolFeePpm: 100,
+  // ~80% of treasury income in collateral: juicenomics at $450k, 21 Oct (81.7% closed form,
+  // 80.6% Monte Carlo); users stay within half a point of a 5% fee with no discounts
+  revenue: { protocolFeeBps: 7700, mainDiscountBps: 10000, loopDiscountBps: 7800 },
 };
 export const KEEPER_ROLE = utils.id("KEEPER_ROLE");
 export const DEPOSIT_GUARDIAN_ROLE = utils.id("DEPOSIT_GUARDIAN_ROLE");
@@ -28,6 +31,8 @@ const loopI = new utils.Interface([
   "function setRebalanceBand(address,uint16,uint16,uint16)",
 ]);
 const controlI = new utils.Interface(["function configureAsync(bytes32,bool)"]);
+const discountI = new utils.Interface(["function setDiscountBps(uint16)", "function setLoopDiscountBps(uint16)"]);
+const feesI = new utils.Interface(["function setProtocolFeeBps(address,uint16)"]);
 const tokenI = new utils.Interface(["function approve(address,uint256) returns (bool)", "function mint(address,uint256)"]);
 const ledgerI = new utils.Interface(["function fundReserve(uint256)"]);
 
@@ -35,6 +40,7 @@ export type Call = { to: string; data: string; label: string };
 export type Check = { name: string; ok: boolean; detail?: string };
 type Roles = Record<string, { keeper?: boolean; guardian?: boolean; admin?: boolean }>;
 export type Band = { relever: number; target: number; delever: number };
+export type Revenue = { protocolFeeBps: number; mainDiscountBps: number; loopDiscountBps: number };
 export type NextState = {
   subLoop: {
     address: string;
@@ -45,13 +51,15 @@ export type NextState = {
   vaults: {
     address: string; guardianRole?: string; keepers: Roles; mainDebt: string; protocolReserve?: BigNumber;
     // the loop's gaps (target below max LTV, relever below and delever above target), and the live max LTV
-    gaps?: Band; maxLtv?: number;
+    gaps?: Band; maxLtv?: number; protocolFeeBps?: number;
   }[];
+  discount?: { address: string; installed: boolean; discountBps?: number; loopDiscountBps?: number; loop?: string };
+  fees?: string;
   controller?: { address: string; lanes: { name: string; lane: string; maximum: BigNumber; async?: boolean }[] };
 };
 export type Expected = {
   keepers?: string[]; harvestThreshold?: BigNumberish; intentTtl?: number; intentDriftBps?: number; reserve?: BigNumberish;
-  band?: Band;
+  band?: Band; revenue?: Revenue;
 };
 
 /// "6500,7500,8300": relever, target and delever LTVs in bps
@@ -79,8 +87,8 @@ async function maybe<T>(fn: () => Promise<T>): Promise<T | undefined> {
   }
 }
 
-export async function readNextState(provider: any, { subLoop, vaults, controller, keepers }:
-  { subLoop: string; vaults: string[]; controller?: string; keepers: string[] }): Promise<NextState> {
+export async function readNextState(provider: any, { subLoop, vaults, controller, keepers, discount, fees }:
+  { subLoop: string; vaults: string[]; controller?: string; keepers: string[]; discount?: string; fees?: string }): Promise<NextState> {
   const loop = new Contract(subLoop, [
     "function targetHf() view returns (uint256)", "function deployHfFloor() view returns (uint256)",
     "function deLeverTrigger() view returns (uint256)", "function harvestThreshold() view returns (uint256)",
@@ -117,7 +125,12 @@ export async function readNextState(provider: any, { subLoop, vaults, controller
     const row = { address, guardianRole, keepers: {} as Roles, mainDebt,
       protocolReserve: await maybe(() => new Contract(mainDebt, ["function protocolReserve() view returns (uint256)"], provider).protocolReserve()),
       gaps: gaps && { target: Number(gaps[0]), relever: Number(gaps[1]), delever: Number(gaps[2]) },
-      maxLtv: config === undefined ? undefined : BigNumber.from(config).and(0xffff).toNumber() };
+      maxLtv: config === undefined ? undefined : BigNumber.from(config).and(0xffff).toNumber(),
+      protocolFeeBps: undefined as number | undefined };
+    if (fees) {
+      const fee = await maybe<number>(() => new Contract(fees, ["function protocolFeeBps(address) view returns (uint16)"], provider).protocolFeeBps(address));
+      row.protocolFeeBps = fee === undefined ? undefined : Number(fee);
+    }
     for (const k of keepers) {
       row.keepers[k] = {
         keeper: guardianRole ? await v.hasRole(guardianRole, k) : undefined,
@@ -140,6 +153,23 @@ export async function readNextState(provider: any, { subLoop, vaults, controller
     }
     state.controller = { address: controller, lanes };
   }
+  if (discount) {
+    const d = new Contract(discount, [
+      "function debtToken() view returns (address)", "function discountBps() view returns (uint16)",
+      "function loopDiscountBps() view returns (uint16)", "function loop() view returns (address)",
+    ], provider);
+    const debt = new Contract(await d.debtToken(), [
+      "function getDiscountToken() view returns (address)", "function getDiscountRateStrategy() view returns (address)",
+    ], provider);
+    const same = (a?: string) => !!a && a.toLowerCase() === discount.toLowerCase();
+    const loopRate = await maybe<number>(() => d.loopDiscountBps());
+    state.discount = {
+      address: discount, installed: same(await maybe<string>(() => debt.getDiscountToken())) && same(await maybe<string>(() => debt.getDiscountRateStrategy())),
+      discountBps: Number(await d.discountBps()), loopDiscountBps: loopRate === undefined ? undefined : Number(loopRate),
+      loop: await maybe<string>(() => d.loop()),
+    };
+  }
+  state.fees = fees;
   return state;
 }
 
@@ -155,6 +185,10 @@ function validate(e: Expected) {
     if (t.lte(0) || t.gte(utils.parseUnits("1", 18))) throw new Error("harvest threshold is a WAD fraction in (0, 1)");
   }
   for (const k of e.keepers ?? []) if (!utils.isAddress(k)) throw new Error(`keeper ${k} is not an address`);
+  if (e.revenue !== undefined) {
+    const rates = [e.revenue.protocolFeeBps, e.revenue.mainDiscountBps, e.revenue.loopDiscountBps];
+    if (!rates.every(r => Number.isInteger(r) && r >= 0 && r <= 10000)) throw new Error("revenue mix rates are bps in 0..10000");
+  }
   if (e.band !== undefined) {
     const { relever, target, delever } = e.band;
     if (![relever, target, delever].every(Number.isInteger) || !(0 < relever && relever < target && target < delever)
@@ -166,7 +200,7 @@ function validate(e: Expected) {
 
 const missingSurface = (what: string) => new Error(`${what} missing on chain: these are not the next version's contracts`);
 
-/// keeper roles, the threshold, ICE and bands; the Main and vault wiring stays in the existing batches
+/// keeper roles, the threshold, ICE, bands and the revenue mix; the Main and vault wiring stays in the existing batches
 export function nextCalls(state: NextState, e: Expected): Call[] {
   validate(e);
   const calls: Call[] = [];
@@ -211,6 +245,28 @@ export function nextCalls(state: NextState, e: Expected): Call[] {
       if (!sameBand(g, v.gaps)) {
         calls.push({ to: loop.address, data: loopI.encodeFunctionData("setRebalanceBand", [v.address, g.target, g.relever, g.delever]),
           label: `subLoop.setRebalanceBand(${v.address}, ${g.target}, ${g.relever}, ${g.delever}) → ${showBand(e.band)} under max ${v.maxLtv}` });
+      }
+    }
+  }
+  if (e.revenue !== undefined) {
+    // the rates only bite once the discount is installed and the loop enrolled; before that they would revert unseen
+    const d = state.discount, r = e.revenue;
+    if (!d || !state.fees) throw new Error("the revenue mix needs JUICER_DISCOUNT_CONTROLLER and JUICER_FEE_CONTROLLER");
+    if (!d.installed) throw new Error("install JuicerDiscount on the HOLLAR debt token first (DeployDiscount.s.sol)");
+    if (d.loopDiscountBps === undefined) throw missingSurface("JuicerDiscount loop rate");
+    if (r.loopDiscountBps > 0 && !(d.loop && d.loop.toLowerCase() === loop.address.toLowerCase())) {
+      throw new Error("enroll the loop in JuicerDiscount first (DISCOUNT_LOOP, DISCOUNT_LOOP_CAP)");
+    }
+    if (d.discountBps !== r.mainDiscountBps) {
+      calls.push({ to: d.address, data: discountI.encodeFunctionData("setDiscountBps", [r.mainDiscountBps]), label: `discount.setDiscountBps(${r.mainDiscountBps})` });
+    }
+    if (d.loopDiscountBps !== r.loopDiscountBps) {
+      calls.push({ to: d.address, data: discountI.encodeFunctionData("setLoopDiscountBps", [r.loopDiscountBps]), label: `discount.setLoopDiscountBps(${r.loopDiscountBps})` });
+    }
+    for (const v of state.vaults) {
+      if (v.protocolFeeBps === undefined) throw new Error(`${v.address} is not registered in the fee controller`);
+      if (v.protocolFeeBps !== r.protocolFeeBps) {
+        calls.push({ to: state.fees, data: feesI.encodeFunctionData("setProtocolFeeBps", [v.address, r.protocolFeeBps]), label: `fees.setProtocolFeeBps(${v.address}, ${r.protocolFeeBps})` });
       }
     }
   }

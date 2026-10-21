@@ -27,7 +27,8 @@
 //           JUICER_SYNTH_ASSET_ID, JUICER_WITHDRAWAL_DELAY (seconds; default 43200), POOL,
 //           JUICER_COMPOUND_LOGIC_CODEHASH (keccak256 of the reviewed CompoundLogic runtime:
 //           the vault implementation binds a separately deployed helper),
-//           JUICER_PRIME_POOL_FEE_PPM (the approved PRIME pool fee; the launch proposal sets 100).
+//           JUICER_PRIME_POOL_FEE_PPM (the approved PRIME pool fee; the launch proposal sets 100),
+//           JUICER_PROTOCOL_FEE_BPS (the approved per-vault fee; default 500, the registration rate).
 // Next version (each adds its checks only when set): JUICER_KEEPERS (comma list),
 //           JUICER_HARVEST_THRESHOLD (WAD), JUICER_INTENT_TTL (seconds),
 //           JUICER_INTENT_DRIFT_BPS, JUICER_RESERVE_HOLLAR (per vault),
@@ -77,6 +78,7 @@ const LOOP_CAP = process.env.JUICER_LOOP_DISCOUNT_CAP ? ethers.utils.parseUnits(
 const LOOP_BPS = Number(process.env.JUICER_LOOP_DISCOUNT_BPS ?? "0");
 const HELPER_HASH = process.env.JUICER_COMPOUND_LOGIC_CODEHASH;
 const POOL_FEE_PPM = process.env.JUICER_PRIME_POOL_FEE_PPM ? Number(process.env.JUICER_PRIME_POOL_FEE_PPM) : undefined;
+const PROTOCOL_FEE_BPS = Number(process.env.JUICER_PROTOCOL_FEE_BPS ?? "500");
 
 for (const address of [SYNTH, SUBLOOP, HARVESTER, EXECUTION, FEES, FEE_RECIPIENT, DISCOUNT, COMMITTEE, POOL, ...VAULTS]) {
   if (!ethers.utils.isAddress(address) || eq(address, ethers.constants.AddressZero)) {
@@ -89,6 +91,7 @@ if (VAULTS.length === 0 || new Set(VAULTS.map(v => v.toLowerCase())).size !== VA
 if (!Number.isInteger(DISCOUNT_BPS) || DISCOUNT_BPS < 0 || DISCOUNT_BPS > 10000
     || !Number.isInteger(LOOP_BPS) || LOOP_BPS < 0 || LOOP_BPS > 10000 || (LOOP_CAP && LOOP_CAP.lte(0))
     || (POOL_FEE_PPM !== undefined && (!Number.isInteger(POOL_FEE_PPM) || POOL_FEE_PPM < 0 || POOL_FEE_PPM >= 1000000))
+    || !Number.isInteger(PROTOCOL_FEE_BPS) || PROTOCOL_FEE_BPS < 0 || PROTOCOL_FEE_BPS > 10000
     || !Number.isInteger(SLIPPAGE_PPM) || SLIPPAGE_PPM < 0 || SLIPPAGE_PPM >= 1000000) {
   throw new Error("invalid explicitly approved discount, slippage or pool fee rate");
 }
@@ -782,7 +785,8 @@ async function main() {
         "function deficitStop() view returns (bool)",
       ], provider);
       add(group, `${vault}: fee pointer`, eq(await sread(() => c.feeController()), FEES));
-      add(group, `${vault}: initial 5% fee`, Number(await sread(() => fees.protocolFeeBps(vault))) === 500);
+      const fee = await sread(() => fees.protocolFeeBps(vault));
+      add(group, `${vault}: approved protocol fee`, fee !== undefined && Number(fee) === PROTOCOL_FEE_BPS, `${fee} bps, approved ${PROTOCOL_FEE_BPS}`);
       add(group, `${vault}: binding validates`, (await sread(async () => { await fees.validateVault(vault, HARVESTER); return true; })) === true);
       add(group, `${vault}: discount pointer`, eq(await sread(() => c.discountController()), DISCOUNT));
       add(group, `${vault}: same HOLLAR debt token`, eq(await sread(() => c.hollarDebtToken()), debtAddress));
