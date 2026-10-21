@@ -466,6 +466,13 @@ by the arithmetic models. protocol fee-controller binding/custody and the deploy
 fixture boundaries rather than formalized external protocol implementations. the scaled-debt model
 matches the pinned token history but does not prove Aave's assembly or arbitrary Pool behavior.
 
+the rebalance model fixes the default band (target at the reserve's max LTV, relever 500 bps
+under it, delever 300 bps over it), deposit admission fixes the loop's default 50 bps, and the
+discount is Main-only; the fixture sources return those defaults. per-vault bands
+(`SubLoop.setRebalanceBand`), a configured admission bound (`setAdmissionMaxDeficitBps`) and the
+loop's HOLLAR discount (`JuicerDiscount.registerLoop`, `setLoopDiscountBps`) are outside the proved
+model; the Solidity tests cover them.
+
 Aave/token observations must be truthful, oracle prices/configuration valid, and external calls
 successful where their results are model inputs. matching ICE's 99%-minimum arrival heuristic
 does not prove an arrival came from the intended solver; it also does not imply that the stricter
