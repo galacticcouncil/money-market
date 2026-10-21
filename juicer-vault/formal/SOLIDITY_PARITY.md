@@ -471,7 +471,8 @@ under it, delever 300 bps over it), deposit admission fixes the loop's default 5
 discount is Main-only; the fixture sources return those defaults. per-vault bands
 (`SubLoop.setRebalanceBand`), a configured admission bound (`setAdmissionMaxDeficitBps`) and the
 loop's HOLLAR discount (`JuicerDiscount.registerLoop`, `setLoopDiscountBps`) are outside the proved
-model; the Solidity tests cover them.
+model; the Solidity tests cover them. so is the entry fee (`JuicerFeeController.setEntryFeeBps`): the
+model's deposit mints on the whole deposit, which is the contracts' default of no entry fee.
 
 Aave/token observations must be truthful, oracle prices/configuration valid, and external calls
 successful where their results are model inputs. matching ICE's 99%-minimum arrival heuristic
