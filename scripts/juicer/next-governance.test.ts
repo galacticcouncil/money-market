@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { BigNumber, providers, utils } from "ethers";
-import { NEXT, KEEPER_ROLE, DEPOSIT_GUARDIAN_ROLE, GUARDIAN_ROLE, readNextState, nextCalls, reserveCalls, nextChecks } from "./next-governance";
+import {
+  NEXT, KEEPER_ROLE, DEPOSIT_GUARDIAN_ROLE, GUARDIAN_ROLE, readNextState, nextCalls, reserveCalls, nextChecks, bandGaps, parseBand,
+} from "./next-governance";
 
 const addr = (n: number) => utils.getAddress(`0x${n.toString(16).padStart(40, "0")}`);
 const LOOP = addr(0x10), H = addr(0x11), A = addr(0x12), C = addr(0x13), V1 = addr(0x21), V2 = addr(0x22), M1 = addr(0x31), M2 = addr(0x32);
-const K1 = addr(0x41), K2 = addr(0x42);
+const K1 = addr(0x41), K2 = addr(0x42), P = addr(0x51), ETH = addr(0x61), BTC = addr(0x62);
 const lane = (c: string, i: string, o: string) => utils.keccak256(utils.defaultAbiCoder.encode(["address", "address", "address"], [c, i, o]));
 const ENTRY = lane(LOOP, H, A), EXIT = lane(LOOP, A, H);
 const coder = utils.defaultAbiCoder;
@@ -27,19 +29,25 @@ class Chain extends providers.StaticJsonRpcProvider {
   }
 }
 const v = (type: string, value: any) => () => [[type], [value]] as [string[], any[]];
-function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = false, threshold = "1000000000000000", reserve = "0", old = false } = {}) {
+function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = false, threshold = "1000000000000000", reserve = "0", old = false,
+  gaps = {} as Record<string, number[]>, ltv = { [ETH]: 7500, [BTC]: 8000 } as Record<string, number> } = {}) {
   const has = (role: string, who: string) => granted.has(`${role}:${who}`);
   const roles = (extra: Record<string, any>) => ({ "hasRole(bytes32,address)": (a: utils.Result) => [["bool"], [has(a[0], a[1])]] as [string[], any[]], ...extra });
   return new Chain({
     [LOOP]: roles({
       "targetHf()": v("uint256", "1050000000000000000"), "deployHfFloor()": v("uint256", "1050000000000000000"),
       "deLeverTrigger()": v("uint256", "1100000000000000000"), "harvestThreshold()": v("uint256", threshold),
-      "hollar()": v("address", H), "primeAToken()": v("address", A),
-      ...(old ? {} : { "intentTtl()": v("uint32", ttl), "intentDriftBps()": v("uint16", drift), "KEEPER_ROLE()": v("bytes32", KEEPER_ROLE) }),
+      "hollar()": v("address", H), "primeAToken()": v("address", A), "pool()": v("address", P),
+      ...(old ? {} : {
+        "intentTtl()": v("uint32", ttl), "intentDriftBps()": v("uint16", drift), "KEEPER_ROLE()": v("bytes32", KEEPER_ROLE),
+        "rebalanceBand(address)": (a: utils.Result) => [["uint16", "uint16", "uint16"], gaps[a[0]] ?? [0, 500, 300]],
+      }),
     }),
-    ...Object.fromEntries([[V1, M1], [V2, M2]].map(([vault, ledger]) => [vault, roles({
-      "mainDebt()": v("address", ledger), ...(old ? {} : { "DEPOSIT_GUARDIAN_ROLE()": v("bytes32", DEPOSIT_GUARDIAN_ROLE) }),
+    ...Object.fromEntries([[V1, M1, ETH], [V2, M2, BTC]].map(([vault, ledger, collateral]) => [vault, roles({
+      "mainDebt()": v("address", ledger), "collateral()": v("address", collateral),
+      ...(old ? {} : { "DEPOSIT_GUARDIAN_ROLE()": v("bytes32", DEPOSIT_GUARDIAN_ROLE) }),
     })])),
+    [P]: { "getConfiguration(address)": (a: utils.Result) => [["uint256"], [BigNumber.from(8500).shl(16).or(ltv[a[0]])]] },
     ...(old ? {} : { [M1]: { "protocolReserve()": v("uint256", reserve) }, [M2]: { "protocolReserve()": v("uint256", reserve) } }),
     [C]: {
       "lane(address,address,address)": (a: utils.Result) => [["bytes32"], [lane(a[0], a[1], a[2])]],
@@ -128,4 +136,44 @@ test("mainnet and lark agree on the next-version parameters", async () => {
   assert.deepEqual([ICE.ttl, ICE.driftBps], [NEXT.intentTtl, NEXT.intentDriftBps]);
   assert.equal(NEXT_PARAMS.harvestThreshold.toString(), NEXT.harvestThreshold.toString());
   assert.equal(NEXT_PARAMS.reserve.toString(), utils.parseUnits(NEXT.reserveHollar, 18).toString());
+});
+
+test("the approved band becomes per-vault gaps against each collateral's live max LTV", async () => {
+  assert.deepEqual(bandGaps(7500, NEXT.band), { target: 0, relever: 1000, delever: 800 });
+  assert.deepEqual(bandGaps(8000, NEXT.band), { target: 500, relever: 1000, delever: 800 });
+  assert.throws(() => bandGaps(7000, NEXT.band), /max LTV 7000/);
+  assert.throws(() => bandGaps(12600, NEXT.band), /within 50%/);
+  assert.deepEqual(parseBand(" 6500, 7500,8300"), NEXT.band);
+  const state = await read(nextChain());
+  assert.deepEqual(state.vaults.map(v => [v.maxLtv, v.gaps]), [[7500, { target: 0, relever: 500, delever: 300 }], [8000, { target: 0, relever: 500, delever: 300 }]]);
+  const calls = nextCalls(state, { band: NEXT.band });
+  assert.deepEqual(calls.map(c => c.to), [LOOP, LOOP]);
+  assert.deepEqual(calls.map(c => decode("setRebalanceBand(address,uint16,uint16,uint16)", c.data).map(String)),
+    [[V1, "0", "1000", "800"], [V2, "500", "1000", "800"]]);
+  assert.ok(nextChecks(state, { band: NEXT.band }).every(c => !c.ok));
+});
+
+test("a set band needs no calls, and a moved max LTV shows up in readiness", async () => {
+  const gaps = { [V1]: [0, 1000, 800], [V2]: [500, 1000, 800] };
+  const state = await read(nextChain({ gaps }));
+  assert.deepEqual(nextCalls(state, { band: NEXT.band }), []);
+  const checks = nextChecks(state, { band: NEXT.band });
+  assert.equal(checks.length, 2);
+  assert.ok(checks.every(c => c.ok), JSON.stringify(checks));
+  const moved = nextChecks(await read(nextChain({ gaps, ltv: { [ETH]: 7000, [BTC]: 8000 } })), { band: NEXT.band });
+  assert.deepEqual(moved.map(c => c.ok), [false, true]);
+  assert.equal(moved[0].detail, "6000/7000/7800 under max 7000");
+  const lowered = await read(nextChain({ ltv: { [ETH]: 7000, [BTC]: 8000 } }));
+  assert.throws(() => nextCalls(lowered, { band: NEXT.band }), /max LTV 7000/);
+});
+
+test("bands are validated and need the next loop", async () => {
+  const state = await read(nextChain());
+  for (const band of [{ relever: 7500, target: 7500, delever: 8300 }, { relever: 6500, target: 7500, delever: 7500 },
+    { relever: 2000, target: 7500, delever: 8300 }, { relever: 6500, target: 7500, delever: 10100 }, { relever: 6500.5, target: 7500, delever: 8300 }]) {
+    assert.throws(() => nextCalls(state, { band }), /relever < target < delever/);
+  }
+  const old = await read(nextChain({ old: true }));
+  assert.throws(() => nextCalls(old, { band: NEXT.band }), /rebalanceBand missing on chain/);
+  assert.deepEqual(nextChecks(old, { band: NEXT.band }).map(c => c.detail), ["unreadable", "unreadable"]);
 });

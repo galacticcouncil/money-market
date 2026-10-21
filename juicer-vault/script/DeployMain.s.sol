@@ -5,6 +5,7 @@ import "forge-std/Script.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {CompoundLogic} from "../src/lib/CompoundLogic.sol";
 import {Harvester} from "../src/Harvester.sol";
 import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
@@ -66,7 +67,7 @@ contract DeployMain is Script {
         );
         SubLoop subLoop = SubLoop(address(new ERC1967Proxy(address(loopImpl), loopInit)));
 
-        CollateralVault vaultImpl = new CollateralVault();
+        CollateralVault vaultImpl = new CollateralVault(address(new CompoundLogic()));
         bytes memory vaultInit = abi.encodeCall(
             CollateralVault.initialize,
             (

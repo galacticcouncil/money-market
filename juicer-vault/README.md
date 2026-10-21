@@ -85,7 +85,9 @@ but does not replace missing HOLLAR.
    compounding; nobody claims.
 3. **Rebalance.** Pending deposits and newly earned collateral permit Main borrowing
    without waiting for the price-movement band. Collateral appreciation can
-   also permit more borrowing.
+   also permit more borrowing. Each vault's band sits around a target under the
+   reserve's live max LTV; the loop's admin sets it (`SubLoop.setRebalanceBand`),
+   and by default it relevers 5% under the max LTV and delevers 3% over it.
    Falling collateral value triggers a PRIME-loop unwind whose net HOLLAR
    repays Main. Ordinary resizing does not sell deposited collateral.
 4. **Request withdrawal.** `requestRedeem` escrows shares for the configured
@@ -115,7 +117,8 @@ compounded user yield are not implemented. See [principal and emergency policy](
 
 | Control                | Authority and RC behavior                                                                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Main interest discount | Governance and Technical Committee set one rate across eligible Main vaults; deployment defaults to zero until approved. Loop debt is not discounted. |
+| Main interest discount | Governance and Technical Committee set one rate across eligible Main vaults; deployment defaults to zero until approved. |
+| Loop interest discount | Governance enrolls the loop with a cap on its discounted HOLLAR; governance and the committee set its separate rate, zero until approved. |
 | Protocol fee           | Governance sets a rate per vault, initially 5%. Yield ownership and its fee vest at checkpoint; collection waits for realization.                                          |
 | Treasury recipient     | Owner-configurable; all unclaimed fees follow the new recipient. Anyone may trigger payment to that recipient.                                        |
 | Withdrawal delay       | Governance-configurable per vault, initially 12 hours before unwinding; existing requests retain their eligibility time.                              |

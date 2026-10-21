@@ -114,7 +114,8 @@ try {
   // before exercising the controller against the funded local campaign.
   const implementation = await deploy('SubLoop', [], 'sourceImplementation');
   await send('source.currentImplementation', source, artifact('SubLoop').abi, 'upgradeTo', [implementation]);
-  const vaultImplementation = await deploy('CollateralVault', [], 'vaultImplementation');
+  const compoundLogic = await deploy('CompoundLogic', [], 'compoundLogic');
+  const vaultImplementation = await deploy('CollateralVault', [compoundLogic], 'vaultImplementation');
   for (const v of [vault, tbtcVault]) await send(`vault.currentImplementation.${v}`, v, artifact('CollateralVault').abi, 'upgradeTo', [vaultImplementation]);
   harvester = await deploy('Harvester', [source, prime, account.address], 'harvester');
   await send('harvester.fees', harvester, artifact('Harvester').abi, 'setFeeController', [fees]);

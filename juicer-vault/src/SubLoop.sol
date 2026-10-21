@@ -53,6 +53,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     event UnwindRequested(address indexed vault, uint256 shares, uint256 equity, uint256 unwindId);
     event FreedPulled(address indexed vault, uint256 hollar);
     event Harvested(uint256 surplus);
+    event RebalanceBandSet(address indexed vault, uint16 targetGapBps, uint16 releverGapBps, uint16 deleverGapBps);
 
     error ZeroAmount();
     error ZeroAddress();
@@ -417,6 +418,13 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     }
 
     /// @inheritdoc IYieldSource
+    function rebalanceBand(address vault) external view override returns (uint16, uint16, uint16) {
+        RebalanceBand memory band = _rebalanceBands[vault];
+        if (band.releverGapBps == 0) return (0, 500, 300);
+        return (band.targetGapBps, band.releverGapBps, band.deleverGapBps);
+    }
+
+    /// @inheritdoc IYieldSource
     function unwindExecutionCost(address vault) external view override returns (uint256) {
         return _unwindExecutionCost[vault];
     }
@@ -470,6 +478,20 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     function setAdmissionMaxDeficitBps(uint16 bps) external onlyRole(ADMIN_ROLE) {
         if (bps > 10_000) revert InvalidParameters();
         _admissionMaxDeficitBps = bps;
+    }
+
+    /// @notice a vault borrows to `targetGap` below its collateral's live max LTV, relevers
+    /// `releverGap` below that and delevers `deleverGap` above it; all zeros restore 0/500/300
+    function setRebalanceBand(address vault, uint16 targetGap, uint16 releverGap, uint16 deleverGap)
+        external
+        onlyRole(ADMIN_ROLE)
+    {
+        bool reset = targetGap == 0 && releverGap == 0 && deleverGap == 0;
+        bool bounded = releverGap != 0 && deleverGap != 0 && targetGap <= 5_000 && releverGap <= 5_000
+            && deleverGap <= 2_500;
+        if (!hasRole(VAULT_ROLE, vault) || !(reset || bounded)) revert InvalidParameters();
+        _rebalanceBands[vault] = RebalanceBand(targetGap, releverGap, deleverGap);
+        emit RebalanceBandSet(vault, targetGap, releverGap, deleverGap);
     }
 
     /// @notice set the carry recipient; can't be zeroed, which would silently stop harvests.

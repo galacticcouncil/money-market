@@ -136,11 +136,12 @@ try {
     return pub.readContract({ address, abi: artifact(name).abi, functionName, args });
   }
 
-  const vaultImpl = await deploy('CollateralVault');
-  const helper = await read('CollateralVault', vaultImpl, 'compoundLogic');
+  const helper = await deploy('CompoundLogic');
   const helperCode = await pub.getBytecode({address: helper});
   assert.equal(helperCode.toLowerCase(), bytecode(artifact('CompoundLogic').deployedBytecode.object).toLowerCase());
   result.checks.immutableHelper = {address: helper, runtimeBytes: (helperCode.length - 2) / 2, codeHash: keccak256(helperCode)};
+  const vaultImpl = await deploy('CollateralVault', [helper]);
+  assert.equal((await read('CollateralVault', vaultImpl, 'compoundLogic')).toLowerCase(), helper.toLowerCase());
   const synth = await deploy('SyntheticToken', ['Juicer Synthetic HOLLAR', 'jsHOLLAR', account.address]);
   const subLogic = await deploy('SubLoopLogic');
   const subImpl = await deploy('SubLoop', [subLogic]);

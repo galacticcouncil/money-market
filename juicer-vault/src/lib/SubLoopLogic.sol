@@ -51,6 +51,12 @@ abstract contract SubLoopStorage is
         uint128 outBase; // output balance after the loop's last transaction
     }
 
+    struct RebalanceBand {
+        uint16 targetGapBps;
+        uint16 releverGapBps;
+        uint16 deleverGapBps;
+    }
+
     // config
     IAavePool public pool;
     IERC20 public hollar;
@@ -106,6 +112,7 @@ abstract contract SubLoopStorage is
     /// @notice the in-flight ICE intent; one at a time keeps both directions' balance deltas apart
     PendingIntent public pendingIntent;
     uint16 internal _admissionMaxDeficitBps;
+    mapping(address => RebalanceBand) internal _rebalanceBands;
 
     event Borrowed(uint256 amount, uint256 hfAfter);
     event Repaid(uint256 amount, uint256 hfAfter);

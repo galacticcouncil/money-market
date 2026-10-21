@@ -25,9 +25,11 @@ try{
   const swapperCode=await pub.getBytecode({address:swapper});
   r.market={pool:POOL,hollar:HOLLAR,prime:token(43),aPrime:reserves.PRIME.aTokenAddress,hollarDebt:reserves.HOLLAR.variableDebtTokenAddress,swapper,swapperCodeHash:v.keccak256(swapperCode),deployedAdapter:true};save();
   const a=r.addresses;
-  a.vaultImpl=await deploy('CollateralVault');save();
-  a.compoundLogic=await read('CollateralVault',a.vaultImpl,'compoundLogic');save();
+  // the vault's helper goes first, on its own, like the loop's logic below
+  a.compoundLogic??=await deploy('CompoundLogic');save();
   assert.equal((await pub.getBytecode({address:a.compoundLogic})).toLowerCase(),artifact('CompoundLogic').deployedBytecode.object.toLowerCase());
+  a.vaultImpl=await deploy('CollateralVault',[a.compoundLogic]);save();
+  assert.equal((await read('CollateralVault',a.vaultImpl,'compoundLogic')).toLowerCase(),a.compoundLogic.toLowerCase());
   a.synth=await deploy('SyntheticToken',[...profile.names.synth,GOV]);save();
   // two transactions: one would carry both bytecodes, past a hydration transaction's limit
   a.subLogic??=await deploy('SubLoopLogic');save();

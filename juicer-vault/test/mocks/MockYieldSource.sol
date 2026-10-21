@@ -105,6 +105,10 @@ contract MockYieldSource is IYieldSource {
         return 50;
     }
 
+    function rebalanceBand(address) external pure returns (uint16, uint16, uint16) {
+        return (0, 500, 300);
+    }
+
     function harvest() external returns (uint256 surplus) {
         return 0; // no yield modelled
     }

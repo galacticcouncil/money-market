@@ -20,7 +20,9 @@ is Lark 0, reforked from mainnet on the latest runtime with ICE (step 9).
 | 6 | Deployment parameters | harvest threshold ~0.02%, reserve 1,000 HOLLAR/vault, PRIME trade size to pool depth |
 
 Dropped: earn-after-deploy (worth ~$1 per $100k deposit).
-Parked for the rates topic: fee/discount mix, loop discount, entry cost from yield, band width, share-price jETH.
+Parked for the rates topic: fee/discount mix, entry cost from yield, share-price jETH. The loop discount and band
+width followed on `juicer-discount-bands`: `JuicerDiscount` enrolls the loop at its own capped rate (zero at launch),
+and `SubLoop.setRebalanceBand` sets each vault's band, proposed at relever 65%, target 75%, delever 83%.
 
 ## 1. Underfunding admission
 

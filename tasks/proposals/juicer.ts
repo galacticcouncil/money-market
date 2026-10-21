@@ -22,7 +22,7 @@ import {
 import ProposalDecoder from "../../helpers/proposal-decoder";
 import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "../../scripts/juicer/rounding-native";
-import { NEXT, readNextState, nextCalls, reserveCalls } from "../../scripts/juicer/next-governance";
+import { NEXT, readNextState, nextCalls, reserveCalls, parseBand } from "../../scripts/juicer/next-governance";
 
 // Fixed $1 oracle (reused for the synthetic — it is pegged $1 by design, like HOLLAR).
 const GHO_ORACLE_ADDRESS = "0x6096C9D71F7c06024578a62F4B608a1Bb06834F8";
@@ -502,11 +502,13 @@ task(
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  // BATCH 4 — next version: keeper roles, harvest threshold, ICE
+  // BATCH 4 — next version: keeper roles, harvest threshold, ICE, rebalance bands
   // ═════════════════════════════════════════════════════════════════════════
   // Keepers get SubLoop KEEPER_ROLE (quoted pokes) and each vault's DEPOSIT_GUARDIAN_ROLE,
   // which gates only setDeficitStop; pause stays with governance and the committee.
   // configureAsync reverts on a lane without a limit, so the execution lanes come first.
+  // JUICER_REBALANCE_BAND (relever,target,delever LTV bps) is converted against each
+  // collateral's live max LTV, so a target above it fails here rather than on chain.
   const keepers = (process.env.JUICER_KEEPERS || "").split(",").map((k) => k.trim()).filter(Boolean);
   const controller = await resolve("JUICER_EXECUTION_CONTROLLER", "ExecutionController-Juicer");
   const nextState = subLoop && vaults.length
@@ -519,6 +521,7 @@ task(
       harvestThreshold: process.env.JUICER_HARVEST_THRESHOLD || NEXT.harvestThreshold,
       intentTtl: Number(process.env.JUICER_INTENT_TTL ?? NEXT.intentTtl),
       intentDriftBps: Number(process.env.JUICER_INTENT_DRIFT_BPS ?? NEXT.intentDriftBps),
+      band: process.env.JUICER_REBALANCE_BAND ? parseBand(process.env.JUICER_REBALANCE_BAND) : NEXT.band,
     };
     for (const call of nextCalls(nextState, expected)) {
       console.log(`[4] ${call.label}`);
@@ -528,7 +531,7 @@ task(
     clearBatch();
   } else {
     console.log(
-      "[4] skipped — set JUICER_KEEPERS and JUICER_EXECUTION_CONTROLLER (with the loop and vaults) for keeper roles, the harvest threshold and ICE"
+      "[4] skipped — set JUICER_KEEPERS and JUICER_EXECUTION_CONTROLLER (with the loop and vaults) for keeper roles, the harvest threshold, ICE and bands"
     );
   }
 
@@ -588,7 +591,7 @@ task(
   await emit("BATCH 1 — list-reserve", batch1);
   await emit("BATCH 2 — configure", batch2);
   await emit("BATCH 3 — wire", batch3);
-  await emit("BATCH 4 — keepers, threshold, ICE", batch4);
+  await emit("BATCH 4 — keepers, threshold, ICE, bands", batch4);
   await emit("BATCH 5 — protocol reserve", batch5);
 
   console.log(`
@@ -605,8 +608,8 @@ BATCH 4 needs the loop's execution lanes configured: configureAsync reverts on a
 without a limit. BATCH 5 is optional and needs its HOLLAR in place first.
 
 After enactment, run scripts/juicer/verify-readiness.ts before announcing (with
-JUICER_KEEPERS, JUICER_HARVEST_THRESHOLD, JUICER_INTENT_TTL and
-JUICER_RESERVE_HOLLAR it also checks batches 4 and 5) —
+JUICER_KEEPERS, JUICER_HARVEST_THRESHOLD, JUICER_INTENT_TTL, JUICER_REBALANCE_BAND
+and JUICER_RESERVE_HOLLAR it also checks batches 4 and 5) —
 dispatcher.dispatchAsAaveManager reports EVM reverts as ExecutedFailed EVENTS,
 not extrinsic failures, so a batch can "succeed" with calls silently reverted.
 `);
