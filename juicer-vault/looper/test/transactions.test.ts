@@ -62,10 +62,16 @@ test('operator-funded gas cannot suppress a price-safe harvest and needs no gas 
   } finally { CONFIG.SPONSORED_GAS = previous; }
 });
 
-async function poke(estimate: bigint, blockGas = 45_000_000n, status = 'success', estimateFails = false, result?: bigint, finalFails = false) {
+async function poke(estimate: bigint, blockGas = 45_000_000n, status = 'success', estimateFails = false, result?: bigint, finalFails = false, fundedService = false, worthwhile = true) {
   const sends: any[] = [], simulations: any[] = [];
   const keeper = Object.create(JuicerLooper.prototype) as any;
   keeper.account = signer(sends);
+  keeper.mainServiceWorthwhile = async (address: string, gasWei: bigint) => {
+    assert.equal(address, VAULT);
+    assert.equal(simulations.length, 2, 'funding is rechecked after the final simulation');
+    assert.ok(gasWei > 0n);
+    return worthwhile;
+  };
   keeper.publicClient = {
     getBlock: async () => ({ gasLimit: blockGas }),
     getGasPrice: async () => 4_613_433n,
@@ -86,7 +92,7 @@ async function poke(estimate: bigint, blockGas = 45_000_000n, status = 'success'
     sendRawTransaction: async () => undefined,
     waitForTransactionReceipt: async () => ({ status }),
   };
-  const success = await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle');
+  const success = await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle', [], false, fundedService);
   return { success, sends, simulations, keeper };
 }
 
@@ -177,6 +183,15 @@ test('a successful no-op simulation never becomes a paid transaction', async () 
   const {success, sends} = await poke(1_400_000n, 45_000_000n, 'success', false, 0n);
   assert.equal(success, false);
   assert.equal(sends.length, 0);
+});
+
+test('idle interest service rechecks funding and gas before signing', async () => {
+  const rejected = await poke(100000n, 45000000n, 'success', false, 1n, false, true, false);
+  assert.equal(rejected.success, false);
+  assert.equal(rejected.sends.length, 0);
+  const accepted = await poke(100000n, 45000000n, 'success', false, 1n, false, true, true);
+  assert.equal(accepted.success, true);
+  assert.equal(accepted.sends.length, 1);
 });
 
 test('guarded writes use a pinned preview, bounded input and positive quote floor', async () => {

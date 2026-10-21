@@ -61,6 +61,7 @@ read each vault's pause, queue cursors and Main repayment target
   active unwind                               -> pokeRepay(), or pokeRepayQuoted() with intents
   active vault settlement, Main repayment target
     or unallocated source proceeds            -> pokeSettle()
+  funded active interest, duty slot             -> cash-only pokeSettle(), with minimum and gas budget
   healthy, worthwhile harvest, duty slot      -> quoted bounded harvest()
   pending collateral, eligible vault, duty slot -> quoted bounded rebalance(), also while exits wait
   healthy, no pending work, duty slot         -> quoted bounded pokeBorrow(), or with intents
@@ -89,10 +90,20 @@ No on-chain readiness flag gates the keeper: Main debt ledgers no longer expose
 `ready()`. An unreadable vault queue still blocks new source ramping without
 disabling safety repayments. Settlement also runs for
 late source claims after collateral settlement. Every cycle can realize eligible yield before optional source ramping and then
-reinvest the resulting collateral. `pokeSettle` is only sent for redeem-queue
-work. Main interest is paid from harvest servicing and at exits; the keeper never
-settles an idle vault just to service interest, never obtains treasury money and
-never widens slippage. See [yield funding and recovery](../docs/main-debt-servicing.md).
+reinvest the resulting collateral. idle Main interest is also serviced from the
+active position's existing cash, less its reserved source fees. unreceived source
+proceeds and protocol reserves are not cash for this path. the duty operator sends
+`pokeSettle` when the funded interest reaches `MAIN_SERVICE_MIN_HOLLAR_CENTS`
+(default 100 cents / 1 HOLLAR). the existing useful-work simulation and gas bounds
+apply; funding and pause/accounting gates are refreshed before signing. unsponsored
+gas must cost at most `MAIN_SERVICE_MAX_GAS_BPS` (default 100 / 1%) of the repayment's
+oracle value. attempts are spaced by `MAIN_SERVICE_RETRY_SECONDS` (default 300),
+including reverted or zero-work simulations. existing queue/safety settlement is
+not subject to this optional-service threshold. this path neither starts a source
+unwind nor harvests, obtains treasury money or widens slippage. see
+[yield funding and recovery](../docs/main-debt-servicing.md).
+urgent-interest alerts are emitted once per episode and reset after interest
+falls below the configured urgent threshold.
 
 Delivery means a user signs only `requestRedeem`: settled collateral and exit
 surplus are pushed to the request owner. The scan resumes at the first request

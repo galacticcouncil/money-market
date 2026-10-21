@@ -23,6 +23,7 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
     deleverTarget: 0n, reinvestAssets: 0n, availableHollar: 0n, mainDebt: OTHER, pendingSourceAccounting: false,
     pendingUnwindOf: 0n, harvestable: false, negativeCarryBps: 0n, deficitStop: false, yieldAccounting: OTHER,
     activePosition: [0n, 0n, 0n] as any, activeFunds: 0n, equityOf: 0n, sourceValue: 0n, requiredSourceBacking: 0n,
+    sourceFees: [0n, 0n] as any,
     // router mode, nothing in flight
     intentTtl: 0 as any, pendingIntent: [0n, 0n, 0, false, 0n, 0n, 0n, 0n, 0n] as any,
     ...overrides,
@@ -53,6 +54,19 @@ test('an existing safety target is serviced even if HF recovered', async () => {
 });
 test('Main down-rebalance is settled with an empty redemption queue', async () => {
   assert.deepEqual(await cycle({ deleverTarget: 1n }), [`${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`]);
+});
+test('funded idle Main interest settles without scheduling a source unwind or harvest', async () => {
+  const u = 10n ** 18n;
+  const funded = {activePosition: [120n*u, 100n*u, 107n*u] as any, activeFunds: 107n*u, equityOf: 100n*u};
+  assert.deepEqual(await cycle(funded), [`${VAULT}:pokeSettle`]);
+  assert.deepEqual(await cycle({...funded, paused: true}), [`${VAULT}:pokeSettle`]);
+  assert.deepEqual(await cycle({...funded, vaultPaused: true}), []);
+  assert.deepEqual(await cycle({...funded, emergencyPaused: true}), []);
+  const [count, index] = [CONFIG.OPERATOR_COUNT, CONFIG.OPERATOR_INDEX];
+  CONFIG.OPERATOR_COUNT = 2;
+  CONFIG.OPERATOR_INDEX = 0;
+  try { assert.deepEqual(await cycle(funded), []); }
+  finally { CONFIG.OPERATOR_COUNT = count; CONFIG.OPERATOR_INDEX = index; }
 });
 test('active exits prevent ramping and share a single source repayment', async () => {
   assert.deepEqual(await cycle({ effectiveHealthFactor: 2n * TARGET, queueTail: 1n, queueUnwind: 1n }, true), [
@@ -118,11 +132,9 @@ test('harvest precedes optional ramp and reinvests in the same maintenance cycle
     `${OTHER}:harvest`, `${VAULT}:rebalance`,
   ]);
 });
-test('no standalone Main interest servicing: idle vaults are not settled after a harvest or on slow cycles', async () => {
+test('unfunded idle vaults are not settled after a harvest or on slow cycles', async () => {
   const slow = CONFIG.SLOW_EVERY - 1;
-  // a harvest services interest itself; the keeper adds no settlement for it
   assert.ok(!(await cycle({ harvestable: true }, true, true)).some(c => c.endsWith(':pokeSettle')));
-  // slow cycles may rebalance idle vaults but never settle them just for interest
   assert.ok(!(await cycle({}, true, false, slow)).some(c => c.endsWith(':pokeSettle')));
   assert.ok(!(await cycle({ harvestable: true }, true, true, slow)).some(c => c.endsWith(':pokeSettle')));
 });
@@ -183,16 +195,17 @@ test('a broken vault queue monitor cannot prevent source safety repayment', asyn
 });
 
 
-test('the safety monitor alerts on urgent Main interest without a readiness read', async () => {
+test('urgent Main interest alerts once per episode without a readiness read', async () => {
   const keeper = Object.create(JuicerLooper.prototype) as any;
   Object.assign(keeper, { subLoop: LOOP, vaults: [VAULT] });
   const seen: string[] = [];
+  let interest = CONFIG.MAIN_INTEREST_URGENT_USD8 * 10n ** 10n;
   keeper.publicClient = { getBlock: async () => ({ timestamp: BigInt(Math.floor(Date.now() / 1000)) }) };
   keeper.read = async (_abi: unknown, _address: string, fn: string) => {
     seen.push(fn);
     const values: Record<string, unknown> = {
       effectiveHealthFactor: TARGET, targetHf: TARGET, syntheticSupplied: 10n ** 30n, synthLtBps: 9000n,
-      hollarDebtToken: OTHER, mainDebt: OTHER, balanceOf: 1n, interestOf: CONFIG.MAIN_INTEREST_URGENT_USD8 * 10n ** 10n,
+      hollarDebtToken: OTHER, mainDebt: OTHER, balanceOf: 1n, interestOf: interest,
     };
     assert.ok(fn in values, `unexpected read ${fn}`);
     return values[fn];
@@ -200,7 +213,16 @@ test('the safety monitor alerts on urgent Main interest without a readiness read
   const errors: string[] = [];
   const previous = console.error;
   console.error = (...args) => { errors.push(args.join(' ')); };
-  try { await keeper.monitorSafety(); } finally { console.error = previous; }
+  try {
+    await keeper.monitorSafety();
+    await keeper.monitorSafety();
+    assert.equal(errors.length, 1);
+    interest = 0n;
+    await keeper.monitorSafety();
+    interest = CONFIG.MAIN_INTEREST_URGENT_USD8 * 10n ** 10n;
+    await keeper.monitorSafety();
+    await keeper.monitorSafety();
+  } finally { console.error = previous; }
   assert.ok(!seen.includes('ready'));
-  assert.deepEqual(errors, [`[ALERT] ${VAULT}: Main interest needs urgent harvest/service`]);
+  assert.deepEqual(errors, Array(2).fill(`[ALERT] ${VAULT}: Main interest needs urgent harvest/service`));
 });
