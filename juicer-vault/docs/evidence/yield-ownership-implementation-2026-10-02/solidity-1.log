@@ -1,0 +1,376 @@
+Missing dependencies found. Installing now...
+
+Warning: Your project has missing dependencies that could not be installed.
+Compiling 97 files with Solc 0.8.22
+Solc 0.8.22 finished in 469.26s
+Compiler run successful!
+
+Ran 8 tests for test/RecoveryE2E.t.sol:RecoveryE2ETest
+[PASS] testFuzz_recoveryFundingAndProcessingOrder(bool,bool,uint16) (runs: 33, μ: 18617074, ~: 18617141)
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 15410712)
+[PASS] test_lossFreezeStagedFundingAndFullRecovery() (gas: 18616824)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 11561242)
+[PASS] test_reverseVaultAndClaimOrderPreservesAllPrincipal() (gas: 18617207)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 105592)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 14655898)
+[PASS] test_zeroEquityCannotStartUnwindOrEraseWaitingShares() (gas: 10359132)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 2.18s (2.29s CPU time)
+
+Ran 11 tests for test/SourceUpgradeCompatibility.t.sol:SourceUpgradeCompatibilityTest
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 15410783)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 11561320)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 105624)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 14655933)
+[PASS] test_upgradeCannotHideAnUnderfundedOldPosition() (gas: 18975875)
+[PASS] test_upgradeLateRecoveryStillPaysOriginalExitOwner() (gas: 20416895)
+[PASS] test_upgradeLiveSourcePreservesPartialExitAndWaitingRequest() (gas: 27763267)
+[PASS] test_upgradePendingCostsAndReceiptsAreCreditedExactlyOnce() (gas: 19535396)
+[PASS] test_upgradePreservesEmergencyAndLocalPauses() (gas: 23012096)
+[PASS] test_upgradeRequiresAuthorityAndCannotReinitializeExistingState() (gas: 10889223)
+[PASS] test_upgradeResettingCostCounterBreaksSettlementWithoutErasingClaims() (gas: 18595127)
+Suite result: ok. 11 passed; 0 failed; 0 skipped; finished in 437.09ms (430.98ms CPU time)
+
+Ran 16 tests for test/MainDebtCampaign.t.sol:MainDebtCampaignTest
+[PASS] testFuzz_recoveryFundingAndProcessingOrder(bool,bool,uint16) (runs: 257, μ: 18631125, ~: 18631188)
+[SKIP] test_campaign100k() (gas: 0)
+[SKIP] test_campaign100m() (gas: 0)
+[SKIP] test_campaign10m() (gas: 0)
+[SKIP] test_campaign1m() (gas: 0)
+[SKIP] test_campaign500k() (gas: 0)
+[SKIP] test_campaign50m() (gas: 0)
+[SKIP] test_campaignSensitivity100k() (gas: 0)
+[SKIP] test_campaignSensitivity1m() (gas: 0)
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 15418196)
+[PASS] test_lossFreezeStagedFundingAndFullRecovery() (gas: 18630796)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 11567517)
+[PASS] test_reverseVaultAndClaimOrderPreservesAllPrincipal() (gas: 18631458)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 106602)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 14662892)
+[PASS] test_zeroEquityCannotStartUnwindOrEraseWaitingShares() (gas: 10365504)
+Suite result: ok. 8 passed; 0 failed; 8 skipped; finished in 14.30s (14.54s CPU time)
+
+Ran 15 tests for test/YieldFundedExecution.t.sol:YieldFundedExecutionTest
+[PASS] testFuzz_recoveryFundingAndProcessingOrder(bool,bool,uint16) (runs: 257, μ: 18617199, ~: 18617277)
+[PASS] test_costHoldbackNeverCreatesOrRequiresStartupCapital() (gas: 10595452)
+[PASS] test_directPrimeRepaymentBecomesNetCollateralYieldWithoutChangingBasis() (gas: 11847871)
+[PASS] test_earnedCostAllowanceProtectsAllThreeExitsWithoutRecovery() (gas: 103710659)
+[PASS] test_earnedPrimePaysResizeFrictionWithoutSellingUserCollateral() (gas: 14457112)
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 15410836)
+[PASS] test_lossFreezeStagedFundingAndFullRecovery() (gas: 18616994)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 11561365)
+[PASS] test_realizedCostsCannotWriteOffSourcePrincipalWithoutYield() (gas: 11430265)
+[PASS] test_reverseVaultAndClaimOrderPreservesAllPrincipal() (gas: 18617464)
+[PASS] test_slippageFailureRollsBackBorrowAndUnwindWithoutWidening() (gas: 11274260)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 105696)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 14655963)
+[PASS] test_tbtcFallShrinksPrimeLoopToRepayMainWithoutSponsoredCash() (gas: 12944512)
+[PASS] test_zeroEquityCannotStartUnwindOrEraseWaitingShares() (gas: 10359223)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 15.40s (15.87s CPU time)
+
+Ran 4 tests for test/MultiVaultFlow.t.sol:MultiVaultFlowTest
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 15410651)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 11561198)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 105460)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 14655728)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 127.77ms (122.23ms CPU time)
+
+Ran 35 tests for test/Market90Days.t.sol:Market90DaysTest
+[PASS] testFuzz_recoveryFundingAndProcessingOrder(bool,bool,uint16) (runs: 257, μ: 18628769, ~: 18628844)
+[PASS] test_90Day100kBear() (gas: 399618234)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 1
+  Modeled TVL USD: 100000
+  Main interest HOLLAR wei: 1583143541117586045988
+  Loop interest HOLLAR wei: 7461855794012428140368
+  External exit funding HOLLAR wei: 6066200889744863502412
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day100kBull() (gas: 181257646)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 0
+  Modeled TVL USD: 100000
+  Main interest HOLLAR wei: 1134572221893968183068
+  Loop interest HOLLAR wei: 4372184544211114584210
+  External exit funding HOLLAR wei: 0
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day100kSeesaw() (gas: 277243390)
+Logs:
+  Token-unit reconciliation HOLLAR wei: 1414005000301019410
+  Token-unit reconciliation HOLLAR wei: 1480606436861734663
+  path (0 bull, 1 bear, 2 seesaw): 2
+  Modeled TVL USD: 100000
+  Main interest HOLLAR wei: 1021314947251881866192
+  Loop interest HOLLAR wei: 3864115393105316155847
+  External exit funding HOLLAR wei: 936561369879103917523
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 136
+
+[PASS] test_90Day100mBear() (gas: 522399552)
+Logs:
+  Token-unit reconciliation HOLLAR wei: 1754873099833616
+  Token-unit reconciliation HOLLAR wei: 386098864427728
+  path (0 bull, 1 bear, 2 seesaw): 1
+  Modeled TVL USD: 100000000
+  Main interest HOLLAR wei: 1583142483232530021861222
+  Loop interest HOLLAR wei: 7434976380365452753744477
+  External exit funding HOLLAR wei: 6047366191255864593411660
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day100mBull() (gas: 197484366)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 0
+  Modeled TVL USD: 100000000
+  Main interest HOLLAR wei: 1134571532404436992653987
+  Loop interest HOLLAR wei: 4144672758670838091652246
+  External exit funding HOLLAR wei: 0
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day100mSeesaw() (gas: 329813751)
+Logs:
+  Token-unit reconciliation HOLLAR wei: 2190170702681468748374
+  Token-unit reconciliation HOLLAR wei: 2312303924784991219351
+  path (0 bull, 1 bear, 2 seesaw): 2
+  Modeled TVL USD: 100000000
+  Main interest HOLLAR wei: 1021314302101354911306685
+  Loop interest HOLLAR wei: 3669720198122440252824868
+  External exit funding HOLLAR wei: 902159886837419044457794
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 136
+
+[PASS] test_90Day10mBear() (gas: 489759606)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 1
+  Modeled TVL USD: 10000000
+  Main interest HOLLAR wei: 158314249276302589982328
+  Loop interest HOLLAR wei: 746185082617376606039140
+  External exit funding HOLLAR wei: 606619678976085522208703
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day10mBull() (gas: 181261945)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 0
+  Modeled TVL USD: 10000000
+  Main interest HOLLAR wei: 113457153861605463336723
+  Loop interest HOLLAR wei: 437218173849447245764219
+  External exit funding HOLLAR wei: 0
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day10mSeesaw() (gas: 325107760)
+Logs:
+  Token-unit reconciliation HOLLAR wei: 141403420168800469531
+  Token-unit reconciliation HOLLAR wei: 148118304188076083231
+  path (0 bull, 1 bear, 2 seesaw): 2
+  Modeled TVL USD: 10000000
+  Main interest HOLLAR wei: 102131429108400678884904
+  Loop interest HOLLAR wei: 386411288610169681892046
+  External exit funding HOLLAR wei: 93656129953874672132519
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 136
+
+[PASS] test_90Day1mBear() (gas: 444287585)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 1
+  Modeled TVL USD: 1000000
+  Main interest HOLLAR wei: 15831425880679827445396
+  Loop interest HOLLAR wei: 74618512777627177894107
+  External exit funding HOLLAR wei: 60661971626938139540626
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day1mBull() (gas: 181260740)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 0
+  Modeled TVL USD: 1000000
+  Main interest HOLLAR wei: 11345716007322296135940
+  Loop interest HOLLAR wei: 43721819935480615405240
+  External exit funding HOLLAR wei: 0
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day1mSeesaw() (gas: 301175168)
+Logs:
+  Token-unit reconciliation HOLLAR wei: 14140315359900878019
+  Token-unit reconciliation HOLLAR wei: 14811306112591703647
+  path (0 bull, 1 bear, 2 seesaw): 2
+  Modeled TVL USD: 1000000
+  Main interest HOLLAR wei: 10213143507356265148265
+  Loop interest HOLLAR wei: 38641131139944212008700
+  External exit funding HOLLAR wei: 9365613064850876913659
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 136
+
+[PASS] test_90Day500kBear() (gas: 430725144)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 1
+  Modeled TVL USD: 500000
+  Main interest HOLLAR wei: 7915713469811942645755
+  Loop interest HOLLAR wei: 37309258897179666757329
+  External exit funding HOLLAR wei: 30330987891661897702007
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day500kBull() (gas: 181258466)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 0
+  Modeled TVL USD: 500000
+  Main interest HOLLAR wei: 5672858348750994111494
+  Loop interest HOLLAR wei: 21860911384558952220212
+  External exit funding HOLLAR wei: 0
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day500kSeesaw() (gas: 293995216)
+Logs:
+  Token-unit reconciliation HOLLAR wei: 7070142893187571287
+  Token-unit reconciliation HOLLAR wei: 7405361803290909737
+  path (0 bull, 1 bear, 2 seesaw): 2
+  Modeled TVL USD: 500000
+  Main interest HOLLAR wei: 5106572085075991486825
+  Loop interest HOLLAR wei: 19320566835858318104633
+  External exit funding HOLLAR wei: 4682806570505611081020
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 136
+
+[PASS] test_90Day50mBear() (gas: 521924412)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 1
+  Modeled TVL USD: 50000000
+  Main interest HOLLAR wei: 791571242145737019775420
+  Loop interest HOLLAR wei: 3717195845939528539395644
+  External exit funding HOLLAR wei: 3023699190384426891164495
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day50mBull() (gas: 186472170)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 0
+  Modeled TVL USD: 50000000
+  Main interest HOLLAR wei: 567285766547308387692435
+  Loop interest HOLLAR wei: 2181265576990562260145768
+  External exit funding HOLLAR wei: 0
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90Day50mSeesaw() (gas: 341692829)
+Logs:
+  Token-unit reconciliation HOLLAR wei: 711390983614015905647
+  Token-unit reconciliation HOLLAR wei: 745329192103652768429
+  path (0 bull, 1 bear, 2 seesaw): 2
+  Modeled TVL USD: 50000000
+  Main interest HOLLAR wei: 510657142974243699188754
+  Loop interest HOLLAR wei: 1930218377005580443346490
+  External exit funding HOLLAR wei: 468090317151277540162682
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 136
+
+[PASS] test_90DayBear() (gas: 344568345)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 1
+  Modeled TVL USD: 6000
+  Main interest HOLLAR wei: 94989607874428435165
+  Loop interest HOLLAR wei: 447716064091259335186
+  External exit funding HOLLAR wei: 363975950266065732289
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90DayBearFullMainDiscount() (gas: 313541692)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 1
+  Modeled TVL USD: 6000
+  Main interest HOLLAR wei: 0
+  Loop interest HOLLAR wei: 454607311865636914418
+  External exit funding HOLLAR wei: 273061612162829516031
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90DayBearKeeperOutage() (gas: 305773870)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 1
+  Modeled TVL USD: 6000
+  Main interest HOLLAR wei: 100551044496355155646
+  Loop interest HOLLAR wei: 475057701136370792890
+  External exit funding HOLLAR wei: 386030815934691113356
+  Synthetic floor misses (vault-days): 32
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90DayBull() (gas: 181254213)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 0
+  Modeled TVL USD: 6000
+  Main interest HOLLAR wei: 68074982082605864678
+  Loop interest HOLLAR wei: 262333736502264165431
+  External exit funding HOLLAR wei: 0
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90DayBullFullMainDiscount() (gas: 173607996)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 0
+  Modeled TVL USD: 6000
+  Main interest HOLLAR wei: 0
+  Loop interest HOLLAR wei: 262333736502264165431
+  External exit funding HOLLAR wei: 0
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90DayBullKeeperOutage() (gas: 132081854)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 0
+  Modeled TVL USD: 6000
+  Main interest HOLLAR wei: 65618786243774381749
+  Loop interest HOLLAR wei: 262333736502264165431
+  External exit funding HOLLAR wei: 0
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 0
+
+[PASS] test_90DaySeesaw() (gas: 248522986)
+Logs:
+  Token-unit reconciliation HOLLAR wei: 84812580279562978
+  Token-unit reconciliation HOLLAR wei: 88288913353234484
+  path (0 bull, 1 bear, 2 seesaw): 2
+  Modeled TVL USD: 6000
+  Main interest HOLLAR wei: 61279519863229534751
+  Loop interest HOLLAR wei: 231849303790271872881
+  External exit funding HOLLAR wei: 56193748878804189241
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 136
+
+[PASS] test_90DaySeesawFullMainDiscount() (gas: 189807674)
+Logs:
+  path (0 bull, 1 bear, 2 seesaw): 2
+  Modeled TVL USD: 6000
+  Main interest HOLLAR wei: 0
+  Loop interest HOLLAR wei: 150072810651222939815
+  External exit funding HOLLAR wei: 0
+  Synthetic floor misses (vault-days): 0
+  Deficit-blocked rebalances: 2
+
+[PASS] test_90DaySeesawKeeperOutage() (gas: 216727305)
+Logs:
+  Token-unit reconciliation HOLLAR wei: 84812580279562978
+  Token-unit reconciliation HOLLAR wei: 88288913353234484
+  path (0 bull, 1 bear, 2 seesaw): 2
+  Modeled TVL USD: 6000
+  Main interest HOLLAR wei: 61279519863229534751
+  Loop interest HOLLAR wei: 231849303790271872881
+  External exit funding HOLLAR wei: 56193748878804189241
+  Synthetic floor misses (vault-days): 2
+  Deficit-blocked rebalances: 78
+
+[PASS] test_fullFlowTwoVaultsYieldInKind() (gas: 15417223)
+[PASS] test_lossFreezeStagedFundingAndFullRecovery() (gas: 18628507)
+[PASS] test_netCarryAfterHollarBorrowCost() (gas: 11566972)
+[PASS] test_reverseVaultAndClaimOrderPreservesAllPrincipal() (gas: 18629397)
+[PASS] test_sourceEmergencyFreezesBothVaultsAndPreservesLocalPause() (gas: 106608)
+[PASS] test_swapCostsReduceRealizedYield() (gas: 14661780)
+[PASS] test_zeroEquityCannotStartUnwindOrEraseWaitingShares() (gas: 10364812)
+Suite result: ok. 35 passed; 0 failed; 0 skipped; finished in 32.50s (52.27s CPU time)
+
+Ran 6 test suites in 46.82s (64.94s CPU time): 81 tests passed, 0 failed, 8 skipped (89 total tests)

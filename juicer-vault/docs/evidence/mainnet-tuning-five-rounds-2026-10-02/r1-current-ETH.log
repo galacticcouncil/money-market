@@ -1,0 +1,39 @@
+Missing dependencies found. Installing now...
+
+Compiling 1 files with Solc 0.8.22
+Solc 0.8.22 finished in 122.72s
+Compiler run successful!
+
+Ran 1 test for test/MainnetTuning.t.sol:MainnetTuningTest
+[PASS] test_mainnetTuning() (gas: 361257358)
+Logs:
+  fundedCryptoUsd: 0
+  unconvertedUsd: 445336806192267405021
+  mainDebtUsd: 7539082100518345965229
+  loopDebtUsd: 39938753197610760097312
+  sourceEquityUsd: 7986475859390000000000
+  cashUsd: 0
+  backingDeficitUsd: 0
+  sourceReserveUsd: 479252290570000000000
+  protocolFeeUsd: 15672825320599951385
+  firstHarvestDay: 234
+  firstCryptoDay: 0
+  harvests: 33
+  borrows: 68
+  rebalances: 0
+  repays: 0
+  pegUpdates: 234
+  blockedDays: 25
+  mainInterestUsd: 335079079533197527190
+  loopInterestUsd: 1527211208950760097312
+  waivedInterestUsd: 0
+  sourceIncomeUsd: 2351991474000000000000
+  minimumHf: 1054734677388006249
+  maxHarvestUsd: 9598037000000000000
+  maxBorrowUsd: 1000000000000000000000
+  maxRebalanceUsd: 0
+  days: 365
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.29s (1.28s CPU time)
+
+Ran 1 test suite in 1.29s (1.29s CPU time): 1 tests passed, 0 failed, 0 skipped (1 total tests)

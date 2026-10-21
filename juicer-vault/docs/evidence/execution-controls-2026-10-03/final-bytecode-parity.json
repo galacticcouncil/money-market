@@ -1,0 +1,65 @@
+[
+  {
+    "contract": "CollateralVault",
+    "creationEqual": true,
+    "runtimeEqual": true,
+    "runtimeBytes": 24086,
+    "creationBytes": 41660
+  },
+  {
+    "contract": "CompoundLogic",
+    "creationEqual": true,
+    "runtimeEqual": true,
+    "runtimeBytes": 17150,
+    "creationBytes": 17178
+  },
+  {
+    "contract": "SubLoop",
+    "creationEqual": true,
+    "runtimeEqual": true,
+    "runtimeBytes": 23981,
+    "creationBytes": 24212
+  },
+  {
+    "contract": "ExecutionController",
+    "creationEqual": true,
+    "runtimeEqual": true,
+    "runtimeBytes": 9813,
+    "creationBytes": 10237
+  },
+  {
+    "contract": "Harvester",
+    "creationEqual": true,
+    "runtimeEqual": true,
+    "runtimeBytes": 9147,
+    "creationBytes": 9677
+  },
+  {
+    "contract": "PropellerMainDebt",
+    "creationEqual": true,
+    "runtimeEqual": true,
+    "runtimeBytes": 17483,
+    "creationBytes": 31293
+  },
+  {
+    "contract": "PropellerYieldAccounting",
+    "creationEqual": true,
+    "runtimeEqual": true,
+    "runtimeBytes": 12230,
+    "creationBytes": 12576
+  },
+  {
+    "contract": "PropellerFeeController",
+    "creationEqual": true,
+    "runtimeEqual": true,
+    "runtimeBytes": 8960,
+    "creationBytes": 9402
+  },
+  {
+    "contract": "SyntheticToken",
+    "creationEqual": true,
+    "runtimeEqual": true,
+    "runtimeBytes": 4827,
+    "creationBytes": 5957
+  }
+]

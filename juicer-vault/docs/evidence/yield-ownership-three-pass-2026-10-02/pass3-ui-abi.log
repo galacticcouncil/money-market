@@ -1,0 +1,6 @@
+CollateralVault: 31 UI functions match compiled ABI
+PropellerMainDebt: 3 UI functions match compiled ABI
+PropellerYieldAccounting: 2 UI functions match compiled ABI
+SubLoop: 5 UI functions match compiled ABI
+PropellerFeeController: 1 UI functions match compiled ABI
+Passed: 42 signatures, return types and mutability; no chain reads.

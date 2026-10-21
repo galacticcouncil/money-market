@@ -1,0 +1,3179 @@
+{
+  "rpc": "http://127.0.0.1:8163",
+  "fork": {
+    "chainId": 222222,
+    "block": "15306846",
+    "hash": "0x02f6c220e92ae361c69ffbc6fe624c691ce9b9191e49ef5d34d891cdd2f6de7c",
+    "runtime": {
+      "specName": "hydradx",
+      "implName": "hydradx",
+      "authoringVersion": 1,
+      "specVersion": 447,
+      "implVersion": 0,
+      "apis": [
+        [
+          "0xdf6acb689907609b",
+          5
+        ],
+        [
+          "0x37e397fc7c91f5e4",
+          2
+        ],
+        [
+          "0x40fe3ad401f8959a",
+          6
+        ],
+        [
+          "0xd2bc9897eed08f15",
+          3
+        ],
+        [
+          "0xf78b278be53f454c",
+          2
+        ],
+        [
+          "0xab3c0572291feb8b",
+          1
+        ],
+        [
+          "0xdd718d5cc53262d4",
+          1
+        ],
+        [
+          "0xea93e3f16f3d6962",
+          3
+        ],
+        [
+          "0x695c80446b8b3d4e",
+          1
+        ],
+        [
+          "0x9af86751b70c112d",
+          1
+        ],
+        [
+          "0xbc9d89904f5b923f",
+          1
+        ],
+        [
+          "0x37c8bb1350a9a2a8",
+          4
+        ],
+        [
+          "0x582211f65bb14b89",
+          6
+        ],
+        [
+          "0xe65b00e46cedd0aa",
+          2
+        ],
+        [
+          "0x0bb67a52fcd040ff",
+          1
+        ],
+        [
+          "0x34a3d488166b5a55",
+          1
+        ],
+        [
+          "0x542334fe4fd7cada",
+          1
+        ],
+        [
+          "0x6ff52ee858e6c5bd",
+          1
+        ],
+        [
+          "0xd7bdd8a272ca0d65",
+          2
+        ],
+        [
+          "0x04e70521a0d3d2f8",
+          1
+        ],
+        [
+          "0x91b1c8b16328eb92",
+          2
+        ],
+        [
+          "0x9ffb505aa738d69c",
+          1
+        ],
+        [
+          "0x2b5f5bcd2460e4f0",
+          1
+        ],
+        [
+          "0xa2b2b484fcb86943",
+          1
+        ],
+        [
+          "0x75fc5fbf0e9c71bc",
+          1
+        ],
+        [
+          "0x6aa673a4e69ae9a5",
+          1
+        ],
+        [
+          "0xfbc577b9d747efd6",
+          1
+        ]
+      ],
+      "transactionVersion": 1,
+      "stateVersion": 1
+    }
+  },
+  "calls": [
+    {
+      "label": "incomeApprove",
+      "hash": "0xf6e3bdd3e513a3fa1df95af5592830b48713cd7ff018fd2dd8090fb9404d569f",
+      "estimate": "24352",
+      "gas": "26788",
+      "gasUsed": "24352",
+      "status": "success"
+    },
+    {
+      "label": "incomeFixture",
+      "hash": "0xaa1ab43e43f1ed6961c93d0bd6a7a10ce198bf9704380120d870ab421e5add74",
+      "estimate": "5557540",
+      "gas": "6113294",
+      "gasUsed": "149798",
+      "status": "success"
+    },
+    {
+      "label": "checkpoint",
+      "hash": "0xcfd9ae1b2ed407b167b2d24fc380e210ced625e23f3444dea5e1f31ddd57cc1b",
+      "estimate": "1002809",
+      "gas": "1103090",
+      "gasUsed": "710202",
+      "status": "success"
+    },
+    {
+      "label": "transferAfterIncome",
+      "hash": "0x983c09d8efec2bcc7d614bc36876b24f6e115edfa5d58fec6fb572e3e2f316ec",
+      "estimate": "937355",
+      "gas": "1031091",
+      "gasUsed": "613175",
+      "status": "success"
+    },
+    {
+      "label": "claimOwnedYield",
+      "hash": "0x53ea81341b3b29d5fd85b6c8f57a40890db653e81c108bd515a33190857aea67",
+      "estimate": "1002809",
+      "gas": "1103090",
+      "gasUsed": "842633",
+      "status": "success"
+    },
+    {
+      "label": "queue0",
+      "hash": "0x1a204573938af34140da9927ef3dbc42e2c7506810162a757b2d26ccfa0d2b77",
+      "estimate": "3424606",
+      "gas": "3767067",
+      "gasUsed": "3388304",
+      "status": "success"
+    },
+    {
+      "label": "queue1",
+      "hash": "0x2b1e7cba3629fd2bffd2720797438a7ea99f2baeb15ca1e856671c596599a6b1",
+      "estimate": "3424606",
+      "gas": "3767067",
+      "gasUsed": "3354104",
+      "status": "success"
+    },
+    {
+      "label": "queue2",
+      "hash": "0xc211924bb918c526550f3ee3ce30a748bba10b491ef4ff0fa22e0fa6527171c5",
+      "estimate": "3424606",
+      "gas": "3767067",
+      "gasUsed": "3354104",
+      "status": "success"
+    },
+    {
+      "label": "queue3",
+      "hash": "0xec7d51d21791a3ca16be987cf181bce3de8dae7e2b94fb9ec385d8c44acd2d06",
+      "estimate": "3424606",
+      "gas": "3767067",
+      "gasUsed": "3354104",
+      "status": "success"
+    },
+    {
+      "label": "start2",
+      "hash": "0xacd336c79502dd6b8647b0a8b3fc4ec17bbb10859949e3e512764f92775677ce",
+      "estimate": "13635425",
+      "gas": "14998968",
+      "gasUsed": "11524598",
+      "status": "success"
+    },
+    {
+      "label": "start18",
+      "hash": "0xf501ed9cb639cd8b9355337f43ba55567e26b9ed57390557708924c7d930baea",
+      "estimate": "12588162",
+      "gas": "13846979",
+      "gasUsed": "10597517",
+      "status": "success"
+    },
+    {
+      "label": "queueRecoveryApprove",
+      "hash": "0xacc4413d1ca61141c87f1088d7a7e9a6cc74a0633ab624b5244c6855e54ee872",
+      "estimate": "49635",
+      "gas": "54599",
+      "gasUsed": "46187",
+      "status": "success"
+    },
+    {
+      "label": "queueRecovery0",
+      "hash": "0x690700daaca7a9e3e5fc464bfef0ad0186a9f13c6822df953ebd93eaaccc24d1",
+      "estimate": "479177",
+      "gas": "527095",
+      "gasUsed": "377129",
+      "status": "success"
+    },
+    {
+      "label": "queueRecovery1",
+      "hash": "0x10578d78aeea54c3bbf5bfee67347b14dd9c20bc14f97aa8e4553c5833c0bfa2",
+      "estimate": "479177",
+      "gas": "527095",
+      "gasUsed": "372329",
+      "status": "success"
+    },
+    {
+      "label": "extraShares",
+      "hash": "0xd3e272a8c6830b80ecc041a5da70492a66a852a8ae096dade0642ea7ea2984fb",
+      "estimate": "937355",
+      "gas": "1031091",
+      "gasUsed": "541975",
+      "status": "success"
+    },
+    {
+      "label": "extraRequests",
+      "hash": "0x0a8182636608ff20072e66d756e2a56d82b169ae007459009004aef5cb10cfd5",
+      "estimate": "3424606",
+      "gas": "3767067",
+      "gasUsed": "3371204",
+      "status": "success"
+    },
+    {
+      "label": "extraRecoveryApprove",
+      "hash": "0xfd05c1656bdf344ae0f42ff07125508899eca1559445dda9d4788ef7af7ca052",
+      "estimate": "49635",
+      "gas": "54599",
+      "gasUsed": "46199",
+      "status": "success"
+    },
+    {
+      "label": "extraRecovery",
+      "hash": "0x2d8704a5ad0047123d3ee0bd2962d516ac23fc21d594c8632f89947da63fdfcf",
+      "estimate": "299178",
+      "gas": "329096",
+      "gasUsed": "227438",
+      "status": "success"
+    }
+  ],
+  "checks": {
+    "yieldOwnership": true,
+    "reinvestment": true,
+    "nativeQueueWithinKeeperBudget": true,
+    "nativeEightRequestStart": true,
+    "nativeEightRequestSettlement": true
+  },
+  "actor": "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+  "actorDeployment": {
+    "hash": "0xa2fb06b0ab0c86fdef6d79539502969c5eff2c046607f361805585377b32bd4d",
+    "gasUsed": "477996",
+    "codeHash": "0x86aeade052923e1b38a043d9b8f2723ebaa3e86743bf20eceb330ea70b8080d1"
+  },
+  "rpcCompatibility": "Local eth_estimateGas uses bounded eth_call search, matching Hydration fc-rpc rpc-binary-search-estimate; original native runtime and transaction budgets retained",
+  "gasSearches": [
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "prepareHarvest",
+      "args": [],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": false
+        },
+        {
+          "gas": "806447",
+          "success": false
+        },
+        {
+          "gas": "937355",
+          "success": false
+        },
+        {
+          "gas": "1002809",
+          "success": true
+        }
+      ],
+      "estimate": "1002809"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "transfer",
+      "args": [
+        "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+        "4999999999999500"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": false
+        },
+        {
+          "gas": "806447",
+          "success": false
+        },
+        {
+          "gas": "937355",
+          "success": true
+        },
+        {
+          "gas": "871901",
+          "success": false
+        }
+      ],
+      "estimate": "937355"
+    },
+    {
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "functionName": "harvest",
+      "args": [
+        []
+      ],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": false
+        },
+        {
+          "gas": "4513125",
+          "success": false
+        },
+        {
+          "gas": "5261812",
+          "success": false
+        },
+        {
+          "gas": "5636156",
+          "success": false
+        }
+      ],
+      "estimate": "6010500"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "claimYield",
+      "args": [
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": false
+        },
+        {
+          "gas": "806447",
+          "success": false
+        },
+        {
+          "gas": "937355",
+          "success": false
+        },
+        {
+          "gas": "1002809",
+          "success": true
+        }
+      ],
+      "estimate": "1002809"
+    },
+    {
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "functionName": "harvest",
+      "args": [
+        []
+      ],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": false
+        },
+        {
+          "gas": "4513125",
+          "success": false
+        },
+        {
+          "gas": "5261812",
+          "success": false
+        },
+        {
+          "gas": "5636156",
+          "success": true
+        }
+      ],
+      "estimate": "5636156"
+    },
+    {
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "functionName": "pokeRepay",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": false
+        },
+        {
+          "gas": "2267062",
+          "success": true
+        },
+        {
+          "gas": "1892718",
+          "success": true
+        },
+        {
+          "gas": "1705546",
+          "success": true
+        },
+        {
+          "gas": "1611960",
+          "success": false
+        }
+      ],
+      "estimate": "1705546"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": true
+        },
+        {
+          "gas": "1237617",
+          "success": false
+        }
+      ],
+      "estimate": "1331203"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": true
+        },
+        {
+          "gas": "1237617",
+          "success": false
+        }
+      ],
+      "estimate": "1331203"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": false
+        },
+        {
+          "gas": "582515",
+          "success": false
+        },
+        {
+          "gas": "676101",
+          "success": false
+        },
+        {
+          "gas": "722894",
+          "success": false
+        }
+      ],
+      "estimate": "769687"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": false
+        },
+        {
+          "gas": "582515",
+          "success": false
+        },
+        {
+          "gas": "676101",
+          "success": false
+        },
+        {
+          "gas": "722894",
+          "success": false
+        }
+      ],
+      "estimate": "769687"
+    },
+    {
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "functionName": "harvest",
+      "args": [
+        []
+      ],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": false
+        },
+        {
+          "gas": "4513125",
+          "success": false
+        },
+        {
+          "gas": "5261812",
+          "success": false
+        },
+        {
+          "gas": "5636156",
+          "success": true
+        }
+      ],
+      "estimate": "5636156"
+    },
+    {
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "functionName": "pokeRepay",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": false
+        },
+        {
+          "gas": "2267062",
+          "success": true
+        },
+        {
+          "gas": "1892718",
+          "success": true
+        },
+        {
+          "gas": "1705546",
+          "success": true
+        },
+        {
+          "gas": "1611960",
+          "success": false
+        }
+      ],
+      "estimate": "1705546"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": false
+        },
+        {
+          "gas": "1424789",
+          "success": true
+        }
+      ],
+      "estimate": "1424789"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": true
+        },
+        {
+          "gas": "1237617",
+          "success": false
+        }
+      ],
+      "estimate": "1331203"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": false
+        },
+        {
+          "gas": "582515",
+          "success": false
+        },
+        {
+          "gas": "676101",
+          "success": false
+        },
+        {
+          "gas": "722894",
+          "success": false
+        }
+      ],
+      "estimate": "769687"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": false
+        },
+        {
+          "gas": "582515",
+          "success": false
+        },
+        {
+          "gas": "676101",
+          "success": false
+        },
+        {
+          "gas": "722894",
+          "success": false
+        }
+      ],
+      "estimate": "769687"
+    },
+    {
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "functionName": "harvest",
+      "args": [
+        []
+      ],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": false
+        },
+        {
+          "gas": "4513125",
+          "success": false
+        },
+        {
+          "gas": "5261812",
+          "success": false
+        },
+        {
+          "gas": "5636156",
+          "success": true
+        }
+      ],
+      "estimate": "5636156"
+    },
+    {
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "functionName": "pokeRepay",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": false
+        },
+        {
+          "gas": "2267062",
+          "success": true
+        },
+        {
+          "gas": "1892718",
+          "success": true
+        },
+        {
+          "gas": "1705546",
+          "success": true
+        },
+        {
+          "gas": "1611960",
+          "success": false
+        }
+      ],
+      "estimate": "1705546"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": true
+        },
+        {
+          "gas": "1237617",
+          "success": false
+        }
+      ],
+      "estimate": "1331203"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": true
+        },
+        {
+          "gas": "1237617",
+          "success": false
+        }
+      ],
+      "estimate": "1331203"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": false
+        },
+        {
+          "gas": "582515",
+          "success": false
+        },
+        {
+          "gas": "676101",
+          "success": false
+        },
+        {
+          "gas": "722894",
+          "success": false
+        }
+      ],
+      "estimate": "769687"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": false
+        },
+        {
+          "gas": "582515",
+          "success": false
+        },
+        {
+          "gas": "676101",
+          "success": false
+        },
+        {
+          "gas": "722894",
+          "success": false
+        }
+      ],
+      "estimate": "769687"
+    },
+    {
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "functionName": "harvest",
+      "args": [
+        []
+      ],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": false
+        },
+        {
+          "gas": "4513125",
+          "success": false
+        },
+        {
+          "gas": "5261812",
+          "success": false
+        },
+        {
+          "gas": "5636156",
+          "success": true
+        }
+      ],
+      "estimate": "5636156"
+    },
+    {
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "functionName": "pokeRepay",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": false
+        },
+        {
+          "gas": "2267062",
+          "success": true
+        },
+        {
+          "gas": "1892718",
+          "success": true
+        },
+        {
+          "gas": "1705546",
+          "success": true
+        },
+        {
+          "gas": "1611960",
+          "success": false
+        }
+      ],
+      "estimate": "1705546"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": true
+        },
+        {
+          "gas": "1237617",
+          "success": false
+        }
+      ],
+      "estimate": "1331203"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": true
+        },
+        {
+          "gas": "1237617",
+          "success": false
+        }
+      ],
+      "estimate": "1331203"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": false
+        },
+        {
+          "gas": "582515",
+          "success": false
+        },
+        {
+          "gas": "676101",
+          "success": false
+        },
+        {
+          "gas": "722894",
+          "success": false
+        }
+      ],
+      "estimate": "769687"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": false
+        },
+        {
+          "gas": "582515",
+          "success": false
+        },
+        {
+          "gas": "676101",
+          "success": false
+        },
+        {
+          "gas": "722894",
+          "success": false
+        }
+      ],
+      "estimate": "769687"
+    },
+    {
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "functionName": "harvest",
+      "args": [
+        []
+      ],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": false
+        },
+        {
+          "gas": "4513125",
+          "success": false
+        },
+        {
+          "gas": "5261812",
+          "success": false
+        },
+        {
+          "gas": "5636156",
+          "success": false
+        }
+      ],
+      "estimate": "6010500"
+    },
+    {
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "functionName": "pokeRepay",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": false
+        },
+        {
+          "gas": "2267062",
+          "success": true
+        },
+        {
+          "gas": "1892718",
+          "success": true
+        },
+        {
+          "gas": "1705546",
+          "success": true
+        },
+        {
+          "gas": "1611960",
+          "success": false
+        }
+      ],
+      "estimate": "1705546"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": false
+        },
+        {
+          "gas": "1424789",
+          "success": true
+        }
+      ],
+      "estimate": "1424789"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": false
+        },
+        {
+          "gas": "1424789",
+          "success": true
+        }
+      ],
+      "estimate": "1424789"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": false
+        },
+        {
+          "gas": "582515",
+          "success": false
+        },
+        {
+          "gas": "676101",
+          "success": false
+        },
+        {
+          "gas": "722894",
+          "success": false
+        }
+      ],
+      "estimate": "769687"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": false
+        },
+        {
+          "gas": "582515",
+          "success": false
+        },
+        {
+          "gas": "676101",
+          "success": false
+        },
+        {
+          "gas": "722894",
+          "success": false
+        }
+      ],
+      "estimate": "769687"
+    },
+    {
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "functionName": "harvest",
+      "args": [
+        []
+      ],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": false
+        },
+        {
+          "gas": "4513125",
+          "success": false
+        },
+        {
+          "gas": "5261812",
+          "success": false
+        },
+        {
+          "gas": "5636156",
+          "success": true
+        }
+      ],
+      "estimate": "5636156"
+    },
+    {
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "functionName": "pokeBorrow",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": false
+        },
+        {
+          "gas": "2267062",
+          "success": true
+        },
+        {
+          "gas": "1892718",
+          "success": true
+        },
+        {
+          "gas": "1705546",
+          "success": false
+        }
+      ],
+      "estimate": "1892718"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": true
+        },
+        {
+          "gas": "208171",
+          "success": false
+        },
+        {
+          "gas": "301757",
+          "success": true
+        },
+        {
+          "gas": "254964",
+          "success": false
+        },
+        {
+          "gas": "278360",
+          "success": true
+        }
+      ],
+      "estimate": "278360"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": true
+        },
+        {
+          "gas": "1237617",
+          "success": false
+        }
+      ],
+      "estimate": "1331203"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "rebalance",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": false
+        },
+        {
+          "gas": "2267062",
+          "success": false
+        },
+        {
+          "gas": "2641406",
+          "success": true
+        },
+        {
+          "gas": "2454234",
+          "success": false
+        }
+      ],
+      "estimate": "2641406"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "maintainPeg",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": true
+        },
+        {
+          "gas": "395343",
+          "success": false
+        },
+        {
+          "gas": "582515",
+          "success": false
+        },
+        {
+          "gas": "676101",
+          "success": false
+        },
+        {
+          "gas": "722894",
+          "success": false
+        }
+      ],
+      "estimate": "769687"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": true
+        },
+        {
+          "gas": "769687",
+          "success": false
+        },
+        {
+          "gas": "1144031",
+          "success": false
+        },
+        {
+          "gas": "1331203",
+          "success": true
+        },
+        {
+          "gas": "1237617",
+          "success": false
+        }
+      ],
+      "estimate": "1331203"
+    },
+    {
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "functionName": "rebalance",
+      "args": [],
+      "trials": [
+        {
+          "gas": "12000000",
+          "success": true
+        },
+        {
+          "gas": "6010500",
+          "success": true
+        },
+        {
+          "gas": "3015750",
+          "success": true
+        },
+        {
+          "gas": "1518375",
+          "success": false
+        },
+        {
+          "gas": "2267062",
+          "success": false
+        },
+        {
+          "gas": "2641406",
+          "success": true
+        },
+        {
+          "gas": "2454234",
+          "success": false
+        }
+      ],
+      "estimate": "2641406"
+    },
+    {
+      "address": "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+      "functionName": "request",
+      "args": [
+        "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "156249999999984",
+        "8"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": false
+        },
+        {
+          "gas": "3162790",
+          "success": false
+        },
+        {
+          "gas": "3686422",
+          "success": true
+        },
+        {
+          "gas": "3424606",
+          "success": true
+        }
+      ],
+      "estimate": "3424606"
+    },
+    {
+      "address": "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+      "functionName": "request",
+      "args": [
+        "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "156249999999984",
+        "8"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": false
+        },
+        {
+          "gas": "3162790",
+          "success": false
+        },
+        {
+          "gas": "3686422",
+          "success": true
+        },
+        {
+          "gas": "3424606",
+          "success": true
+        }
+      ],
+      "estimate": "3424606"
+    },
+    {
+      "address": "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+      "functionName": "request",
+      "args": [
+        "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "156249999999984",
+        "8"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": false
+        },
+        {
+          "gas": "3162790",
+          "success": false
+        },
+        {
+          "gas": "3686422",
+          "success": true
+        },
+        {
+          "gas": "3424606",
+          "success": true
+        }
+      ],
+      "estimate": "3424606"
+    },
+    {
+      "address": "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+      "functionName": "request",
+      "args": [
+        "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "156249999999984",
+        "8"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": false
+        },
+        {
+          "gas": "3162790",
+          "success": false
+        },
+        {
+          "gas": "3686422",
+          "success": true
+        },
+        {
+          "gas": "3424606",
+          "success": true
+        }
+      ],
+      "estimate": "3424606"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "startUnwinds",
+      "args": [
+        "16"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": false
+        },
+        {
+          "gas": "12588162",
+          "success": false
+        },
+        {
+          "gas": "14682689",
+          "success": true
+        },
+        {
+          "gas": "13635425",
+          "success": true
+        }
+      ],
+      "estimate": "13635425"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "startUnwinds",
+      "args": [
+        "16"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": false
+        },
+        {
+          "gas": "12588162",
+          "success": true
+        },
+        {
+          "gas": "10493635",
+          "success": false
+        },
+        {
+          "gas": "11540898",
+          "success": false
+        }
+      ],
+      "estimate": "12588162"
+    },
+    {
+      "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+      "functionName": "approve",
+      "args": [
+        "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+        "3200000000000000000000"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": true
+        },
+        {
+          "gas": "282815",
+          "success": true
+        },
+        {
+          "gas": "151907",
+          "success": true
+        },
+        {
+          "gas": "86453",
+          "success": true
+        },
+        {
+          "gas": "53726",
+          "success": true
+        },
+        {
+          "gas": "37363",
+          "success": false
+        },
+        {
+          "gas": "45544",
+          "success": false
+        },
+        {
+          "gas": "49635",
+          "success": true
+        }
+      ],
+      "estimate": "49635"
+    },
+    {
+      "address": "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+      "functionName": "fund",
+      "args": [
+        "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+        "3",
+        "16",
+        "100000000000000000000"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": true
+        },
+        {
+          "gas": "282815",
+          "success": false
+        },
+        {
+          "gas": "413723",
+          "success": false
+        },
+        {
+          "gas": "479177",
+          "success": true
+        },
+        {
+          "gas": "446450",
+          "success": false
+        }
+      ],
+      "estimate": "479177"
+    },
+    {
+      "address": "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+      "functionName": "fund",
+      "args": [
+        "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+        "19",
+        "16",
+        "100000000000000000000"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": true
+        },
+        {
+          "gas": "282815",
+          "success": false
+        },
+        {
+          "gas": "413723",
+          "success": false
+        },
+        {
+          "gas": "479177",
+          "success": true
+        },
+        {
+          "gas": "446450",
+          "success": false
+        }
+      ],
+      "estimate": "479177"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": false
+        },
+        {
+          "gas": "12588162",
+          "success": false
+        },
+        {
+          "gas": "14682689",
+          "success": true
+        },
+        {
+          "gas": "13635425",
+          "success": true
+        }
+      ],
+      "estimate": "13635425"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "transfer",
+      "args": [
+        "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+        "1249999999999872"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": false
+        },
+        {
+          "gas": "806447",
+          "success": false
+        },
+        {
+          "gas": "937355",
+          "success": true
+        },
+        {
+          "gas": "871901",
+          "success": false
+        }
+      ],
+      "estimate": "937355"
+    },
+    {
+      "address": "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+      "functionName": "request",
+      "args": [
+        "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+        "156249999999984",
+        "8"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": false
+        },
+        {
+          "gas": "3162790",
+          "success": false
+        },
+        {
+          "gas": "3686422",
+          "success": true
+        },
+        {
+          "gas": "3424606",
+          "success": true
+        }
+      ],
+      "estimate": "3424606"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "startUnwinds",
+      "args": [
+        "8"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": false
+        },
+        {
+          "gas": "6304581",
+          "success": true
+        },
+        {
+          "gas": "5257317",
+          "success": false
+        },
+        {
+          "gas": "5780949",
+          "success": false
+        }
+      ],
+      "estimate": "6304581"
+    },
+    {
+      "address": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+      "functionName": "approve",
+      "args": [
+        "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+        "800000000000000000000"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": true
+        },
+        {
+          "gas": "282815",
+          "success": true
+        },
+        {
+          "gas": "151907",
+          "success": true
+        },
+        {
+          "gas": "86453",
+          "success": true
+        },
+        {
+          "gas": "53726",
+          "success": true
+        },
+        {
+          "gas": "37363",
+          "success": false
+        },
+        {
+          "gas": "45544",
+          "success": false
+        },
+        {
+          "gas": "49635",
+          "success": true
+        }
+      ],
+      "estimate": "49635"
+    },
+    {
+      "address": "0xd5ac451b0c50b9476107823af206ed814a2e2580",
+      "functionName": "fund",
+      "args": [
+        "0x531a654d1696ED52e7275A8cede955E82620f99a",
+        "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+        "35",
+        "8",
+        "100000000000000000000"
+      ],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": true
+        },
+        {
+          "gas": "1068263",
+          "success": true
+        },
+        {
+          "gas": "544631",
+          "success": true
+        },
+        {
+          "gas": "282815",
+          "success": false
+        },
+        {
+          "gas": "413723",
+          "success": true
+        },
+        {
+          "gas": "348269",
+          "success": true
+        },
+        {
+          "gas": "315542",
+          "success": true
+        },
+        {
+          "gas": "299178",
+          "success": true
+        }
+      ],
+      "estimate": "299178"
+    },
+    {
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "functionName": "pokeSettle",
+      "args": [],
+      "trials": [
+        {
+          "gas": "16777216",
+          "success": true
+        },
+        {
+          "gas": "8399108",
+          "success": true
+        },
+        {
+          "gas": "4210054",
+          "success": true
+        },
+        {
+          "gas": "2115527",
+          "success": false
+        },
+        {
+          "gas": "3162790",
+          "success": false
+        },
+        {
+          "gas": "3686422",
+          "success": false
+        },
+        {
+          "gas": "3948238",
+          "success": false
+        }
+      ],
+      "estimate": "4210054"
+    }
+  ],
+  "ownership": {
+    "before": "221456760041428116",
+    "transferShares": "4999999999999500",
+    "module": "0x61c36a8d610163660E21a8b7359e1Cac0C9133e1",
+    "afterTransfer": "221456759000419738",
+    "recipientAfterHarvest": "0",
+    "claimedShares": "220205892113671585"
+  },
+  "keeperSubmissions": [
+    {
+      "functionName": "harvest",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "gas": "7212600",
+      "gasPrice": "5536035",
+      "localSignatureRetries": 0,
+      "hash": "0x663d227cb3eed453ef03bfd5ef7e520942c789c6c0dcbe05ec2c539520cc4d65",
+      "status": "success",
+      "gasUsed": "5779669",
+      "effectiveGasPrice": "5536035"
+    },
+    {
+      "functionName": "harvest",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "gas": "6763388",
+      "gasPrice": "5535918",
+      "localSignatureRetries": 0,
+      "hash": "0x856978be934507eacab9b93292c924e043efb66f2cedf90d09a8ae92e6e89ff0",
+      "status": "success",
+      "gasUsed": "5384856",
+      "effectiveGasPrice": "5535918"
+    },
+    {
+      "functionName": "pokeRepay",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "gas": "2046656",
+      "gasPrice": "5535808",
+      "localSignatureRetries": 0,
+      "hash": "0x419146027ba76495e673e9428c138c9aa699846d62f87dcb6cb5d8568aa3d71c",
+      "status": "success",
+      "gasUsed": "1493406",
+      "effectiveGasPrice": "5535808"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "1597444",
+      "gasPrice": "5535699",
+      "localSignatureRetries": 0,
+      "hash": "0x41d3ac50007a48f71dbbc88b92ef19474646476f664dbdfa9054cf10c292f16d",
+      "status": "success",
+      "gasUsed": "767945",
+      "effectiveGasPrice": "5535699"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "1597444",
+      "gasPrice": "5535594",
+      "localSignatureRetries": 0,
+      "hash": "0x915d5422f18eaafeb43199a7bb00fec6ca68c14cfba789d80e91ec7ec5148f14",
+      "status": "success",
+      "gasUsed": "772045",
+      "effectiveGasPrice": "5535594"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "923625",
+      "gasPrice": "5535494",
+      "localSignatureRetries": 0,
+      "hash": "0xe27b197e6b7d762c88edbdcc69400fdf73e224892d2887c0ccad581647da042c",
+      "status": "success",
+      "gasUsed": "291792",
+      "effectiveGasPrice": "5535494"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "923625",
+      "gasPrice": "5535395",
+      "localSignatureRetries": 0,
+      "hash": "0x32b2d7c67c84ef7cb2054674c0d63d6e7cf58e7c6ad59854e636d2a5f50cb55d",
+      "status": "success",
+      "gasUsed": "291792",
+      "effectiveGasPrice": "5535395"
+    },
+    {
+      "functionName": "harvest",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "gas": "6763388",
+      "gasPrice": "5535300",
+      "localSignatureRetries": 0,
+      "hash": "0x32feb640ae6e14d4b14226b4bc00b72d660765e8627981a7fb8c32462f6b0ff8",
+      "status": "success",
+      "gasUsed": "5380856",
+      "effectiveGasPrice": "5535300"
+    },
+    {
+      "functionName": "pokeRepay",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "gas": "2046656",
+      "gasPrice": "5535208",
+      "localSignatureRetries": 0,
+      "hash": "0x56740b71919ac2b5adf11126445304bff40b39c34a967688d1dba3d3226633c9",
+      "status": "success",
+      "gasUsed": "1493406",
+      "effectiveGasPrice": "5535208"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "1709747",
+      "gasPrice": "5535119",
+      "localSignatureRetries": 0,
+      "hash": "0x7a68dcedc4e193d64f35e90cc10a04495541a720f5f4f8afe5392426a02266cc",
+      "status": "success",
+      "gasUsed": "767945",
+      "effectiveGasPrice": "5535119"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "1597444",
+      "gasPrice": "5535035",
+      "localSignatureRetries": 0,
+      "hash": "0x1b75726836c6aba2ece7c4b10acef750ab6068fdcdf96fe8444a352c0b8701be",
+      "status": "success",
+      "gasUsed": "767945",
+      "effectiveGasPrice": "5535035"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "923625",
+      "gasPrice": "5534954",
+      "localSignatureRetries": 0,
+      "hash": "0x1599b6093bef6790312b6a92db9765d7712c0f21ff2e5ef0c94b157f869e5683",
+      "status": "success",
+      "gasUsed": "291792",
+      "effectiveGasPrice": "5534954"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "923625",
+      "gasPrice": "5534876",
+      "localSignatureRetries": 0,
+      "hash": "0xff856a408ff06aa6dd1e1bd48063a6315a3560f5294c0c6086a07dbdd1623263",
+      "status": "success",
+      "gasUsed": "291792",
+      "effectiveGasPrice": "5534876"
+    },
+    {
+      "functionName": "harvest",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "gas": "6763388",
+      "gasPrice": "5534799",
+      "localSignatureRetries": 0,
+      "hash": "0x156be4673367b4a94377ef32860d6111181d40db9ebc85a557ed0f3533417780",
+      "status": "success",
+      "gasUsed": "5380856",
+      "effectiveGasPrice": "5534799"
+    },
+    {
+      "functionName": "pokeRepay",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "gas": "2046656",
+      "gasPrice": "5534726",
+      "localSignatureRetries": 0,
+      "hash": "0x8fa1336aea0e017f84acd94fd3fc18a6cdc0e9993532451adf8629e1e8f7b928",
+      "status": "success",
+      "gasUsed": "1493406",
+      "effectiveGasPrice": "5534726"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "1597444",
+      "gasPrice": "5534654",
+      "localSignatureRetries": 0,
+      "hash": "0xb41dd8dea2b060f9aac87babe22b2ffface3e02892f8d29f026c0b190a44bbbc",
+      "status": "success",
+      "gasUsed": "767945",
+      "effectiveGasPrice": "5534654"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "1597444",
+      "gasPrice": "5534585",
+      "localSignatureRetries": 0,
+      "hash": "0xf4ff44413e0f8a448a4d02f38956e85f8bf81ba9e89f00bf63109ef964015066",
+      "status": "success",
+      "gasUsed": "767945",
+      "effectiveGasPrice": "5534585"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "923625",
+      "gasPrice": "5534518",
+      "localSignatureRetries": 0,
+      "hash": "0x081325884f44052f1c82cdfb5875b40699778690e8df1c9d91e7576f2247145d",
+      "status": "success",
+      "gasUsed": "291792",
+      "effectiveGasPrice": "5534518"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "923625",
+      "gasPrice": "5534453",
+      "localSignatureRetries": 0,
+      "hash": "0x09ff174806ca25f3f92fdd5dfb92d438862030b19932406c79a5700e31ef763a",
+      "status": "success",
+      "gasUsed": "291792",
+      "effectiveGasPrice": "5534453"
+    },
+    {
+      "functionName": "harvest",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "gas": "6763388",
+      "gasPrice": "5534391",
+      "localSignatureRetries": 0,
+      "hash": "0x83c900f1367a64539904b1f5479fd21b474acd2eca9de68a7c4ae48862777d04",
+      "status": "success",
+      "gasUsed": "5380856",
+      "effectiveGasPrice": "5534391"
+    },
+    {
+      "functionName": "pokeRepay",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "gas": "2046656",
+      "gasPrice": "5534331",
+      "localSignatureRetries": 0,
+      "hash": "0xec792f42859f5d5fae07ad2feca469ea6922b80cd9a910dec7684b104dab2df1",
+      "status": "success",
+      "gasUsed": "1493406",
+      "effectiveGasPrice": "5534331"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "1597444",
+      "gasPrice": "5534272",
+      "localSignatureRetries": 0,
+      "hash": "0x21bad9a11e9faf129cff62bbd63a943a3e61dce180ee2cd285e4f6ac331d31c2",
+      "status": "success",
+      "gasUsed": "767945",
+      "effectiveGasPrice": "5534272"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "1597444",
+      "gasPrice": "5534216",
+      "localSignatureRetries": 0,
+      "hash": "0x279bd7e391b622804a00e60589f418b3e6e5eed21442ca246ccc081e4a091503",
+      "status": "success",
+      "gasUsed": "772045",
+      "effectiveGasPrice": "5534216"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "923625",
+      "gasPrice": "5534160",
+      "localSignatureRetries": 0,
+      "hash": "0x5fc8c8b34ce0b264ef68fb2286816af37f3b327fc4481ee57cfe3071670e2317",
+      "status": "success",
+      "gasUsed": "291792",
+      "effectiveGasPrice": "5534160"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "923625",
+      "gasPrice": "5534108",
+      "localSignatureRetries": 0,
+      "hash": "0x83e79776c27b614cdc91e7a3f1868b899c78a8aba5cd60fced9f07146827d1b9",
+      "status": "success",
+      "gasUsed": "291792",
+      "effectiveGasPrice": "5534108"
+    },
+    {
+      "functionName": "harvest",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "gas": "7212600",
+      "gasPrice": "5534057",
+      "localSignatureRetries": 0,
+      "hash": "0xff034d3f252560c49a792051ee919eadfe479d45475ff6059461b8fc0564bf8e",
+      "status": "success",
+      "gasUsed": "5380856",
+      "effectiveGasPrice": "5534057"
+    },
+    {
+      "functionName": "pokeRepay",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "gas": "2046656",
+      "gasPrice": "5534007",
+      "localSignatureRetries": 0,
+      "hash": "0xc805428844ca89442664b9385515273cdce47dd47f1a1014135a683b00386313",
+      "status": "success",
+      "gasUsed": "1488611",
+      "effectiveGasPrice": "5534007"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "1709747",
+      "gasPrice": "5533959",
+      "localSignatureRetries": 0,
+      "hash": "0xf2e7d6133889e83f948cf947949156a1677fda9eb5ab2c2a68d4eb60aee7bf10",
+      "status": "success",
+      "gasUsed": "873892",
+      "effectiveGasPrice": "5533959"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "1709747",
+      "gasPrice": "5533913",
+      "localSignatureRetries": 0,
+      "hash": "0x2049153865b9387471aa8c5206236b8c1199a6527ec9529460c01c137928afa9",
+      "status": "success",
+      "gasUsed": "844640",
+      "effectiveGasPrice": "5533913"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "923625",
+      "gasPrice": "5533868",
+      "localSignatureRetries": 0,
+      "hash": "0x08675cbca8ce827ccc87a211c94ad601bab65f0149b4f5bc173f152b204eaf5e",
+      "status": "success",
+      "gasUsed": "291792",
+      "effectiveGasPrice": "5533868"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "923625",
+      "gasPrice": "5533824",
+      "localSignatureRetries": 0,
+      "hash": "0xeb67f5a827dc6964078e3c30334955852182113c1ada2f89dc86438ab15f9aef",
+      "status": "success",
+      "gasUsed": "291792",
+      "effectiveGasPrice": "5533824"
+    },
+    {
+      "functionName": "harvest",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "gas": "6763388",
+      "gasPrice": "5533782",
+      "localSignatureRetries": 0,
+      "hash": "0x30d345fbab51bb0788d08df3e9190b42130315cbb35587623b288908de2d28bf",
+      "status": "success",
+      "gasUsed": "5380856",
+      "effectiveGasPrice": "5533782"
+    },
+    {
+      "functionName": "pokeBorrow",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "gas": "2271262",
+      "gasPrice": "5533742",
+      "localSignatureRetries": 0,
+      "hash": "0xa3e238796c3b2eb2592f907a3405ffe7f23a3aa62dcef2c639e20b072ce6999d",
+      "status": "success",
+      "gasUsed": "1447436",
+      "effectiveGasPrice": "5533742"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "334032",
+      "gasPrice": "5533702",
+      "localSignatureRetries": 0,
+      "hash": "0x8b76e31a2cc47a01ab163250cb0e8c343165764947d46e942945acf1a87e3d31",
+      "status": "success",
+      "gasUsed": "73429",
+      "effectiveGasPrice": "5533702"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "1597444",
+      "gasPrice": "5533665",
+      "localSignatureRetries": 0,
+      "hash": "0xbb5175f42063bb30af58ece7144acc629680e32ee7bbf81367c6ab48e3d51f86",
+      "status": "success",
+      "gasUsed": "618360",
+      "effectiveGasPrice": "5533665"
+    },
+    {
+      "functionName": "rebalance",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "3169688",
+      "gasPrice": "5533628",
+      "localSignatureRetries": 0,
+      "hash": "0x8e19dfb6dd4eec89fd22ca45cd1a3c537085266656ad713fbc2cec42cdbc95ce",
+      "status": "success",
+      "gasUsed": "2582736",
+      "effectiveGasPrice": "5533628"
+    },
+    {
+      "functionName": "maintainPeg",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "923625",
+      "gasPrice": "5533592",
+      "localSignatureRetries": 0,
+      "hash": "0x9d1306e396a7413f69d9eda30b7bc52c224e0de3dfa003e018bbaa9d83f2d8f0",
+      "status": "success",
+      "gasUsed": "291792",
+      "effectiveGasPrice": "5533592"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "1597444",
+      "gasPrice": "5533558",
+      "localSignatureRetries": 0,
+      "hash": "0x33d35b6f1a510d44c77a60c8aa07fa09c193f20709822eb2c897ecbe6568a77d",
+      "status": "success",
+      "gasUsed": "616360",
+      "effectiveGasPrice": "5533558"
+    },
+    {
+      "functionName": "rebalance",
+      "address": "0xc5a5c42992decbae36851359345fe25997f5c42d",
+      "gas": "3169688",
+      "gasPrice": "5533524",
+      "localSignatureRetries": 0,
+      "hash": "0x7235d4c563458e578351afc79243e1f7f95821723a7858f0897c11e3c4a4f355",
+      "status": "success",
+      "gasUsed": "2582736",
+      "effectiveGasPrice": "5533524"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "16362510",
+      "gasPrice": "5533239",
+      "localSignatureRetries": 0,
+      "hash": "0x4cf8df097bba5dfa4350e9d0cb68377eab68924b82f8eb0e47f2e5a667f1e494",
+      "status": "success",
+      "gasUsed": "10985168",
+      "effectiveGasPrice": "5533239"
+    },
+    {
+      "functionName": "startUnwinds",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "7565498",
+      "gasPrice": "5533158",
+      "localSignatureRetries": 0,
+      "hash": "0x8a7ff0986ff4d2bdc37ccf56322227edfa020f505162c921c127d0b42bbfb702",
+      "status": "success",
+      "gasUsed": "5587013",
+      "effectiveGasPrice": "5533158"
+    },
+    {
+      "functionName": "pokeSettle",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "gas": "5052065",
+      "gasPrice": "5533106",
+      "localSignatureRetries": 0,
+      "hash": "0x1856ab8d15f4697c119c472e9f5f57f3a5f935e3af03fbe5f0884363eb7f48df",
+      "status": "success",
+      "gasUsed": "3258461",
+      "effectiveGasPrice": "5533106"
+    }
+  ],
+  "reinvestment": {
+    "debtBefore": "72799676020861175677",
+    "sourceSharesBefore": "1632341722545322015",
+    "creditBefore": "316013947823061273",
+    "debtAfter": "661836729869707193886",
+    "sourceSharesAfter": "18132185631849657813"
+  },
+  "queue": {
+    "first": "2",
+    "sharesPerRequest": "156249999999984",
+    "timeAdvanced": true,
+    "headBefore": "2",
+    "headAfter": "34"
+  },
+  "status": "passed",
+  "limitations": [
+    "Source income is a donated 1000 PRIME fixture, not organic APY",
+    "40 exit cohorts receive 100 HOLLAR each to isolate settlement cost",
+    "Cooldown uses local native time advancement",
+    "Local execution is not production activation"
+  ],
+  "extraQueue": {
+    "first": "34",
+    "timeAdvanced": true
+  },
+  "priorFailure": "AssertionError [ERR_ASSERTION]: native queue cannot execute within keeper budget\n\nfalse !== true\n"
+}

@@ -1,0 +1,673 @@
+{
+  "block": "14937805",
+  "oraclePrice": 1.0505,
+  "independentReference": 1.06080552,
+  "dependencies": {
+    "stableswap": {
+      "version": "2.5.0",
+      "wasmSha256": "a3cb6c3ea278d231cf6af1e75dbeabe465a24825b379f27c008f030d43234c93"
+    },
+    "hsm": {
+      "version": "1.2.0",
+      "wasmSha256": "b98b025623d907590d055bcfe6e03a24406379638a1af7c40e4b79cd7f8205eb"
+    }
+  },
+  "scope": "Observed state plus conditional wYLDS=$1/reference-update/full-peg-update/trader-inventory scenarios. Not a recommended oracle update or committed replenishment.",
+  "cases": [
+    {
+      "name": "observed",
+      "oraclePrice": 1.0505,
+      "externallySuppliedPrime": 0,
+      "hollarPaidToTrader": 0,
+      "quotes": [
+        {
+          "hollar": 1,
+          "primeOut": 0.942099,
+          "entryLossBps": 103.24,
+          "exitLossBps": -96.24
+        },
+        {
+          "hollar": 10,
+          "primeOut": 9.420986,
+          "entryLossBps": 103.25,
+          "exitLossBps": -96.24
+        },
+        {
+          "hollar": 100,
+          "primeOut": 94.209523,
+          "entryLossBps": 103.28,
+          "exitLossBps": -96.2
+        },
+        {
+          "hollar": 1000,
+          "primeOut": 942.060808,
+          "entryLossBps": 103.65,
+          "exitLossBps": -95.83
+        },
+        {
+          "hollar": 2500,
+          "primeOut": 2355.007709,
+          "entryLossBps": 104.25,
+          "exitLossBps": -95.21
+        },
+        {
+          "hollar": 5000,
+          "primeOut": 4709.5295,
+          "entryLossBps": 105.27,
+          "exitLossBps": -94.2
+        },
+        {
+          "hollar": 10000,
+          "primeOut": 9417.077708,
+          "entryLossBps": 107.35,
+          "exitLossBps": -92.21
+        },
+        {
+          "hollar": 25000,
+          "primeOut": 23527.027455,
+          "entryLossBps": 113.94,
+          "exitLossBps": -86.54
+        },
+        {
+          "hollar": 50000,
+          "primeOut": 46995.611363,
+          "entryLossBps": 126.22,
+          "exitLossBps": -77.91
+        },
+        {
+          "hollar": 100000,
+          "primeOut": 93693.702404,
+          "entryLossBps": 157.47,
+          "exitLossBps": -63.03
+        }
+      ],
+      "maxOneShotEntryHollar": {
+        "10": 0,
+        "25": 0,
+        "50": 0,
+        "100": 0
+      }
+    },
+    {
+      "name": "reference-only-peg-not-yet-updated",
+      "oraclePrice": 1.06080552,
+      "externallySuppliedPrime": 0,
+      "hollarPaidToTrader": 0,
+      "quotes": [
+        {
+          "hollar": 1,
+          "primeOut": 0.942099,
+          "entryLossBps": 6.15,
+          "exitLossBps": 1.83
+        },
+        {
+          "hollar": 10,
+          "primeOut": 9.420986,
+          "entryLossBps": 6.16,
+          "exitLossBps": 1.84
+        },
+        {
+          "hollar": 100,
+          "primeOut": 94.209523,
+          "entryLossBps": 6.2,
+          "exitLossBps": 1.87
+        },
+        {
+          "hollar": 1000,
+          "primeOut": 942.060808,
+          "entryLossBps": 6.56,
+          "exitLossBps": 2.24
+        },
+        {
+          "hollar": 2500,
+          "primeOut": 2355.007709,
+          "entryLossBps": 7.17,
+          "exitLossBps": 2.84
+        },
+        {
+          "hollar": 5000,
+          "primeOut": 4709.5295,
+          "entryLossBps": 8.21,
+          "exitLossBps": 3.83
+        },
+        {
+          "hollar": 10000,
+          "primeOut": 9417.077708,
+          "entryLossBps": 10.31,
+          "exitLossBps": 5.78
+        },
+        {
+          "hollar": 25000,
+          "primeOut": 23527.027455,
+          "entryLossBps": 16.95,
+          "exitLossBps": 11.35
+        },
+        {
+          "hollar": 50000,
+          "primeOut": 46995.611363,
+          "entryLossBps": 29.35,
+          "exitLossBps": 19.83
+        },
+        {
+          "hollar": 100000,
+          "primeOut": 93693.702404,
+          "entryLossBps": 60.92,
+          "exitLossBps": 34.46
+        }
+      ],
+      "maxOneShotEntryHollar": {
+        "10": 9265,
+        "25": 41620,
+        "50": 84565,
+        "100": 143646
+      }
+    },
+    {
+      "name": "reference-and-peg-updated-no-refill",
+      "oraclePrice": 1.06080552,
+      "externallySuppliedPrime": 0,
+      "hollarPaidToTrader": 0,
+      "quotes": [
+        {
+          "hollar": 1,
+          "primeOut": 0.933115,
+          "entryLossBps": 101.45,
+          "exitLossBps": -94.4
+        },
+        {
+          "hollar": 10,
+          "primeOut": 9.331161,
+          "entryLossBps": 101.45,
+          "exitLossBps": -94.4
+        },
+        {
+          "hollar": 100,
+          "primeOut": 93.311278,
+          "entryLossBps": 101.48,
+          "exitLossBps": -94.36
+        },
+        {
+          "hollar": 1000,
+          "primeOut": 933.079367,
+          "entryLossBps": 101.84,
+          "exitLossBps": -94
+        },
+        {
+          "hollar": 2500,
+          "primeOut": 2332.558348,
+          "entryLossBps": 102.43,
+          "exitLossBps": -93.4
+        },
+        {
+          "hollar": 5000,
+          "primeOut": 4664.645117,
+          "entryLossBps": 103.43,
+          "exitLossBps": -92.41
+        },
+        {
+          "hollar": 10000,
+          "primeOut": 9327.367909,
+          "entryLossBps": 105.47,
+          "exitLossBps": -90.46
+        },
+        {
+          "hollar": 25000,
+          "primeOut": 23303.230125,
+          "entryLossBps": 111.92,
+          "exitLossBps": -84.89
+        },
+        {
+          "hollar": 50000,
+          "primeOut": 46549.882729,
+          "entryLossBps": 123.92,
+          "exitLossBps": -76.41
+        },
+        {
+          "hollar": 100000,
+          "primeOut": 92812.700198,
+          "entryLossBps": 154.37,
+          "exitLossBps": -61.77
+        }
+      ],
+      "maxOneShotEntryHollar": {
+        "10": 0,
+        "25": 0,
+        "50": 0,
+        "100": 0
+      }
+    },
+    {
+      "name": "reference-peg-refill-50000",
+      "oraclePrice": 1.06080552,
+      "externallySuppliedPrime": 50000,
+      "hollarPaidToTrader": 53440.43485477284,
+      "quotes": [
+        {
+          "hollar": 1,
+          "primeOut": 0.936437,
+          "entryLossBps": 66.21,
+          "exitLossBps": -58.6
+        },
+        {
+          "hollar": 10,
+          "primeOut": 9.36437,
+          "entryLossBps": 66.22,
+          "exitLossBps": -58.6
+        },
+        {
+          "hollar": 100,
+          "primeOut": 93.643476,
+          "entryLossBps": 66.24,
+          "exitLossBps": -58.58
+        },
+        {
+          "hollar": 1000,
+          "primeOut": 936.411119,
+          "entryLossBps": 66.49,
+          "exitLossBps": -58.32
+        },
+        {
+          "hollar": 2500,
+          "primeOut": 2340.928814,
+          "entryLossBps": 66.91,
+          "exitLossBps": -57.9
+        },
+        {
+          "hollar": 5000,
+          "primeOut": 4681.525204,
+          "entryLossBps": 67.62,
+          "exitLossBps": -57.2
+        },
+        {
+          "hollar": 10000,
+          "primeOut": 9361.701606,
+          "entryLossBps": 69.05,
+          "exitLossBps": -55.82
+        },
+        {
+          "hollar": 25000,
+          "primeOut": 23393.729513,
+          "entryLossBps": 73.52,
+          "exitLossBps": -51.83
+        },
+        {
+          "hollar": 50000,
+          "primeOut": 46749.25661,
+          "entryLossBps": 81.62,
+          "exitLossBps": -45.6
+        },
+        {
+          "hollar": 100000,
+          "primeOut": 93314.641878,
+          "entryLossBps": 101.13,
+          "exitLossBps": -34.33
+        }
+      ],
+      "maxOneShotEntryHollar": {
+        "10": 0,
+        "25": 0,
+        "50": 0,
+        "100": 97441
+      }
+    },
+    {
+      "name": "reference-peg-refill-100000",
+      "oraclePrice": 1.06080552,
+      "externallySuppliedPrime": 100000,
+      "hollarPaidToTrader": 106718.73760804697,
+      "quotes": [
+        {
+          "hollar": 1,
+          "primeOut": 0.938896,
+          "entryLossBps": 40.13,
+          "exitLossBps": -32.26
+        },
+        {
+          "hollar": 10,
+          "primeOut": 9.388962,
+          "entryLossBps": 40.13,
+          "exitLossBps": -32.26
+        },
+        {
+          "hollar": 100,
+          "primeOut": 93.889449,
+          "entryLossBps": 40.15,
+          "exitLossBps": -32.24
+        },
+        {
+          "hollar": 1000,
+          "primeOut": 938.875981,
+          "entryLossBps": 40.35,
+          "exitLossBps": -32.04
+        },
+        {
+          "hollar": 2500,
+          "primeOut": 2347.112578,
+          "entryLossBps": 40.68,
+          "exitLossBps": -31.71
+        },
+        {
+          "hollar": 5000,
+          "primeOut": 4693.96597,
+          "entryLossBps": 41.22,
+          "exitLossBps": -31.16
+        },
+        {
+          "hollar": 10000,
+          "primeOut": 9386.88535,
+          "entryLossBps": 42.34,
+          "exitLossBps": -30.08
+        },
+        {
+          "hollar": 25000,
+          "primeOut": 23459.151512,
+          "entryLossBps": 45.76,
+          "exitLossBps": -26.91
+        },
+        {
+          "hollar": 50000,
+          "primeOut": 46889.786691,
+          "entryLossBps": 51.81,
+          "exitLossBps": -21.82
+        },
+        {
+          "hollar": 100000,
+          "primeOut": 93649.039144,
+          "entryLossBps": 65.65,
+          "exitLossBps": -12.14
+        }
+      ],
+      "maxOneShotEntryHollar": {
+        "10": 0,
+        "25": 0,
+        "50": 42722,
+        "100": 188539
+      }
+    },
+    {
+      "name": "reference-peg-refill-150000",
+      "oraclePrice": 1.06080552,
+      "externallySuppliedPrime": 150000,
+      "hollarPaidToTrader": 159871.5281978337,
+      "quotes": [
+        {
+          "hollar": 1,
+          "primeOut": 0.940918,
+          "entryLossBps": 18.68,
+          "exitLossBps": -10.69
+        },
+        {
+          "hollar": 10,
+          "primeOut": 9.409188,
+          "entryLossBps": 18.68,
+          "exitLossBps": -10.69
+        },
+        {
+          "hollar": 100,
+          "primeOut": 94.091729,
+          "entryLossBps": 18.69,
+          "exitLossBps": -10.68
+        },
+        {
+          "hollar": 1000,
+          "primeOut": 940.901167,
+          "entryLossBps": 18.86,
+          "exitLossBps": -10.5
+        },
+        {
+          "hollar": 2500,
+          "primeOut": 2352.185648,
+          "entryLossBps": 19.15,
+          "exitLossBps": -10.22
+        },
+        {
+          "hollar": 5000,
+          "primeOut": 4704.146569,
+          "entryLossBps": 19.63,
+          "exitLossBps": -9.74
+        },
+        {
+          "hollar": 10000,
+          "primeOut": 9407.39036,
+          "entryLossBps": 20.58,
+          "exitLossBps": -8.8
+        },
+        {
+          "hollar": 25000,
+          "primeOut": 23511.616555,
+          "entryLossBps": 23.49,
+          "exitLossBps": -5.98
+        },
+        {
+          "hollar": 50000,
+          "primeOut": 46999.624013,
+          "entryLossBps": 28.5,
+          "exitLossBps": -1.34
+        },
+        {
+          "hollar": 100000,
+          "primeOut": 93896.602524,
+          "entryLossBps": 39.39,
+          "exitLossBps": 7.97
+        }
+      ],
+      "maxOneShotEntryHollar": {
+        "10": 0,
+        "25": 32607,
+        "50": 142351,
+        "100": 272606
+      }
+    }
+  ],
+  "throughput": [
+    {
+      "tvl": 100000,
+      "tranche": 1000,
+      "mainHollar": 77500,
+      "grossHollar": 478676.47058823536,
+      "idealizedEntryCalls": 479,
+      "daysAtOneCallPerFiveMinutes": 1.6631944444444444,
+      "keeperBorrowCallsLowerBound": 402,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 1.3958333333333333,
+      "requiredRefillHollarPerDayFor30DayRamp": 15955.882352941178,
+      "worstCaseRetentionHollar": {
+        "10": 478.67647058823536,
+        "25": 1196.6911764705883,
+        "50": 2393.3823529411766,
+        "100": 4786.764705882353
+      }
+    },
+    {
+      "tvl": 100000,
+      "tranche": 5000,
+      "mainHollar": 77500,
+      "grossHollar": 478676.47058823536,
+      "idealizedEntryCalls": 96,
+      "daysAtOneCallPerFiveMinutes": 0.3333333333333333,
+      "keeperBorrowCallsLowerBound": 81,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 0.28125,
+      "requiredRefillHollarPerDayFor30DayRamp": 15955.882352941178,
+      "worstCaseRetentionHollar": {
+        "10": 478.67647058823536,
+        "25": 1196.6911764705883,
+        "50": 2393.3823529411766,
+        "100": 4786.764705882353
+      }
+    },
+    {
+      "tvl": 500000,
+      "tranche": 1000,
+      "mainHollar": 387500,
+      "grossHollar": 2393382.352941177,
+      "idealizedEntryCalls": 2394,
+      "daysAtOneCallPerFiveMinutes": 8.3125,
+      "keeperBorrowCallsLowerBound": 2006,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 6.965277777777778,
+      "requiredRefillHollarPerDayFor30DayRamp": 79779.41176470589,
+      "worstCaseRetentionHollar": {
+        "10": 2393.382352941177,
+        "25": 5983.455882352942,
+        "50": 11966.911764705885,
+        "100": 23933.82352941177
+      }
+    },
+    {
+      "tvl": 500000,
+      "tranche": 5000,
+      "mainHollar": 387500,
+      "grossHollar": 2393382.352941177,
+      "idealizedEntryCalls": 479,
+      "daysAtOneCallPerFiveMinutes": 1.6631944444444444,
+      "keeperBorrowCallsLowerBound": 402,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 1.3958333333333333,
+      "requiredRefillHollarPerDayFor30DayRamp": 79779.41176470589,
+      "worstCaseRetentionHollar": {
+        "10": 2393.382352941177,
+        "25": 5983.455882352942,
+        "50": 11966.911764705885,
+        "100": 23933.82352941177
+      }
+    },
+    {
+      "tvl": 1000000,
+      "tranche": 1000,
+      "mainHollar": 775000,
+      "grossHollar": 4786764.705882354,
+      "idealizedEntryCalls": 4787,
+      "daysAtOneCallPerFiveMinutes": 16.62152777777778,
+      "keeperBorrowCallsLowerBound": 4012,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 13.930555555555555,
+      "requiredRefillHollarPerDayFor30DayRamp": 159558.82352941178,
+      "worstCaseRetentionHollar": {
+        "10": 4786.764705882354,
+        "25": 11966.911764705885,
+        "50": 23933.82352941177,
+        "100": 47867.64705882354
+      }
+    },
+    {
+      "tvl": 1000000,
+      "tranche": 5000,
+      "mainHollar": 775000,
+      "grossHollar": 4786764.705882354,
+      "idealizedEntryCalls": 958,
+      "daysAtOneCallPerFiveMinutes": 3.326388888888889,
+      "keeperBorrowCallsLowerBound": 803,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 2.7881944444444446,
+      "requiredRefillHollarPerDayFor30DayRamp": 159558.82352941178,
+      "worstCaseRetentionHollar": {
+        "10": 4786.764705882354,
+        "25": 11966.911764705885,
+        "50": 23933.82352941177,
+        "100": 47867.64705882354
+      }
+    },
+    {
+      "tvl": 10000000,
+      "tranche": 1000,
+      "mainHollar": 7750000,
+      "grossHollar": 47867647.05882354,
+      "idealizedEntryCalls": 47868,
+      "daysAtOneCallPerFiveMinutes": 166.20833333333334,
+      "keeperBorrowCallsLowerBound": 40118,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 139.29861111111111,
+      "requiredRefillHollarPerDayFor30DayRamp": 1595588.235294118,
+      "worstCaseRetentionHollar": {
+        "10": 47867.64705882354,
+        "25": 119669.11764705884,
+        "50": 239338.23529411768,
+        "100": 478676.47058823536
+      }
+    },
+    {
+      "tvl": 10000000,
+      "tranche": 5000,
+      "mainHollar": 7750000,
+      "grossHollar": 47867647.05882354,
+      "idealizedEntryCalls": 9574,
+      "daysAtOneCallPerFiveMinutes": 33.24305555555556,
+      "keeperBorrowCallsLowerBound": 8024,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 27.86111111111111,
+      "requiredRefillHollarPerDayFor30DayRamp": 1595588.235294118,
+      "worstCaseRetentionHollar": {
+        "10": 47867.64705882354,
+        "25": 119669.11764705884,
+        "50": 239338.23529411768,
+        "100": 478676.47058823536
+      }
+    },
+    {
+      "tvl": 50000000,
+      "tranche": 1000,
+      "mainHollar": 38750000,
+      "grossHollar": 239338235.2941177,
+      "idealizedEntryCalls": 239339,
+      "daysAtOneCallPerFiveMinutes": 831.0381944444445,
+      "keeperBorrowCallsLowerBound": 200589,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 696.4895833333334,
+      "requiredRefillHollarPerDayFor30DayRamp": 7977941.17647059,
+      "worstCaseRetentionHollar": {
+        "10": 239338.23529411768,
+        "25": 598345.5882352942,
+        "50": 1196691.1764705884,
+        "100": 2393382.352941177
+      }
+    },
+    {
+      "tvl": 50000000,
+      "tranche": 5000,
+      "mainHollar": 38750000,
+      "grossHollar": 239338235.2941177,
+      "idealizedEntryCalls": 47868,
+      "daysAtOneCallPerFiveMinutes": 166.20833333333334,
+      "keeperBorrowCallsLowerBound": 40118,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 139.29861111111111,
+      "requiredRefillHollarPerDayFor30DayRamp": 7977941.17647059,
+      "worstCaseRetentionHollar": {
+        "10": 239338.23529411768,
+        "25": 598345.5882352942,
+        "50": 1196691.1764705884,
+        "100": 2393382.352941177
+      }
+    },
+    {
+      "tvl": 100000000,
+      "tranche": 1000,
+      "mainHollar": 77500000,
+      "grossHollar": 478676470.5882354,
+      "idealizedEntryCalls": 478677,
+      "daysAtOneCallPerFiveMinutes": 1662.0729166666667,
+      "keeperBorrowCallsLowerBound": 401177,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 1392.9756944444443,
+      "requiredRefillHollarPerDayFor30DayRamp": 15955882.35294118,
+      "worstCaseRetentionHollar": {
+        "10": 478676.47058823536,
+        "25": 1196691.1764705884,
+        "50": 2393382.352941177,
+        "100": 4786764.705882354
+      }
+    },
+    {
+      "tvl": 100000000,
+      "tranche": 5000,
+      "mainHollar": 77500000,
+      "grossHollar": 478676470.5882354,
+      "idealizedEntryCalls": 95736,
+      "daysAtOneCallPerFiveMinutes": 332.4166666666667,
+      "keeperBorrowCallsLowerBound": 80236,
+      "keeperOnlyDaysAtOneCallPerFiveMinutes": 278.59722222222223,
+      "requiredRefillHollarPerDayFor30DayRamp": 15955882.35294118,
+      "worstCaseRetentionHollar": {
+        "10": 478676.47058823536,
+        "25": 1196691.1764705884,
+        "50": 2393382.352941177,
+        "100": 4786764.705882354
+      }
+    }
+  ],
+  "admission": "Initial deposits call _fundDeploy in full; deployTranche only caps pokeBorrow. Limits above are snapshot average-fill limits, not cumulative daily capacity. Concurrent fills and oracle/peg changes require fresh quotes. No native circuit-breaker bypass is implied.",
+  "inputs": {
+    "/tmp/propeller-route-market-20260923.json": "2c6fbef9d1150ee955bf766acd6c0d14adc21bddec47f6cb64938aea8bc40e6a",
+    "/tmp/propeller-route-prime-reference-20260923.json": "33e4b032448712705c0b6e5d2dabe72895941b6d1c4375d570a0cb81bf9701cb"
+  }
+}

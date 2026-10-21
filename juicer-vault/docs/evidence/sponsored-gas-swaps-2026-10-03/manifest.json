@@ -1,0 +1,25 @@
+{
+  "originalCampaignCommit": "171f4b5587b9202299ae347c12fb665a1682aa36",
+  "scope": "Re-score 46 existing optimization cases; 24 new official SDK source-pool quote comparisons. No contract scenarios re-run; no production changes.",
+  "monthlyBudgetUsd": 10,
+  "gasPaidExternally": true,
+  "sources": {
+    "scripts/propeller/analyze-sponsored-swaps.mjs": "33744ca832c34408a42ba506e529d1bda162ba5146b0b180f5e8b762c00b67e6",
+    "propeller-vault/docs/sponsored-gas-swap-costs-2026-10-03.md": "3b291abb50f8ec6b9266d4aa19debb40c8246c26969504cdad8d7ef47d67acdd"
+  },
+  "files": {
+    "analysis.json": "7c7043c09662a878ae60de7a633825952c574d08ed3505e87c6cbfc93ab5af15",
+    "analysis.log": "f7ff75ed4b5334828371a7a589a7a73a979561103d9c4da09897bdd41ed84eab"
+  },
+  "originalInputs": {
+    "market.json": "babbc5c4d9de05c7465ef81668195837bff78718a9b2020c2171c353b596de67",
+    "round-1.json": "9b43402b85df8fa48317d0a14a6d8c6cc07982743e57477103301cfd988f2af9",
+    "round-2.json": "e2f385f9ede680588f4309ad0687343999fceb024ce621d78e4a013543c91173",
+    "round-3.json": "d1cc846437863efee1dab9d62c422a00d7aaf2b586082f4dfecd5443e1c50dba"
+  },
+  "validation": {
+    "originalScenarioLogsVerified": 46,
+    "sourcePoolComparisons": 24,
+    "refillComparisonAssertionsPassed": 12
+  }
+}

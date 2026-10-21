@@ -1,0 +1,347 @@
+{
+  "contracts": {
+    "CollateralVault": {
+      "artifact": "CollateralVault.sol/CollateralVault.json",
+      "dispatchMethods": {
+        "approve(address,uint256)": "095ea7b3",
+        "claim(uint256,address)": "ddd5e1b2",
+        "compound(address,uint256,uint256,bytes)": "526be9a8",
+        "deposit(uint256,address)": "6e553f65",
+        "maintainPeg()": "eebca7b6",
+        "pause()": "8456cb59",
+        "pauseDeposits()": "02191980",
+        "pokeSettle()": "e891ab49",
+        "rebalance()": "7d7c2a1c",
+        "requestRedeem(uint256,address)": "107703ab",
+        "setTvlCap(uint256)": "dd0290e2",
+        "startUnwinds(uint256)": "1b727f39",
+        "sync()": "fff6cae9",
+        "transfer(address,uint256)": "a9059cbb",
+        "transferFrom(address,address,uint256)": "23b872dd",
+        "unpause()": "3f4ba83a",
+        "unpauseDeposits()": "63d8882a"
+      },
+      "source": "src/CollateralVault.sol",
+      "summary": {
+        "compiler": "0.8.22+commit.4fc1097e",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "evmVersion": "paris",
+        "viaIR": true,
+        "settingsSha256": "d0df919045cd07b7a5e1f1397a3f898ed428b1e1ea33c204cecaf5d32a28c1de",
+        "creation": {
+          "bytes": 40263,
+          "sha256": "20b92f146a9c3d755365c11a39359b9486b0c2a5529cba95bb59bd9e9bf41d93",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "runtimeTemplate": {
+          "bytes": 24495,
+          "sha256": "cddbab33a162f28508d7afd17a5bb619b38b518988df537ae8b51abfb1f36a85",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "9addde687f45ebd9855a0f913950014df6813214423b9f6e4ce781f1351a9b5d"
+        },
+        "methodCount": 95,
+        "methodIdentifiersSha256": "fc5a969bd359a8f194c3982ab37cd4b3f1a1b9f5f95adec3026c2038646815ff"
+      }
+    },
+    "CompoundLogic": {
+      "artifact": "CompoundLogic.sol/CompoundLogic.json",
+      "source": "src/lib/CompoundLogic.sol",
+      "summary": {
+        "compiler": "0.8.22+commit.4fc1097e",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "evmVersion": "paris",
+        "viaIR": true,
+        "settingsSha256": "5f097e4d73b72044314be6b4b571fe43b9d3aff2e302e9fa599736a0dcb48500",
+        "creation": {
+          "bytes": 15379,
+          "sha256": "74f0746204592c459131e98e3a1b33ce5d67f459ae95ee47fa0391e594278cb7",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "runtimeTemplate": {
+          "bytes": 15351,
+          "sha256": "bfbbc864ff85c90c71b26e0ad487885e397b0c0abdcab3436dd2e3428ff108e8",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "methodCount": 5,
+        "methodIdentifiersSha256": "b56f4499f94e7d6bfbcb4004751d30994227bdad5999f2cca07905949c585cbc"
+      }
+    },
+    "ExecutionController": {
+      "artifact": "ExecutionController.sol/ExecutionController.json",
+      "source": "src/ExecutionController.sol",
+      "summary": {
+        "compiler": "0.8.22+commit.4fc1097e",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "evmVersion": "paris",
+        "viaIR": true,
+        "settingsSha256": "444ac5ff324341322c1b40d6fe313af2117b0e983719162e085b1d05ea002545",
+        "creation": {
+          "bytes": 15670,
+          "sha256": "f372e8cb1e7e11fcdd28f10b30925863a71549d1e0e818f93c7dc50b140d392c",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "runtimeTemplate": {
+          "bytes": 15246,
+          "sha256": "948ffdf5fcca2b0b9476482f7fbcb3b9ad06d12214b07f638e3828535fd96599",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "923660dfd996c60809d04bd5aa6c2cffce40fa1cb482b4cec0d00484ce57d969"
+        },
+        "methodCount": 40,
+        "methodIdentifiersSha256": "b9cb9ad845a6ada4439ebcf4625d0ae237c73d0ba52d4ec4eaf4f541ee58d98f"
+      }
+    },
+    "Harvester": {
+      "artifact": "Harvester.sol/Harvester.json",
+      "dispatchMethods": {
+        "harvest(uint256[])": "5d14b06f"
+      },
+      "source": "src/Harvester.sol",
+      "summary": {
+        "compiler": "0.8.22+commit.4fc1097e",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "evmVersion": "paris",
+        "viaIR": true,
+        "settingsSha256": "0632dac0eb52d715a18b0dd699c6afba944db0d0c03d907d722f6146207ab85d",
+        "creation": {
+          "bytes": 10395,
+          "sha256": "ed57a0404dd0d07f958b9285fde90709b87ea05044f44a3c44c2bdb6e154df15",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "runtimeTemplate": {
+          "bytes": 9858,
+          "sha256": "5296847ffa700919d3522b15d5330b01ea924645cfc734f00c34b84a631da36c",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "f7a546424b9c273ed85c0bce0fd6c9c6e851f3c0ff0e77c19daee96af173eb9a"
+        },
+        "methodCount": 24,
+        "methodIdentifiersSha256": "c7af3f4073a9001c440c5ffd1a5422392748e238db6934a24268bdee342dfdba"
+      }
+    },
+    "JuicerDiscount": {
+      "artifact": "JuicerDiscount.sol/JuicerDiscount.json",
+      "source": "src/JuicerDiscount.sol",
+      "summary": {
+        "compiler": "0.8.22+commit.4fc1097e",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "evmVersion": "paris",
+        "viaIR": true,
+        "settingsSha256": "5f1ab1509027e6ecfb21b886d932cc1a75571de4dfdc31efe7f06f1d0c4e780f",
+        "creation": {
+          "bytes": 8364,
+          "sha256": "5f201f8cfa7129ac1052a664ddad2372bf2990a811b157b167594760d7615373",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "runtimeTemplate": {
+          "bytes": 6740,
+          "sha256": "dc84cab6f08fbdae263605989759f04dfbc3becc686002efb85db025ccc2cc4a",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "c0cb495283445573a1ebefe8d18e3dce9b7b3fa429dd9b7fe0e90208d5c5c9af"
+        },
+        "methodCount": 24,
+        "methodIdentifiersSha256": "aa28fd19e18c0e235f51230302f1eba65c20e2d53155967fb37ebb441c5df992"
+      }
+    },
+    "JuicerFeeController": {
+      "artifact": "JuicerFeeController.sol/JuicerFeeController.json",
+      "dispatchMethods": {
+        "claimProtocolFees(address)": "69ce6d47",
+        "setProtocolFeeBps(address,uint16)": "74f1e734"
+      },
+      "source": "src/JuicerFeeController.sol",
+      "summary": {
+        "compiler": "0.8.22+commit.4fc1097e",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "evmVersion": "paris",
+        "viaIR": true,
+        "settingsSha256": "aabbbcdd7106bd2b80ffbdfbdd515c07522924e32ac26d1a80de7e37645d4070",
+        "creation": {
+          "bytes": 9402,
+          "sha256": "e5461798f5046a02635e202719e4f3bfcd7aa2bffb61041da70f26302faf728d",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "runtimeTemplate": {
+          "bytes": 8960,
+          "sha256": "d879800be6d7f6d022bd15bb116103c1cf1b15258d06aa268860a48f147b07f4",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "methodCount": 24,
+        "methodIdentifiersSha256": "d86aaa96335b90e077af836dc02fd51d82f40ca90d6aea5a66f68ab0f1711059"
+      }
+    },
+    "JuicerMainDebt": {
+      "artifact": "JuicerMainDebt.sol/JuicerMainDebt.json",
+      "dispatchMethods": {
+        "fundPosition(uint256,uint256)": "9151cbdc",
+        "fundReserve(uint256)": "75c54224"
+      },
+      "source": "src/JuicerMainDebt.sol",
+      "summary": {
+        "compiler": "0.8.22+commit.4fc1097e",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "evmVersion": "paris",
+        "viaIR": true,
+        "settingsSha256": "d448d5eb2d856a0d74dafcd636cafc272477fc34a3200370a79b53cb15c3b78b",
+        "creation": {
+          "bytes": 33684,
+          "sha256": "dc0063cf7c4689020c70b2108dc744ebc6e472700263348c130cb0b0857a42e8",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "runtimeTemplate": {
+          "bytes": 18573,
+          "sha256": "0f17c2180380432bc9e43072b148d1a250c6f9f0a19265b804d9d018b051edc6",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "3166d6af9b8d4d7aa73b87918704cb8b7716163a4fa02eef087db5dd99b535d1"
+        },
+        "methodCount": 38,
+        "methodIdentifiersSha256": "7f5974af2afc716ec28ade7b538854c861e6657f31570530f8a484c564462ec2"
+      }
+    },
+    "JuicerYieldAccounting": {
+      "artifact": "JuicerYieldAccounting.sol/JuicerYieldAccounting.json",
+      "source": "src/JuicerYieldAccounting.sol",
+      "summary": {
+        "compiler": "0.8.22+commit.4fc1097e",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "evmVersion": "paris",
+        "viaIR": true,
+        "settingsSha256": "7514328a3b72f1bdd9b0f0cf3d122d6a17d7beceb196655f41f5b93971a49d32",
+        "creation": {
+          "bytes": 13842,
+          "sha256": "6b9a9f5ca3e9aa9dbece1e94c90b254e0f6967fbdc1c3ecb055fb29dace7b00d",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "runtimeTemplate": {
+          "bytes": 13506,
+          "sha256": "91882759025e9b8b24ee085fb35c1362685d7400348a3bf8acc0cbd8026be864",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "f950063112aa0d69cf13160493f55751fd6298bfb0adce0273c43fe400a21e77"
+        },
+        "methodCount": 35,
+        "methodIdentifiersSha256": "ec3c4794f99f7e4ecc95ccdeaf142983dfa3b9bd62c554433f609983d58603b2"
+      }
+    },
+    "SubLoop": {
+      "artifact": "SubLoop.sol/SubLoop.json",
+      "source": "src/SubLoop.sol",
+      "summary": {
+        "compiler": "0.8.22+commit.4fc1097e",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "evmVersion": "paris",
+        "viaIR": true,
+        "settingsSha256": "8a15e54db3c4ee3045f00295fe843b8ee91f9b9219923f1df4751d7f5af24db3",
+        "creation": {
+          "bytes": 21131,
+          "sha256": "c5cbee3ebe9ee8fbd3af314dac32a28513fdfcac4474774c8aa0645070de9ddd",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "runtimeTemplate": {
+          "bytes": 20752,
+          "sha256": "2f1c2aa192decf7b8f103cc1a024fc043a8b225ea376dd0603e8fa93b0cc777b",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "1c9a495071a24ef1607dae3548f2459c38583781e48663424b8bf60fbf9c3524"
+        },
+        "methodCount": 91,
+        "methodIdentifiersSha256": "13b8dd1ad4fc01b2e5a3f93687271e20e3df24fe340d5117ee94d1c796defff9"
+      },
+      "dispatchMethods": {
+        "clearCollateral(address)": "4542ed3c"
+      }
+    },
+    "SubLoopLogic": {
+      "artifact": "SubLoopLogic.sol/SubLoopLogic.json",
+      "source": "src/lib/SubLoopLogic.sol",
+      "summary": {
+        "compiler": "0.8.22+commit.4fc1097e",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "evmVersion": "paris",
+        "viaIR": true,
+        "settingsSha256": "2f01125db79bbb63b13a8f088facaf6a6740d261755247fe9163a69130dc5374",
+        "creation": {
+          "bytes": 23658,
+          "sha256": "d80ec69090150823f4f2da925d7ede8a790bddae744d46bce619b5a5bdb9f293",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "runtimeTemplate": {
+          "bytes": 23602,
+          "sha256": "36969efe58db44b49332abb62ad84f667d381d8ab7a0561eb5d7796c80534dd6",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "86ea5a9bd63553eef44d1aed14495c43ca3b1a42b55ea7a405491b82b6a77e3f"
+        },
+        "methodCount": 48,
+        "methodIdentifiersSha256": "38e4666d68dfcaabe835969ee2ecf299926d3be95c215f80fb03e00f61daf174"
+      }
+    },
+    "SyntheticToken": {
+      "artifact": "SyntheticToken.sol/SyntheticToken.json",
+      "source": "src/SyntheticToken.sol",
+      "summary": {
+        "compiler": "0.8.22+commit.4fc1097e",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "evmVersion": "paris",
+        "viaIR": true,
+        "settingsSha256": "90ae4530842a1d5b6b5d1ee767cda2d7c062c581419b619903142c080c2a90b2",
+        "creation": {
+          "bytes": 5957,
+          "sha256": "fda93bd377b112ef797fde38ac530544c066fc087544109cc94c659b3223532b",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "runtimeTemplate": {
+          "bytes": 4827,
+          "sha256": "a39cad9889d4d00f0a2a8d849205f3a2d1ce942adad2add77a3fd084e70aeb69",
+          "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        },
+        "methodCount": 21,
+        "methodIdentifiersSha256": "b39773f48e2951d1845db1d05fceb434a82b6b519d77161c6c3800c3dbd501b1"
+      }
+    }
+  },
+  "description": "reproducible foundry artifact identity for production juicer contracts; runtime hashes cover compiler templates before constructor immutable substitution",
+  "schema": 1
+}

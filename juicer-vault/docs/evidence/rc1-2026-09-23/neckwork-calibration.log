@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: timestamps are UTC for dates and ClickHouse strings
+ok 1 - timestamps are UTC for dates and ClickHouse strings
+  ---
+  duration_ms: 0.707754
+  type: 'test'
+  ...
+# Subtest: quantiles leave inputs unchanged and handle missing observations
+ok 2 - quantiles leave inputs unchanged and handle missing observations
+  ---
+  duration_ms: 0.576202
+  type: 'test'
+  ...
+# Subtest: PRIME actions are deduplicated, windowed and stripped of wrapper conversions
+ok 3 - PRIME actions are deduplicated, windowed and stripped of wrapper conversions
+  ---
+  duration_ms: 0.585001
+  type: 'test'
+  ...
+# Subtest: reserve series align pegs and do not silently convert unknown amounts to zero
+ok 4 - reserve series align pegs and do not silently convert unknown amounts to zero
+  ---
+  duration_ms: 0.259495
+  type: 'test'
+  ...
+# Subtest: sample changes and LP issuance are reported separately
+ok 5 - sample changes and LP issuance are reported separately
+  ---
+  duration_ms: 0.368667
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10.056766

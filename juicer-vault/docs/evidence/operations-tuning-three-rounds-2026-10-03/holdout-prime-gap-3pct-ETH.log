@@ -1,0 +1,51 @@
+Missing dependencies found. Installing now...
+
+No files changed, compilation skipped
+
+Ran 1 test for test/OperationsTuning.t.sol:OperationsTuningTest
+[PASS] test_operationsTuning() (gas: 7011007600)
+Logs:
+  executionAndMarkLossUsd: 1417701495089583862718
+  fundedCryptoUsd: 115873033133227645135
+  unconvertedUserUsd: 0
+  unconvertedProtocolUsd: 0
+  mainDebtUsd: 7760957003830056450637
+  loopDebtUsd: 32768287606911224790812
+  sourceEquityUsd: 6606027121150000000000
+  cashUsd: 0
+  backingDeficitUsd: 1154929882680056450637
+  sourceReserveUsd: 39319864706664416160
+  protocolFeeUsd: 14605343917040628132
+  firstHarvestHour: 1402
+  firstCryptoHour: 2113
+  harvests: 13
+  borrows: 22
+  rebalances: 5
+  repays: 18
+  pegUpdates: 9
+  blockedObservations: 5618
+  mainInterestUsd: 334770301834667055402
+  loopInterestUsd: 1383929741437973594150
+  waivedInterestUsd: 0
+  sourceIncomeUsd: 2111950032732436334900
+  minimumHf: 1022504644269826350
+  maxHarvestUsd: 22758977569557530000
+  maxBorrowUsd: 6284999999990000000000
+  maxRebalanceUsd: 18598764290000000000
+  deposits: 1
+  settlements: 11
+  safetySchedules: 3
+  servicingHarvests: 13
+  economicSkips: 0
+  quoteSkips: 1043
+  admittedUsd: 9999999999999999999046
+  unadmittedUsd: 0
+  admissionCompleteHour: 0
+  harvestGrossUsd: 293930160027142030000
+  maxHarvestGapHours: 237
+  entryVolumeUsd: 45537996343990000000000
+  days: 365
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 27.86s (27.86s CPU time)
+
+Ran 1 test suite in 27.87s (27.86s CPU time): 1 tests passed, 0 failed, 0 skipped (1 total tests)

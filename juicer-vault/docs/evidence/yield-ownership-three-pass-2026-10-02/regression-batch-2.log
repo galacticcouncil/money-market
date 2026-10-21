@@ -1,0 +1,128 @@
+Missing dependencies found. Installing now...
+
+Warning: Your project has missing dependencies that could not be installed.
+Compiling 100 files with Solc 0.8.22
+Solc 0.8.22 finished in 315.89s
+Compiler run successful with warnings:
+Warning (2018): Function state mutability can be restricted to pure
+   --> test/mocks/MockYieldSource.sol:109:5:
+    |
+109 |     function harvest() external returns (uint256 surplus) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Ran 7 tests for test/AccountingSafety.t.sol:SourceAccountingSafetyTest
+[PASS] test_backToBackVaultUnwindsDoNotOverbookEquity() (gas: 7235146)
+[PASS] test_deLeverRestoresTargetHf() (gas: 8255138)
+[PASS] test_depositDuringPendingUnwindIsPricedOnLiveBacking() (gas: 7375292)
+[PASS] test_fullUnwindFreesSeedEquity() (gas: 62233466)
+[PASS] test_unleveredExitSellsCollateralWithoutDebt() (gas: 762989)
+[PASS] test_unwinderPrunedAfterFullPull() (gas: 65713921)
+[PASS] test_zeroProgressCannotWriteOffUnpaidClaims() (gas: 6942428)
+Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 500.64ms (499.59ms CPU time)
+
+Ran 12 tests for test/AccountingSafety.t.sol:VaultAccountingSafetyTest
+[PASS] test_deleverThenRedeemDoesNotCountDebtTwice() (gas: 2341122)
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1909150)
+[PASS] test_idleCollateralDonationCanBeRedeemed() (gas: 1902764)
+[PASS] test_newDepositBlockedWhenMainDebtOutgrowsSource() (gas: 1024245)
+[PASS] test_partialClaimsUseCumulativeSettlementRounding() (gas: 2258659)
+[PASS] test_publicDepositorCannotPayBootstrapCost() (gas: 240806)
+[PASS] test_publicDepositorRecoversExactPrincipalAfterGovernanceBootstrap() (gas: 2293175)
+[PASS] test_rebalanceDoesNotAddDebtDuringExit() (gas: 1576954)
+[PASS] test_settlementCreditsActualRepaymentOnly() (gas: 2078824)
+[PASS] test_shortfallPreservesPrincipalClaimAfterPartialPayment() (gas: 2447876)
+[PASS] test_twoQueuedHalvesReturnAllPrincipal() (gas: 2491760)
+[PASS] test_unclaimedSettlementDoesNotHaircutNextRedeemer() (gas: 2714304)
+Suite result: ok. 12 passed; 0 failed; 0 skipped; finished in 26.82ms (25.04ms CPU time)
+
+Ran 4 tests for test/InterestPolicyEvidence.t.sol:InterestPolicyEvidenceTest
+[PASS] test_compoundedYieldDoesNotSatisfyCurrentHollarBackingCheck() (gas: 1171117)
+[PASS] test_currentExitPreservesGrossYieldPromiseButNeedsInterestFunding() (gas: 2283156)
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1909166)
+[PASS] test_reborrowSubtractsAccruedMainInterest() (gas: 1472276)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 9.32ms (7.54ms CPU time)
+
+Ran 16 tests for test/MainDebt.t.sol:MainDebtTest
+[PASS] testFuzz_partialRepaymentsAndPostStartInterest(uint96,uint96) (runs: 64, μ: 3194463, ~: 2318593)
+[PASS] test_boundedSourceBatchExcludesNewExitsAndConservesRounding() (gas: 6784492)
+[PASS] test_costAndCashBatchesRemainProportionalAcrossBoundedCalls() (gas: 7266754)
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1909108)
+[PASS] test_directMainRepaymentBenefitsAllDebtCohorts() (gas: 1773966)
+[PASS] test_earlyRepaymentRetainsLaterSourceRecoveryForOriginalOwner() (gas: 2106456)
+[PASS] test_exitInterestRemainsUnpaidUntilRecoveryWithoutHaircut() (gas: 2279641)
+[PASS] test_noLiveLedgerReplacement() (gas: 6916453)
+[PASS] test_noSponsoredCashOrDepositCyclingReward() (gas: 4727668)
+[PASS] test_partialSourceCreditsAreProportionalNotFirstCome() (gas: 2658971)
+[PASS] test_pauseBlocksSurplusButAllowsTargetedRecovery() (gas: 1996828)
+[PASS] test_scaledBorrowRoundingRecordsObservedDebt() (gas: 964598)
+[PASS] test_scaledExitRepaymentClearsDebtUnitsAndPreservesCollateral() (gas: 2048982)
+[PASS] test_scaledRepaymentTailUsesOnlyExplicitlyFundedCash() (gas: 1237313)
+[PASS] test_unfundedInterestPreservesPrincipalAndBlocksDeposits() (gas: 1268433)
+[PASS] test_wiringRequiredButNoPrefundingOrPolicyRequired() (gas: 15520314)
+Suite result: ok. 16 passed; 0 failed; 0 skipped; finished in 526.70ms (531.95ms CPU time)
+
+Ran 3 tests for test/NegativeCarryView.t.sol:NegativeCarryViewTest
+[PASS] test_recoversToZeroWhenPriceReturns() (gas: 8229745)
+[PASS] test_reportsDrawdownWhenUnderwater() (gas: 8231556)
+[PASS] test_zeroWhenHealthy() (gas: 8206508)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 94.20ms (90.89ms CPU time)
+
+Ran 1 test for test/PluggableYieldSource.t.sol:PluggableYieldSourceTest
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1909071)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 5.67ms (2.97ms CPU time)
+
+Ran 2 tests for test/SynthLtvZero.t.sol:SynthLtvZeroTest
+[PASS] test_governanceLtvBumpPlusNextSupplyRecovers() (gas: 2177731)
+[PASS] test_ltvZeroSynthRejectsDepositAtomically() (gas: 865201)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 7.84ms (4.56ms CPU time)
+
+Ran 10 tests for test/PrincipalRounding.t.sol:PrincipalRoundingTest
+[PASS] testFuzz_depositSplitExitPreservesPrincipalAndOtherHolder(uint96,uint96,uint96) (runs: 256, μ: 2888324, ~: 2888372)
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1909148)
+[PASS] test_exhaustedBufferCannotHaircutSettlement() (gas: 2870567)
+[PASS] test_exhaustedBufferPreservesWaitingRequestUntilRefilled() (gas: 2586037)
+[PASS] test_insufficientBufferRevertsDepositAtomically() (gas: 1472943)
+[PASS] test_oddDepositAtTwoToOnePriceCannotLosePrincipalOrDiluteHolder() (gas: 2321617)
+[PASS] test_poolSupplyAndWithdrawalRoundingIsPaidByBuffer() (gas: 2350415)
+[PASS] test_roundingBufferIsNotShareBackingOrDepositorFunds() (gas: 1006410)
+[PASS] test_splitRequestsCannotConsumeMoreThanFundedRounding() (gas: 19880002)
+[PASS] test_splitTransferredSharesAndPartialClaimsKeepAllPrincipal() (gas: 3738686)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 1.27s (1.28s CPU time)
+
+Ran 1 test for test/SubLoopDeploy.t.sol:SubLoopDeployTest
+[PASS] test_deployRampReachesTargetHf() (gas: 6823475)
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 23.64ms (22.44ms CPU time)
+
+Ran 6 tests for test/WithdrawalCooldown.t.sol:SourceEmergencyPauseTest
+[PASS] test_deLeverRestoresTargetHf() (gas: 8255112)
+[PASS] test_emergencyAllowsSafetyRepaymentWithoutExitAllocation() (gas: 7245054)
+[PASS] test_emergencyStopsExistingUnwindAndNewRisk() (gas: 7234595)
+[PASS] test_fullUnwindFreesSeedEquity() (gas: 62233457)
+[PASS] test_onlyGuardianFreezesAndOnlyGovernanceReopensSource() (gas: 118945)
+[PASS] test_unwinderPrunedAfterFullPull() (gas: 65713930)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 568.55ms (567.15ms CPU time)
+
+Ran 13 tests for test/WithdrawalCooldown.t.sol:WithdrawalCooldownTest
+[PASS] test_defaultWaitsTwelveHoursBeforeAnyUnwind() (gas: 1991416)
+[PASS] test_delayChangesOnlyAffectFutureRequestsAndPreserveFifo() (gas: 1975282)
+[PASS] test_delegatedAndSplitRequestsCannotReuseAnOldTimer() (gas: 1714091)
+[PASS] test_depositDuringWaitDoesNotDilutePendingShares() (gas: 2296012)
+[PASS] test_depositRedeemClaimThroughNonLeveragedSource() (gas: 1909084)
+[PASS] test_freezeBlocksMatureStartTransfersAndNewRequests() (gas: 1651125)
+[PASS] test_freezeKeepsPegAndCommittedMainRepaymentAvailable() (gas: 1663131)
+[PASS] test_freezeStopsFifoAndAlreadySettledClaims() (gas: 2758583)
+[PASS] test_fundingCannotBypassCooldown() (gas: 1290711)
+[PASS] test_governanceCanDisableDelayButStillRequiresExplicitStart() (gas: 1952527)
+[PASS] test_onlyGovernanceChangesDelayOrReopensAfterGuardianFreeze() (gas: 81380)
+[PASS] test_sourceFreezeCannotBeBypassedByLocalUnpause() (gas: 1940038)
+[PASS] test_waitingSharesKeepTheirYieldAndDebtUntilStart() (gas: 1551763)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 36.47ms (33.80ms CPU time)
+
+Ran 3 tests for test/SubLoopUnwind.t.sol:SubLoopUnwindTest
+[PASS] test_deLeverRestoresTargetHf() (gas: 8255045)
+[PASS] test_fullUnwindFreesSeedEquity() (gas: 62233430)
+[PASS] test_unwinderPrunedAfterFullPull() (gas: 65713885)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 561.90ms (560.64ms CPU time)
+
+Ran 12 test suites in 1.86s (3.63s CPU time): 78 tests passed, 0 failed, 0 skipped (78 total tests)

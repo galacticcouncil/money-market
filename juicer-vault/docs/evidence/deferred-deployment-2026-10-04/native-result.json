@@ -1,0 +1,1181 @@
+{
+  "rpc": "http://127.0.0.1:8176",
+  "deployments": [
+    {
+      "label": "CollateralVault",
+      "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "transactionHash": "0x2ca0462fa7a05fa6bf312e6fa108248e9dd2c8d96691f714b5479ffeac3c6dc9",
+      "block": "15306847",
+      "gasUsed": "14719056",
+      "estimatedGas": "14719056",
+      "gasLimit": "16190962",
+      "initBytes": 40300,
+      "runtimeBytes": 24096,
+      "codeHash": "0x299229b0ea37049cf7dee7319e14f33389d0468bcab7bed41fb7bb2f6086ca1c",
+      "exactCodeMatch": false,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/CollateralVault.sol": "CollateralVault"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      }
+    },
+    {
+      "label": "SyntheticToken",
+      "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+      "transactionHash": "0xd3c7a62c0aa53bc94c927d076e46363cd4110cd370fe15a8ca64e26821190f3b",
+      "block": "15306848",
+      "gasUsed": "1935042",
+      "estimatedGas": "1935042",
+      "gasLimit": "2128547",
+      "initBytes": 6181,
+      "runtimeBytes": 4827,
+      "codeHash": "0x3cce4aefbf861e147f3e4724d5492f89df7b45d8b79b206a3b760a1f5dc0846b",
+      "exactCodeMatch": true,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/SyntheticToken.sol": "SyntheticToken"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      }
+    },
+    {
+      "label": "SubLoop",
+      "address": "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
+      "transactionHash": "0x97efcd85544102b406ff5ad11132e870f24051c486cb5e10bb22394af6a7790f",
+      "block": "15306849",
+      "gasUsed": "9062892",
+      "estimatedGas": "9062892",
+      "gasLimit": "9969182",
+      "initBytes": 24765,
+      "runtimeBytes": 24534,
+      "codeHash": "0x7b6f8b572b63fd57fdd6f4f8f00f0f8ff7872c2e6987dcfa45da24d6520f409e",
+      "exactCodeMatch": false,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/SubLoop.sol": "SubLoop"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      }
+    },
+    {
+      "label": "SubLoop.proxy",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xf8bacc6128744a63d71b9aca97eb07cb8caf64a45097ecfc480ebd20aa29e2df",
+      "block": "15306850",
+      "gasUsed": "754326",
+      "estimatedGas": "915164",
+      "gasLimit": "1006681",
+      "initBytes": 1398,
+      "runtimeBytes": 209,
+      "codeHash": "0x80596792916bd352d5ff652481cd2d0c45f99a4363d65aa004d17b6930b32e16",
+      "exactCodeMatch": true,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol": "ERC1967Proxy"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      }
+    },
+    {
+      "label": "CollateralVault.proxy",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0xfc71068280334b46dc6570495d0ff474d20621787acd02237bc768c71cbd0c24",
+      "block": "15306851",
+      "gasUsed": "924150",
+      "estimatedGas": "1009884",
+      "gasLimit": "1110873",
+      "initBytes": 1686,
+      "runtimeBytes": 209,
+      "codeHash": "0x80596792916bd352d5ff652481cd2d0c45f99a4363d65aa004d17b6930b32e16",
+      "exactCodeMatch": true,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol": "ERC1967Proxy"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      }
+    },
+    {
+      "label": "PropellerMainDebt",
+      "address": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+      "transactionHash": "0x5f35f26f67a4237f9ffa7e12e5570b360b996edb6b054878d2570fbcdf0cef99",
+      "block": "15306852",
+      "gasUsed": "11086140",
+      "estimatedGas": "11086140",
+      "gasLimit": "12194754",
+      "initBytes": 31330,
+      "runtimeBytes": 17488,
+      "codeHash": "0x74bd3adddd51ace219e667d7e93a9260fa68620cd2ef37a9400af8c711d36e3b",
+      "exactCodeMatch": false,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/PropellerMainDebt.sol": "PropellerMainDebt"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      }
+    },
+    {
+      "label": "Harvester",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "transactionHash": "0x0ae5b0cf6622fc19ce54a29bd93051f8fc1a9801859eb9dcc96492a4430fa9b7",
+      "block": "15306854",
+      "gasUsed": "3516162",
+      "estimatedGas": "3516162",
+      "gasLimit": "3867779",
+      "initBytes": 9773,
+      "runtimeBytes": 9147,
+      "codeHash": "0x08cebb24489b63ae3c659d19e86ab4185bf5dd997585dfc7257dee31558cdddb",
+      "exactCodeMatch": false,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/Harvester.sol": "Harvester"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      }
+    },
+    {
+      "label": "PropellerFeeController",
+      "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+      "transactionHash": "0x249439061bf1677b9a925d443b2f81064ad4dc37e9d446d796bca7be816fdd57",
+      "block": "15306855",
+      "gasUsed": "3447720",
+      "estimatedGas": "3447720",
+      "gasLimit": "3792492",
+      "initBytes": 9466,
+      "runtimeBytes": 8960,
+      "codeHash": "0x393b3d9d786fa24366cf9521ea180351071785df910fc77dcd7e26891769eb89",
+      "exactCodeMatch": true,
+      "compiler": {
+        "version": "0.8.22+commit.4fc1097e"
+      },
+      "settings": {
+        "remappings": [
+          "@openzeppelin/contracts-upgradeable/=../bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "@openzeppelin/contracts/=../bil-vault/lib/openzeppelin-contracts/contracts/",
+          "forge-std/=../bil-vault/lib/forge-std/src/",
+          "openzeppelin-contracts-upgradeable/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "openzeppelin-contracts/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts/contracts/",
+          "openzeppelin/=/tmp/propeller-dca-20261004/bil-vault/lib/openzeppelin-contracts-upgradeable/contracts/",
+          "solmate/=../bil-vault/lib/solmate/"
+        ],
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "metadata": {
+          "bytecodeHash": "ipfs"
+        },
+        "compilationTarget": {
+          "src/PropellerFeeController.sol": "PropellerFeeController"
+        },
+        "evmVersion": "london",
+        "libraries": {},
+        "viaIR": true
+      }
+    },
+    {
+      "label": "PropellerDiscount",
+      "address": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+      "transactionHash": "0x3646767707eb0a3ef30f3666f7ed2e6f272b94061f949a543eb039a35303cc6c",
+      "block": "15306864",
+      "gasUsed": "2677656",
+      "runtimeBytes": 6740,
+      "codeHash": "0x7361da4d743695daff51a6ae2a1eeca74f2c4a2bb56cce5c825654d291aaa642"
+    }
+  ],
+  "calls": [
+    {
+      "label": "CollateralVault.setMainDebt",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x1f15591bc55024bf3aeae0a21b67431b595e4bf042ea32856553092656a62467",
+      "gasUsed": "84912"
+    },
+    {
+      "label": "SyntheticToken.grantRole",
+      "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+      "transactionHash": "0x576d85a319a2cf6c9bb8ebaba29da0b8c451e47b2b7e21b137a800d64258ee87",
+      "gasUsed": "51201"
+    },
+    {
+      "label": "SubLoop.registerVault",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0xd8db41f4bd15134f5fc37500e00d9275ab556645e92becf848c2bafe2422389b",
+      "gasUsed": "53945"
+    },
+    {
+      "label": "SubLoop.setHarvester",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "transactionHash": "0x73dc786b2dc45fe557f7467abada9cae39c3783704467e9f3fa3a33f6b5e178b",
+      "gasUsed": "50986"
+    },
+    {
+      "label": "Harvester.addVault",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "transactionHash": "0x37511c78574cfead484e15529c2342ed6228723e4328a976158f6616e98ef1be",
+      "gasUsed": "127368"
+    },
+    {
+      "label": "Harvester.setFeeController",
+      "address": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+      "transactionHash": "0x57d53c54f2e71bfbccae9902396fd4deae4d9ae97cb5b01314fa3d403a2f0bf6",
+      "gasUsed": "49674"
+    },
+    {
+      "label": "CollateralVault.setFeeController",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "transactionHash": "0x0c654a731c22a5df5077c4229be51dd692a66e070999f204af4e7c16d6d96f32",
+      "gasUsed": "55587"
+    },
+    {
+      "label": "PropellerFeeController.registerVault",
+      "address": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+      "transactionHash": "0x1a55bf552d37dc7cfa1babe6abcb5998df8fe9ada8c3888b26ca42d2f77aec8e",
+      "gasUsed": "424560"
+    },
+    {
+      "label": "Aave.initReserves(psHOLLAR)",
+      "block": 15306863,
+      "events": [
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0xa8f540fb7852024da35d30947be0899299ba42f1",
+              "topics": [
+                "0xb19e051f8af41150ccccb3fc2c2d8d15f4a4cf434f32a559ba75fe73d6eea20b",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                "0x0000000000000000000000001b02e051683b5cfac5929c25e84adb26ecf87b38"
+              ],
+              "data": "0x000000000000000000000000e52567ff06acd6cbe7ba94dc777a3126e180b6d90000000000000000000000007472a3d0891df2401d981a5954d07e364f05060f000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000001a50726f70656c6c65722053796e7468657469632061546f6b656e0000000000000000000000000000000000000000000000000000000000000000000000000007615053594e5448000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0x1219d21959db7f5c65aa8654535620ced466eca7",
+              "topics": [
+                "0x40251fbfb6656cfa65a00d7879029fec1fad21d28fdcff2f4f68f52795b74f2c",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                "0x0000000000000000000000001b02e051683b5cfac5929c25e84adb26ecf87b38"
+              ],
+              "data": "0x0000000000000000000000007472a3d0891df2401d981a5954d07e364f05060f000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001f50726f70656c6c65722053796e74686574696320537461626c65204465627400000000000000000000000000000000000000000000000000000000000000000873645053594e54480000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0x96c5ac107097a9ec52a2f9348db83ef3d35ae6ee",
+              "topics": [
+                "0x40251fbfb6656cfa65a00d7879029fec1fad21d28fdcff2f4f68f52795b74f2c",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                "0x0000000000000000000000001b02e051683b5cfac5929c25e84adb26ecf87b38"
+              ],
+              "data": "0x0000000000000000000000007472a3d0891df2401d981a5954d07e364f05060f000000000000000000000000000000000000000000000000000000000000001200000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002150726f70656c6c65722053796e746865746963205661726961626c65204465627400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000876645053594e54480000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4",
+              "topics": [
+                "0x3a0ca721fc364424566385a1aa271ed508cc2c0949c2272575fb3013a163a45f",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                "0x000000000000000000000000a8f540fb7852024da35d30947be0899299ba42f1"
+              ],
+              "data": "0x0000000000000000000000001219d21959db7f5c65aa8654535620ced466eca700000000000000000000000096c5ac107097a9ec52a2f9348db83ef3d35ae6ee0000000000000000000000005383a606ece147e94c1fa0b7375bc778f132b832"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Executed",
+          "data": [
+            "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4"
+          ]
+        },
+        {
+          "section": "dispatcher",
+          "method": "AaveManagerCallDispatched",
+          "data": [
+            "0x6fcd85ab7f0442b8816c89fedb1d28daf5a7de03b18e1201c8d7576b0bf3ada6",
+            {
+              "ok": {
+                "actualWeight": {
+                  "refTime": 61074618000,
+                  "proofSize": 611827
+                },
+                "paysFee": "No"
+              }
+            }
+          ]
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              15306863,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        }
+      ],
+      "simulatedGovernance": true
+    },
+    {
+      "label": "HOLLAR.updateDiscountToken",
+      "block": 15306865,
+      "events": [
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+              "topics": [
+                "0x6b489e1dbfbe36f55c511c098bcc9d92fec7f04f74ceb75018697ab68f7d3529",
+                "0x000000000000000000000000531a654d1696ed52e7275a8cede955e82620f99a",
+                "0x000000000000000000000000959922be3caee4b8cd9a407cc3ac1c251c2007b1"
+              ],
+              "data": "0x"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Executed",
+          "data": [
+            "0x342923782ccaebf9c38dd9cb40436e82c42c73b5"
+          ]
+        },
+        {
+          "section": "dispatcher",
+          "method": "AaveManagerCallDispatched",
+          "data": [
+            "0x1794b9b4f807d4a0191fd50cd32b177867a3fcb8c7afdac5302b84a15cf55ab4",
+            {
+              "ok": {
+                "actualWeight": {
+                  "refTime": 998193000,
+                  "proofSize": 11063
+                },
+                "paysFee": "No"
+              }
+            }
+          ]
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              15306865,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        }
+      ],
+      "simulatedGovernance": true
+    },
+    {
+      "label": "HOLLAR.updateDiscountRateStrategy",
+      "block": 15306866,
+      "events": [
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0x342923782ccaebf9c38dd9cb40436e82c42c73b5",
+              "topics": [
+                "0x194bd59f47b230edccccc2be58b92dde3a5dadd835751a621af59006928bccef",
+                "0x00000000000000000000000033a7c640140febafecc9801af723a0c14420eed7",
+                "0x000000000000000000000000959922be3caee4b8cd9a407cc3ac1c251c2007b1"
+              ],
+              "data": "0x"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Executed",
+          "data": [
+            "0x342923782ccaebf9c38dd9cb40436e82c42c73b5"
+          ]
+        },
+        {
+          "section": "dispatcher",
+          "method": "AaveManagerCallDispatched",
+          "data": [
+            "0xcd4271464c95760a018c83db6503a39bb7601d1a0490507fc666dbd33bc73269",
+            {
+              "ok": {
+                "actualWeight": {
+                  "refTime": 998868000,
+                  "proofSize": 11070
+                },
+                "paysFee": "No"
+              }
+            }
+          ]
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              15306866,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        }
+      ],
+      "simulatedGovernance": true
+    },
+    {
+      "label": "CollateralVault.setDiscountController",
+      "address": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+      "encodedArgs": "[\"0x959922be3caee4b8cd9a407cc3ac1c251c2007b1\"]",
+      "transactionHash": "0xc1a2bbb00cd63397ae8c51e207482a6551e4158ac1c1da8e8d698c578c9f23c2",
+      "gasUsed": "144980"
+    },
+    {
+      "label": "PropellerDiscount.registerVault",
+      "address": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+      "encodedArgs": "[\"0xdc64a140aa3e981100a9beca4e685f962f0cf6c9\"]",
+      "transactionHash": "0x163a004e7a14d14f50e8d5493f14159b86e19bf1702a57b8de94b4a17accfe06",
+      "gasUsed": "187275"
+    },
+    {
+      "label": "PropellerDiscount.setDiscountBps",
+      "address": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+      "encodedArgs": "[8000]",
+      "transactionHash": "0x6e76e3ecd01d063d85109a7a745dd0028cee05259345e966250c460c7d17409c",
+      "gasUsed": "154600"
+    },
+    {
+      "label": "PropellerDiscount.setDiscountBps",
+      "address": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1",
+      "encodedArgs": "[0]",
+      "transactionHash": "0xf57cd46fe4fb23d187330449899143dba67491842ec8b2500d087a9012a3d3ff",
+      "gasUsed": "95310"
+    },
+    {
+      "label": "Aave.configureSyntheticCollateral",
+      "block": 15306871,
+      "events": [
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4",
+              "topics": [
+                "0x637febbda9275aea2e85c0ff690444c8d87eb2e8339bbede9715abcc89cb0995",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512"
+              ],
+              "data": "0x000000000000000000000000000000000000000000000000000000000000006400000000000000000000000000000000000000000000000000000000000026480000000000000000000000000000000000000000000000000000000000002774"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Executed",
+          "data": [
+            "0xe64c38e2fa00dfe4f1d0b92f75b8e44ebdf292e4"
+          ]
+        },
+        {
+          "section": "dispatcher",
+          "method": "AaveManagerCallDispatched",
+          "data": [
+            "0x1591a853b12ab040255b9f6a51c6c5bba50919d58f5ddd85fb8a69bb42157f7d",
+            {
+              "ok": {
+                "actualWeight": {
+                  "refTime": 1612268000,
+                  "proofSize": 17204
+                },
+                "paysFee": "No"
+              }
+            }
+          ]
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              15306871,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        }
+      ],
+      "simulatedGovernance": true
+    },
+    {
+      "label": "Aave.configureSyntheticOracle",
+      "block": 15306872,
+      "events": [
+        {
+          "section": "evm",
+          "method": "Log",
+          "data": [
+            {
+              "address": "0xad33c0f0c42c5a0eaa65b5895d2bdb20cb6e8760",
+              "topics": [
+                "0x22c5b7b2d8561d39f7f210b6b326a1aa69f15311163082308ac4877db6339dc1",
+                "0x000000000000000000000000e7f1725e7734ce288f8367e1bb143e90bb3f0512",
+                "0x0000000000000000000000006096c9d71f7c06024578a62f4b608a1bb06834f8"
+              ],
+              "data": "0x"
+            }
+          ]
+        },
+        {
+          "section": "evm",
+          "method": "Executed",
+          "data": [
+            "0xad33c0f0c42c5a0eaa65b5895d2bdb20cb6e8760"
+          ]
+        },
+        {
+          "section": "dispatcher",
+          "method": "AaveManagerCallDispatched",
+          "data": [
+            "0xb800f07e3e39a8c553fc9d9ab2675a0df65df83b29c168a740bffb82e14b7ceb",
+            {
+              "ok": {
+                "actualWeight": {
+                  "refTime": 1430393000,
+                  "proofSize": 15385
+                },
+                "paysFee": "No"
+              }
+            }
+          ]
+        },
+        {
+          "section": "scheduler",
+          "method": "Dispatched",
+          "data": [
+            [
+              15306872,
+              0
+            ],
+            null,
+            {
+              "ok": null
+            }
+          ]
+        }
+      ],
+      "simulatedGovernance": true
+    },
+    {
+      "label": "SubLoop.configureDca",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "encodedArgs": "[222,43,1043,143,10000]",
+      "transactionHash": "0x7e2eff4885754e0ace48ee6029b2166c8852631f9e84432fb45f41d2d6209a1b",
+      "gasUsed": "52849"
+    },
+    {
+      "label": "SubLoop.setTranches",
+      "address": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+      "encodedArgs": "[\"100000000000000000000\",\"100000000\"]",
+      "transactionHash": "0xaef61374b0305ce7cdf22a684b29d0f4ab0bc3131c8cdd0d4be61c3f8908447f",
+      "gasUsed": "84912"
+    }
+  ],
+  "checks": {
+    "immutableHelper": {
+      "address": "0xa16E02E87b7454126E5E10d957A927A7F5B5d2be",
+      "runtimeBytes": 15780,
+      "codeHash": "0xa2c8ef8b7666d39f81f86dec122059180a2e91f985a71c0b30460a1fcd607ca3"
+    },
+    "yieldAccountingBinding": true,
+    "noSponsoredOperatingCapital": true,
+    "feeBinding": true,
+    "initialFeeBps": 500,
+    "discountInstalledAndRegistered": true,
+    "discountRateUpdateAndReset": true,
+    "committeeRateRole": true
+  },
+  "fork": {
+    "chainId": 222222,
+    "block": "15306846",
+    "hash": "0x02f6c220e92ae361c69ffbc6fe624c691ce9b9191e49ef5d34d891cdd2f6de7c",
+    "runtime": {
+      "specName": "hydradx",
+      "implName": "hydradx",
+      "authoringVersion": 1,
+      "specVersion": 447,
+      "implVersion": 0,
+      "apis": [
+        [
+          "0xdf6acb689907609b",
+          5
+        ],
+        [
+          "0x37e397fc7c91f5e4",
+          2
+        ],
+        [
+          "0x40fe3ad401f8959a",
+          6
+        ],
+        [
+          "0xd2bc9897eed08f15",
+          3
+        ],
+        [
+          "0xf78b278be53f454c",
+          2
+        ],
+        [
+          "0xab3c0572291feb8b",
+          1
+        ],
+        [
+          "0xdd718d5cc53262d4",
+          1
+        ],
+        [
+          "0xea93e3f16f3d6962",
+          3
+        ],
+        [
+          "0x695c80446b8b3d4e",
+          1
+        ],
+        [
+          "0x9af86751b70c112d",
+          1
+        ],
+        [
+          "0xbc9d89904f5b923f",
+          1
+        ],
+        [
+          "0x37c8bb1350a9a2a8",
+          4
+        ],
+        [
+          "0x582211f65bb14b89",
+          6
+        ],
+        [
+          "0xe65b00e46cedd0aa",
+          2
+        ],
+        [
+          "0x0bb67a52fcd040ff",
+          1
+        ],
+        [
+          "0x34a3d488166b5a55",
+          1
+        ],
+        [
+          "0x542334fe4fd7cada",
+          1
+        ],
+        [
+          "0x6ff52ee858e6c5bd",
+          1
+        ],
+        [
+          "0xd7bdd8a272ca0d65",
+          2
+        ],
+        [
+          "0x04e70521a0d3d2f8",
+          1
+        ],
+        [
+          "0x91b1c8b16328eb92",
+          2
+        ],
+        [
+          "0x9ffb505aa738d69c",
+          1
+        ],
+        [
+          "0x2b5f5bcd2460e4f0",
+          1
+        ],
+        [
+          "0xa2b2b484fcb86943",
+          1
+        ],
+        [
+          "0x75fc5fbf0e9c71bc",
+          1
+        ],
+        [
+          "0x6aa673a4e69ae9a5",
+          1
+        ],
+        [
+          "0xfbc577b9d747efd6",
+          1
+        ]
+      ],
+      "transactionVersion": 1,
+      "stateVersion": 1
+    }
+  },
+  "upstream": "wss://hdx.tarn.hydration.cloud",
+  "gasPrice": "9226818",
+  "localDeployerFunded": true,
+  "build": {
+    "artifactDir": "/tmp/propeller-dca-20261004/propeller-vault/out-production",
+    "artifacts": {
+      "CollateralVault": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/CollateralVault.sol/CollateralVault.json",
+        "sha256": "79014fb9cc3efb6b77896a9e8cc35401bd3877998041b01f96b1d3f520523e89"
+      },
+      "CompoundLogic": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/CompoundLogic.sol/CompoundLogic.json",
+        "sha256": "3064c7c57752ea81825b1b0b9c6351b9c3ab21654ae7bc5ee8e774ca4e3a14f4"
+      },
+      "SyntheticToken": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/SyntheticToken.sol/SyntheticToken.json",
+        "sha256": "c4ffcae4696f16291009e132da1356bfd8b143b7137156dea5b1d3821c8acfab"
+      },
+      "SubLoop": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/SubLoop.sol/SubLoop.json",
+        "sha256": "7f3cd7f9bdec240ce2b83db038706b878e454f971c33d70bbbe2350ddd164fb1"
+      },
+      "ERC1967Proxy": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/ERC1967Proxy.sol/ERC1967Proxy.json",
+        "sha256": "caa07b5458a845220b4525f3bbe7130fe47a719e85fee19a060d0e7fd4bef5a4"
+      },
+      "PropellerMainDebt": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/PropellerMainDebt.sol/PropellerMainDebt.json",
+        "sha256": "efcc4de03fb5cf8c4a650eae7db94c6e8e88b23702fdf76fb1d688d2e2e50613"
+      },
+      "PropellerYieldAccounting": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/PropellerYieldAccounting.sol/PropellerYieldAccounting.json",
+        "sha256": "feac04f72d624082aa71335d143564ae8ddeee098d9a337f5e94a6c65f594b63"
+      },
+      "Harvester": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/Harvester.sol/Harvester.json",
+        "sha256": "3cdb8b880f31dbe95008dd5ecbd6ddf2914e61e1977cb918cc03cdcaad6d1ecd"
+      },
+      "PropellerFeeController": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/PropellerFeeController.sol/PropellerFeeController.json",
+        "sha256": "459ff48ca9da5ecca9f9c4d28227d1ec99a5cfe832a07a562a16fd65a10472df"
+      }
+    }
+  },
+  "overrides": [
+    "Parachain relay-parent override for local block production",
+    "Fund public development deployer with local HDX/WETH",
+    "Whitelist development deployer; no runtime/code-size/gas-limit overrides",
+    "Scheduler/preimage injection to simulate governance execution of synthetic reserve listing and HOLLAR discount installation"
+  ],
+  "market": {
+    "pool": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+    "hollar": "0x531a654d1696ED52e7275A8cede955E82620f99a",
+    "collateral": "0x0000000000000000000000000000000100000022",
+    "prime": "0x000000000000000000000000000000010000002B",
+    "aEth": "0x11a8f7fFbB7e0fbEd88BC20179Dd45B4Bd6874ff",
+    "aPrime": "0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7",
+    "hollarDebt": "0x342923782cCaEBf9c38DD9cb40436e82C42c73B5"
+  },
+  "status": "combined-stack-deployed-and-wired",
+  "addresses": {
+    "vaultImpl": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+    "synth": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+    "subImpl": "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
+    "source": "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+    "vault": "0xdc64a140aa3e981100a9beca4e685f962f0cf6c9",
+    "harvester": "0xa513e6e4b8f2a923d98304ec87f64353c4d5c853",
+    "fees": "0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+    "buffer": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
+    "yieldAccounting": "0x61c36a8d610163660E21a8b7359e1Cac0C9133e1",
+    "aSynthetic": "0xa8f540FB7852024Da35D30947bE0899299ba42F1",
+    "discount": "0x959922be3caee4b8cd9a407cc3ac1c251c2007b1"
+  },
+  "testOnlyPolicy": {
+    "slippagePpm": 10000,
+    "trancheHollar": "100",
+    "productionApproval": false
+  },
+  "infrastructureCaveat": "Chopsticks eth_getStorageAt uses H256 encoding for runtime U256 slot index; implementation slots read from native EVM.AccountStorages instead.",
+  "deferredDeposit": {
+    "checks": {
+      "largeDepositWaitsDebtFree": true,
+      "withdrawalBeforeDeployment": true,
+      "previewsRollback": true
+    },
+    "calls": [
+      {
+        "label": "entry-budget",
+        "hash": "0xd7572e17a4ef73bedf88b8a460a21f384444e2479ca5266b92ac6f406b9f0fa6",
+        "block": "15306877",
+        "estimatedGas": "179048",
+        "gasUsed": "127368"
+      },
+      {
+        "label": "entry-limit",
+        "hash": "0x4c54f15ff464da2591d1c23a8708e39e52b890a6b9678e9098abb2e339c9d65a",
+        "block": "15306878",
+        "estimatedGas": "122887",
+        "gasUsed": "84912"
+      },
+      {
+        "label": "entry-pacing",
+        "hash": "0x277d173adfcbfc389a92b004abacbd0921226b0a391ed9342922969220ec6770",
+        "block": "15306879",
+        "estimatedGas": "94729",
+        "gasUsed": "54929"
+      },
+      {
+        "label": "rebalance-action",
+        "hash": "0x2bdef35f5fad5b2b6cc090ce868d642e1c5ab3b86e752d4e7426f86b44422074",
+        "block": "15306880",
+        "estimatedGas": "93284",
+        "gasUsed": "53484"
+      },
+      {
+        "label": "bind-CollateralVault",
+        "hash": "0x18d7dbbd24b0245191f4e68c925879983cda95222333c8efe3486b0e64ab812b",
+        "block": "15306881",
+        "estimatedGas": "446569",
+        "gasUsed": "56354"
+      },
+      {
+        "label": "bind-SubLoop",
+        "hash": "0xad56a89bbffabc1af1268a878159f73b018b1d60ac73c07b2c4480755789841b",
+        "block": "15306882",
+        "estimatedGas": "446271",
+        "gasUsed": "56056"
+      },
+      {
+        "label": "bind-Harvester",
+        "hash": "0xf4e3ab6c5b8a17c002574f76e1a2e08988153a8a76f121828d6ddca31c4f597a",
+        "block": "15306883",
+        "estimatedGas": "92401",
+        "gasUsed": "52601"
+      },
+      {
+        "label": "reserve-approve",
+        "hash": "0xff6fb7d1b6ad565062bf545dbff2e9948942e1e5cfdf5ee77c5f680cc553b4ea",
+        "block": "15306884",
+        "estimatedGas": "24376",
+        "gasUsed": "24376"
+      },
+      {
+        "label": "reserve-fund",
+        "hash": "0xdbaea20a717d85ab18f977169664f177737a7ca58654369c1a269d28fa7966c3",
+        "block": "15306885",
+        "estimatedGas": "4423679",
+        "gasUsed": "93183"
+      },
+      {
+        "label": "deposit-approve",
+        "hash": "0xe35f0bc22764d84f6f503014162292046b37cff196fbd659d095662463363616",
+        "block": "15306886",
+        "estimatedGas": "24376",
+        "gasUsed": "24376"
+      },
+      {
+        "label": "direct-deposit",
+        "hash": "0x63f15358790fc60c2d2a97b84ca3030bb86f43babcb416e25d2d6b203e39fb53",
+        "block": "15306887",
+        "estimateCeiling": "13981013",
+        "estimatedGas": "11976587",
+        "submittedGas": "14371905",
+        "gasUsed": "568361"
+      },
+      {
+        "label": "local-zero-delay",
+        "hash": "0x9fea94d44391377b33989bff77217e076aefa51c37e976d79b4d80c3fbbb0551",
+        "block": "15306888",
+        "estimateCeiling": "13981013",
+        "estimatedGas": "270646",
+        "submittedGas": "324776",
+        "gasUsed": "30699"
+      },
+      {
+        "label": "pre-deploy-request",
+        "hash": "0xeaee48c943caa752b2bf3a08ac394ebcdf07006ffe43b53db5656b27e3fba165",
+        "block": "15306889",
+        "estimateCeiling": "13981013",
+        "estimatedGas": "7254482",
+        "submittedGas": "8705379",
+        "gasUsed": "369486"
+      },
+      {
+        "label": "pre-deploy-start",
+        "hash": "0xe041d8e0b1e374142651937d911b14f232f08002f33427f5d62c533f812d3990",
+        "block": "15306890",
+        "estimateCeiling": "13981013",
+        "estimatedGas": "10773572",
+        "submittedGas": "12928287",
+        "gasUsed": "434424"
+      },
+      {
+        "label": "pre-deploy-settle",
+        "hash": "0x49b9f822471cf9b7308478d32e79dd7f6ebbc479cbf5e32e40106de2bb9e1500",
+        "block": "15306891",
+        "estimateCeiling": "13981013",
+        "estimatedGas": "10590565",
+        "submittedGas": "12708678",
+        "gasUsed": "432685"
+      },
+      {
+        "label": "pre-deploy-claim",
+        "hash": "0x58b6c68b88cc71264f10d23696b181f9ee6e52ae6e1a977c1b16f5a11532ba7d",
+        "block": "15306892",
+        "estimateCeiling": "13981013",
+        "estimatedGas": "1529270",
+        "submittedGas": "1835124",
+        "gasUsed": "114826"
+      }
+    ],
+    "quotes": [
+      {
+        "block": "15306892",
+        "amountHollar": "50",
+        "acceptable": false,
+        "revert": "Execution reverted with reason: 0xf4c0eb20."
+      },
+      {
+        "block": "15306892",
+        "amountHollar": "25",
+        "acceptable": false,
+        "revert": "Execution reverted with reason: 0xf4c0eb20."
+      },
+      {
+        "block": "15306892",
+        "amountHollar": "10",
+        "acceptable": false,
+        "revert": "Execution reverted with reason: 0xf4c0eb20."
+      },
+      {
+        "block": "15306892",
+        "amountHollar": "5",
+        "acceptable": false,
+        "revert": "Execution reverted with reason: 0xf4c0eb20."
+      },
+      {
+        "block": "15306892",
+        "amountHollar": "1",
+        "acceptable": false,
+        "revert": "Execution reverted with reason: 0xf4c0eb20."
+      }
+    ],
+    "productionApproval": false,
+    "funded": true,
+    "overrides": [
+      "Local public development account collateral",
+      "Fork governance custody dust whitelist"
+    ],
+    "artifacts": {
+      "CollateralVault": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/CollateralVault.sol/CollateralVault.json",
+        "sha256": "79014fb9cc3efb6b77896a9e8cc35401bd3877998041b01f96b1d3f520523e89"
+      },
+      "ExecutionController": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/ExecutionController.sol/ExecutionController.json",
+        "sha256": "7683dd99228a8c6085bbc9ea5f9d1aa3158a4220d5700816c3fe6bf697bce72a"
+      },
+      "SubLoop": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/SubLoop.sol/SubLoop.json",
+        "sha256": "7f3cd7f9bdec240ce2b83db038706b878e454f971c33d70bbbe2350ddd164fb1"
+      },
+      "Harvester": {
+        "file": "/tmp/propeller-dca-20261004/propeller-vault/out-production/Harvester.sol/Harvester.json",
+        "sha256": "3cdb8b880f31dbe95008dd5ecbd6ddf2914e61e1977cb918cc03cdcaad6d1ecd"
+      }
+    },
+    "controller": "0x322813fd9a801c5507c9de605d63cea4f2ce6c44",
+    "deployment": {
+      "hash": "0x9eadfb4efb02ff28111e348b941ad23369c8d6dde860c10c550afafb353e468e",
+      "gasUsed": "4887198",
+      "estimatedGas": "4887198",
+      "codeHash": "0xf4e35d4872d121b3fa6e731362158ea6fe873fc1bf44eb8fa2260ad66087bab5"
+    },
+    "strictOracleQuotesAvailable": false,
+    "status": "deferred-deposit-and-pre-deployment-withdrawal-passed",
+    "scope": "Local native execution with listed synthetic and funded rounding fixture; no oracle override, no mainnet activation, no executed strategy swap or APY claim."
+  }
+}

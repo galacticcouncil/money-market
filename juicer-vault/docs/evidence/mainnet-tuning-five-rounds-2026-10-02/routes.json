@@ -1,0 +1,245 @@
+{
+  "block": "15311067",
+  "hash": "0x64f53b07c562761ce0551410bb6fee895c9b4317c28de18980e3e0cdbdf96701",
+  "dependencies": {
+    "stableswap": {
+      "version": "2.5.0",
+      "wasmSha256": "a3cb6c3ea278d231cf6af1e75dbeabe465a24825b379f27c008f030d43234c93"
+    },
+    "hsm": {
+      "version": "1.2.0",
+      "wasmSha256": "b98b025623d907590d055bcfe6e03a24406379638a1af7c40e4b79cd7f8205eb"
+    }
+  },
+  "capacity": {
+    "leverage": 6.176470588235295,
+    "ltv": [
+      0.75,
+      0.8
+    ],
+    "price": [
+      2691.3322628,
+      84499.82877994
+    ],
+    "primePrice": 1.06244091,
+    "marketMintRoom": 1178356.824790895,
+    "hsmMintRoom": 17444088.418489225,
+    "hsmBurnCapacity": 555911.5815107753,
+    "primeSupplyRoom": 6458515.270916801,
+    "ethSupplyRoom": 9069331.817877727,
+    "btcSupplyRoom": 1464084.623456833,
+    "primeIsolationRoom": 4721565.88,
+    "primeAvailable": 8250971.243074864,
+    "ethAvailable": 2777402.896602831,
+    "btcAvailable": 2717247.9717316013,
+    "borrowApr": 0.044016888917752794,
+    "hsmCollateral": 559475.496178
+  },
+  "quotes": [
+    {
+      "usd": 1,
+      "entryLossBps": 2,
+      "exitLossBps": 5.98
+    },
+    {
+      "usd": 10,
+      "entryLossBps": 2.01,
+      "exitLossBps": 5.99
+    },
+    {
+      "usd": 100,
+      "entryLossBps": 2.02,
+      "exitLossBps": 6
+    },
+    {
+      "usd": 500,
+      "entryLossBps": 2.1,
+      "exitLossBps": 6.08
+    },
+    {
+      "usd": 1000,
+      "entryLossBps": 2.19,
+      "exitLossBps": 6.17
+    },
+    {
+      "usd": 2500,
+      "entryLossBps": 2.47,
+      "exitLossBps": 6.45
+    },
+    {
+      "usd": 5000,
+      "entryLossBps": 2.93,
+      "exitLossBps": 6.91
+    },
+    {
+      "usd": 10000,
+      "entryLossBps": 3.86,
+      "exitLossBps": 7.84
+    },
+    {
+      "usd": 25000,
+      "entryLossBps": 6.63,
+      "exitLossBps": 10.63
+    },
+    {
+      "usd": 50000,
+      "entryLossBps": 11.3,
+      "exitLossBps": 15.34
+    },
+    {
+      "usd": 100000,
+      "entryLossBps": 20.99,
+      "exitLossBps": 25.25
+    }
+  ],
+  "oneShot": [
+    {
+      "bps": 5,
+      "entryHollar": 16156.309360977262
+    },
+    {
+      "bps": 10,
+      "entryHollar": 43051.88021752281
+    },
+    {
+      "bps": 15,
+      "entryHollar": 69451.88220473003
+    },
+    {
+      "bps": 25,
+      "entryHollar": 119468.43491372715
+    },
+    {
+      "bps": 50,
+      "entryHollar": 221065.10869397907
+    },
+    {
+      "bps": 100,
+      "entryHollar": 338648.8772709168
+    }
+  ],
+  "sequential": [
+    {
+      "sourceBps": 10,
+      "chunk": 250,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 16250,
+      "lastLossBps": 7.97,
+      "truncated": false
+    },
+    {
+      "sourceBps": 10,
+      "chunk": 1000,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 16000,
+      "lastLossBps": 7.74,
+      "truncated": false
+    },
+    {
+      "sourceBps": 10,
+      "chunk": 5000,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 15000,
+      "lastLossBps": 6.63,
+      "truncated": false
+    },
+    {
+      "sourceBps": 15,
+      "chunk": 250,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 29750,
+      "lastLossBps": 12.99,
+      "truncated": false
+    },
+    {
+      "sourceBps": 15,
+      "chunk": 1000,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 30000,
+      "lastLossBps": 12.95,
+      "truncated": false
+    },
+    {
+      "sourceBps": 15,
+      "chunk": 5000,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 30000,
+      "lastLossBps": 12.2,
+      "truncated": false
+    },
+    {
+      "sourceBps": 25,
+      "chunk": 250,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 56000,
+      "lastLossBps": 22.97,
+      "truncated": false
+    },
+    {
+      "sourceBps": 25,
+      "chunk": 1000,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 56000,
+      "lastLossBps": 22.83,
+      "truncated": false
+    },
+    {
+      "sourceBps": 25,
+      "chunk": 5000,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 55000,
+      "lastLossBps": 21.67,
+      "truncated": false
+    },
+    {
+      "sourceBps": 50,
+      "chunk": 250,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 115250,
+      "lastLossBps": 48,
+      "truncated": false
+    },
+    {
+      "sourceBps": 50,
+      "chunk": 1000,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 115000,
+      "lastLossBps": 47.7,
+      "truncated": false
+    },
+    {
+      "sourceBps": 50,
+      "chunk": 5000,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 115000,
+      "lastLossBps": 46.78,
+      "truncated": false
+    },
+    {
+      "sourceBps": 100,
+      "chunk": 250,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 199750,
+      "lastLossBps": 97.9,
+      "truncated": false
+    },
+    {
+      "sourceBps": 100,
+      "chunk": 1000,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 200000,
+      "lastLossBps": 97.81,
+      "truncated": false
+    },
+    {
+      "sourceBps": 100,
+      "chunk": 5000,
+      "quoteMarginBps": 2,
+      "noRefillCumulativeHollar": 200000,
+      "lastLossBps": 96.3,
+      "truncated": false
+    }
+  ],
+  "scope": "Fixed oracle, peg and amplification; sequential reserve updates without external refill. Pool math omits native circuit breakers and concurrent trades. This is a necessary quote constraint, not guaranteed executable throughput. Shared limits must aggregate all vaults.",
+  "inputSha256": "f3efa1cdd45cabdef84da2bca63dcffa0658187e97e5649dc83f5fd90b2458f6"
+}

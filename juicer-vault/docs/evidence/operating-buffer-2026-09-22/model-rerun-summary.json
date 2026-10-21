@@ -1,0 +1,515 @@
+{
+  "scope": "Off-chain economic controls and finite-liquidity models, distinct from the real-contract campaign.",
+  "snapshotBlock": "14900756",
+  "snapshotHash": "0xc0f89ce05e34f0b024401fb220c0efc11c79b98a408b8e498281da4f744bae49",
+  "policy": {
+    "scenarios": 720,
+    "sensitivities": 460,
+    "maxAbsoluteConservationError": 2.123415470123291e-7
+  },
+  "pressure": {
+    "scenarios": 108,
+    "entries": [
+      {
+        "tvl": 100000,
+        "mainDebt": 77500,
+        "loopDebt": 401176.47058823536,
+        "grossPrimeDemand": 478676.47058823536,
+        "mainEntry": {
+          "hollarIn": 77500,
+          "primeOut": 72725.557047,
+          "oracleLossBps": 142.16804156470974
+        },
+        "fullRamp": {
+          "hollarIn": 478676.47058823536,
+          "primeOut": 310930.520536,
+          "oracleLossBps": 3176.340766829916
+        },
+        "exceedsMarketMint": false,
+        "primePoolInventoryRatio": 1.430029577291194
+      },
+      {
+        "tvl": 500000,
+        "mainDebt": 387500,
+        "loopDebt": 2005882.3529411769,
+        "grossPrimeDemand": 2393382.352941177,
+        "mainEntry": {
+          "hollarIn": 387500,
+          "primeOut": 301619.676506,
+          "oracleLossBps": 1823.1878665921809
+        },
+        "fullRamp": {
+          "hollarIn": 2393382.352941177,
+          "primeOut": 318287.710283,
+          "oracleLossBps": 8602.976080101025
+        },
+        "exceedsMarketMint": true,
+        "primePoolInventoryRatio": 7.1501478864559695
+      },
+      {
+        "tvl": 1000000,
+        "mainDebt": 775000,
+        "loopDebt": 4011764.7058823537,
+        "grossPrimeDemand": 4786764.705882354,
+        "mainEntry": {
+          "hollarIn": 775000,
+          "primeOut": 316365.148874,
+          "oracleLossBps": 5711.7214336498455
+        },
+        "fullRamp": {
+          "hollarIn": 4786764.705882354,
+          "primeOut": 318453.917313,
+          "oracleLossBps": 9301.123283276902
+        },
+        "exceedsMarketMint": true,
+        "primePoolInventoryRatio": 14.300295772911939
+      },
+      {
+        "tvl": 10000000,
+        "mainDebt": 7750000,
+        "loopDebt": 40117647.05882354,
+        "grossPrimeDemand": 47867647.05882354,
+        "mainEntry": {
+          "hollarIn": 7750000,
+          "primeOut": 318489.940569,
+          "oracleLossBps": 9568.292022493246
+        },
+        "fullRamp": {
+          "hollarIn": 47867647.05882354,
+          "primeOut": 318512.434419,
+          "oracleLossBps": 9930.099486204956
+        },
+        "exceedsMarketMint": true,
+        "primePoolInventoryRatio": 143.0029577291194
+      },
+      {
+        "tvl": 50000000,
+        "mainDebt": 38750000,
+        "loopDebt": 200588235.2941177,
+        "grossPrimeDemand": 239338235.2941177,
+        "mainEntry": {
+          "hollarIn": 38750000,
+          "primeOut": 318512.104772,
+          "oracleLossBps": 9913.652395854713
+        },
+        "fullRamp": {
+          "hollarIn": 239338235.2941177,
+          "primeOut": 318513.039325,
+          "oracleLossBps": 9986.019870690543
+        },
+        "exceedsMarketMint": true,
+        "primePoolInventoryRatio": 715.0147886455969
+      },
+      {
+        "tvl": 100000000,
+        "mainDebt": 77500000,
+        "loopDebt": 401176470.5882354,
+        "grossPrimeDemand": 478676470.5882354,
+        "mainEntry": {
+          "hollarIn": 77500000,
+          "primeOut": 318512.823497,
+          "oracleLossBps": 9956.826100505343
+        },
+        "fullRamp": {
+          "hollarIn": 478676470.5882354,
+          "primeOut": 318513.058356,
+          "oracleLossBps": 9993.009934927619
+        },
+        "exceedsMarketMint": true,
+        "primePoolInventoryRatio": 1430.0295772911938
+      }
+    ],
+    "capacity": {
+      "leverage": 6.176470588235295,
+      "ltv": [
+        0.75,
+        0.8
+      ],
+      "price": [
+        2741.79178944,
+        85827.65543041
+      ],
+      "primePrice": 1.0505,
+      "marketMintRoom": 1368861.8011756856,
+      "hsmMintRoom": 17716726.630266458,
+      "hsmBurnCapacity": 283273.3697335423,
+      "primeSupplyRoom": 6393021.512858749,
+      "ethSupplyRoom": 8938861.69758127,
+      "btcSupplyRoom": 1625001.0351662454,
+      "primeIsolationRoom": 4785279.45,
+      "primeAvailable": 9142240.511706313,
+      "ethAvailable": 2963401.28113982,
+      "btcAvailable": 2580517.799708227,
+      "borrowApr": 0.044016888917752794,
+      "hsmCollateral": 285099.119207
+    },
+    "hsm": [
+      {
+        "assetId": 1002,
+        "holding": 152120.786836,
+        "maxHolding": 8000000,
+        "imbalance": 22209.641674606562,
+        "buybackRate": 0.0001,
+        "limitPerBlock": 2.2209641674606564,
+        "priceEligible": false,
+        "availableBuybackPerBlock": 0,
+        "blocksToReduceImbalance95pct": 29956
+      },
+      {
+        "assetId": 1003,
+        "holding": 132978.332371,
+        "maxHolding": 8000000,
+        "imbalance": 32979.99850364335,
+        "buybackRate": 0.0001,
+        "limitPerBlock": 3.2979998503643344,
+        "priceEligible": false,
+        "availableBuybackPerBlock": 0,
+        "blocksToReduceImbalance95pct": 29956
+      }
+    ],
+    "noRefillEntryAtOnePercent": 0
+  },
+  "peg": {
+    "entryScenarios": 54,
+    "marketPaths": 18,
+    "sensitivities": 13,
+    "current": {
+      "supply": 12664411.568557857,
+      "hsmCollateral": 285099.119207,
+      "hsmBurnCapacity": 283273.3697335423,
+      "hsmMintRoom": 17716726.630266458,
+      "marketMintRoom": 1368861.8011756856,
+      "currentPools": [
+        {
+          "id": 111,
+          "collateralId": 1002,
+          "hollar": 1053572.1708842132,
+          "collateral": 1009152.887535,
+          "oneHollarPrice": 0.999606,
+          "saleCapacity": {
+            "0.995": 378727.2542884998,
+            "0.99": 542142.4925564998,
+            "0.98": 676467.9389524997
+          }
+        },
+        {
+          "id": 110,
+          "collateralId": 1003,
+          "hollar": 924230.4187002868,
+          "collateral": 858270.421693,
+          "oneHollarPrice": 0.999467,
+          "saleCapacity": {
+            "0.995": 313484.5273714998,
+            "0.99": 454699.05204049975,
+            "0.98": 570775.7538774998
+          }
+        }
+      ],
+      "currentThroughput": [
+        {
+          "floor": 0.995,
+          "idealRotatingOcwPerDay": 1476735.6261258787
+        },
+        {
+          "floor": 0.99,
+          "idealRotatingOcwPerDay": 2077142.2762811536
+        },
+        {
+          "floor": 0.98,
+          "idealRotatingOcwPerDay": 2568920.2586302743
+        }
+      ]
+    }
+  },
+  "coupledWithoutBuyer": {
+    "tvl": 1000000,
+    "grossRequested": 4786764.705882354,
+    "config": {
+      "days": 90,
+      "rampDays": 30,
+      "warmupHours": 24,
+      "tickSeconds": 300,
+      "arbEverySeconds": 300,
+      "arbEnabled": true,
+      "hsmEnabled": true,
+      "agentCapital": 500000,
+      "maxArbHollar": 25000,
+      "arbRiskBps": 25,
+      "gasUsd": 0.05,
+      "entryFloor": 0.99,
+      "exitFloor": 0.99,
+      "entryRateMultiplier": 2,
+      "poolScale": 1,
+      "primePoolScale": 1,
+      "primeDailyCapacity": 1000000,
+      "primeDelayHours": 6,
+      "primeRedemptionCash": 1000000,
+      "primeFairPrice": 1.0606553548682192,
+      "stableDailyCapacity": 2000000,
+      "stableDelayHours": 1,
+      "settlementFeeBps": 10,
+      "cashFraction": 1,
+      "hsmReserveFraction": 1,
+      "hsmDonation": 0,
+      "buyerCoverage": 0,
+      "buyerDailyCapacity": null,
+      "buyerPriceCeiling": 0.999,
+      "buyerMode": "hold",
+      "mintCapsRaised": true,
+      "arbOutage": null,
+      "hsmOutage": null,
+      "settlementOutage": null,
+      "lpWithdrawal": null,
+      "cashWithdrawal": null,
+      "entryOutage": null,
+      "buyerBudget": null,
+      "tvl": 1000000
+    },
+    "fulfilledFraction": 0,
+    "finalDebt": 0,
+    "completeHour": null,
+    "minStablePrice": 0.99888426,
+    "minPrimePrice": 0.9992330578250858,
+    "maxStableAsk": 1.00000713,
+    "maxCrossPoolSpread": 0.00031780999999997395,
+    "hoursBelow99": 0,
+    "finalPrices": [
+      {
+        "poolId": 105,
+        "id": 21,
+        "bid": 0.99914269,
+        "ask": 0.9995467100000001
+      },
+      {
+        "poolId": 105,
+        "id": 23,
+        "bid": 0.99888426,
+        "ask": 0.99928849
+      },
+      {
+        "poolId": 110,
+        "id": 1003,
+        "bid": 0.99946682,
+        "ask": 0.99986774
+      },
+      {
+        "poolId": 111,
+        "id": 1002,
+        "bid": 0.9996063,
+        "ask": 1.00000713
+      },
+      {
+        "poolId": 143,
+        "id": 43,
+        "bid": 0.9992330578250858,
+        "ask": 1.000040884763014
+      }
+    ],
+    "queuedHollar": 4786764.705882354,
+    "maxQueuedHollar": 4786764.705882,
+    "guardCount": 25920,
+    "entryHollar": 0,
+    "exitHollar": 0,
+    "strategyPrimeValue": 0,
+    "strategyPrimeFairValue": 0,
+    "strategyHollar": 0,
+    "hsmBurned": 0,
+    "hsmMinted": 0,
+    "hsmBurnRemaining": 283273.3697335423,
+    "hsmHolding": 285099.119207,
+    "arbCount": 0,
+    "arbHollarTurnover": 0,
+    "arbMarkProfit": 0,
+    "gasUsd": 0,
+    "primeSubscribed": 0,
+    "primeRedeemed": 0,
+    "stableWithdrawn": 0,
+    "stableSupplied": 0,
+    "buyerSpent": 0,
+    "buyerHollarHeld": 0,
+    "externalDebtRepaid": 0,
+    "settlementBlockedCash": 0,
+    "mmCash": {
+      "1002": 919891.41651,
+      "1003": 771396.589717
+    },
+    "agentMarkedPnl": -1.8835999071598053e-7,
+    "agentCash": 125000,
+    "agentInventory": {
+      "21": 31250,
+      "23": 31250,
+      "43": 249999.99999981164,
+      "1002": 31250,
+      "1003": 31250
+    },
+    "unsettledValue": 0,
+    "peakDebt": 0,
+    "maxUnwindShortfall": 0,
+    "underTargetHollarHours": 8616375919.118553,
+    "overTargetHollarHours": 0,
+    "finalTarget": 4786764.705882354,
+    "unpaidUnwindHollar": 0,
+    "stressLog": [],
+    "conservation": true,
+    "snapshotSha256": "a79ba33ba6fc63da3b71e59e7541551fb7a461c7310ce24a5894ebee5732a354",
+    "dependencies": {
+      "stableswap": {
+        "version": "2.5.0",
+        "wasmSha256": "a3cb6c3ea278d231cf6af1e75dbeabe465a24825b379f27c008f030d43234c93"
+      },
+      "hsm": {
+        "version": "1.2.0",
+        "wasmSha256": "b98b025623d907590d055bcfe6e03a24406379638a1af7c40e4b79cd7f8205eb"
+      }
+    }
+  },
+  "coupledWithBuyer": {
+    "tvl": 1000000,
+    "grossRequested": 4786764.705882354,
+    "config": {
+      "days": 90,
+      "rampDays": 30,
+      "warmupHours": 24,
+      "tickSeconds": 300,
+      "arbEverySeconds": 300,
+      "arbEnabled": true,
+      "hsmEnabled": true,
+      "agentCapital": 500000,
+      "maxArbHollar": 25000,
+      "arbRiskBps": 25,
+      "gasUsd": 0.05,
+      "entryFloor": 0.99,
+      "exitFloor": 0.99,
+      "entryRateMultiplier": 2,
+      "poolScale": 1,
+      "primePoolScale": 1,
+      "primeDailyCapacity": 1000000,
+      "primeDelayHours": 6,
+      "primeRedemptionCash": 1000000,
+      "primeFairPrice": 1.0606553548682192,
+      "stableDailyCapacity": 2000000,
+      "stableDelayHours": 1,
+      "settlementFeeBps": 10,
+      "cashFraction": 1,
+      "hsmReserveFraction": 1,
+      "hsmDonation": 0,
+      "buyerCoverage": 1,
+      "buyerDailyCapacity": null,
+      "buyerPriceCeiling": 0.999,
+      "buyerMode": "hold",
+      "mintCapsRaised": true,
+      "arbOutage": null,
+      "hsmOutage": null,
+      "settlementOutage": null,
+      "lpWithdrawal": null,
+      "cashWithdrawal": null,
+      "entryOutage": null,
+      "buyerBudget": null,
+      "tvl": 1000000
+    },
+    "fulfilledFraction": 0,
+    "finalDebt": 0,
+    "completeHour": null,
+    "minStablePrice": 0.99888426,
+    "minPrimePrice": 0.9992330578250858,
+    "maxStableAsk": 1.00000713,
+    "maxCrossPoolSpread": 0.00031780999999997395,
+    "hoursBelow99": 0,
+    "finalPrices": [
+      {
+        "poolId": 105,
+        "id": 21,
+        "bid": 0.99914269,
+        "ask": 0.9995467100000001
+      },
+      {
+        "poolId": 105,
+        "id": 23,
+        "bid": 0.99888426,
+        "ask": 0.99928849
+      },
+      {
+        "poolId": 110,
+        "id": 1003,
+        "bid": 0.99946682,
+        "ask": 0.99986774
+      },
+      {
+        "poolId": 111,
+        "id": 1002,
+        "bid": 0.9996063,
+        "ask": 1.00000713
+      },
+      {
+        "poolId": 143,
+        "id": 43,
+        "bid": 0.9992330578250858,
+        "ask": 1.000040884763014
+      }
+    ],
+    "queuedHollar": 4786764.705882354,
+    "maxQueuedHollar": 4786764.705882,
+    "guardCount": 25920,
+    "entryHollar": 0,
+    "exitHollar": 0,
+    "strategyPrimeValue": 0,
+    "strategyPrimeFairValue": 0,
+    "strategyHollar": 0,
+    "hsmBurned": 0,
+    "hsmMinted": 0,
+    "hsmBurnRemaining": 283273.3697335423,
+    "hsmHolding": 285099.119207,
+    "arbCount": 0,
+    "arbHollarTurnover": 0,
+    "arbMarkProfit": 0,
+    "gasUsd": 0,
+    "primeSubscribed": 0,
+    "primeRedeemed": 0,
+    "stableWithdrawn": 0,
+    "stableSupplied": 0,
+    "buyerSpent": 0,
+    "buyerHollarHeld": 0,
+    "externalDebtRepaid": 0,
+    "settlementBlockedCash": 0,
+    "mmCash": {
+      "1002": 919891.41651,
+      "1003": 771396.589717
+    },
+    "agentMarkedPnl": -1.8835999071598053e-7,
+    "agentCash": 125000,
+    "agentInventory": {
+      "21": 31250,
+      "23": 31250,
+      "43": 249999.99999981164,
+      "1002": 31250,
+      "1003": 31250
+    },
+    "unsettledValue": 0,
+    "peakDebt": 0,
+    "maxUnwindShortfall": 0,
+    "underTargetHollarHours": 8616375919.118553,
+    "overTargetHollarHours": 0,
+    "finalTarget": 4786764.705882354,
+    "unpaidUnwindHollar": 0,
+    "stressLog": [],
+    "conservation": true,
+    "snapshotSha256": "a79ba33ba6fc63da3b71e59e7541551fb7a461c7310ce24a5894ebee5732a354",
+    "dependencies": {
+      "stableswap": {
+        "version": "2.5.0",
+        "wasmSha256": "a3cb6c3ea278d231cf6af1e75dbeabe465a24825b379f27c008f030d43234c93"
+      },
+      "hsm": {
+        "version": "1.2.0",
+        "wasmSha256": "b98b025623d907590d055bcfe6e03a24406379638a1af7c40e4b79cd7f8205eb"
+      }
+    }
+  },
+  "sourceSha256": {
+    "policy-model-rerun": "91aa27bbf59aa42047ce537e2729d530539ed82b79bbe53959d59b36f3007742",
+    "pressure-rerun": "f72ffe5cbec4a9de89ec4f0a6233e746115af77523be0edcc0b1e6dc63e1d0f2",
+    "peg-rerun": "bf6179f9af3e3c6a088bb29af7c934054e2d6c58e63977bf1dc61d205503a291",
+    "coupled-base-rerun": "58f4d8d49586502b861a7f73e7e279775e9ca26f223c7d706fd0dffb8e89fe3c",
+    "coupled-funded-rerun": "97fc5c6316ef8b260c6b0505cf614427034fb76de91c3cbf45654721cbb037b3"
+  }
+}

@@ -1,0 +1,65 @@
+[
+  {
+    "gas": "12000000",
+    "exitReason": {
+      "revert": "Reverted"
+    },
+    "usedGas": {
+      "standard": "0x0000000000000000000000000000000000000000000000000000000000b42bc0",
+      "effective": "0x0000000000000000000000000000000000000000000000000000000000b42bc0"
+    },
+    "weight": {
+      "refTimeLimit": 299891843000,
+      "proofSizeLimit": 3000000,
+      "refTimeUsage": 0,
+      "proofSizeUsage": 823414
+    },
+    "reason": {
+      "abiItem": {
+        "name": "Error",
+        "type": "error",
+        "inputs": [
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "args": [
+        "Address: low-level delegate call failed"
+      ],
+      "errorName": "Error"
+    }
+  },
+  {
+    "gas": "16777216",
+    "exitReason": {
+      "succeed": "Returned"
+    },
+    "usedGas": {
+      "standard": "0x0000000000000000000000000000000000000000000000000000000000a7d5e5",
+      "effective": "0x0000000000000000000000000000000000000000000000000000000000a7d5e5"
+    },
+    "weight": {
+      "refTimeLimit": 419322243000,
+      "proofSizeLimit": 4194304,
+      "refTimeUsage": 0,
+      "proofSizeUsage": 863901
+    }
+  },
+  {
+    "gas": "45000000",
+    "exitReason": {
+      "succeed": "Returned"
+    },
+    "usedGas": {
+      "standard": "0x0000000000000000000000000000000000000000000000000000000000a7d5e5",
+      "effective": "0x0000000000000000000000000000000000000000000000000000000000a7d5e5"
+    },
+    "weight": {
+      "refTimeLimit": 1124891843000,
+      "proofSizeLimit": 11250000,
+      "refTimeUsage": 0,
+      "proofSizeUsage": 863901
+    }
+  }
+]
