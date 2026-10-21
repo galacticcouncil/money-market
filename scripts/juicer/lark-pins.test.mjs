@@ -51,13 +51,13 @@ test('pins are pins: the environment fills only open fields, the state dir moves
  assert.equal(p.artifactDir,L4.artifactDir);
 });
 
-test('lark 0 is pinned but for the genesis and commit its refork brings', () => {
+test('lark 0 is pinned to its refork', () => {
  const p=resolveProfile('lark0',{});
  assert.equal(p.legacy,false);
  assert.deepEqual([p.chainName,p.rpc,p.ws],['Lark 0 Hydration','https://node0.lark.hydration.cloud','wss://node0.lark.hydration.cloud']);
  assert.deepEqual(p.gateway,{rpc:p.rpc,ws:p.ws},'scripts and the journal stay on node0, off subway');
- assert.deepEqual([p.genesis,p.commit],[null,null]);
- assert.throws(()=>requirePins(p),/not pinned: set LARK_GENESIS or/);
+ assert.deepEqual([p.genesis,p.commit],['0x516291656a078d4ebe68130aefa4019dcc20db6ecce5bc0a4978df4d995c494f','7774738d88c503331412a03e6778590331afc900']);
+ assert.equal(requirePins(p),p);
  assert.equal(p.journal,'/tmp/juicer-lark-lark0-20261022.json');
  assert.notEqual(p.stack.file,resolveProfile('lark4',{}).stack.file,'never overwrites the lark 4 stack');
  assert.deepEqual([p.stack.file,p.stack.name,p.stack.manifestConfig],['/tmp/juicer-lark-stack-lark0-20261022.json','juicer-lark0-20261022','juicer-lark0-20261022-manifest-v1']);
@@ -76,10 +76,16 @@ test('lark 0 is pinned but for the genesis and commit its refork brings', () => 
  assert.ok(p.depositor.delayS+p.depositor.durationS<=12*3600,'the $100k plan lands within 12 h of the stack');
 });
 
-test('the refork\'s genesis and commit come from the environment, nothing else does', () => {
- const p=resolveProfile('lark0',{LARK_GENESIS:'0x07',LARK_COMMIT:'abc',LARK_RPC:'https://node9.lark.hydration.cloud',LARK_CHAIN_NAME:'Lark 9'});
- assert.equal(requirePins(p),p);
- assert.deepEqual([p.genesis,p.commit,p.rpc,p.chainName],['0x07','abc','https://node0.lark.hydration.cloud','Lark 0 Hydration']);
+test('a refork\'s genesis and commit come from the environment until pinned, nothing else does', () => {
+ PROFILES.refork={...PROFILES.lark0,genesis:null,commit:null,deployment:'refork-1'};
+ try{
+  assert.throws(()=>requirePins(resolveProfile('refork',{})),/not pinned: set LARK_GENESIS or/);
+  const p=resolveProfile('refork',{LARK_GENESIS:'0x07',LARK_COMMIT:'abc',LARK_RPC:'https://node9.lark.hydration.cloud',LARK_CHAIN_NAME:'Lark 9'});
+  assert.equal(requirePins(p),p);
+  assert.deepEqual([p.genesis,p.commit,p.rpc,p.chainName],['0x07','abc','https://node0.lark.hydration.cloud','Lark 0 Hydration']);
+ }finally{delete PROFILES.refork;}
+ const pinned=resolveProfile('lark0',{LARK_GENESIS:'0x07',LARK_COMMIT:'abc'});
+ assert.deepEqual([pinned.genesis,pinned.commit],[PROFILES.lark0.genesis,PROFILES.lark0.commit],'a pin never yields to the environment');
 });
 
 test('lark tooling refuses unknown profiles and non-lark chains', () => {
