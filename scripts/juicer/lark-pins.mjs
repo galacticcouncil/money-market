@@ -47,10 +47,11 @@ export const PROFILES={
   stack:{file:L4.stackFile,name:'propeller-oct2026',manifestConfig:'propeller-lark4-20261007-manifest-v3',keeperRpcUrls:['https://node4.lark.hydration.cloud','https://4.lark.hydration.cloud'],keeperEnv:{},bots:BOTS},
  },
  // the release candidate on Lark 0, reforked from mainnet: GIGAETH behind jETH, jBTC on tBTC, the
- // PRIME arb at mainnet's thresholds and pool 143 at the launch fee. pin its genesis and the
- // contracts commit after the refork (LARK_GENESIS and LARK_COMMIT fill them until that edit)
+ // PRIME arb at mainnet's thresholds and pool 143 at the launch fee
  lark0:{
-  chainName:'Lark 0 Hydration',genesis:null,commit:null,
+  // reforked 2026-10-21 23:07 UTC from mainnet #16,069,728 (0x4f15fa1e…0bee), runtime 455
+  chainName:'Lark 0 Hydration',genesis:'0x516291656a078d4ebe68130aefa4019dcc20db6ecce5bc0a4978df4d995c494f',
+  commit:'7774738d88c503331412a03e6778590331afc900',
   deployment:'lark0-20261022',
   // 0.lark goes through subway: scripts stay on node0, keepers fall back to it as on lark 4
   rpc:'https://node0.lark.hydration.cloud',ws:'wss://node0.lark.hydration.cloud',
@@ -85,7 +86,7 @@ export const PROFILES={
 };
 // the next testnet after lark 0: its plan on a chain to come, whose chain name, genesis, commit,
 // endpoints and deployment id (LARK_DEPLOYMENT) stay open
-PROFILES.next={...PROFILES.lark0,chainName:null,deployment:null,rpc:null,ws:null,
+PROFILES.next={...PROFILES.lark0,chainName:null,genesis:null,commit:null,deployment:null,rpc:null,ws:null,
  stack:{keeperEnv:PROFILES.lark0.stack.keeperEnv,bots:PROFILES.lark0.stack.bots}};
 // the least PRIME lane cap (bps) inside a profit-seeking arb's band: the pool rests up to its fee
 // plus the arb's profit off the oracle, the loop pays the fee again, and a bp each goes to its own

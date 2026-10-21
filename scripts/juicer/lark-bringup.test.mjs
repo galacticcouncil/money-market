@@ -95,8 +95,9 @@ test('a dry run validates only the next step; a live run walks on, skipping only
 });
 
 test('a step names what it still needs before it starts', () => {
- const lark0=resolveProfile('lark0',{}),pinned=resolveProfile('lark0',{LARK_GENESIS:'0x09',LARK_COMMIT:'abc'});
- assert.deepEqual(missing(step('chain'),lark0,{}),['LARK_GENESIS','LARK_COMMIT','JUICER_ARTIFACT_DIR']);
+ const open=resolveProfile('next',{LARK_DEPLOYMENT:'next-1',LARK_CHAIN_NAME:'Lark 9 Hydration',LARK_RPC:'https://node9.lark.hydration.cloud'}),pinned=resolveProfile('lark0',{});
+ assert.deepEqual(missing(step('chain'),open,{}),['LARK_GENESIS','LARK_COMMIT','JUICER_ARTIFACT_DIR']);
+ assert.deepEqual(missing(step('chain'),pinned,{}),['JUICER_ARTIFACT_DIR']);
  assert.deepEqual(missing(step('deploy'),pinned,{JUICER_ARTIFACT_DIR:'/x'}),['JUICER_ADAPTER_ARTIFACT']);
  assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:'galacticcouncil/juicer-lark-keeper:latest'}),['KEEPER_IMAGE','BOT_IMAGE']);
  assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:`galacticcouncil/juicer-lark-keeper@sha256:${'1'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/juicer-lark-bots@sha256:${'2'.repeat(64)}`}),[]);
@@ -108,22 +109,22 @@ test('--plan shows lark 0 from zero and writes nothing', () => {
  const dir=scratch();
  const out=run(['--profile=lark0','--plan'],{LARK_STATE_DIR:dir});
  assert.equal(out.status,0,out.stderr);
- assert.match(out.stdout,/bring-up lark0: deployment lark0-20261022, chain Lark 0 Hydration, genesis unpinned/);
+ assert.match(out.stdout,/bring-up lark0: deployment lark0-20261022, chain Lark 0 Hydration, genesis 0x516291656a078d4ebe68130aefa4019dcc20db6ecce5bc0a4978df4d995c494f/);
  assert.match(out.stdout,/ 1 chain +pending/);
  assert.match(out.stdout,/23 guardian +pending +DEPOSIT_GUARDIAN_ROLE \(setDeficitStop only\)/);
  assert.match(out.stdout,/25 depositors +pending/);
  assert.match(out.stdout,/28 stack +output +swarm stack: keepers on, depositor an hour after it is written/);
- assert.match(out.stdout,/unset: LARK_GENESIS, LARK_COMMIT, JUICER_ARTIFACT_DIR, JUICER_ADAPTER_ARTIFACT, KEEPER_IMAGE, BOT_IMAGE/);
+ assert.match(out.stdout,/unset: JUICER_ARTIFACT_DIR, JUICER_ADAPTER_ARTIFACT, KEEPER_IMAGE, BOT_IMAGE/);
  assert.ok(!existsSync(join(dir,'juicer-lark-bringup-lark0-20261022.json')));
 });
 
 test('an unpinned chain stops before any step script runs, and the stop is logged', () => {
  const dir=scratch();
- const out=run(['--profile=lark0'],{LARK_STATE_DIR:dir});
+ const out=run(['--profile=next'],{LARK_STATE_DIR:dir,LARK_DEPLOYMENT:'next-1',LARK_CHAIN_NAME:'Lark 9 Hydration',LARK_RPC:'https://node9.lark.hydration.cloud'});
  assert.equal(out.status,1);
  assert.match(out.stdout,/STOP chain needs LARK_GENESIS, LARK_COMMIT/);
  assert.doesNotMatch(out.stdout,/RUN /);
- const log=JSON.parse(readFileSync(join(dir,'juicer-lark-bringup-lark0-20261022.json'),'utf8'));
+ const log=JSON.parse(readFileSync(join(dir,'juicer-lark-bringup-next-1.json'),'utf8'));
  assert.equal(log.events.length,1);
  assert.equal(log.events[0].step,'chain');assert.equal(log.events[0].mode,'dry-run');assert.match(log.events[0].stopped,/unset/);
 });

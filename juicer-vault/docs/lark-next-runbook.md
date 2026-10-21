@@ -15,17 +15,17 @@ step targets mainnet, and nothing here has been run with `--live` yet.**
 | Profile | Chain | Files (`LARK_STATE_DIR`, default `/tmp`) |
 | --- | --- | --- |
 | `lark4` (default) | Lark 4, pinned genesis, scripts on `node4.lark`; the `4.lark` gateway stays the journal's identity, the keepers' fallback and the readiness WS, as before | `propeller-lark-20261007.json`, `juicer-lark-stack.json` |
-| `lark0` | Lark 0 on `node0.lark`, for scripts, the journal and the bots; keepers fall back to the `0.lark` subway gateway as on Lark 4. The release candidate's plan: GIGAETH behind jETH, a PRIME arb at mainnet's thresholds, 27 bps PRIME lanes and pool 143 at 1 bp. Genesis and commit open until the refork (`LARK_GENESIS`, `LARK_COMMIT`) | `juicer-lark-lark0-20261022.json`, `juicer-lark-stack-lark0-20261022.json` |
+| `lark0` | Lark 0 on `node0.lark`, for scripts, the journal and the bots; keepers fall back to the `0.lark` subway gateway as on Lark 4. The release candidate's plan: GIGAETH behind jETH, a PRIME arb at mainnet's thresholds, 27 bps PRIME lanes and pool 143 at 1 bp. Reforked 21 October from mainnet #16,069,728: genesis `0x5162…494f`, runtime 455, contracts `7774738` | `juicer-lark-lark0-20261022.json`, `juicer-lark-stack-lark0-20261022.json` |
 | `next` | Lark 0's plan on a chain to come. Chain name, genesis, commit, endpoints and deployment id open (`LARK_CHAIN_NAME`, `LARK_GENESIS`, `LARK_COMMIT`, `LARK_RPC`, `LARK_WS`, `LARK_DEPLOYMENT`) | `juicer-lark-<deployment>.json`, `juicer-lark-stack-<deployment>.json` |
 
 - Select with `--profile=<name>` or `LARK_PROFILE=<name>`. The environment only
   fills a profile's open pins; it never overrides a pinned one, and a chain whose
   name is not a Lark is refused.
-- After the refork, pin the genesis and the contracts commit in the `lark0`
-  profile before the first `--live` run. Everything else is pinned, including
-  the deployment id `lark0-20261022` that names the journal, manifest, stack and
-  bring-up log. The 9 October Lark 0 deployment (`lark0-20261009`) goes with
-  the refork.
+- Each refork pins its genesis and contracts commit in the profile before the
+  first `--live` run, as `lark0` now does. The deployment id `lark0-20261022`
+  names the journal, manifest, stack and bring-up log; the 9 October Lark 0
+  deployment (`lark0-20261009`) went with the refork, its journals kept in
+  `juicer-wt/lark0-state`.
 - `next` has no deployment id until it is pinned: `LARK_DEPLOYMENT` (lowercase
   letters, digits and dashes, never another profile's) names its files, stack
   and config, and its chain name must still be a Lark's.
