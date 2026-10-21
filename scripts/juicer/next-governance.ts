@@ -13,6 +13,8 @@ export const NEXT = {
   reserveHollar: "1000",
   // LTV bps on every vault: relever below, borrow to, delever above
   band: { relever: 6500, target: 7500, delever: 8300 },
+  // PRIME/HOLLAR stableswap fee at launch, Permill: 1 bp, from 4
+  primePoolFeePpm: 100,
 };
 export const KEEPER_ROLE = utils.id("KEEPER_ROLE");
 export const DEPOSIT_GUARDIAN_ROLE = utils.id("DEPOSIT_GUARDIAN_ROLE");

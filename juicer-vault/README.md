@@ -127,6 +127,7 @@ compounded user yield are not implemented. See [principal and emergency policy](
 | Deposit stops          | An on-chain live-backing check rejects deficits above 50 bps. Guardian `pauseDeposits` and the keepers' hysteretic `deficitStop` (`DEPOSIT_GUARDIAN_ROLE`, set above 50 bps and cleared below 25 bps) are additional stops. |
 | Protocol reserve       | Governance funds HOLLAR per Main ledger (`fundReserve`); drawn only for realized exit shortfalls, never counted as backing. Admin can withdraw.       |
 | Swap limits            | Oracle-relative floors are enforced on-chain; no automatic widening. Production floors, tranches and TVL/ramp budgets still require approval.         |
+| PRIME pool fee         | The launch proposal's Root batch 0 sets stableswap pool 143 (PRIME/HOLLAR) to 1 bp, from 4 (`JUICER_PRIME_POOL_FEE_PPM`, default 100). |
 
 The earned execution allowance, donated collateral rounding reserve, protocol
 reserve and treasury fees are different balances. There is **no mandatory

@@ -26,7 +26,8 @@
 // Optional: JUICER_SWAPPER, JUICER_GUARDIAN, JUICER_LOOPER,
 //           JUICER_SYNTH_ASSET_ID, JUICER_WITHDRAWAL_DELAY (seconds; default 43200), POOL,
 //           JUICER_COMPOUND_LOGIC_CODEHASH (keccak256 of the reviewed CompoundLogic runtime:
-//           the vault implementation binds a separately deployed helper).
+//           the vault implementation binds a separately deployed helper),
+//           JUICER_PRIME_POOL_FEE_PPM (the approved PRIME pool fee; the launch proposal sets 100).
 // Next version (each adds its checks only when set): JUICER_KEEPERS (comma list),
 //           JUICER_HARVEST_THRESHOLD (WAD), JUICER_INTENT_TTL (seconds),
 //           JUICER_INTENT_DRIFT_BPS, JUICER_RESERVE_HOLLAR (per vault),
@@ -75,6 +76,7 @@ const NEXT_EXPECTED = {
 const LOOP_CAP = process.env.JUICER_LOOP_DISCOUNT_CAP ? ethers.utils.parseUnits(process.env.JUICER_LOOP_DISCOUNT_CAP, 18) : undefined;
 const LOOP_BPS = Number(process.env.JUICER_LOOP_DISCOUNT_BPS ?? "0");
 const HELPER_HASH = process.env.JUICER_COMPOUND_LOGIC_CODEHASH;
+const POOL_FEE_PPM = process.env.JUICER_PRIME_POOL_FEE_PPM ? Number(process.env.JUICER_PRIME_POOL_FEE_PPM) : undefined;
 
 for (const address of [SYNTH, SUBLOOP, HARVESTER, EXECUTION, FEES, FEE_RECIPIENT, DISCOUNT, COMMITTEE, POOL, ...VAULTS]) {
   if (!ethers.utils.isAddress(address) || eq(address, ethers.constants.AddressZero)) {
@@ -86,8 +88,9 @@ if (VAULTS.length === 0 || new Set(VAULTS.map(v => v.toLowerCase())).size !== VA
 }
 if (!Number.isInteger(DISCOUNT_BPS) || DISCOUNT_BPS < 0 || DISCOUNT_BPS > 10000
     || !Number.isInteger(LOOP_BPS) || LOOP_BPS < 0 || LOOP_BPS > 10000 || (LOOP_CAP && LOOP_CAP.lte(0))
+    || (POOL_FEE_PPM !== undefined && (!Number.isInteger(POOL_FEE_PPM) || POOL_FEE_PPM < 0 || POOL_FEE_PPM >= 1000000))
     || !Number.isInteger(SLIPPAGE_PPM) || SLIPPAGE_PPM < 0 || SLIPPAGE_PPM >= 1000000) {
-  throw new Error("invalid explicitly approved discount or slippage rate");
+  throw new Error("invalid explicitly approved discount, slippage or pool fee rate");
 }
 if (!Number.isInteger(WITHDRAWAL_DELAY) || WITHDRAWAL_DELAY < 0 || WITHDRAWAL_DELAY > 0xffffffff) {
   throw new Error("invalid withdrawal delay; expected uint32 seconds");
@@ -510,6 +513,12 @@ async function main() {
         route.poolId === EXPECT.poolId,
       JSON.stringify(route)
     );
+    if (POOL_FEE_PPM !== undefined) {
+      const pool: any = await sread(() => api.query.stableswap.pools(EXPECT.poolId));
+      const fee = pool?.isSome ? pool.unwrap().fee.toNumber() : undefined;
+      add("F. Wiring", `pool ${EXPECT.poolId} fee == ${POOL_FEE_PPM} ppm (approved)`, fee === POOL_FEE_PPM,
+        fee === undefined ? "pool not found" : `got ${fee} ppm`);
+    }
 
     const ppmRaw = await sread(() => loopC.dcaSlippagePpm());
     const ppm = Number(ppmRaw ?? 0);

@@ -60,6 +60,8 @@ const ROUTE_POOL = Number(process.env.JUICER_PRIME_POOL_ID || 143);
 // Explicit governance decision after measuring complete exit costs. Never
 // inherit a testnet's permissive slippage limit in a production proposal.
 const ROUTE_SLIPPAGE_PPM = Number(process.env.JUICER_SLIPPAGE_PPM ?? NaN);
+// the loop's entries, unwinds and the peg arbitrage all trade pool 143
+const ROUTE_POOL_FEE_PPM = Number(process.env.JUICER_PRIME_POOL_FEE_PPM ?? NEXT.primePoolFeePpm);
 
 // Per-poke tranche caps (HOLLAR 18dp in, aPRIME 6dp out).
 const DEPLOY_TRANCHE = process.env.JUICER_DEPLOY_TRANCHE || "5000";
@@ -142,6 +144,9 @@ task(
   if (!Number.isInteger(ROUTE_SLIPPAGE_PPM) || ROUTE_SLIPPAGE_PPM < 0 || ROUTE_SLIPPAGE_PPM >= 1_000_000) {
     throw new Error("Set an explicitly reviewed JUICER_SLIPPAGE_PPM in 0..999999; there is no default.");
   }
+  if (!Number.isInteger(ROUTE_POOL_FEE_PPM) || ROUTE_POOL_FEE_PPM < 0 || ROUTE_POOL_FEE_PPM >= 1_000_000) {
+    throw new Error("JUICER_PRIME_POOL_FEE_PPM must be a Permill in 0..999999.");
+  }
   const { utils } = hre.ethers;
   const networkId = FORK ? FORK : hre.network.name;
   const admin = POOL_ADMIN[networkId];
@@ -212,11 +217,22 @@ task(
     addTransaction({ to, data, gasLimit });
 
   // ═════════════════════════════════════════════════════════════════════════
-  // BATCH 0 — router routes for the compound leg (PRIME → each collateral)
+  // BATCH 0 — router routes for the compound leg (PRIME → each collateral),
+  //           and the PRIME pool's launch fee
   // ═════════════════════════════════════════════════════════════════════════
-  // Pure substrate (no aave-manager wrapper) — forceInsertRoute is a Root call.
-  // Independent of the contracts, so this can enact before they even exist.
+  // Pure substrate (no aave-manager wrapper) — forceInsertRoute and
+  // updatePoolFee are Root calls. Independent of the contracts, so this can
+  // enact before they even exist.
   const batch0: any[] = [];
+  const primePool: any = await api.query.stableswap.pools(ROUTE_POOL);
+  if (!primePool.isSome) throw new Error(`stableswap pool ${ROUTE_POOL} not found`);
+  const primePoolFee = primePool.unwrap().fee.toNumber();
+  if (primePoolFee !== ROUTE_POOL_FEE_PPM) {
+    console.log(`[0] stableswap.updatePoolFee(${ROUTE_POOL}, ${primePoolFee} → ${ROUTE_POOL_FEE_PPM} ppm)`);
+    batch0.push(hydrationTx.stableswap.updatePoolFee(ROUTE_POOL, ROUTE_POOL_FEE_PPM));
+  } else {
+    console.log(`[0] pool ${ROUTE_POOL} fee already ${primePoolFee} ppm — skipping`);
+  }
   const harvestRoutes = [
     ...COMPOUND_ROUTES.map(r => ({ assetIn: ROUTE_PRIME, ...r })),
     ...OPERATING_ROUTES,
@@ -587,7 +603,7 @@ task(
     decoder.printTree(decoder.transformCall(batchAll.toHuman()));
   };
 
-  await emit("BATCH 0 — compound routes", batch0);
+  await emit("BATCH 0 — compound routes, PRIME pool fee", batch0);
   await emit("BATCH 1 — list-reserve", batch1);
   await emit("BATCH 2 — configure", batch2);
   await emit("BATCH 3 — wire", batch3);
@@ -602,7 +618,8 @@ scheduler.PermanentlyOverweight (observed on lark-2).
 BATCH 0 stores the PRIME → collateral router routes. Without them the substrate
 router falls back to Omnipool, which cannot service PRIME, and EVERY harvest
 reverts — Harvester.harvest calls compound(…, "") with an empty route, so the
-path is resolved on-chain, not by the caller.
+path is resolved on-chain, not by the caller. It also sets pool ${ROUTE_POOL}'s fee to
+${ROUTE_POOL_FEE_PPM} ppm (JUICER_PRIME_POOL_FEE_PPM).
 
 BATCH 4 needs the loop's execution lanes configured: configureAsync reverts on a lane
 without a limit. BATCH 5 is optional and needs its HOLLAR in place first.
