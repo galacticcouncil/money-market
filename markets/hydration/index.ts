@@ -30,6 +30,7 @@ import {
   strategySOL,
   strategyGSOL,
   strategyHYPE,
+  strategyZEC,
   strategyEURC,
   strategyHEURC,
   strategySTHDX,
@@ -84,6 +85,7 @@ export const HydrationConfig: IAaveConfiguration = {
     SOL: strategySOL,
     "2-POOL-GSOL": strategyGSOL,
     HYPE: strategyHYPE,
+    ZEC: strategyZEC,
     EURC: strategyEURC,
     "2-POOL-HEURC": strategyHEURC,
     STHDX: strategySTHDX,
@@ -112,6 +114,7 @@ export const HydrationConfig: IAaveConfiguration = {
       SOL: tokenAddress(1000752),
       "2-POOL-GSOL": tokenAddress(90001),
       HYPE: tokenAddress(1001355),
+      ZEC: tokenAddress(1001357),
       EURC: tokenAddress(44),
       "2-POOL-HEURC": tokenAddress(10044),
       STHDX: tokenAddress(670),
@@ -231,6 +234,7 @@ export const HydrationConfig: IAaveConfiguration = {
       "2-POOL-GSOL": "0xCD3648A48378cBDa915f6be0A30073b76593Ed9A",
       JITOSOL_SOL: "0x5B29bceaCBD1c37FD4A2c32a052b63813ed0D4b8",
       HYPE: "0xa2F5bb6B23F7Cdf1a04f50103796D1b305ec17a7", // DIA HYPE/USD oracle
+      ZEC: "0xd76f6e296e34ad163439d16731800c3e2c081c6e", // DIA ZEC/USD oracle
       // HEURC oracles
       EURC: "0xaa47a5662269270D3DF33Ae08F806e383611575c", // DIA EUR/USD oracle
       "2-POOL-HEURC": "0x71691b7EE575a2842b242cE8E0AEcdB0e031B725",
