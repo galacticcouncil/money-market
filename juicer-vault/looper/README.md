@@ -74,7 +74,8 @@ read each vault's pause, queue cursors and Main repayment target
   synthetic buffer below 25bp                 -> top up to 50bp
   no pending deployment, periodic duty slot    -> quoted rebalance when allowed
 then, for each vault:
-  settled request below the queue head      -> claim(id, owner)
+  settled request below the queue head,
+    DELIVER_CLAIMS=true                     -> claim(id, owner)
   exit surplus >= CLAIM_MIN_SURPLUS         -> claimSurplus(id)
   PRIME or collateral oracle update since its last sync,
     or SYNC_EVERY elapsed, duty slot        -> sync()
@@ -105,9 +106,12 @@ unwind nor harvests, obtains treasury money or widens slippage. see
 urgent-interest alerts are emitted once per episode and reset after interest
 falls below the configured urgent threshold.
 
-Delivery means a user signs only `requestRedeem`: settled collateral and exit
-surplus are pushed to the request owner. The scan resumes at the first request
-still owed something, looking back `CLAIM_LOOKBACK` requests after a restart.
+Settled collateral waits for its owner by default, who claims it with `claim(id,
+receiver)` and can batch that with a swap or a bridge. `DELIVER_CLAIMS=true` pushes
+it to the owner instead, so a user signs only `requestRedeem`. Exit surplus is
+always pushed to the owner. The scan resumes at the first request still owed
+something (a surplus, or a debt slice not yet repaid), looking back
+`CLAIM_LOOKBACK` requests after a restart.
 
 The default cooldown is 12 hours BEFORE unwinding starts. It is configured per
 vault by governance through `setWithdrawalDelay(uint32 seconds)`. Existing
@@ -281,6 +285,7 @@ Default scheduling values (operator examples, not approved production policies):
 | --- | ---: | --- |
 | `HARVEST_MIN_USD8` | `100000000` | $1 minimum gross harvest for ordinary batching |
 | `SPONSORED_GAS` | `true` | Operators pay gas; exclude it from user harvest profitability |
+| `DELIVER_CLAIMS` | `false` | Push settled collateral to the request owner; off leaves the claim to the owner |
 | `HARVEST_MAX_GAS_BPS` | `10` | When sponsored gas is false, gas budget up to 0.1% of gross converted yield |
 | `HARVEST_MAX_DELAY_SECONDS` | `86400` | Bypass economic delay after a day, when a safe harvest exists |
 | `MAIN_INTEREST_URGENT_USD8` | `1000000000` | Urgent Main interest threshold; HOLLAR valued at par |
