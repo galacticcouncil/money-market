@@ -145,8 +145,10 @@ test('next is lark 0\'s plan on a chain to come', () => {
  assert.deepEqual([p.stack.file,p.stack.name,p.stack.manifestConfig],['/tmp/juicer-lark-stack-next-20261020.json','juicer-next-20261020','juicer-next-20261020-manifest-v1']);
  assert.deepEqual(p.names.vaults,{ETH:['Juicer ETH','jETH'],TBTC:['Juicer BTC','jBTC']});
  for(const k of ['synth','asset','aToken','variableDebt','stableDebt'])assert.deepEqual(p.names[k],lark0.names[k],k);
- for(const k of ['signers','collateral','hollarBucket','primeLanes','primePool','peg','primeCap','depositor','images'])assert.deepEqual(p[k],lark0[k],k);
+ for(const k of ['signers','collateral','hollarBucket','primeLanes','primePool','peg','primeCap','admission','depositor','images'])assert.deepEqual(p[k],lark0[k],k);
  assert.deepEqual([p.stack.keeperEnv,p.stack.keeperRpcUrls],[lark0.stack.keeperEnv,[]]);
+ assert.equal(p.admission.bps,250);
+ assert.deepEqual([p.stack.keeperEnv.DEFICIT_STOP_BPS,p.stack.keeperEnv.DEFICIT_RESUME_BPS],['250','200']);
  assert.deepEqual(p.stack.bots,lark0.stack.bots);
  assert.deepEqual(p.stack.bots.markets,{BOT_INTERVAL_MS:'5000',PEG_SELL_PROFIT_BPS:'15',PEG_BUY_PROFIT_BPS:'4'});
 });

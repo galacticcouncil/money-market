@@ -23,7 +23,7 @@ function complete(ids){
   routes:()=>core.checks.primeCollateralRoutes=true,'harvest-cap':()=>verified('approved-lark-only-collateral-hundred-bps'),throughput:()=>verified('lark-prime-tranches-2500'),
   sync:()=>core.checks.mainnetSync=true,'sync-inventory':()=>core.checks.syncInventory=true,wrap:()=>verified('pools-underlying-stash'),
   stable:()=>verified('pools-stable-inventory'),release:()=>core.checks.depositRelease=true,seed:()=>verified('bots-seed-baseline'),
-  params:()=>core.checks.nextParameters={},guardian:()=>core.checks.depositGuardian={},ice:()=>core.checks.iceWiring=true,
+  params:()=>core.checks.nextParameters={},admission:()=>core.checks.admissionCap={},guardian:()=>core.checks.depositGuardian={},ice:()=>core.checks.iceWiring=true,
   depositors:()=>core.checks.depositorFunded=true,'depositor-approve':()=>core.checks.depositorApproved=true,
  };
  for(const id of ids)marks[id]();
@@ -41,7 +41,7 @@ test('the bring-up runs the existing step scripts in the deployment order', () =
  assert.deepEqual(ids.slice(0,2),['chain','prepare']);
  assert.deepEqual(ids.slice(-2),['manifest','stack']);
  assert.deepEqual(STEPS.filter(s=>s.output).map(s=>s.id),['manifest','stack']);
- for(const [a,b]of [['deploy','wire'],['wire','prices'],['prices','discount'],['discount','market'],['market','bootstrap'],['bootstrap','prime-cap'],['wire','throughput'],['sync','sync-inventory'],['throughput','seed'],['wire','params'],['wire','shares']])
+ for(const [a,b]of [['deploy','wire'],['wire','prices'],['prices','discount'],['discount','market'],['market','bootstrap'],['bootstrap','prime-cap'],['wire','throughput'],['sync','sync-inventory'],['throughput','seed'],['wire','params'],['wire','shares'],['params','admission']])
   assert.ok(ids.indexOf(a)<ids.indexOf(b),`${a} before ${b}`);
  assert.deepEqual(STEPS.filter(s=>s.journal==='prices').map(s=>s.id),['prices','discount']);
  assert.deepEqual(step('seed').args,['--round=baseline']);
@@ -111,9 +111,9 @@ test('--plan shows lark 0 from zero and writes nothing', () => {
  assert.equal(out.status,0,out.stderr);
  assert.match(out.stdout,/bring-up lark0: deployment lark0-20261022, chain Lark 0 Hydration, genesis 0x516291656a078d4ebe68130aefa4019dcc20db6ecce5bc0a4978df4d995c494f/);
  assert.match(out.stdout,/ 1 chain +pending/);
- assert.match(out.stdout,/23 guardian +pending +DEPOSIT_GUARDIAN_ROLE \(setDeficitStop only\)/);
- assert.match(out.stdout,/25 depositors +pending/);
- assert.match(out.stdout,/28 stack +output +swarm stack: keepers on, depositor an hour after it is written/);
+ assert.match(out.stdout,/24 guardian +pending +DEPOSIT_GUARDIAN_ROLE \(setDeficitStop only\)/);
+ assert.match(out.stdout,/26 depositors +pending/);
+ assert.match(out.stdout,/29 stack +output +swarm stack: keepers on, depositor an hour after it is written/);
  assert.match(out.stdout,/unset: JUICER_ARTIFACT_DIR, JUICER_ADAPTER_ARTIFACT, KEEPER_IMAGE, BOT_IMAGE/);
  assert.ok(!existsSync(join(dir,'juicer-lark-bringup-lark0-20261022.json')));
 });

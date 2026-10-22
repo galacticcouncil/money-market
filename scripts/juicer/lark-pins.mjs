@@ -80,7 +80,9 @@ export const PROFILES={
   // ~4 bps (p90 4.9). the pool rests up to 19 bps rich and 8 cheap, and the PRIME lanes take that
   peg:NEXT_PEG,
   primeCap:{shortfallBps:27,approval:'nerf prime arbitrager to make sure it stays profitable; as much as current mainnet state to test realistic scenario'},
-  stack:{keeperRpcUrls:['https://node0.lark.hydration.cloud','https://0.lark.hydration.cloud'],keeperEnv:{QUOTE_DEPTH_BLOCKS:'3'},
+  // levering a new deposit to the target costs ~50 bps, the default cap: lark 0 held deposits 6.5 h at it
+  admission:{bps:250,approval:'lets bump it on lark 0 and set it as default for future deployments'},
+  stack:{keeperRpcUrls:['https://node0.lark.hydration.cloud','https://0.lark.hydration.cloud'],keeperEnv:{QUOTE_DEPTH_BLOCKS:'3',DEFICIT_STOP_BPS:'250',DEFICIT_RESUME_BPS:'200'},
    bots:{...BOTS,markets:{BOT_INTERVAL_MS:'5000',PEG_SELL_PROFIT_BPS:String(NEXT_PEG.sellProfitBps),PEG_BUY_PROFIT_BPS:String(NEXT_PEG.buyProfitBps)}}},
  },
 };
@@ -125,7 +127,7 @@ export function resolveProfile(name='lark4',env={}){
   signers:p.signers,names:p.names,collateral:p.collateral,hollarBucket:BigInt(p.hollarBucket)*10n**18n,
   // feePpm null keeps pool 143's forked fee; peg null is lark 0's peg, which pays the fee
   primePool:p.primePool??{minDepthUsd:100000,targetDepthUsd:400000,feePpm:null},primeLanes:p.primeLanes,depositor:p.depositor,images:p.images,
-  peg:p.peg??null,primeCap:p.primeCap??{shortfallBps:6,approval:'Use 6 bps on Lark only (Recommended)'},
+  peg:p.peg??null,primeCap:p.primeCap??{shortfallBps:6,approval:'Use 6 bps on Lark only (Recommended)'},admission:p.admission??null,
   stack:{
    file:join(dir,s.file??`juicer-lark-stack-${d}.json`),name:s.name??`juicer-${d}`,manifestConfig:s.manifestConfig??`juicer-${d}-manifest-v1`,
    keeperRpcUrls:s.keeperRpcUrls??[...new Set([rpc,gateway.rpc])].filter(Boolean),keeperEnv:s.keeperEnv,bots:s.bots,
