@@ -696,13 +696,19 @@ export class JuicerLooper {
       // ids below the head are fully settled, so one claim pays out the whole request
       for (let n = 0; id < head && n < 16; ++n, ++id) {
         const r = await this.read(VAULT_ABI, vault, 'redemptions', [id]) as readonly unknown[];
-        const owner = r[0] as Address, settled = r[6] as bigint, active = r[8] as boolean;
-        if (active && settled > 0n) await this.poke(VAULT_ABI, vault, 'claim', `claim ${short(vault)} #${id}`, [id, owner]);
+        const owner = r[0] as Address, debtShare = r[3] as bigint, repaid = r[5] as bigint;
+        const settled = r[6] as bigint, active = r[8] as boolean;
+        if (CONFIG.DELIVER_CLAIMS && active && settled > 0n) {
+          await this.poke(VAULT_ABI, vault, 'claim', `claim ${short(vault)} #${id}`, [id, owner]);
+        }
         const surplus = await this.read(LEDGER_ABI, ledger, 'surplusOf', [id]) as bigint;
         const owed = surplus >= CONFIG.CLAIM_MIN_SURPLUS
           && !(await this.poke(LEDGER_ABI, ledger, 'claimSurplus', `claimSurplus ${short(vault)} #${id}`, [id]));
-        // stop at the first request still owed something, so a failed delivery is retried
-        const still = (await this.read(VAULT_ABI, vault, 'redemptions', [id]) as readonly unknown[])[8] as boolean;
+        // stop at the first request still owed something, so a failed delivery is retried;
+        // a claim left to its owner holds nothing back once its debt slice is repaid
+        const still = CONFIG.DELIVER_CLAIMS
+          ? (await this.read(VAULT_ABI, vault, 'redemptions', [id]) as readonly unknown[])[8] as boolean
+          : active && repaid < debtShare;
         if (next === undefined && (still || owed)) next = id;
       }
       cursors.set(vault, next ?? id);
