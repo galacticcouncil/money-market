@@ -546,6 +546,8 @@ task(
         mainDiscountBps: Number(process.env.JUICER_DISCOUNT_BPS ?? NEXT.revenue.mainDiscountBps),
         loopDiscountBps: Number(process.env.JUICER_LOOP_DISCOUNT_BPS ?? NEXT.revenue.loopDiscountBps),
       } : undefined,
+      // none at launch; a set JUICER_ENTRY_FEE_BPS keeps that share of each deposit for the vault's holders
+      entryFeeBps: process.env.JUICER_ENTRY_FEE_BPS !== undefined ? Number(process.env.JUICER_ENTRY_FEE_BPS) : undefined,
     };
     if (!expected.revenue) console.log("[4] revenue mix skipped — set JUICER_DISCOUNT_CONTROLLER and JUICER_FEE_CONTROLLER");
     for (const call of nextCalls(nextState, expected)) {

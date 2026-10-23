@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 interface IJuicerFeeController {
     function collectSourceFee(uint256 amount) external;
     function protocolFeeBps(address vault) external view returns (uint16);
+    function entryFeeBps(address vault) external view returns (uint16);
     function configurationVersion() external view returns (uint256);
     function validateVault(address vault, address harvester) external view;
     function quoteCollateral(address vault, address tokenIn, uint256 amountIn) external view returns (uint256);

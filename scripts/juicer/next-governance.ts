@@ -33,7 +33,7 @@ const loopI = new utils.Interface([
 ]);
 const controlI = new utils.Interface(["function configureAsync(bytes32,bool)"]);
 const discountI = new utils.Interface(["function setDiscountBps(uint16)", "function setLoopDiscountBps(uint16)"]);
-const feesI = new utils.Interface(["function setProtocolFeeBps(address,uint16)"]);
+const feesI = new utils.Interface(["function setProtocolFeeBps(address,uint16)", "function setEntryFeeBps(address,uint16)"]);
 const tokenI = new utils.Interface(["function approve(address,uint256) returns (bool)", "function mint(address,uint256)"]);
 const ledgerI = new utils.Interface(["function fundReserve(uint256)"]);
 
@@ -52,7 +52,7 @@ export type NextState = {
   vaults: {
     address: string; guardianRole?: string; keepers: Roles; mainDebt: string; protocolReserve?: BigNumber;
     // the loop's gaps (target below max LTV, relever below and delever above target), and the live max LTV
-    gaps?: Band; maxLtv?: number; protocolFeeBps?: number;
+    gaps?: Band; maxLtv?: number; protocolFeeBps?: number; entryFeeBps?: number;
   }[];
   discount?: { address: string; installed: boolean; discountBps?: number; loopDiscountBps?: number; loop?: string };
   fees?: string;
@@ -61,6 +61,8 @@ export type NextState = {
 export type Expected = {
   keepers?: string[]; harvestThreshold?: BigNumberish; intentTtl?: number; intentDriftBps?: number; reserve?: BigNumberish;
   band?: Band; revenue?: Revenue;
+  // bps of a deposit's collateral kept for the vault's holders; absent leaves the live rate alone
+  entryFeeBps?: number;
 };
 
 /// "6500,7500,8300": relever, target and delever LTVs in bps
@@ -127,10 +129,12 @@ export async function readNextState(provider: any, { subLoop, vaults, controller
       protocolReserve: await maybe(() => new Contract(mainDebt, ["function protocolReserve() view returns (uint256)"], provider).protocolReserve()),
       gaps: gaps && { target: Number(gaps[0]), relever: Number(gaps[1]), delever: Number(gaps[2]) },
       maxLtv: config === undefined ? undefined : BigNumber.from(config).and(0xffff).toNumber(),
-      protocolFeeBps: undefined as number | undefined };
+      protocolFeeBps: undefined as number | undefined, entryFeeBps: undefined as number | undefined };
     if (fees) {
-      const fee = await maybe<number>(() => new Contract(fees, ["function protocolFeeBps(address) view returns (uint16)"], provider).protocolFeeBps(address));
+      const f = new Contract(fees, ["function protocolFeeBps(address) view returns (uint16)", "function entryFeeBps(address) view returns (uint16)"], provider);
+      const fee = await maybe<number>(() => f.protocolFeeBps(address)), entry = await maybe<number>(() => f.entryFeeBps(address));
       row.protocolFeeBps = fee === undefined ? undefined : Number(fee);
+      row.entryFeeBps = entry === undefined ? undefined : Number(entry);
     }
     for (const k of keepers) {
       row.keepers[k] = {
@@ -189,6 +193,9 @@ function validate(e: Expected) {
   if (e.revenue !== undefined) {
     const rates = [e.revenue.protocolFeeBps, e.revenue.mainDiscountBps, e.revenue.loopDiscountBps];
     if (!rates.every(r => Number.isInteger(r) && r >= 0 && r <= 10000)) throw new Error("revenue mix rates are bps in 0..10000");
+  }
+  if (e.entryFeeBps !== undefined && !(Number.isInteger(e.entryFeeBps) && e.entryFeeBps >= 0 && e.entryFeeBps <= 200)) {
+    throw new Error(`entry fee ${e.entryFeeBps} bps out of 0..200`);
   }
   if (e.band !== undefined) {
     const { relever, target, delever } = e.band;
@@ -271,6 +278,15 @@ export function nextCalls(state: NextState, e: Expected): Call[] {
       }
     }
   }
+  if (e.entryFeeBps !== undefined) {
+    if (!state.fees) throw new Error("the entry fee needs JUICER_FEE_CONTROLLER");
+    for (const v of state.vaults) {
+      if (v.entryFeeBps === undefined) throw missingSurface("JuicerFeeController entryFeeBps (or the vault is unregistered)");
+      if (v.entryFeeBps !== e.entryFeeBps) {
+        calls.push({ to: state.fees, data: feesI.encodeFunctionData("setEntryFeeBps", [v.address, e.entryFeeBps]), label: `fees.setEntryFeeBps(${v.address}, ${e.entryFeeBps})` });
+      }
+    }
+  }
   return calls;
 }
 
@@ -329,6 +345,11 @@ export function nextChecks(state: NextState, e: Expected): Check[] {
         : undefined;
       out.push({ name: `${v.address}: rebalance band ${showBand(e.band)}`, ok: !!live && sameBand(live, e.band),
         detail: live ? `${showBand(live)} under max ${v.maxLtv}` : "unreadable" });
+    }
+  }
+  if (e.entryFeeBps !== undefined) {
+    for (const v of state.vaults) {
+      out.push({ name: `${v.address}: entry fee ${e.entryFeeBps} bps`, ok: v.entryFeeBps === e.entryFeeBps, detail: String(v.entryFeeBps) });
     }
   }
   if (e.reserve !== undefined) {

@@ -15,7 +15,12 @@ import {IAavePool} from "./interfaces/IAavePool.sol";
 import {ISwapper} from "./interfaces/ISwapper.sol";
 import {IYieldSource} from "./interfaces/IYieldSource.sol";
 import {ISyntheticToken} from "./interfaces/ISyntheticToken.sol";
-import {IHollarDiscountDebtToken, IJuicerDiscount} from "./interfaces/IJuicerDiscount.sol";
+import {IHollarDiscountDebtToken} from "./interfaces/IJuicerDiscount.sol";
+
+// a word-sized read of the uint16 rate skips the decoder's range check, which the vault has no room for
+interface IEntryFee {
+    function entryFeeBps(address vault) external view returns (uint256);
+}
 import {IJuicerFeeController} from "./interfaces/IJuicerFeeController.sol";
 import {IMainDebt} from "./interfaces/IMainDebt.sol";
 import {JuicerYieldAccounting} from "./JuicerYieldAccounting.sol";
@@ -269,7 +274,8 @@ contract CollateralVault is
         if (totalA + assets > tvlCap) revert ExceedsTvlCap();
 
         uint256 supply = totalSupply() - totalQueuedShares;
-        shares = _previewShares(assets, totalA - totalQueuedCollateral, supply);
+        // the entry fee stays in the vault for its holders: shares are minted on the rest
+        shares = _previewShares(assets - _entryFee(assets, supply), totalA - totalQueuedCollateral, supply);
         // Round in the depositor's favor without diluting existing holders.
         uint256 minimumAssets = totalA + (supply == 0 ? assets
             : Math.ceilDiv(shares * (totalA - totalQueuedCollateral), supply));
@@ -562,6 +568,11 @@ contract CollateralVault is
         if (lt == 0) revert SynthReserveNotListed();
     }
 
+    function _entryFee(uint256 assets, uint256 supply) internal view returns (uint256) {
+        if (supply == 0 || address(feeController) == address(0)) return 0;
+        return assets * IEntryFee(address(feeController)).entryFeeBps(address(this)) / BPS;
+    }
+
     function _previewShares(uint256 assets, uint256 totalA, uint256 supply) internal pure returns (uint256 shares) {
         if (supply == 0) {
             if (assets <= DEAD_SHARES) revert DepositTooSmall();
@@ -639,10 +650,7 @@ contract CollateralVault is
     ///         discount behind. Enrollment remains a separate governance action.
     function setDiscountController(address controller) external onlyRole(ADMIN_ROLE) nonReentrant {
         if (controller != address(0)) {
-            IJuicerDiscount policy = IJuicerDiscount(controller);
-            if (address(policy.debtToken()) != address(hollarDebtToken) || policy.synthetic() != address(synthetic)) {
-                revert InvalidDiscountController();
-            }
+            Address.functionDelegateCall(compoundLogic, abi.encodeCall(CompoundLogic.checkDiscountController, (controller)));
         }
         address previous = discountController;
         discountController = controller;
@@ -671,13 +679,9 @@ contract CollateralVault is
     function setYieldSource(address newSource) external onlyRole(ADMIN_ROLE) {
         if (newSource == address(0)) revert ZeroAddress();
         // Sweep any last freed HOLLAR out of the old source before abandoning it.
-        availableHollar += yieldSource.pullFreed();
-        if (
-            loopShares != 0 || yieldSource.sharesOf(address(this)) != 0
-                || yieldSource.pendingUnwindOf(address(this)) != 0
-        ) {
-            revert SourceNotEmpty();
-        }
+        availableHollar += abi.decode(
+            Address.functionDelegateCall(compoundLogic, abi.encodeCall(CompoundLogic.leaveSource, ())), (uint256)
+        );
         yieldSource = IYieldSource(newSource);
     }
 

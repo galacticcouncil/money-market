@@ -11,7 +11,7 @@ def vaultDepositBody : BodyBinding := {
   selector := 0x6e553f65
   source := "src/CollateralVault.sol"
   functionName := "deposit"
-  astSha256 := "7f40412f851c4f50dac8451ea92dadb9aef361217f357af7a81d40cb28078410"
+  astSha256 := "b4c9fcbb5ea07ccf780f2cf0bfc464e84c9102a1fd0e6ef65f526da8439a7542"
   parameterCount := 2
   returnCount := 1
   statementCount := 21
@@ -46,6 +46,7 @@ def vaultDepositBody : BodyBinding := {
     ⟨.call, "totalSupply", 1⟩,
     ⟨.write, "shares", 1⟩,
     ⟨.call, "_previewShares", 1⟩,
+    ⟨.call, "_entryFee", 1⟩,
     ⟨.bind, "minimumAssets", 1⟩,
     ⟨.call, "ceilDiv", 1⟩,
     ⟨.branch, "if", 1⟩,
@@ -73,7 +74,7 @@ def accountingBeginHarvestBody : BodyBinding := {
   selector := 0x1def7faa
   source := "src/JuicerYieldAccounting.sol"
   functionName := "beginHarvest"
-  astSha256 := "9c341e5129cf8dfe4fecded7bd7e487673df8aefc27bb9939c572627c53d076e"
+  astSha256 := "0eed453efda2709e1ebd77f3358fe3e1ae68cfa7e6e9e18e9c5e2faaa06d2f55"
   parameterCount := 1
   returnCount := 0
   statementCount := 6
@@ -103,7 +104,7 @@ def accountingSplitHarvestBody : BodyBinding := {
   selector := 0xad81f8c0
   source := "src/JuicerYieldAccounting.sol"
   functionName := "splitHarvest"
-  astSha256 := "f9a7c73d565f3557432ac5a915fb5b4762a7214bd27d08ffdcd2c664ef0e1bde"
+  astSha256 := "dc46f2122b0eefa563184e4c229b1ea78cf9cfdfc696b02b9c521cc2f6a6ec7c"
   parameterCount := 1
   returnCount := 3
   statementCount := 3
@@ -134,7 +135,7 @@ def vaultStartUnwindsBody : BodyBinding := {
   selector := 0x1b727f39
   source := "src/CollateralVault.sol"
   functionName := "startUnwinds"
-  astSha256 := "ba99ee5d21c6f13bfc43acf9d6e217365bda476b952b0c4a204370ad1260a346"
+  astSha256 := "a30d74478cfbd44e78b62eb23cd1d5f68dbc552cc053a5c8015ca22024b68ec9"
   parameterCount := 1
   returnCount := 0
   statementCount := 6
@@ -163,7 +164,7 @@ def vaultPokeSettleBody : BodyBinding := {
   selector := 0xe891ab49
   source := "src/CollateralVault.sol"
   functionName := "pokeSettle"
-  astSha256 := "8dfe868b1e8fc7cd397a713bc6b689cd81b5e4423b6a25b9791e89ed6e8f835d"
+  astSha256 := "022225cccecf4da404f8cb40eb36d5b214ca7dd2c5365ba5369fe523ff7330b2"
   parameterCount := 0
   returnCount := 1
   statementCount := 27
