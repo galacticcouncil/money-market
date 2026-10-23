@@ -79,27 +79,25 @@ const COMPOUND_SLIPPAGE_BPS = Number(process.env.JUICER_COMPOUND_SLIPPAGE_BPS ||
 // it only lives in stableswap pool 143. So without these, every harvest reverts
 // and loop carry can never be converted into collateral.
 //
-// Each hop below is the exact reverse of a route already live on-chain
-// (`34 → 222` and `110 → 1000765`), so every leg is known-executable:
-//   PRIME →[ss143]→ HOLLAR →[omnipool]→ 420 →[aave]→ 4200 →[ss4200]→ aETH →[aave]→ ETH
+// jETH's collateral is GIGAETH (4200, pool 4200's share of aETH 1007 + 1000809),
+// jBTC's is tBTC. After PRIME → HOLLAR each route is one already stored on-chain
+// (`222 → 4200` and `222 → 1000765`), so every leg is known-executable:
+//   PRIME →[ss143]→ HOLLAR →[omnipool]→ 420 →[aave]→ GIGAETH
 //   PRIME →[ss143]→ HOLLAR →[omnipool]→ tBTC
-// Pool 4200's SHARE asset is 4200 and its underlyings are [1007, 1000809] — the
-// `4200 → 1007` hop is a share→underlying withdrawal, not a same-pool swap.
+// 420 is aGETH, GIGAETH's money-market receipt, which the Omnipool trades.
 //
 // Override wholesale with JUICER_COMPOUND_ROUTES as JSON:
-//   [{"assetOut":34,"route":[{"pool":{"Stableswap":143},"assetIn":43,"assetOut":222}, …]}]
+//   [{"assetOut":4200,"route":[{"pool":{"Stableswap":143},"assetIn":43,"assetOut":222}, …]}]
 const COMPOUND_ROUTES: { assetOut: number; route: any[] }[] = process.env
   .JUICER_COMPOUND_ROUTES
   ? JSON.parse(process.env.JUICER_COMPOUND_ROUTES)
   : [
       {
-        assetOut: 34, // ETH
+        assetOut: 4200, // GIGAETH
         route: [
           { pool: { Stableswap: ROUTE_POOL }, assetIn: ROUTE_PRIME, assetOut: ROUTE_HOLLAR },
           { pool: { Omnipool: null }, assetIn: ROUTE_HOLLAR, assetOut: 420 },
           { pool: { Aave: null }, assetIn: 420, assetOut: 4200 },
-          { pool: { Stableswap: 4200 }, assetIn: 4200, assetOut: 1007 },
-          { pool: { Aave: null }, assetIn: 1007, assetOut: 34 },
         ],
       },
       {
@@ -113,13 +111,12 @@ const COMPOUND_ROUTES: { assetOut: number; route: any[] }[] = process.env
 
 // Fresh collateral must also be sellable for Main servicing. Independent
 // overrides avoid assuming a customized PRIME route passes through HOLLAR.
+// Both defaults reverse routes mainnet already stores; batch 0 skips a stored pair.
 const OPERATING_ROUTES: { assetIn: number; assetOut: number; route: any[] }[] = process.env
   .JUICER_OPERATING_ROUTES
   ? JSON.parse(process.env.JUICER_OPERATING_ROUTES)
   : [
-      { assetIn: 34, assetOut: ROUTE_HOLLAR, route: [
-        { pool: { Aave: null }, assetIn: 34, assetOut: 1007 },
-        { pool: { Stableswap: 4200 }, assetIn: 1007, assetOut: 4200 },
+      { assetIn: 4200, assetOut: ROUTE_HOLLAR, route: [
         { pool: { Aave: null }, assetIn: 4200, assetOut: 420 },
         { pool: { Omnipool: null }, assetIn: 420, assetOut: ROUTE_HOLLAR },
       ] },

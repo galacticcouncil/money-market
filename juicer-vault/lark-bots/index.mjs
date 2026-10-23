@@ -8,7 +8,7 @@ import {cryptoWaitReady,blake2AsU8a} from '@polkadot/util-crypto';
 import {createPublicClient,createWalletClient,http,parseAbi,toHex,encodeFunctionData} from 'viem';
 import {mnemonicToAccount} from 'viem/accounts';
 const stableMath=createRequire(import.meta.url)('@galacticcouncil/math-stableswap');
-import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit,botIdentity,depositStop,depositBlock} from './policy.mjs';
+import {fairOutput,pegPremium,sizeToTarget,pegMinOut,pegEdge,arbTrade,freshReference,quotePairs,orientRoute,omnipoolRatio,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,depositOwed,userDeposit,botIdentity,depositStop,depositBlock} from './policy.mjs';
 // node4 by default: the public 4.lark endpoint runs out of connections under outside load
 const RPC=process.env.LARK_RPC||'https://node4.lark.hydration.cloud',WS=process.env.LARK_WS||RPC.replace('https://','wss://');
 const SOURCE='https://hdx.tarn.hydration.cloud';
@@ -17,13 +17,20 @@ const interval=Number(process.env.BOT_INTERVAL_MS||30000);
 // PRIME pool peg: tolerated premium (bps), probe and per-trade size (USD), and the most a trade may lose to the oracle
 const PEG_BAND=BigInt(Math.round(Number(process.env.PEG_BAND_BPS||1)*100)),PEG_PROBE_USD=BigInt(process.env.PEG_PROBE_USD||50);
 const PEG_MAX_USD=BigInt(process.env.PEG_MAX_USD||25000),PEG_MAX_LOSS_BPS=BigInt(process.env.PEG_MAX_LOSS_BPS||5);
+// set, it is a profit-seeking arb instead: what selling PRIME, and buying it, must beat the oracle by after the fee (bps)
+const {PEG_SELL_PROFIT_BPS:SELL_PROFIT,PEG_BUY_PROFIT_BPS:BUY_PROFIT}=process.env,cbps=x=>BigInt(Math.round(Number(x)*100));
+assert.ok(!SELL_PROFIT===!BUY_PROFIT,'set both PEG_SELL_PROFIT_BPS and PEG_BUY_PROFIT_BPS, or neither');
+const PEG_PROFIT=SELL_PROFIT?{43:cbps(SELL_PROFIT),222:cbps(BUY_PROFIT)}:null;
+assert.ok(!PEG_PROFIT||PEG_PROFIT[43]>=0n&&PEG_PROFIT[222]>=0n);
 assert.ok(Number.isSafeInteger(interval)&&interval>=5000&&interval<=300000);
 const manifest=JSON.parse(readFileSync(process.env.BOT_MANIFEST||'/app/manifest.json','utf8'));
 const {chainName,signers}=botIdentity(manifest);
 const log=(name,row)=>console.log(JSON.stringify({time:new Date().toISOString(),mode,name,...row},(_,x)=>typeof x==='bigint'?x.toString():x));
 const token=id=>`0x${(0x100000000n+BigInt(id)).toString(16).padStart(40,'0')}`;
 const hollar='0x531a654d1696ED52e7275A8cede955E82620f99a',oracle='0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760';
-const addresses={34:token(34),43:token(43),1000765:token(1000765),222:hollar},decimals={34:18,43:6,1000765:18,222:18};
+// the vaults' collateral assets; markets reads their decimals from the registry
+const collateral=(manifest.vaults??[]).map(v=>v.assetId);
+const addresses={43:token(43),222:hollar,...Object.fromEntries(collateral.map(id=>[id,token(id)]))},decimals={43:6,222:18};
 const abi=parseAbi(['function getAssetPrice(address) view returns(uint256)','function getSourceOfAsset(address) view returns(address)','function latestRoundData() view returns(uint80,int256,uint256,uint256,uint80)','function setPrice(int256)','function balanceOf(address) view returns(uint256)']);
 const account=mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:19});
 // simulated depositors: public test accounts 21.. with uneven test inventory
@@ -61,7 +68,7 @@ async function mirror(){
   if(!receipt&&Date.now()-pendingEvmAt<300000)throw Error('prior evm receipt pending');
   log('evm-reconciled',{hash:pendingEvm,status:receipt?.status??'dropped'});pendingEvm=undefined;
  }
- for(const row of manifest.oracles){
+ for(const row of manifest.oracles.filter(o=>o.mirror!==false)){
   const asset=row.asset,feed=await source.readContract({address:oracle,abi,functionName:'getSourceOfAsset',args:[asset],blockNumber:block.number});
   const round=await source.readContract({address:feed,abi,functionName:'latestRoundData',blockNumber:block.number});
   const price=await source.readContract({address:oracle,abi,functionName:'getAssetPrice',args:[asset],blockNumber:block.number});
@@ -159,18 +166,24 @@ async function submit(tx,label='arb-mined',requireFill=true){
 async function markets(){
  const block=await identity(),at=await api.at(block.hash);
  const prices={222:100000000n};
- for(const id of [34,43,1000765]){
+ for(const id of collateral)decimals[id]??=(await at.query.assetRegistry.assets(id)).toJSON().decimals;
+ for(const id of [...collateral,43]){
   const price=await pub.readContract({address:oracle,abi,functionName:'getAssetPrice',args:[addresses[id]],blockNumber:block.number});
   const feed=await pub.readContract({address:oracle,abi,functionName:'getSourceOfAsset',args:[addresses[id]],blockNumber:block.number});
-  assert.equal(feed.toLowerCase(),manifest.oracles.find(o=>o.assetId===id).address.toLowerCase(),'unexpected testnet oracle');
-  const round=await pub.readContract({address:feed,abi,functionName:'latestRoundData',blockNumber:block.number});
-  assert.ok(freshReference({price,updatedAt:round[3],chainTime:block.timestamp,headAge:0,maxAge:900n}),`stale mirror ${id}: ${round[3]} at ${block.timestamp}`);prices[id]=price;
+  const row=manifest.oracles.find(o=>o.assetId===id);
+  assert.equal(feed.toLowerCase(),row.address.toLowerCase(),'unexpected testnet oracle');
+  // a forked source has no round data; mirror syncs the feeds behind it
+  if(row.mirror!==false){
+   const round=await pub.readContract({address:feed,abi,functionName:'latestRoundData',blockNumber:block.number});
+   assert.ok(freshReference({price,updatedAt:round[3],chainTime:block.timestamp,headAge:0,maxAge:900n}),`stale mirror ${id}: ${round[3]} at ${block.timestamp}`);
+  }
+  prices[id]=price;
  }
  const evm='0x'+Buffer.from(signer.publicKey.slice(0,20)).toString('hex');
  assert.ok((await api.query.evmAccounts.accountExtension(evm)).isSome,'arb substrate/EVM binding required');
- const balances={};for(const id of [34,43,222,1000765])balances[id]=await pub.readContract({address:addresses[id],abi,functionName:'balanceOf',args:[evm],blockNumber:block.number});
+ const balances={};for(const id of [...collateral,43,222])balances[id]=await pub.readContract({address:addresses[id],abi,functionName:'balanceOf',args:[evm],blockNumber:block.number});
  const unavailable=[];
- for(const [left,right]of [[43,222],[34,222],[222,1000765],[34,43],[43,1000765]])for(const [input,output]of [[left,right],[right,left]]){
+ for(const [left,right]of quotePairs(collateral))for(const [input,output]of [[left,right],[right,left]]){
   const route=await storedRoute(at,input,output);
   let quotes=0;
   for(const usd of [1n,100n,1000n,5000n]){
@@ -195,14 +208,36 @@ async function markets(){
 async function storedRoute(at,input,output){
  return orientRoute((await at.query.router.routes({assetIn:Math.min(input,output),assetOut:Math.max(input,output)})).toJSON()??[],input,output);
 }
-// the loop trades PRIME at most 6 bps off the oracle and pool 143 charges 4 bps,
-// so the pool must sit within a bp or two of the oracle; this pays the fee to keep it there
+// lark 0's loop trades PRIME at most 6 bps off the oracle and pool 143 charges 4 bps,
+// so the pool must sit within a bp or two of the oracle; this pays the fee to keep it there.
+// a profit-seeking arb never pays it, and its loop's lanes accept the band it leaves
 async function peg(at,prices,balances){
  const prime=43,stable=222,routes={[prime]:await storedRoute(at,prime,stable),[stable]:await storedRoute(at,stable,prime)};
  const other=id=>id===prime?stable:prime,units=(id,usd)=>usd*100000000n*10n**BigInt(decimals[id])/prices[id];
  const fair=(input,amount)=>fairOutput(amount,prices[input],prices[other(input)],decimals[input],decimals[other(input)]);
  const sell=(input,amount)=>api.tx.router.sell(input,other(input),amount.toString(),'0',routes[input]);
  const probe={[stable]:units(stable,PEG_PROBE_USD),[prime]:units(prime,PEG_PROBE_USD)};
+ // $100 of each side stays for the probes
+ const spare=id=>{const reserve=units(id,100n),cap=units(id,PEG_MAX_USD),free=balances[id]>reserve?balances[id]-reserve:0n;return cap<free?cap:free;};
+ if(PEG_PROFIT){
+  const edgeAfter=async(input,amount)=>pegEdge((await routerOuts(at,api.tx.utility.batchAll([...(amount>0n?[sell(input,amount)]:[]),sell(input,probe[input])]))).at(-1),fair(input,probe[input]));
+  const t=await arbTrade({edgeAfter,inputs:[prime,stable],max:spare,minProfit:id=>PEG_PROFIT[id]});
+  const edges={sellEdgeCbps:t.edges[0],buyEdgeCbps:t.edges[1],sellProfitCbps:PEG_PROFIT[prime],buyProfitCbps:PEG_PROFIT[stable]};
+  if(!t.input){log('peg',edges);return null;}
+  if(t.amount<probe[t.input]){
+   if(spare(t.input)<probe[t.input])log('inventory-refill-needed',{asset:t.input,balance:balances[t.input],...edges});
+   else log('peg',{...edges,input:t.input,amount:t.amount});
+   return null;
+  }
+  const input=t.input,output=other(input),amount=t.amount;
+  const out=await quote(at,input,output,amount,routes[input]),value=fair(input,amount);
+  const minOut=pegMinOut({out,fair:value,minProfitCbps:PEG_PROFIT[input]});
+  const row={input,output,amount,out,fair:value,...edges,afterCbps:await edgeAfter(input,amount),
+   profitUsd8:(out-value)*prices[output]/10n**BigInt(decimals[output])};
+  if(minOut===null){log('peg-unprofitable',row);return null;}
+  log('peg',{...row,minOut});
+  return {...row,minOut,route:routes[input]};
+ }
  // premium after a leading trade, read from both probe directions batched behind it
  const premiumAfter=async(input,amount)=>{
   const calls=[...(amount>0n?[sell(input,amount)]:[]),sell(stable,probe[stable]),sell(prime,probe[prime])];
@@ -211,10 +246,9 @@ async function peg(at,prices,balances){
  };
  const before=await premiumAfter(prime,0n);
  if((before<0n?-before:before)<=PEG_BAND){log('peg',{premiumCbps:before,band:PEG_BAND});return null;}
- // a rich pool is sold PRIME, a cheap one bought back; $100 of each side stays for the probes
- const input=before>0n?prime:stable,output=other(input),reserve=units(input,100n);
- const cap=units(input,PEG_MAX_USD),spare=balances[input]>reserve?balances[input]-reserve:0n;
- const amount=await sizeToTarget(a=>premiumAfter(input,a),before,cap<spare?cap:spare);
+ // a rich pool is sold PRIME, a cheap one bought back
+ const input=before>0n?prime:stable,output=other(input);
+ const amount=await sizeToTarget(a=>premiumAfter(input,a),before,spare(input));
  if(amount===0n){log('inventory-refill-needed',{asset:input,balance:balances[input],premiumCbps:before});return null;}
  const out=await quote(at,input,output,amount,routes[input]),value=fair(input,amount);
  const minOut=pegMinOut({out,fair:value,maxLossBps:PEG_MAX_LOSS_BPS});

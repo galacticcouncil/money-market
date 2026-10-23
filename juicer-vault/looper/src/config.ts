@@ -75,6 +75,8 @@ export const CONFIG = {
   // and the smallest exit surplus worth a transaction (HOLLAR wei)
   CLAIM_LOOKBACK: BigInt(integer('CLAIM_LOOKBACK', 256, 1)),
   CLAIM_MIN_SURPLUS: BigInt(process.env.CLAIM_MIN_SURPLUS || '10000000000000000'),
+  // settled collateral waits for its owner, who can batch the claim with a swap or a bridge
+  DELIVER_CLAIMS: process.env.DELIVER_CLAIMS === 'true',
   // off-chain deficit stop: above it the ramp halts and the vault's deficitStop is set; it clears below resume
   DEFICIT_STOP_BPS: deficitStop,
   DEFICIT_RESUME_BPS: integer('DEFICIT_RESUME_BPS', 25, 0, deficitStop - 1),

@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
 
-/// @notice Deploy a second Juicer CollateralVault for tBTC, wired to an
+/// @notice Deploy jBTC, the second Juicer CollateralVault, on tBTC, wired to an
 ///         EXISTING deployment (shared SubLoop, shared SyntheticToken, main-market
 ///         pool + the already-deployed Vault impl). Only a fresh proxy +
 ///         initialize is needed.
@@ -53,8 +53,8 @@ contract DeployVaultTBTC is Script {
         bytes memory init = abi.encodeCall(
             CollateralVault.initialize,
             (
-                "Juicer tBTC",
-                "jtBTC",
+                "Juicer BTC",
+                "jBTC",
                 tbtc,
                 pool,
                 subLoop,
@@ -70,6 +70,6 @@ contract DeployVaultTBTC is Script {
         vm.startBroadcast(deployerKey);
         ERC1967Proxy proxy = new ERC1967Proxy(impl, init);
         vm.stopBroadcast();
-        console2.log("tBTC CollateralVault (proxy):", address(proxy));
+        console2.log("jBTC CollateralVault (proxy):", address(proxy));
     }
 }
