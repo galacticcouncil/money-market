@@ -299,8 +299,8 @@ Default scheduling values (operator examples, not approved production policies):
 | `SAFETY_INTERVAL_MS` | `30000` | Independent read-loop interval |
 | `RPC_STALE_SECONDS` | `120` | Alert threshold for an old chain head |
 | `OPERATOR_SLOT_SECONDS` | `60` | Optional-work duty-slot duration |
-| `DEFICIT_STOP_BPS` | `50` | Above this source or vault deficit, stop the ramp and set the vault's `deficitStop` |
-| `DEFICIT_RESUME_BPS` | `25` | Below this, resume the ramp and clear `deficitStop`; must be below the stop, `0` never clears |
+| `DEFICIT_STOP_BPS` | `250` | Above this source or vault deficit, stop the ramp and set the vault's `deficitStop` |
+| `DEFICIT_RESUME_BPS` | `200` | Below this, resume the ramp and clear `deficitStop`; must be below the stop, `0` never clears |
 | `SYNC_EVERY` | `3600` | Seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner |
 | `ICE_STALL_BLOCKS` | `10` | Blocks an intent may stay unfilled before the solver is reported quiet |
 | `ICE_CLEANUP_BLOCKS` | `10` | Blocks past an intent's deadline before its missing refund is cleaned up (with a signer) or alerted |

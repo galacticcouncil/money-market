@@ -33,6 +33,7 @@
 //           JUICER_HARVEST_THRESHOLD (WAD), JUICER_INTENT_TTL (seconds),
 //           JUICER_INTENT_DRIFT_BPS, JUICER_RESERVE_HOLLAR (per vault),
 //           JUICER_REBALANCE_BAND (relever,target,delever LTV bps),
+//           JUICER_ADMISSION_MAX_DEFICIT_BPS (the approved deposit admission cap),
 //           JUICER_LOOP_DISCOUNT_CAP (HOLLAR) with JUICER_LOOP_DISCOUNT_BPS (default 0);
 //           without the cap, SubLoop must not be discounted.
 
@@ -73,6 +74,7 @@ const NEXT_EXPECTED = {
   ...(process.env.JUICER_INTENT_DRIFT_BPS ? { intentDriftBps: Number(process.env.JUICER_INTENT_DRIFT_BPS) } : {}),
   ...(process.env.JUICER_RESERVE_HOLLAR ? { reserve: ethers.utils.parseUnits(process.env.JUICER_RESERVE_HOLLAR, 18) } : {}),
   ...(process.env.JUICER_REBALANCE_BAND ? { band: parseBand(process.env.JUICER_REBALANCE_BAND) } : {}),
+  ...(process.env.JUICER_ADMISSION_MAX_DEFICIT_BPS ? { admissionMaxDeficitBps: Number(process.env.JUICER_ADMISSION_MAX_DEFICIT_BPS) } : {}),
 };
 const LOOP_CAP = process.env.JUICER_LOOP_DISCOUNT_CAP ? ethers.utils.parseUnits(process.env.JUICER_LOOP_DISCOUNT_CAP, 18) : undefined;
 const LOOP_BPS = Number(process.env.JUICER_LOOP_DISCOUNT_BPS ?? "0");
@@ -797,7 +799,7 @@ async function main() {
   });
 
   if (Object.keys(NEXT_EXPECTED).length) {
-    const group = "N. Next version: keepers, threshold, ICE, bands, reserve";
+    const group = "N. Next version: keepers, threshold, ICE, bands, admission, reserve";
     await section(group, async () => {
       const state = await readNextState(provider, { subLoop: SUBLOOP, vaults: VAULTS, controller: EXECUTION, keepers: KEEPERS });
       for (const check of nextChecks(state, NEXT_EXPECTED)) add(group, check.name, check.ok, check.detail);

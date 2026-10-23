@@ -525,7 +525,8 @@ task(
   // collateral's live max LTV, so a target above it fails here rather than on chain.
   // The revenue mix (protocol fee, Main and loop discounts) needs the discount installed
   // and the loop enrolled first; JUICER_PROTOCOL_FEE_BPS, JUICER_DISCOUNT_BPS and
-  // JUICER_LOOP_DISCOUNT_BPS override NEXT.revenue.
+  // JUICER_LOOP_DISCOUNT_BPS override NEXT.revenue. JUICER_ADMISSION_MAX_DEFICIT_BPS overrides the
+  // deposit admission cap (NEXT.admissionMaxDeficitBps, 250; the contract starts at 50).
   const keepers = (process.env.JUICER_KEEPERS || "").split(",").map((k) => k.trim()).filter(Boolean);
   const controller = await resolve("JUICER_EXECUTION_CONTROLLER", "ExecutionController-Juicer");
   const discount = await resolve("JUICER_DISCOUNT_CONTROLLER", "JuicerDiscount-Juicer");
@@ -541,6 +542,7 @@ task(
       intentTtl: Number(process.env.JUICER_INTENT_TTL ?? NEXT.intentTtl),
       intentDriftBps: Number(process.env.JUICER_INTENT_DRIFT_BPS ?? NEXT.intentDriftBps),
       band: process.env.JUICER_REBALANCE_BAND ? parseBand(process.env.JUICER_REBALANCE_BAND) : NEXT.band,
+      admissionMaxDeficitBps: Number(process.env.JUICER_ADMISSION_MAX_DEFICIT_BPS ?? NEXT.admissionMaxDeficitBps),
       revenue: discount && fees ? {
         protocolFeeBps: Number(process.env.JUICER_PROTOCOL_FEE_BPS ?? NEXT.revenue.protocolFeeBps),
         mainDiscountBps: Number(process.env.JUICER_DISCOUNT_BPS ?? NEXT.revenue.mainDiscountBps),
@@ -616,7 +618,7 @@ task(
   await emit("BATCH 1 — list-reserve", batch1);
   await emit("BATCH 2 — configure", batch2);
   await emit("BATCH 3 — wire", batch3);
-  await emit("BATCH 4 — keepers, threshold, ICE, bands, revenue mix", batch4);
+  await emit("BATCH 4 — keepers, threshold, ICE, bands, admission, revenue mix", batch4);
   await emit("BATCH 5 — protocol reserve", batch5);
 
   console.log(`

@@ -32,7 +32,7 @@ class Chain extends providers.StaticJsonRpcProvider {
 const v = (type: string, value: any) => () => [[type], [value]] as [string[], any[]];
 function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = false, threshold = "1000000000000000", reserve = "0", old = false,
   gaps = {} as Record<string, number[]>, ltv = { [ETH]: 7500, [BTC]: 8000 } as Record<string, number>,
-  installed = true, enrolled = true, main = 0, loopRate = 0 as number | null, fee = 500 as number | null } = {}) {
+  installed = true, enrolled = true, main = 0, loopRate = 0 as number | null, fee = 500 as number | null, admission = 50 as number | null } = {}) {
   const has = (role: string, who: string) => granted.has(`${role}:${who}`);
   const roles = (extra: Record<string, any>) => ({ "hasRole(bytes32,address)": (a: utils.Result) => [["bool"], [has(a[0], a[1])]] as [string[], any[]], ...extra });
   return new Chain({
@@ -43,6 +43,7 @@ function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = fa
       ...(old ? {} : {
         "intentTtl()": v("uint32", ttl), "intentDriftBps()": v("uint16", drift), "KEEPER_ROLE()": v("bytes32", KEEPER_ROLE),
         "rebalanceBand(address)": (a: utils.Result) => [["uint16", "uint16", "uint16"], gaps[a[0]] ?? [0, 500, 300]],
+        ...(admission === null ? {} : { "admissionMaxDeficitBps()": v("uint16", admission) }),
       }),
     }),
     ...Object.fromEntries([[V1, M1, ETH], [V2, M2, BTC]].map(([vault, ledger, collateral]) => [vault, roles({
@@ -145,7 +146,8 @@ test("mainnet and lark agree on the next-version parameters", async () => {
   assert.deepEqual([ICE.ttl, ICE.driftBps], [NEXT.intentTtl, NEXT.intentDriftBps]);
   assert.equal(NEXT_PARAMS.harvestThreshold.toString(), NEXT.harvestThreshold.toString());
   assert.equal(NEXT_PARAMS.reserve.toString(), utils.parseUnits(NEXT.reserveHollar, 18).toString());
-  assert.deepEqual([NEXT_PARAMS.band, NEXT_PARAMS.revenue, NEXT_PARAMS.primePoolFeePpm], [NEXT.band, NEXT.revenue, NEXT.primePoolFeePpm]);
+  assert.deepEqual([NEXT_PARAMS.band, NEXT_PARAMS.revenue, NEXT_PARAMS.primePoolFeePpm, NEXT_PARAMS.admissionMaxDeficitBps],
+    [NEXT.band, NEXT.revenue, NEXT.primePoolFeePpm, NEXT.admissionMaxDeficitBps]);
   for (const maxLtv of [7500, 8000, 8250]) assert.deepEqual(larkGaps(maxLtv, NEXT.band), bandGaps(maxLtv, NEXT.band));
   for (const maxLtv of [7000, 12600]) assert.throws(() => larkGaps(maxLtv, NEXT.band), /within 50% under/);
 });
@@ -215,4 +217,19 @@ test("the revenue mix waits for an installed discount and an enrolled loop", asy
   const bare = await read(nextChain()), all = await readAll(nextChain());
   assert.throws(() => nextCalls(bare, { revenue }), /JUICER_DISCOUNT_CONTROLLER/);
   assert.throws(() => nextCalls(all, { revenue: { ...revenue, protocolFeeBps: 10001 } }), /0\.\.10000/);
+});
+
+test("deposit admission rises from the contract's 50 to the launch cap, once", async () => {
+  const admissionMaxDeficitBps = NEXT.admissionMaxDeficitBps;
+  const state = await read(nextChain());
+  const calls = nextCalls(state, { admissionMaxDeficitBps });
+  assert.deepEqual(calls.map(c => [c.to, c.label]), [[LOOP, "subLoop.setAdmissionMaxDeficitBps(250)"]]);
+  assert.equal(Number(decode("setAdmissionMaxDeficitBps(uint16)", calls[0].data)[0]), 250);
+  assert.deepEqual(nextChecks(state, { admissionMaxDeficitBps }).map(c => [c.ok, c.detail]), [[false, "50"]]);
+  const set = await read(nextChain({ admission: 250 }));
+  assert.deepEqual(nextCalls(set, { admissionMaxDeficitBps }), []);
+  assert.deepEqual(nextChecks(set, { admissionMaxDeficitBps }).map(c => c.ok), [true]);
+  for (const bad of [10001, 1.5, -1]) assert.throws(() => nextCalls(state, { admissionMaxDeficitBps: bad }), /admission deficit cap/);
+  const old = await read(nextChain({ admission: null }));
+  assert.throws(() => nextCalls(old, { admissionMaxDeficitBps }), /admissionMaxDeficitBps missing on chain/);
 });

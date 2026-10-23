@@ -8,7 +8,7 @@ import {LARK4_IDENTITY as L4} from './lark4-identity.mjs';
 const SIGNERS={markets:'//Alice//propeller-20261005-arb',pools:'//Alice//propeller-20261007-pools',replay:'//Alice//propeller-20261007-replay'};
 // the next version's parameters, as the mainnet proposal sets them (next-governance.ts)
 export const NEXT_PARAMS={harvestThreshold:2n*10n**14n,reserve:1000n*10n**18n,
- band:{relever:6500,target:7500,delever:8300},
+ band:{relever:6500,target:7500,delever:8300},admissionMaxDeficitBps:250,
  revenue:{protocolFeeBps:6900,mainDiscountBps:4000,loopDiscountBps:9000},
  primePoolFeePpm:100};
 // the loop keeps each band relative to the collateral's live max LTV, as bandGaps in next-governance.ts
@@ -81,7 +81,7 @@ export const PROFILES={
   peg:NEXT_PEG,
   primeCap:{shortfallBps:27,approval:'nerf prime arbitrager to make sure it stays profitable; as much as current mainnet state to test realistic scenario'},
   // levering a new deposit to the target costs ~50 bps, the default cap: lark 0 held deposits 6.5 h at it
-  admission:{bps:250,approval:'lets bump it on lark 0 and set it as default for future deployments'},
+  admission:{bps:NEXT_PARAMS.admissionMaxDeficitBps,approval:'lets bump it on lark 0 and set it as default for future deployments'},
   stack:{keeperRpcUrls:['https://node0.lark.hydration.cloud','https://0.lark.hydration.cloud'],keeperEnv:{QUOTE_DEPTH_BLOCKS:'3',DEFICIT_STOP_BPS:'250',DEFICIT_RESUME_BPS:'200'},
    bots:{...BOTS,markets:{BOT_INTERVAL_MS:'5000',PEG_SELL_PROFIT_BPS:String(NEXT_PEG.sellProfitBps),PEG_BUY_PROFIT_BPS:String(NEXT_PEG.buyProfitBps)}}},
  },

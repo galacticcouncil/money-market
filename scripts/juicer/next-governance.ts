@@ -1,5 +1,5 @@
 // The next version's governance surface, shared by the mainnet proposal and the readiness
-// checker: keeper roles, the harvest threshold, ICE, rebalance bands, the revenue mix and the protocol reserve.
+// checker: keeper roles, the harvest threshold, ICE, rebalance bands, deposit admission, the revenue mix and the protocol reserve.
 // One reader, then pure planning: callers get back only the calls still missing, or the checks.
 import { BigNumber, BigNumberish, Contract, utils } from "ethers";
 
@@ -13,6 +13,9 @@ export const NEXT = {
   reserveHollar: "1000",
   // LTV bps on every vault: relever below, borrow to, delever above
   band: { relever: 6500, target: 7500, delever: 8300 },
+  // deposits close above this source deficit; levering a deposit to the target costs ~50 bps,
+  // the contract default, so at 50 the loop's own entry cost closes them (lark 0, 22 oct: 6.5 h)
+  admissionMaxDeficitBps: 250,
   // PRIME/HOLLAR stableswap fee at launch, Permill: 1 bp, from 4
   primePoolFeePpm: 100,
   // ~80% of treasury income in collateral: juicenomics at $450k, 21 Oct (81.4% closed form,
@@ -30,6 +33,7 @@ const loopI = new utils.Interface([
   "function setParams(uint256,uint256,uint256,uint256)",
   "function configureIntents(uint32,uint16)",
   "function setRebalanceBand(address,uint16,uint16,uint16)",
+  "function setAdmissionMaxDeficitBps(uint16)",
 ]);
 const controlI = new utils.Interface(["function configureAsync(bytes32,bool)"]);
 const discountI = new utils.Interface(["function setDiscountBps(uint16)", "function setLoopDiscountBps(uint16)"]);
@@ -47,7 +51,7 @@ export type NextState = {
     address: string;
     targetHf: BigNumber; deployHfFloor: BigNumber; deLeverTrigger: BigNumber; harvestThreshold: BigNumber;
     // undefined: contracts without that part of the surface
-    intentTtl?: number; intentDriftBps?: number; keeperRole?: string; keepers: Roles;
+    intentTtl?: number; intentDriftBps?: number; keeperRole?: string; keepers: Roles; admissionMaxDeficitBps?: number;
   };
   vaults: {
     address: string; guardianRole?: string; keepers: Roles; mainDebt: string; protocolReserve?: BigNumber;
@@ -60,7 +64,7 @@ export type NextState = {
 };
 export type Expected = {
   keepers?: string[]; harvestThreshold?: BigNumberish; intentTtl?: number; intentDriftBps?: number; reserve?: BigNumberish;
-  band?: Band; revenue?: Revenue;
+  band?: Band; revenue?: Revenue; admissionMaxDeficitBps?: number;
 };
 
 /// "6500,7500,8300": relever, target and delever LTVs in bps
@@ -97,18 +101,20 @@ export async function readNextState(provider: any, { subLoop, vaults, controller
     "function KEEPER_ROLE() view returns (bytes32)", "function hasRole(bytes32,address) view returns (bool)",
     "function hollar() view returns (address)", "function primeAToken() view returns (address)",
     "function pool() view returns (address)", "function rebalanceBand(address) view returns (uint16,uint16,uint16)",
+    "function admissionMaxDeficitBps() view returns (uint16)",
   ], provider);
   const pool = await maybe<string>(() => loop.pool());
   const reserves = pool && new Contract(pool, ["function getConfiguration(address) view returns (uint256)"], provider);
   const keeperRole = await maybe(() => loop.KEEPER_ROLE());
   const ttl = await maybe(() => loop.intentTtl()), drift = await maybe(() => loop.intentDriftBps());
+  const admission = await maybe(() => loop.admissionMaxDeficitBps());
   const state: NextState = {
     subLoop: {
       address: subLoop,
       targetHf: await loop.targetHf(), deployHfFloor: await loop.deployHfFloor(),
       deLeverTrigger: await loop.deLeverTrigger(), harvestThreshold: await loop.harvestThreshold(),
       intentTtl: ttl === undefined ? undefined : Number(ttl), intentDriftBps: drift === undefined ? undefined : Number(drift),
-      keeperRole, keepers: {},
+      keeperRole, keepers: {}, admissionMaxDeficitBps: admission === undefined ? undefined : Number(admission),
     },
     vaults: [],
   };
@@ -190,6 +196,9 @@ function validate(e: Expected) {
     const rates = [e.revenue.protocolFeeBps, e.revenue.mainDiscountBps, e.revenue.loopDiscountBps];
     if (!rates.every(r => Number.isInteger(r) && r >= 0 && r <= 10000)) throw new Error("revenue mix rates are bps in 0..10000");
   }
+  if (e.admissionMaxDeficitBps !== undefined && !(Number.isInteger(e.admissionMaxDeficitBps) && e.admissionMaxDeficitBps >= 0 && e.admissionMaxDeficitBps <= 10000)) {
+    throw new Error(`admission deficit cap ${e.admissionMaxDeficitBps} bps out of range`);
+  }
   if (e.band !== undefined) {
     const { relever, target, delever } = e.band;
     if (![relever, target, delever].every(Number.isInteger) || !(0 < relever && relever < target && target < delever)
@@ -201,7 +210,7 @@ function validate(e: Expected) {
 
 const missingSurface = (what: string) => new Error(`${what} missing on chain: these are not the next version's contracts`);
 
-/// keeper roles, the threshold, ICE, bands and the revenue mix; the Main and vault wiring stays in the existing batches
+/// keeper roles, the threshold, ICE, bands, admission and the revenue mix; the Main and vault wiring stays in the existing batches
 export function nextCalls(state: NextState, e: Expected): Call[] {
   validate(e);
   const calls: Call[] = [];
@@ -247,6 +256,13 @@ export function nextCalls(state: NextState, e: Expected): Call[] {
         calls.push({ to: loop.address, data: loopI.encodeFunctionData("setRebalanceBand", [v.address, g.target, g.relever, g.delever]),
           label: `subLoop.setRebalanceBand(${v.address}, ${g.target}, ${g.relever}, ${g.delever}) → ${showBand(e.band)} under max ${v.maxLtv}` });
       }
+    }
+  }
+  if (e.admissionMaxDeficitBps !== undefined) {
+    if (loop.admissionMaxDeficitBps === undefined) throw missingSurface("SubLoop admissionMaxDeficitBps");
+    if (loop.admissionMaxDeficitBps !== e.admissionMaxDeficitBps) {
+      calls.push({ to: loop.address, data: loopI.encodeFunctionData("setAdmissionMaxDeficitBps", [e.admissionMaxDeficitBps]),
+        label: `subLoop.setAdmissionMaxDeficitBps(${e.admissionMaxDeficitBps})` });
     }
   }
   if (e.revenue !== undefined) {
@@ -330,6 +346,9 @@ export function nextChecks(state: NextState, e: Expected): Check[] {
       out.push({ name: `${v.address}: rebalance band ${showBand(e.band)}`, ok: !!live && sameBand(live, e.band),
         detail: live ? `${showBand(live)} under max ${v.maxLtv}` : "unreadable" });
     }
+  }
+  if (e.admissionMaxDeficitBps !== undefined) {
+    out.push({ name: "deposit admission deficit cap (bps)", ok: loop.admissionMaxDeficitBps === e.admissionMaxDeficitBps, detail: String(loop.admissionMaxDeficitBps) });
   }
   if (e.reserve !== undefined) {
     for (const v of state.vaults) {

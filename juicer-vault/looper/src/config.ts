@@ -10,7 +10,7 @@ function integer(name: string, fallback: number, min = 1, max = Number.MAX_SAFE_
   return value;
 }
 const operatorCount = integer('OPERATOR_COUNT', 1);
-const deficitStop = integer('DEFICIT_STOP_BPS', 50, 1, 10_000);
+const deficitStop = integer('DEFICIT_STOP_BPS', 250, 1, 10_000);
 const cleanupSuri = process.env.ICE_CLEANUP_SURI || undefined;
 // dev-phrase derivations only (//Name), so a real seed can't end up in a keeper's environment
 if (cleanupSuri && !/^\/\/[^\s]+$/.test(cleanupSuri)) throw new Error('ICE_CLEANUP_SURI must be a dev derivation like //Name');
@@ -79,7 +79,7 @@ export const CONFIG = {
   DELIVER_CLAIMS: process.env.DELIVER_CLAIMS === 'true',
   // off-chain deficit stop: above it the ramp halts and the vault's deficitStop is set; it clears below resume
   DEFICIT_STOP_BPS: deficitStop,
-  DEFICIT_RESUME_BPS: integer('DEFICIT_RESUME_BPS', 25, 0, deficitStop - 1),
+  DEFICIT_RESUME_BPS: integer('DEFICIT_RESUME_BPS', 200, 0, deficitStop - 1),
   // seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner
   SYNC_EVERY: integer('SYNC_EVERY', 3600),
   // blocks an intent may stay unfilled before the solver is reported quiet
