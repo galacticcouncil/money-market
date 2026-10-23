@@ -12,7 +12,7 @@ is Lark 0, reforked from mainnet on the latest runtime with ICE (step 9).
 | # | Change | Decided |
 | - | ------ | ------- |
 | 0 | Protocol reserve, one-signature exit, keeper delivery (already on the branch) | approved |
-| 1 | Underfunding admission bound | 50 bps on-chain ceiling plus keeper stop/resume hysteresis |
+| 1 | Underfunding admission bound | on-chain ceiling (250 bps at launch) plus keeper stop/resume hysteresis |
 | 2 | Event-driven yield allocation, cheap transfers | transfers settle the two holders only |
 | 3 | Aave-style jETH: balance includes funded earnings, nobody claims | funded only; pending shown in UI |
 | 4 | ICE intents for entries, harvests and exits | router kept for safety de-lever |
@@ -20,14 +20,17 @@ is Lark 0, reforked from mainnet on the latest runtime with ICE (step 9).
 | 6 | Deployment parameters | harvest threshold ~0.02%, reserve 1,000 HOLLAR/vault, PRIME trade size to pool depth |
 
 Dropped: earn-after-deploy (worth ~$1 per $100k deposit).
-Parked for the rates topic: fee/discount mix, loop discount, entry cost from yield, band width, share-price jETH.
+Parked for the rates topic: fee/discount mix, entry cost from yield, share-price jETH. The loop discount and band
+width followed on `juicer-discount-bands`: `JuicerDiscount` enrolls the loop at its own capped rate (zero at launch),
+and `SubLoop.setRebalanceBand` sets each vault's band, proposed at relever 65%, target 75%, delever 83%.
 
 ## 1. Underfunding admission
 
 Contracts:
 - `CollateralVault.deposit`:
   - Drop the former broad `isUnderfunded()` gate.
-  - Enforce a narrow 50 bps admission ceiling from the live active-position Main
+  - Enforce an admission ceiling (`SubLoop.admissionMaxDeficitBps`: 50 bps at
+    initialization, 250 from the launch proposal) from the live active-position Main
     debt, source backing net of owned yield, active Main cash and required source
     backing. Debt already assigned to queued exits is excluded from this active
     admission comparison.
@@ -53,8 +56,11 @@ Keeper:
 - The deficit is computed off-chain each cycle:
   - source: `principalEquity` vs live equity (`negativeCarryBps`);
   - per vault: Main debt vs source backing (`equityOf − sourceValue + activeFunds`).
-- Above `DEFICIT_STOP_BPS` (default 50) the keeper stops `pokeBorrow` and sets
-  `deficitStop`. Below `DEFICIT_RESUME_BPS` (default 25, hysteresis) it clears it.
+- Above `DEFICIT_STOP_BPS` (default 250) the keeper stops `pokeBorrow` and sets
+  `deficitStop`. Below `DEFICIT_RESUME_BPS` (default 200, hysteresis) it clears it.
+- Why 250: levering a new deposit to the target costs ~50 bps, so at 50 the loop's
+  own entry cost closes deposits (Lark 4 for days, Lark 0 for 6.5 h on 22 October).
+  The cap lets a new deposit absorb up to 2.5% of the incumbents' deficit.
 - Alert on every transition.
 
 The direct admission ceiling is independent of keeper timing. The keeper flag

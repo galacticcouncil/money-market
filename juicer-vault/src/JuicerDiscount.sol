@@ -9,24 +9,31 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {
     IHollarDiscountDebtToken,
     IJuicerDiscount,
+    IDiscountLoop,
     IDiscountVault,
     ISyntheticAToken
 } from "./interfaces/IJuicerDiscount.sol";
 
-/// @notice Main-vault-only HOLLAR discount. Install this contract as BOTH the
-///         debt token's discount token (balanceOf adapter) and rate strategy.
-///         No transferable eligibility token is issued. SubLoop is not enrolled.
+/// @notice HOLLAR discount for enrolled Main vaults and, at its own rate, the shared
+///         loop. Install this contract as BOTH the debt token's discount token
+///         (balanceOf adapter) and rate strategy. No transferable eligibility token is issued.
 contract JuicerDiscount is AccessControl, ReentrancyGuard, IJuicerDiscount {
     bytes32 public constant RATE_ADMIN_ROLE = keccak256("RATE_ADMIN_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     uint256 public constant BPS = 10_000;
     uint256 public constant MAX_VAULTS = 16;
+    // the strategy never sees the borrower, so the loop's eligibility carries this bit
+    uint256 public constant LOOP_TAG = 1 << 255;
 
     IHollarDiscountDebtToken public immutable override debtToken;
     address public immutable override synthetic;
     ISyntheticAToken public immutable aSynthetic;
     address public immutable pool;
     uint16 public discountBps;
+    uint16 public loopDiscountBps;
+    address public loop;
+    /// @notice discounted HOLLAR notional of the loop's debt
+    uint256 public loopCap;
 
     // Enrollment bounds the complete set of possible cached-discount recipients.
     // Without it, a rate change could miss a borrower whose eligibility changed.
@@ -36,6 +43,10 @@ contract JuicerDiscount is AccessControl, ReentrancyGuard, IJuicerDiscount {
     event DiscountBpsUpdated(uint16 previousBps, uint16 newBps);
     event VaultRegistered(address indexed vault);
     event VaultUnregistered(address indexed vault);
+    event LoopRegistered(address indexed loop, uint256 cap);
+    event LoopUnregistered(address indexed loop);
+    event LoopCapUpdated(uint256 previousCap, uint256 newCap);
+    event LoopDiscountBpsUpdated(uint16 previousBps, uint16 newBps);
 
     error ZeroAddress();
     error InvalidMarket();
@@ -45,6 +56,8 @@ contract JuicerDiscount is AccessControl, ReentrancyGuard, IJuicerDiscount {
     error TooManyVaults();
     error InvalidDiscount();
     error NotInstalled();
+    error InvalidLoop();
+    error InvalidCap();
 
     constructor(address debtToken_, address synthetic_, address aSynthetic_, address governance, address committee) {
         if (
@@ -121,6 +134,55 @@ contract JuicerDiscount is AccessControl, ReentrancyGuard, IJuicerDiscount {
         emit DiscountBpsUpdated(previous, newBps);
     }
 
+    /// @notice Governance enrolls the loop that funds a registered vault. Only
+    ///         min(debt, cap) is discounted, at loopDiscountBps, which starts at zero.
+    function registerLoop(address loop_, uint256 cap) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        _requireInstalled();
+        if (loop != address(0)) revert AlreadyRegistered();
+        if (cap == 0 || cap >= LOOP_TAG) revert InvalidCap();
+        if (loop_.code.length == 0) revert InvalidLoop();
+        IDiscountLoop l = IDiscountLoop(loop_);
+        if (l.pool() != pool || l.hollar() != debtToken.UNDERLYING_ASSET_ADDRESS() || !_funds(loop_)) {
+            revert InvalidLoop();
+        }
+        loop = loop_;
+        loopCap = cap;
+        debtToken.rebalanceUserDiscountPercent(loop_);
+        emit LoopRegistered(loop_, cap);
+    }
+
+    function unregisterLoop() external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        _requireInstalled();
+        address l = loop;
+        if (l == address(0)) revert NotRegistered();
+        loop = address(0);
+        loopCap = 0;
+        // as for a vault: accrued interest settles at the old cached rate first
+        debtToken.rebalanceUserDiscountPercent(l);
+        emit LoopUnregistered(l);
+    }
+
+    function setLoopCap(uint256 cap) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+        _requireInstalled();
+        address l = loop;
+        if (l == address(0)) revert NotRegistered();
+        if (cap == 0 || cap >= LOOP_TAG) revert InvalidCap();
+        uint256 previous = loopCap;
+        loopCap = cap;
+        debtToken.rebalanceUserDiscountPercent(l);
+        emit LoopCapUpdated(previous, cap);
+    }
+
+    /// @notice Committee or governance can set 0..100% off the loop's capped borrowing interest.
+    function setLoopDiscountBps(uint16 newBps) external onlyRole(RATE_ADMIN_ROLE) nonReentrant {
+        _requireInstalled();
+        if (newBps > BPS) revert InvalidDiscount();
+        uint16 previous = loopDiscountBps;
+        loopDiscountBps = newBps;
+        if (loop != address(0)) debtToken.rebalanceUserDiscountPercent(loop);
+        emit LoopDiscountBpsUpdated(previous, newBps);
+    }
+
     function refreshAll() external nonReentrant {
         _requireInstalled();
         _refreshAll();
@@ -129,6 +191,11 @@ contract JuicerDiscount is AccessControl, ReentrancyGuard, IJuicerDiscount {
     /// @dev This is the balanceOf surface consumed by GHO, not an ERC20 token.
     ///      Never read HOLLAR debt here: doing so would risk recursive debt reads.
     function balanceOf(address borrower) external view override returns (uint256) {
+        if (borrower == loop) {
+            // storage only: this runs inside every HOLLAR mint and burn
+            uint256 cap = loopCap;
+            return loopDiscountBps == 0 || cap == 0 ? 0 : LOOP_TAG | cap;
+        }
         // Disabling must not depend on a vault or collateral getter still working.
         if (
             discountBps == 0 || !isRegistered[borrower] || !IAccessControl(synthetic).hasRole(MINTER_ROLE, borrower)
@@ -148,7 +215,12 @@ contract JuicerDiscount is AccessControl, ReentrancyGuard, IJuicerDiscount {
         returns (uint256)
     {
         if (debtBalance == 0 || eligibleBalance == 0) return 0;
-        return Math.mulDiv(Math.min(debtBalance, eligibleBalance), discountBps, debtBalance);
+        uint256 bps = discountBps;
+        if (eligibleBalance & LOOP_TAG != 0) {
+            eligibleBalance ^= LOOP_TAG;
+            bps = loopDiscountBps;
+        }
+        return Math.mulDiv(Math.min(debtBalance, eligibleBalance), bps, debtBalance);
     }
 
     function vaults() external view returns (address[] memory) {
@@ -159,6 +231,14 @@ contract JuicerDiscount is AccessControl, ReentrancyGuard, IJuicerDiscount {
         for (uint256 i; i < _vaults.length; ++i) {
             debtToken.rebalanceUserDiscountPercent(_vaults[i]);
         }
+        if (loop != address(0)) debtToken.rebalanceUserDiscountPercent(loop);
+    }
+
+    function _funds(address loop_) internal view returns (bool) {
+        for (uint256 i; i < _vaults.length; ++i) {
+            if (IDiscountVault(_vaults[i]).yieldSource() == loop_) return true;
+        }
+        return false;
     }
 
     function _requireInstalled() internal view {

@@ -43,6 +43,8 @@ contract ParityConsumer {
 }
 
 contract ParityQueue is CollateralVault {
+    constructor(address logic) CollateralVault(logic) {}
+
     function seed(uint256[] memory r, address owner, IERC20 token, address source_) external {
         yieldSource = IYieldSource(source_);
         collateral = token;
@@ -189,7 +191,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
     function test_leanPartialAndFinalClaims() public {
         for (uint256 i; i < _count("claims"); ++i) {
             uint256[] memory r = _row("claims", i);
-            ParityQueue q = ParityQueue(vm.deployCode("LeanCoverageParity.t.sol:ParityQueue")); MockERC20 token = new MockERC20("c", "c", 18);
+            ParityQueue q = ParityQueue(vm.deployCode("LeanCoverageParity.t.sol:ParityQueue", abi.encode(Artifacts.compoundLogic()))); MockERC20 token = new MockERC20("c", "c", 18);
             q.seed(r, OWNER, IERC20(address(token)), address(source)); token.mint(address(q), r[4]);
             uint256 amount = q.claim(0, RECEIVER);
             (,,,,,,uint256 settled,uint256 burned,bool active) = q.redemptions(0);

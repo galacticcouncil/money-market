@@ -22,7 +22,7 @@ import {
 import ProposalDecoder from "../../helpers/proposal-decoder";
 import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "../../scripts/juicer/rounding-native";
-import { NEXT, readNextState, nextCalls, reserveCalls } from "../../scripts/juicer/next-governance";
+import { NEXT, readNextState, nextCalls, reserveCalls, parseBand } from "../../scripts/juicer/next-governance";
 
 // Fixed $1 oracle (reused for the synthetic — it is pegged $1 by design, like HOLLAR).
 const GHO_ORACLE_ADDRESS = "0x6096C9D71F7c06024578a62F4B608a1Bb06834F8";
@@ -60,6 +60,8 @@ const ROUTE_POOL = Number(process.env.JUICER_PRIME_POOL_ID || 143);
 // Explicit governance decision after measuring complete exit costs. Never
 // inherit a testnet's permissive slippage limit in a production proposal.
 const ROUTE_SLIPPAGE_PPM = Number(process.env.JUICER_SLIPPAGE_PPM ?? NaN);
+// the loop's entries, unwinds and the peg arbitrage all trade pool 143
+const ROUTE_POOL_FEE_PPM = Number(process.env.JUICER_PRIME_POOL_FEE_PPM ?? NEXT.primePoolFeePpm);
 
 // Per-poke tranche caps (HOLLAR 18dp in, aPRIME 6dp out).
 const DEPLOY_TRANCHE = process.env.JUICER_DEPLOY_TRANCHE || "5000";
@@ -77,27 +79,25 @@ const COMPOUND_SLIPPAGE_BPS = Number(process.env.JUICER_COMPOUND_SLIPPAGE_BPS ||
 // it only lives in stableswap pool 143. So without these, every harvest reverts
 // and loop carry can never be converted into collateral.
 //
-// Each hop below is the exact reverse of a route already live on-chain
-// (`34 → 222` and `110 → 1000765`), so every leg is known-executable:
-//   PRIME →[ss143]→ HOLLAR →[omnipool]→ 420 →[aave]→ 4200 →[ss4200]→ aETH →[aave]→ ETH
+// jETH's collateral is GIGAETH (4200, pool 4200's share of aETH 1007 + 1000809),
+// jBTC's is tBTC. After PRIME → HOLLAR each route is one already stored on-chain
+// (`222 → 4200` and `222 → 1000765`), so every leg is known-executable:
+//   PRIME →[ss143]→ HOLLAR →[omnipool]→ 420 →[aave]→ GIGAETH
 //   PRIME →[ss143]→ HOLLAR →[omnipool]→ tBTC
-// Pool 4200's SHARE asset is 4200 and its underlyings are [1007, 1000809] — the
-// `4200 → 1007` hop is a share→underlying withdrawal, not a same-pool swap.
+// 420 is aGETH, GIGAETH's money-market receipt, which the Omnipool trades.
 //
 // Override wholesale with JUICER_COMPOUND_ROUTES as JSON:
-//   [{"assetOut":34,"route":[{"pool":{"Stableswap":143},"assetIn":43,"assetOut":222}, …]}]
+//   [{"assetOut":4200,"route":[{"pool":{"Stableswap":143},"assetIn":43,"assetOut":222}, …]}]
 const COMPOUND_ROUTES: { assetOut: number; route: any[] }[] = process.env
   .JUICER_COMPOUND_ROUTES
   ? JSON.parse(process.env.JUICER_COMPOUND_ROUTES)
   : [
       {
-        assetOut: 34, // ETH
+        assetOut: 4200, // GIGAETH
         route: [
           { pool: { Stableswap: ROUTE_POOL }, assetIn: ROUTE_PRIME, assetOut: ROUTE_HOLLAR },
           { pool: { Omnipool: null }, assetIn: ROUTE_HOLLAR, assetOut: 420 },
           { pool: { Aave: null }, assetIn: 420, assetOut: 4200 },
-          { pool: { Stableswap: 4200 }, assetIn: 4200, assetOut: 1007 },
-          { pool: { Aave: null }, assetIn: 1007, assetOut: 34 },
         ],
       },
       {
@@ -111,13 +111,12 @@ const COMPOUND_ROUTES: { assetOut: number; route: any[] }[] = process.env
 
 // Fresh collateral must also be sellable for Main servicing. Independent
 // overrides avoid assuming a customized PRIME route passes through HOLLAR.
+// Both defaults reverse routes mainnet already stores; batch 0 skips a stored pair.
 const OPERATING_ROUTES: { assetIn: number; assetOut: number; route: any[] }[] = process.env
   .JUICER_OPERATING_ROUTES
   ? JSON.parse(process.env.JUICER_OPERATING_ROUTES)
   : [
-      { assetIn: 34, assetOut: ROUTE_HOLLAR, route: [
-        { pool: { Aave: null }, assetIn: 34, assetOut: 1007 },
-        { pool: { Stableswap: 4200 }, assetIn: 1007, assetOut: 4200 },
+      { assetIn: 4200, assetOut: ROUTE_HOLLAR, route: [
         { pool: { Aave: null }, assetIn: 4200, assetOut: 420 },
         { pool: { Omnipool: null }, assetIn: 420, assetOut: ROUTE_HOLLAR },
       ] },
@@ -141,6 +140,9 @@ task(
   }
   if (!Number.isInteger(ROUTE_SLIPPAGE_PPM) || ROUTE_SLIPPAGE_PPM < 0 || ROUTE_SLIPPAGE_PPM >= 1_000_000) {
     throw new Error("Set an explicitly reviewed JUICER_SLIPPAGE_PPM in 0..999999; there is no default.");
+  }
+  if (!Number.isInteger(ROUTE_POOL_FEE_PPM) || ROUTE_POOL_FEE_PPM < 0 || ROUTE_POOL_FEE_PPM >= 1_000_000) {
+    throw new Error("JUICER_PRIME_POOL_FEE_PPM must be a Permill in 0..999999.");
   }
   const { utils } = hre.ethers;
   const networkId = FORK ? FORK : hre.network.name;
@@ -212,11 +214,22 @@ task(
     addTransaction({ to, data, gasLimit });
 
   // ═════════════════════════════════════════════════════════════════════════
-  // BATCH 0 — router routes for the compound leg (PRIME → each collateral)
+  // BATCH 0 — router routes for the compound leg (PRIME → each collateral),
+  //           and the PRIME pool's launch fee
   // ═════════════════════════════════════════════════════════════════════════
-  // Pure substrate (no aave-manager wrapper) — forceInsertRoute is a Root call.
-  // Independent of the contracts, so this can enact before they even exist.
+  // Pure substrate (no aave-manager wrapper) — forceInsertRoute and
+  // updatePoolFee are Root calls. Independent of the contracts, so this can
+  // enact before they even exist.
   const batch0: any[] = [];
+  const primePool: any = await api.query.stableswap.pools(ROUTE_POOL);
+  if (!primePool.isSome) throw new Error(`stableswap pool ${ROUTE_POOL} not found`);
+  const primePoolFee = primePool.unwrap().fee.toNumber();
+  if (primePoolFee !== ROUTE_POOL_FEE_PPM) {
+    console.log(`[0] stableswap.updatePoolFee(${ROUTE_POOL}, ${primePoolFee} → ${ROUTE_POOL_FEE_PPM} ppm)`);
+    batch0.push(hydrationTx.stableswap.updatePoolFee(ROUTE_POOL, ROUTE_POOL_FEE_PPM));
+  } else {
+    console.log(`[0] pool ${ROUTE_POOL} fee already ${primePoolFee} ppm — skipping`);
+  }
   const harvestRoutes = [
     ...COMPOUND_ROUTES.map(r => ({ assetIn: ROUTE_PRIME, ...r })),
     ...OPERATING_ROUTES,
@@ -502,15 +515,24 @@ task(
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  // BATCH 4 — next version: keeper roles, harvest threshold, ICE
+  // BATCH 4 — next version: keeper roles, harvest threshold, ICE, rebalance bands,
+  //           revenue mix
   // ═════════════════════════════════════════════════════════════════════════
   // Keepers get SubLoop KEEPER_ROLE (quoted pokes) and each vault's DEPOSIT_GUARDIAN_ROLE,
   // which gates only setDeficitStop; pause stays with governance and the committee.
   // configureAsync reverts on a lane without a limit, so the execution lanes come first.
+  // JUICER_REBALANCE_BAND (relever,target,delever LTV bps) is converted against each
+  // collateral's live max LTV, so a target above it fails here rather than on chain.
+  // The revenue mix (protocol fee, Main and loop discounts) needs the discount installed
+  // and the loop enrolled first; JUICER_PROTOCOL_FEE_BPS, JUICER_DISCOUNT_BPS and
+  // JUICER_LOOP_DISCOUNT_BPS override NEXT.revenue. JUICER_ADMISSION_MAX_DEFICIT_BPS overrides the
+  // deposit admission cap (NEXT.admissionMaxDeficitBps, 250; the contract starts at 50).
   const keepers = (process.env.JUICER_KEEPERS || "").split(",").map((k) => k.trim()).filter(Boolean);
   const controller = await resolve("JUICER_EXECUTION_CONTROLLER", "ExecutionController-Juicer");
+  const discount = await resolve("JUICER_DISCOUNT_CONTROLLER", "JuicerDiscount-Juicer");
+  const fees = await resolve("JUICER_FEE_CONTROLLER", "JuicerFeeController-Juicer");
   const nextState = subLoop && vaults.length
-    ? await readNextState(hre.ethers.provider, { subLoop, vaults, controller, keepers })
+    ? await readNextState(hre.ethers.provider, { subLoop, vaults, controller, keepers, discount, fees })
     : undefined;
   let batch4: any[] = [];
   if (nextState && controller && keepers.length) {
@@ -519,7 +541,15 @@ task(
       harvestThreshold: process.env.JUICER_HARVEST_THRESHOLD || NEXT.harvestThreshold,
       intentTtl: Number(process.env.JUICER_INTENT_TTL ?? NEXT.intentTtl),
       intentDriftBps: Number(process.env.JUICER_INTENT_DRIFT_BPS ?? NEXT.intentDriftBps),
+      band: process.env.JUICER_REBALANCE_BAND ? parseBand(process.env.JUICER_REBALANCE_BAND) : NEXT.band,
+      admissionMaxDeficitBps: Number(process.env.JUICER_ADMISSION_MAX_DEFICIT_BPS ?? NEXT.admissionMaxDeficitBps),
+      revenue: discount && fees ? {
+        protocolFeeBps: Number(process.env.JUICER_PROTOCOL_FEE_BPS ?? NEXT.revenue.protocolFeeBps),
+        mainDiscountBps: Number(process.env.JUICER_DISCOUNT_BPS ?? NEXT.revenue.mainDiscountBps),
+        loopDiscountBps: Number(process.env.JUICER_LOOP_DISCOUNT_BPS ?? NEXT.revenue.loopDiscountBps),
+      } : undefined,
     };
+    if (!expected.revenue) console.log("[4] revenue mix skipped — set JUICER_DISCOUNT_CONTROLLER and JUICER_FEE_CONTROLLER");
     for (const call of nextCalls(nextState, expected)) {
       console.log(`[4] ${call.label}`);
       evm(call.to, call.data);
@@ -528,7 +558,7 @@ task(
     clearBatch();
   } else {
     console.log(
-      "[4] skipped — set JUICER_KEEPERS and JUICER_EXECUTION_CONTROLLER (with the loop and vaults) for keeper roles, the harvest threshold and ICE"
+      "[4] skipped — set JUICER_KEEPERS and JUICER_EXECUTION_CONTROLLER (with the loop and vaults) for keeper roles, the harvest threshold, ICE and bands"
     );
   }
 
@@ -584,11 +614,11 @@ task(
     decoder.printTree(decoder.transformCall(batchAll.toHuman()));
   };
 
-  await emit("BATCH 0 — compound routes", batch0);
+  await emit("BATCH 0 — compound routes, PRIME pool fee", batch0);
   await emit("BATCH 1 — list-reserve", batch1);
   await emit("BATCH 2 — configure", batch2);
   await emit("BATCH 3 — wire", batch3);
-  await emit("BATCH 4 — keepers, threshold, ICE", batch4);
+  await emit("BATCH 4 — keepers, threshold, ICE, bands, admission, revenue mix", batch4);
   await emit("BATCH 5 — protocol reserve", batch5);
 
   console.log(`
@@ -599,14 +629,15 @@ scheduler.PermanentlyOverweight (observed on lark-2).
 BATCH 0 stores the PRIME → collateral router routes. Without them the substrate
 router falls back to Omnipool, which cannot service PRIME, and EVERY harvest
 reverts — Harvester.harvest calls compound(…, "") with an empty route, so the
-path is resolved on-chain, not by the caller.
+path is resolved on-chain, not by the caller. It also sets pool ${ROUTE_POOL}'s fee to
+${ROUTE_POOL_FEE_PPM} ppm (JUICER_PRIME_POOL_FEE_PPM).
 
 BATCH 4 needs the loop's execution lanes configured: configureAsync reverts on a lane
 without a limit. BATCH 5 is optional and needs its HOLLAR in place first.
 
 After enactment, run scripts/juicer/verify-readiness.ts before announcing (with
-JUICER_KEEPERS, JUICER_HARVEST_THRESHOLD, JUICER_INTENT_TTL and
-JUICER_RESERVE_HOLLAR it also checks batches 4 and 5) —
+JUICER_KEEPERS, JUICER_HARVEST_THRESHOLD, JUICER_INTENT_TTL, JUICER_REBALANCE_BAND,
+JUICER_PROTOCOL_FEE_BPS and JUICER_RESERVE_HOLLAR it also checks batches 4 and 5) —
 dispatcher.dispatchAsAaveManager reports EVM reverts as ExecutedFailed EVENTS,
 not extrinsic failures, so a batch can "succeed" with calls silently reverted.
 `);

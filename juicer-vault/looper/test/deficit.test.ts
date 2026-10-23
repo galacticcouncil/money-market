@@ -10,6 +10,9 @@ const ETH = '0x00000000000000000000000000000000000000e7';
 const BTC = '0x00000000000000000000000000000000000000b7';
 const TARGET = 1050000000000000000n;
 const DEBT = 10_000n * 10n ** 18n;
+// the mechanism at the tight thresholds these fixtures were written for, not the defaults
+CONFIG.DEFICIT_STOP_BPS = 50;
+CONFIG.DEFICIT_RESUME_BPS = 25;
 
 type VaultState = { deficit: bigint; grossUp: bigint; unallocated: boolean; stop: boolean; frozen: boolean };
 

@@ -5,29 +5,32 @@ import {profile} from './lark-pins.mjs';
 const DISPATCH='0x0000000000000000000000000000000000000401';
 const require=createRequire(import.meta.url);
 const poolAbi=require('../../deployments/hydration/Pool-Implementation.json').abi;
+const collateral=Object.entries(profile.collateral),CAP={ETH:10n*10n**18n,TBTC:10n**18n/2n};
 const c=await context();
 try{
   assert.ok(live,'--live required; lark-prepare.mjs prepares accounts separately');
   const {r,pub,deploy,read,readSig,write,save}=c;
   assert.ok(r.checks.testAccountsFunded);
   const reserves={};
-  for(const [name,address]of [['ETH',token(34)],['TBTC',token(1000765)],['PRIME',token(43)],['HOLLAR',HOLLAR]]){
+  for(const [name,address]of [...collateral.map(([name,x])=>[name,token(x.assetId)]),['PRIME',token(43)],['HOLLAR',HOLLAR]]){
     reserves[name]=await pub.readContract({address:POOL,abi:poolAbi,functionName:'getReserveData',args:[address]});
     assert.notEqual(reserves[name].aTokenAddress,v.zeroAddress);
     console.log('RESERVE',name,'LTV',(reserves[name].configuration.data&65535n).toString());
   }
   // a fresh mainnet fork has no HydraAugustus; deploy the pinned adapter and hand it to governance
   const swapper=await deploy('HydraAugustus',[DISPATCH]);
-  for(const [address,id]of [[token(43),43],[HOLLAR,222],[token(34),34],[token(1000765),1000765]]){
+  for(const [address,id]of [[token(43),43],[HOLLAR,222],...collateral.map(([,x])=>[token(x.assetId),x.assetId])]){
     if(Number(await read('HydraAugustus',swapper,'assetId',[address]))!==id)await write(`swapper.asset${id}`,'HydraAugustus',swapper,'setAssetId',[address,id]);
   }
   if((await read('HydraAugustus',swapper,'owner')).toLowerCase()!==GOV.toLowerCase())await write('swapper.owner','HydraAugustus',swapper,'transferOwnership',[GOV]);
   const swapperCode=await pub.getBytecode({address:swapper});
   r.market={pool:POOL,hollar:HOLLAR,prime:token(43),aPrime:reserves.PRIME.aTokenAddress,hollarDebt:reserves.HOLLAR.variableDebtTokenAddress,swapper,swapperCodeHash:v.keccak256(swapperCode),deployedAdapter:true};save();
   const a=r.addresses;
-  a.vaultImpl=await deploy('CollateralVault');save();
-  a.compoundLogic=await read('CollateralVault',a.vaultImpl,'compoundLogic');save();
+  // the vault's helper goes first, on its own, like the loop's logic below
+  a.compoundLogic??=await deploy('CompoundLogic');save();
   assert.equal((await pub.getBytecode({address:a.compoundLogic})).toLowerCase(),artifact('CompoundLogic').deployedBytecode.object.toLowerCase());
+  a.vaultImpl=await deploy('CollateralVault',[a.compoundLogic]);save();
+  assert.equal((await read('CollateralVault',a.vaultImpl,'compoundLogic')).toLowerCase(),a.compoundLogic.toLowerCase());
   a.synth=await deploy('SyntheticToken',[...profile.names.synth,GOV]);save();
   // two transactions: one would carry both bytecodes, past a hydration transaction's limit
   a.subLogic??=await deploy('SubLoopLogic');save();
@@ -40,7 +43,8 @@ try{
   a.controller=await deploy('ExecutionController',[GOV,60n,5n]);save();
   r.feeRecipient=treasury;
   r.vaults??=[];
-  for(const [name,id,cap]of [['ETH',34,10n*10n**18n],['TBTC',1000765,10n**18n/2n]]){
+  for(const [name,{assetId:id}]of collateral){
+    const cap=CAP[name];
     let row=r.vaults.find(x=>x.name===name);
     if(!row){row={name,assetId:id,asset:token(id),aToken:reserves[name].aTokenAddress,cap};r.vaults.push(row);save();}
     const init=v.encodeFunctionData({abi:artifact('CollateralVault').abi,functionName:'initialize',args:[...profile.names.vaults[name],row.asset,POOL,a.source,swapper,HOLLAR,a.synth,row.aToken,reserves.HOLLAR.variableDebtTokenAddress,BigInt(row.cap),GOV]});

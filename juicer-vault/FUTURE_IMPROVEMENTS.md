@@ -23,8 +23,10 @@ future production deployment from the current code, not the old lark-2 proxies.
 
 The [next-version plan](docs/next-version-plan.md) leaves these out:
 
-- **Rates topic:** fee/discount mix, loop discount, entry cost from yield, band
-  width, share-price jETH.
+- **Rates topic:** fee/discount mix, entry cost from yield, share-price jETH.
+  The loop discount and per-vault band width are implemented on
+  `juicer-discount-bands` (see [the discount](docs/main-borrow-discount.md#loop-discount)
+  and [the band](docs/yield-ownership.md#rebalance-band)).
 - **Dropped:** earn-after-deploy, worth about $1 per $100k deposit.
 
 ## Potential: each deposit pays its own entry cost (2026-10-20)
@@ -81,7 +83,8 @@ quick round trip leaves its entry cost with the others.
 - **targetLtv no longer stored/configurable** — the vault reads the reserve max
   LTV live (`pool.getConfiguration(collateral) & 0xFFFF`); `targetLtvBps` /
   bands / `setLtvBand` and the initializer arg are gone (initialize is now
-  13 args — deploy scripts updated). Hysteresis is constants (−500/+300 bps).
+  13 args — deploy scripts updated). Hysteresis was constants (−500/+300 bps);
+  `SubLoop.setRebalanceBand` now sets it per vault, still relative to the live max LTV.
   `scripts/juicer-maxltv-lark.mjs` is obsolete for fresh deploys.
   Regression: `KeeperOps.t.sol::test_rebalanceFollowsGovernanceLtvChange`.
 - **Test harness repaired** — `MockDispatch` (SCALE-decoding router mock)

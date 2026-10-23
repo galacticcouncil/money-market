@@ -32,7 +32,7 @@ for Hydration reads and fresh Chopsticks rehearsals.
 | Governance and committee    | Actual dispatch/execution addresses, not member wallets or keeper keys. Record all admin, upgrader and guardian assignments.                                                                                      |
 | Synthetic reserve           | Available asset ID, registration, $1 oracle, approved LTV/LT, disabled borrowing and correct receipt token. The proposal uses 1% LTV and 98% LT; Main sizing uses real collateral, not synthetic borrowing power. |
 | Runtime routes              | Regenerate router references with `scripts/juicer/gen-router-reference.mjs`; confirm pallet indices and SCALE encoding.                                                                                        |
-| Swap adapter                | Deploy and review the production HydraAugustus implementation and required sell routes. No governance-address placeholder in an activated vault.                                                                  |
+| Swap adapter                | Deploy and review the production HydraAugustus implementation and required sell routes; map PRIME 43, HOLLAR 222, GIGAETH 4200 and tBTC 1000765 with `setAssetId` before handing it to governance. No governance-address placeholder in an activated vault.                                                                  |
 | PRIME pricing and liquidity | Approve source provenance/freshness, Aave and pool-peg wiring, executable inventory and funded replenishment. See [pricing validation](docs/prime-pricing-replenishment.md).                                      |
 | Execution and admission     | Approve floors, nonzero tranches, deposit/ramp limits and harvest sizing. `deployTranche` does not cap initial/upward source deposits.                                                                            |
 | Rounding and bootstrap      | Fund locked initial shares and per-vault collateral reserves; verify native minimum balances and custody dust protection.                                                                                         |
@@ -68,7 +68,10 @@ growth charging can exceed Forge's EVM estimate, while runtime 447 enforces a
 16,777,216 gas cap per transaction. Even a 20% margin on the native vault creation
 estimate can exceed that cap. The local native harness uses `eth_estimateGas`
 with a 10% creation margin and checks the cap before submission.
-The tBTC script reuses the recorded CollateralVault implementation.
+`DeployMain` deploys jETH ("Juicer ETH") on GIGAETH, asset 4200 (pool 4200's
+share), with aToken aGETH; `GIGAETH` and `AGETH` override them. The tBTC script
+deploys jBTC ("Juicer BTC") on tBTC and reuses the recorded CollateralVault
+implementation.
 
 Continue in dependency order:
 
@@ -158,6 +161,10 @@ automatic approved deployment. Its ordered groups are:
 | 3: wire              | Source/vault/harvester roles, tranches, route IDs, swapper, compound floor, withdrawal delay, guardians and funded rounding policy. |
 | 4: next version      | `JUICER_KEEPERS` get SubLoop `KEEPER_ROLE` (quoted pokes) and each vault's `DEPOSIT_GUARDIAN_ROLE` (`setDeficitStop` only; pause stays with governance and the committee); `setParams` with `JUICER_HARVEST_THRESHOLD` (default 2e14) keeping the other three; `configureIntents` (`JUICER_INTENT_TTL` seconds, default 300; `JUICER_INTENT_DRIFT_BPS`, default 2) and `configureAsync` on the loop's entry and unwind lanes of `JUICER_EXECUTION_CONTROLLER`, which must already carry their limits. |
 | 5: protocol reserve  | Optional: `fundReserve` of `JUICER_RESERVE_HOLLAR` on each Main ledger, from the governance caller's own HOLLAR (`JUICER_RESERVE_SOURCE=admin`, prefunded) or minted from its facilitator bucket (`mint`). |
+
+Mainnet stores no PRIME↔GIGAETH route either. Group 0's defaults compose PRIME →
+GIGAETH from pool 143 and the stored HOLLAR → aGETH (420) → GIGAETH route; the
+collateral-to-HOLLAR defaults reverse stored routes, so the batch skips them.
 
 Groups 4 and 5 read the deployed contracts and emit only missing calls; they
 refuse contracts without the next version's surface. Main-ledger binding, fee

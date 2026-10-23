@@ -85,7 +85,9 @@ but does not replace missing HOLLAR.
    compounding; nobody claims.
 3. **Rebalance.** Pending deposits and newly earned collateral permit Main borrowing
    without waiting for the price-movement band. Collateral appreciation can
-   also permit more borrowing.
+   also permit more borrowing. Each vault's band sits around a target under the
+   reserve's live max LTV; the loop's admin sets it (`SubLoop.setRebalanceBand`),
+   and by default it relevers 5% under the max LTV and delevers 3% over it.
    Falling collateral value triggers a PRIME-loop unwind whose net HOLLAR
    repays Main. Ordinary resizing does not sell deposited collateral.
 4. **Request withdrawal.** `requestRedeem` escrows shares for the configured
@@ -115,8 +117,9 @@ compounded user yield are not implemented. See [principal and emergency policy](
 
 | Control                | Authority and RC behavior                                                                                                                             |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Main interest discount | Governance and Technical Committee set one rate across eligible Main vaults; deployment defaults to zero until approved. Loop debt is not discounted. |
-| Protocol fee           | Governance sets a rate per vault, initially 5%. Yield ownership and its fee vest at checkpoint; collection waits for realization.                                          |
+| Main interest discount | Governance and Technical Committee set one rate across eligible Main vaults; deployment defaults to zero, and the launch proposal sets 40%. |
+| Loop interest discount | Governance enrolls the loop with a cap on its discounted HOLLAR; governance and the committee set its separate rate, zero until the launch proposal sets 90%. |
+| Protocol fee           | Governance sets a rate per vault, 5% at registration; the launch proposal sets 69%, so about 80% of treasury income arrives in collateral ([revenue mix](docs/protocol-fees.md#revenue-mix)). Yield ownership and its fee vest at checkpoint; collection waits for realization. |
 | Treasury recipient     | Owner-configurable; all unclaimed fees follow the new recipient. Anyone may trigger payment to that recipient.                                        |
 | Withdrawal delay       | Governance-configurable per vault, initially 12 hours before unwinding; existing requests retain their eligibility time.                              |
 | Emergency freeze       | Guardian can freeze; governance reopens. Local vault freeze and source-wide emergency freeze are distinct from the source route kill switch.          |
@@ -124,6 +127,7 @@ compounded user yield are not implemented. See [principal and emergency policy](
 | Deposit stops          | An on-chain live-backing check rejects deficits above 50 bps. Guardian `pauseDeposits` and the keepers' hysteretic `deficitStop` (`DEPOSIT_GUARDIAN_ROLE`, set above 50 bps and cleared below 25 bps) are additional stops. |
 | Protocol reserve       | Governance funds HOLLAR per Main ledger (`fundReserve`); drawn only for realized exit shortfalls, never counted as backing. Admin can withdraw.       |
 | Swap limits            | Oracle-relative floors are enforced on-chain; no automatic widening. Production floors, tranches and TVL/ramp budgets still require approval.         |
+| PRIME pool fee         | The launch proposal's Root batch 0 sets stableswap pool 143 (PRIME/HOLLAR) to 1 bp, from 4 (`JUICER_PRIME_POOL_FEE_PPM`, default 100). |
 
 The earned execution allowance, donated collateral rounding reserve, protocol
 reserve and treasury fees are different balances. There is **no mandatory

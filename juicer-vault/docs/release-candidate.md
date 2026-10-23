@@ -19,10 +19,13 @@ harvest, under test-only policies. Production policy, quote-aware UI integration
 and deployment activation remain open.
 
 **Next version:** `juicer-next` ([plan](next-version-plan.md)) changes some RC1
-items below. Deposits have a 50 bps on-chain Main-backing admission ceiling plus
-the keepers' hysteretic `deficitStop`; yield is allocated at events
+items below. Deposits have an on-chain Main-backing admission ceiling (50 bps at
+initialization, 250 from the launch proposal) plus the keepers' hysteretic
+`deficitStop` (stop 250, resume 200); yield is allocated at events
 rather than on every transfer, and funded earnings sit in holders' balances with
-no claims. The lists below describe RC1; the activation gates still apply.
+no claims. On `juicer-discount-bands` the loop's HOLLAR can also be discounted, at
+its own capped rate that starts at zero, and each vault's rebalance band is set on
+the loop. The lists below describe RC1; the activation gates still apply.
 
 The candidate is on `feat/propeller-interest-buffer`; the name is historical.
 Sponsored operating buffers have been replaced. The commit containing this

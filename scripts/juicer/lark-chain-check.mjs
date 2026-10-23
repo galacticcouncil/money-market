@@ -3,8 +3,10 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {context,v,GOV,POOL,HOLLAR,token} from './lark-context.mjs';
+import {profile} from './lark-pins.mjs';
 const poolAbi=createRequire(import.meta.url)('../../deployments/hydration/Pool-Implementation.json').abi;
 const ORACLE='0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760',RUNTIME=447,SYNTHETIC=5551;
+const collateral=Object.entries(profile.collateral);
 const c=await context();
 try{
  const {api,pub,r,save,readSig}=c,failures=[];
@@ -13,12 +15,12 @@ try{
  const intent=api.tx.intent,ice=intent?.submitIntent&&intent.removeIntent&&intent.cleanupIntent&&api.tx.lazyExecutor?.dispatchTop;
  expect(ice,'ICE pallets (intent, lazyExecutor) missing');
  const reserves={};
- for(const [name,address]of [['ETH',token(34)],['TBTC',token(1000765)],['PRIME',token(43)],['HOLLAR',HOLLAR]]){
+ for(const [name,address]of [...collateral.map(([name,x])=>[name,token(x.assetId)]),['PRIME',token(43)],['HOLLAR',HOLLAR]]){
   reserves[name]=(await pub.readContract({address:POOL,abi:poolAbi,functionName:'getReserveData',args:[address]})).aTokenAddress;
   expect(reserves[name]!==v.zeroAddress,`no ${name} money-market reserve`);
  }
  const sources={};
- for(const id of [34,1000765,43]){
+ for(const id of [...collateral.map(([,x])=>x.assetId),43]){
   sources[id]=await readSig(ORACLE,'function getSourceOfAsset(address) view returns(address)',[token(id)]);
   expect(sources[id]!==v.zeroAddress,`no MM oracle source for asset ${id}`);
  }

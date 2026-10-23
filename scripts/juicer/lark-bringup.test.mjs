@@ -17,13 +17,13 @@ function complete(ids){
  const verified=label=>core.governance.push({label,verified:true});
  const marks={
   chain:()=>core.checks.chain=true,prepare:()=>core.checks.testAccountsFunded=true,'prime-pool':()=>core.checks.primePool=true,
-  deploy:()=>core.vaults.push({name:'ETH',rounding:{}},{name:'TBTC',rounding:{}}),wire:()=>verified('bind-execution-controller'),
+  deploy:()=>core.vaults.push({name:'ETH',rounding:{}},{name:'TBTC',rounding:{}}),wire:()=>verified('bind-execution-controller'),shares:()=>core.checks.shareAssets={},
   prices:()=>prices.oracles=[{},{},{}],discount:()=>prices.addresses.discount='0x01',market:()=>verified('testnet-guardians-and-open-bootstrap'),
   bootstrap:()=>core.checks.bootstrapNoBorrow=true,'prime-cap':()=>verified('arb.refill-hollar-with-quote-reserve'),adapter:()=>core.checks.adapterWhitelisted=true,
   routes:()=>core.checks.primeCollateralRoutes=true,'harvest-cap':()=>verified('approved-lark-only-collateral-hundred-bps'),throughput:()=>verified('lark-prime-tranches-2500'),
   sync:()=>core.checks.mainnetSync=true,'sync-inventory':()=>core.checks.syncInventory=true,wrap:()=>verified('pools-underlying-stash'),
   stable:()=>verified('pools-stable-inventory'),release:()=>core.checks.depositRelease=true,seed:()=>verified('bots-seed-baseline'),
-  params:()=>core.checks.nextParameters={},guardian:()=>core.checks.depositGuardian={},ice:()=>core.checks.iceWiring=true,
+  params:()=>core.checks.nextParameters={},admission:()=>core.checks.admissionCap={},guardian:()=>core.checks.depositGuardian={},ice:()=>core.checks.iceWiring=true,
   depositors:()=>core.checks.depositorFunded=true,'depositor-approve':()=>core.checks.depositorApproved=true,
  };
  for(const id of ids)marks[id]();
@@ -41,7 +41,7 @@ test('the bring-up runs the existing step scripts in the deployment order', () =
  assert.deepEqual(ids.slice(0,2),['chain','prepare']);
  assert.deepEqual(ids.slice(-2),['manifest','stack']);
  assert.deepEqual(STEPS.filter(s=>s.output).map(s=>s.id),['manifest','stack']);
- for(const [a,b]of [['deploy','wire'],['wire','prices'],['prices','discount'],['discount','market'],['market','bootstrap'],['bootstrap','prime-cap'],['wire','throughput'],['sync','sync-inventory'],['throughput','seed'],['wire','params']])
+ for(const [a,b]of [['deploy','wire'],['wire','prices'],['prices','discount'],['discount','market'],['market','bootstrap'],['bootstrap','prime-cap'],['wire','throughput'],['sync','sync-inventory'],['throughput','seed'],['wire','params'],['wire','shares'],['params','admission']])
   assert.ok(ids.indexOf(a)<ids.indexOf(b),`${a} before ${b}`);
  assert.deepEqual(STEPS.filter(s=>s.journal==='prices').map(s=>s.id),['prices','discount']);
  assert.deepEqual(step('seed').args,['--round=baseline']);
@@ -95,8 +95,9 @@ test('a dry run validates only the next step; a live run walks on, skipping only
 });
 
 test('a step names what it still needs before it starts', () => {
- const lark0=resolveProfile('lark0',{}),pinned=resolveProfile('lark0',{LARK_GENESIS:'0x09',LARK_COMMIT:'abc'});
- assert.deepEqual(missing(step('chain'),lark0,{}),['LARK_GENESIS','LARK_COMMIT','JUICER_ARTIFACT_DIR']);
+ const open=resolveProfile('next',{LARK_DEPLOYMENT:'next-1',LARK_CHAIN_NAME:'Lark 9 Hydration',LARK_RPC:'https://node9.lark.hydration.cloud'}),pinned=resolveProfile('lark0',{});
+ assert.deepEqual(missing(step('chain'),open,{}),['LARK_GENESIS','LARK_COMMIT','JUICER_ARTIFACT_DIR']);
+ assert.deepEqual(missing(step('chain'),pinned,{}),['JUICER_ARTIFACT_DIR']);
  assert.deepEqual(missing(step('deploy'),pinned,{JUICER_ARTIFACT_DIR:'/x'}),['JUICER_ADAPTER_ARTIFACT']);
  assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:'galacticcouncil/juicer-lark-keeper:latest'}),['KEEPER_IMAGE','BOT_IMAGE']);
  assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:`galacticcouncil/juicer-lark-keeper@sha256:${'1'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/juicer-lark-bots@sha256:${'2'.repeat(64)}`}),[]);
@@ -108,22 +109,22 @@ test('--plan shows lark 0 from zero and writes nothing', () => {
  const dir=scratch();
  const out=run(['--profile=lark0','--plan'],{LARK_STATE_DIR:dir});
  assert.equal(out.status,0,out.stderr);
- assert.match(out.stdout,/bring-up lark0: deployment lark0-20261009, chain Lark 0 Hydration, genesis unpinned/);
+ assert.match(out.stdout,/bring-up lark0: deployment lark0-20261022, chain Lark 0 Hydration, genesis 0x516291656a078d4ebe68130aefa4019dcc20db6ecce5bc0a4978df4d995c494f/);
  assert.match(out.stdout,/ 1 chain +pending/);
- assert.match(out.stdout,/22 guardian +pending +DEPOSIT_GUARDIAN_ROLE \(setDeficitStop only\)/);
- assert.match(out.stdout,/24 depositors +pending/);
- assert.match(out.stdout,/27 stack +output +swarm stack: keepers on, depositor an hour after it is written/);
- assert.match(out.stdout,/unset: LARK_GENESIS, LARK_COMMIT, JUICER_ARTIFACT_DIR, JUICER_ADAPTER_ARTIFACT, KEEPER_IMAGE, BOT_IMAGE/);
- assert.ok(!existsSync(join(dir,'juicer-lark-bringup-lark0-20261009.json')));
+ assert.match(out.stdout,/24 guardian +pending +DEPOSIT_GUARDIAN_ROLE \(setDeficitStop only\)/);
+ assert.match(out.stdout,/26 depositors +pending/);
+ assert.match(out.stdout,/29 stack +output +swarm stack: keepers on, depositor an hour after it is written/);
+ assert.match(out.stdout,/unset: JUICER_ARTIFACT_DIR, JUICER_ADAPTER_ARTIFACT, KEEPER_IMAGE, BOT_IMAGE/);
+ assert.ok(!existsSync(join(dir,'juicer-lark-bringup-lark0-20261022.json')));
 });
 
 test('an unpinned chain stops before any step script runs, and the stop is logged', () => {
  const dir=scratch();
- const out=run(['--profile=lark0'],{LARK_STATE_DIR:dir});
+ const out=run(['--profile=next'],{LARK_STATE_DIR:dir,LARK_DEPLOYMENT:'next-1',LARK_CHAIN_NAME:'Lark 9 Hydration',LARK_RPC:'https://node9.lark.hydration.cloud'});
  assert.equal(out.status,1);
  assert.match(out.stdout,/STOP chain needs LARK_GENESIS, LARK_COMMIT/);
  assert.doesNotMatch(out.stdout,/RUN /);
- const log=JSON.parse(readFileSync(join(dir,'juicer-lark-bringup-lark0-20261009.json'),'utf8'));
+ const log=JSON.parse(readFileSync(join(dir,'juicer-lark-bringup-next-1.json'),'utf8'));
  assert.equal(log.events.length,1);
  assert.equal(log.events[0].step,'chain');assert.equal(log.events[0].mode,'dry-run');assert.match(log.events[0].stopped,/unset/);
 });
@@ -134,4 +135,17 @@ test('lark 4 is already up: only --plan runs against it', () => {
  assert.notEqual(out.status,0);
  assert.match(out.stderr,/already up/);
  assert.equal(run(['--plan'],{LARK_STATE_DIR:dir}).status,0);
+});
+
+test('--plan shows next from zero under the deployment id it is given, and writes nothing', () => {
+ const dir=scratch();
+ const out=run(['--profile=next','--plan'],{LARK_STATE_DIR:dir,LARK_DEPLOYMENT:'next-20261020'});
+ assert.equal(out.status,0,out.stderr);
+ assert.match(out.stdout,/bring-up next: deployment next-20261020, chain unpinned, genesis unpinned/);
+ assert.match(out.stdout,/stack juicer-next-20261020: \S+juicer-lark-stack-next-20261020\.json/);
+ assert.match(out.stdout,/unset: LARK_CHAIN_NAME, LARK_GENESIS, LARK_RPC, LARK_COMMIT, JUICER_ARTIFACT_DIR, JUICER_ADAPTER_ARTIFACT, KEEPER_IMAGE, BOT_IMAGE/);
+ assert.ok(!existsSync(join(dir,'juicer-lark-bringup-next-20261020.json')));
+ const unnamed=run(['--profile=next','--plan'],{LARK_STATE_DIR:dir});
+ assert.notEqual(unnamed.status,0);
+ assert.match(unnamed.stderr,/set LARK_DEPLOYMENT/);
 });

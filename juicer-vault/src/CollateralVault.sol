@@ -157,9 +157,12 @@ contract CollateralVault is
     error Unauthorized(address account, bytes32 role);
     error InsufficientRoundingReserve();
 
+    /// @dev the helper is deployed on its own: creating it here would put both bytecodes in one
+    /// transaction, past what a Hydration transaction can carry
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        compoundLogic = address(new CompoundLogic());
+    constructor(address compoundLogic_) {
+        if (compoundLogic_.code.length == 0) revert ZeroAddress();
+        compoundLogic = compoundLogic_;
         _disableInitializers();
     }
 
@@ -505,8 +508,8 @@ contract CollateralVault is
         loopShares -= shares;
     }
 
-    /// @notice resize the Main position to the reserve's max LTV after a price move,
-    /// growing or shrinking the loop and the synthetic in lockstep.
+    /// @notice resize the Main position to the source's band target under the reserve's max LTV
+    /// after a price move, growing or shrinking the loop and the synthetic in lockstep.
     function rebalance() external nonReentrant whenNotPaused returns (uint256 work) {
         yieldAccounting.checkpoint(address(0), address(0));
         // not a safety de-lever (the synthetic floors HF). a committed de-lever settles first;

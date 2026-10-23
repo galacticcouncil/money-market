@@ -12,8 +12,12 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 library Artifacts {
     Vm private constant VM = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
+    function compoundLogic() internal returns (address) {
+        return VM.deployCode("CompoundLogic.sol:CompoundLogic");
+    }
+
     function collateralVault() internal returns (address) {
-        return VM.deployCode("CollateralVault.sol:CollateralVault");
+        return VM.deployCode("CollateralVault.sol:CollateralVault", abi.encode(compoundLogic()));
     }
 
     function subLoopLogic() internal returns (address) {

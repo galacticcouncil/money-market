@@ -60,6 +60,12 @@ interface IYieldSource {
     /// @notice a vault's deposits revert while its backing shortfall exceeds this many bps of its Main debt.
     function admissionMaxDeficitBps() external view returns (uint16);
 
+    /// @notice the vault's rebalance band in bps: target below the live max LTV, then the relever and delever gaps around it
+    function rebalanceBand(address vault)
+        external
+        view
+        returns (uint16 targetGapBps, uint16 releverGapBps, uint16 deleverGapBps);
+
     // yield realisation
 
     /// @notice realise carry to the harvester; only the harvester calls this.

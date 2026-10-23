@@ -32,14 +32,14 @@
         "viaIR": true,
         "settingsSha256": "d0df919045cd07b7a5e1f1397a3f898ed428b1e1ea33c204cecaf5d32a28c1de",
         "creation": {
-          "bytes": 40263,
-          "sha256": "20b92f146a9c3d755365c11a39359b9486b0c2a5529cba95bb59bd9e9bf41d93",
+          "bytes": 24916,
+          "sha256": "9fdefe838621378213301f30041dff6c55e4b2690241f9423c0a8b4e77471243",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
         },
         "runtimeTemplate": {
           "bytes": 24495,
-          "sha256": "cddbab33a162f28508d7afd17a5bb619b38b518988df537ae8b51abfb1f36a85",
+          "sha256": "a11a22e04f3ef4f5b9771fc5d3b6b8b76a7f768a798bfc29f1508d27947ed12d",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "9addde687f45ebd9855a0f913950014df6813214423b9f6e4ce781f1351a9b5d"
         },
@@ -60,14 +60,14 @@
         "viaIR": true,
         "settingsSha256": "5f097e4d73b72044314be6b4b571fe43b9d3aff2e302e9fa599736a0dcb48500",
         "creation": {
-          "bytes": 15379,
-          "sha256": "74f0746204592c459131e98e3a1b33ce5d67f459ae95ee47fa0391e594278cb7",
+          "bytes": 15818,
+          "sha256": "ca5d49155dc294e9c4066aaef48c1a6450a8eb2c363bc04c0a4c4c5f0a503768",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
         },
         "runtimeTemplate": {
-          "bytes": 15351,
-          "sha256": "bfbbc864ff85c90c71b26e0ad487885e397b0c0abdcab3436dd2e3428ff108e8",
+          "bytes": 15790,
+          "sha256": "9bdc60441db3105b7d52788db230d6278b06b384074f51a628dc02fbb058f402",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
         },
@@ -97,7 +97,7 @@
           "bytes": 15246,
           "sha256": "948ffdf5fcca2b0b9476482f7fbcb3b9ad06d12214b07f638e3828535fd96599",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "immutableReferencesSha256": "923660dfd996c60809d04bd5aa6c2cffce40fa1cb482b4cec0d00484ce57d969"
+          "immutableReferencesSha256": "9a55ae6f0d8b45a702544a6a53bae42082a31602dac3385c2cd11e505e9c51f8"
         },
         "methodCount": 40,
         "methodIdentifiersSha256": "b9cb9ad845a6ada4439ebcf4625d0ae237c73d0ba52d4ec4eaf4f541ee58d98f"
@@ -120,15 +120,15 @@
         "settingsSha256": "0632dac0eb52d715a18b0dd699c6afba944db0d0c03d907d722f6146207ab85d",
         "creation": {
           "bytes": 10395,
-          "sha256": "ed57a0404dd0d07f958b9285fde90709b87ea05044f44a3c44c2bdb6e154df15",
+          "sha256": "65f804efc40a009818a23bfbf46d60151ebfe1b840ea78a21275c0747ea3744f",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
         },
         "runtimeTemplate": {
           "bytes": 9858,
-          "sha256": "5296847ffa700919d3522b15d5330b01ea924645cfc734f00c34b84a631da36c",
+          "sha256": "60c09baf4d22f9ad35f28d77a0ddbd5d8445c224e3f88a5493ae2b35fcb5d0af",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "immutableReferencesSha256": "f7a546424b9c273ed85c0bce0fd6c9c6e851f3c0ff0e77c19daee96af173eb9a"
+          "immutableReferencesSha256": "27c263e22262494b49b04c8d36d4ac8f3bc715acd1ee6866dd071991c52a503a"
         },
         "methodCount": 24,
         "methodIdentifiersSha256": "c7af3f4073a9001c440c5ffd1a5422392748e238db6934a24268bdee342dfdba"
@@ -147,19 +147,19 @@
         "viaIR": true,
         "settingsSha256": "5f1ab1509027e6ecfb21b886d932cc1a75571de4dfdc31efe7f06f1d0c4e780f",
         "creation": {
-          "bytes": 8364,
-          "sha256": "5f201f8cfa7129ac1052a664ddad2372bf2990a811b157b167594760d7615373",
+          "bytes": 10396,
+          "sha256": "0a2c16a3828555370d90adabd1d2775cdd0aadde6d1ebcf71c5bb0f111f65aff",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
         },
         "runtimeTemplate": {
-          "bytes": 6740,
-          "sha256": "dc84cab6f08fbdae263605989759f04dfbc3becc686002efb85db025ccc2cc4a",
+          "bytes": 8730,
+          "sha256": "6d0c67b2884e94efd145392985329aaa5f73e3c85f068373a463bc831b256a21",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "immutableReferencesSha256": "c0cb495283445573a1ebefe8d18e3dce9b7b3fa429dd9b7fe0e90208d5c5c9af"
+          "immutableReferencesSha256": "be8e20d27e593b981da10cb73bf5b6182ed847ab57fe364d82885adc9c01a55a"
         },
-        "methodCount": 24,
-        "methodIdentifiersSha256": "aa28fd19e18c0e235f51230302f1eba65c20e2d53155967fb37ebb441c5df992"
+        "methodCount": 32,
+        "methodIdentifiersSha256": "1c987cd3b82cdff1ecd0a8e05c5c454bfe649a90968402b114c04b04c5e80ea2"
       }
     },
     "JuicerFeeController": {
@@ -212,15 +212,15 @@
         "settingsSha256": "d448d5eb2d856a0d74dafcd636cafc272477fc34a3200370a79b53cb15c3b78b",
         "creation": {
           "bytes": 33684,
-          "sha256": "dc0063cf7c4689020c70b2108dc744ebc6e472700263348c130cb0b0857a42e8",
+          "sha256": "71e4cfea155ef9e0e2fb588bfde54e0261c9b3869801f4ffa585a8fbae140c91",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
         },
         "runtimeTemplate": {
           "bytes": 18573,
-          "sha256": "0f17c2180380432bc9e43072b148d1a250c6f9f0a19265b804d9d018b051edc6",
+          "sha256": "5e8c8c41249019bd62bcf3aecc03fdb8b96264a42c0121399a0475e855772c96",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "immutableReferencesSha256": "3166d6af9b8d4d7aa73b87918704cb8b7716163a4fa02eef087db5dd99b535d1"
+          "immutableReferencesSha256": "787700f0e494b13321266414edf0f8a3be3064886f4cf6a05f9ba35a7cfd1ef9"
         },
         "methodCount": 38,
         "methodIdentifiersSha256": "7f5974af2afc716ec28ade7b538854c861e6657f31570530f8a484c564462ec2"
@@ -240,15 +240,15 @@
         "settingsSha256": "7514328a3b72f1bdd9b0f0cf3d122d6a17d7beceb196655f41f5b93971a49d32",
         "creation": {
           "bytes": 13842,
-          "sha256": "6b9a9f5ca3e9aa9dbece1e94c90b254e0f6967fbdc1c3ecb055fb29dace7b00d",
+          "sha256": "1381c0d24a48c91fbeeb28cc4707b5d85b333fb78d970b02f3a6feb8cce975c9",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
         },
         "runtimeTemplate": {
           "bytes": 13506,
-          "sha256": "91882759025e9b8b24ee085fb35c1362685d7400348a3bf8acc0cbd8026be864",
+          "sha256": "651cbe3e78b4b955ecb1261b23c6a0fb16eabe450a21309105a16737941f855c",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "immutableReferencesSha256": "f950063112aa0d69cf13160493f55751fd6298bfb0adce0273c43fe400a21e77"
+          "immutableReferencesSha256": "2a98929636f5120af18d5bc38996f2270b57dfc078dc321ea40d1a82ee8e0513"
         },
         "methodCount": 35,
         "methodIdentifiersSha256": "ec3c4794f99f7e4ecc95ccdeaf142983dfa3b9bd62c554433f609983d58603b2"
@@ -267,19 +267,19 @@
         "viaIR": true,
         "settingsSha256": "8a15e54db3c4ee3045f00295fe843b8ee91f9b9219923f1df4751d7f5af24db3",
         "creation": {
-          "bytes": 21131,
-          "sha256": "c5cbee3ebe9ee8fbd3af314dac32a28513fdfcac4474774c8aa0645070de9ddd",
+          "bytes": 21959,
+          "sha256": "1f898a62c623c3f43a4abe67ffd28ed160e629997eedf44ac33a94a35e909f00",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
         },
         "runtimeTemplate": {
-          "bytes": 20752,
-          "sha256": "2f1c2aa192decf7b8f103cc1a024fc043a8b225ea376dd0603e8fa93b0cc777b",
+          "bytes": 21580,
+          "sha256": "a34e38ef39346e680bf1fec268237c1ec969742b79ab8ba06fb347b5a2fb28bc",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "immutableReferencesSha256": "1c9a495071a24ef1607dae3548f2459c38583781e48663424b8bf60fbf9c3524"
+          "immutableReferencesSha256": "5c43df004318c8629f10d433b670888ccf4f5d784513bd270853d80a69eda964"
         },
-        "methodCount": 91,
-        "methodIdentifiersSha256": "13b8dd1ad4fc01b2e5a3f93687271e20e3df24fe340d5117ee94d1c796defff9"
+        "methodCount": 95,
+        "methodIdentifiersSha256": "f80d40d947a3562c17c963892bbf2972e35456c7cbd62ab68bd1c62b34f3976a"
       },
       "dispatchMethods": {
         "clearCollateral(address)": "4542ed3c"
@@ -299,13 +299,13 @@
         "settingsSha256": "2f01125db79bbb63b13a8f088facaf6a6740d261755247fe9163a69130dc5374",
         "creation": {
           "bytes": 23658,
-          "sha256": "d80ec69090150823f4f2da925d7ede8a790bddae744d46bce619b5a5bdb9f293",
+          "sha256": "5b94d284d3a43e393bef54ec152235f2c56061e259cb9d65afb9b5981a1a3815",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
         },
         "runtimeTemplate": {
           "bytes": 23602,
-          "sha256": "36969efe58db44b49332abb62ad84f667d381d8ab7a0561eb5d7796c80534dd6",
+          "sha256": "262ba579d8153d310930befa326974e110099ede977a975eafd37d4ce3416269",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "86ea5a9bd63553eef44d1aed14495c43ca3b1a42b55ea7a405491b82b6a77e3f"
         },

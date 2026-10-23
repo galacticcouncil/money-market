@@ -9,7 +9,7 @@
 #
 # Env vars expected at deploy time:
 #   SUBLOOP_ADDRESS       — the SubLoop UUPS proxy
-#   VAULT_ADDRESSES       — comma-separated CollateralVault proxies (jETH,jtBTC…).
+#   VAULT_ADDRESSES       — comma-separated CollateralVault proxies (jETH,jBTC…).
 #                           REQUIRED for pokeSettle/rebalance/maintainPeg/harvest;
 #                           with it unset the bot only ever ramps. The lark-2 stack
 #                           set this while the code read `VAULT_ADDRESS`, so every

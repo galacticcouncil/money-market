@@ -5,20 +5,22 @@ import "forge-std/Script.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SubLoop} from "../src/SubLoop.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {CompoundLogic} from "../src/lib/CompoundLogic.sol";
 import {Harvester} from "../src/Harvester.sol";
 import {SubLoopLogic} from "../src/lib/SubLoopLogic.sol";
 
-/// @notice Deploy the Juicer stack (SubLoop + ETH CollateralVault + Harvester)
-///         against a mainnet-mirrored money market: ETH collateral + HOLLAR debt
-///         + synthetic floor; PRIME the value-stable loop asset. admin =
-///         governance aave-manager.
+/// @notice Deploy the Juicer stack (SubLoop + jETH CollateralVault + Harvester)
+///         against a mainnet-mirrored money market: GIGAETH collateral (asset
+///         4200, pool 4200's share) + HOLLAR debt + synthetic floor; PRIME the
+///         value-stable loop asset. admin = governance aave-manager.
 ///
 ///         Every chain-specific address and risk param is read via `vm.envOr`,
-///         defaulting to the **lark-2** values — so a lark-2 deploy needs no env,
-///         and lark-4 (or mainnet) just supplies a `.env`. Required: PRIVATE_KEY,
-///         SYNTH (address of the SyntheticToken from DeploySynth). Optional
-///         overrides (else lark-2 default): POOL, HOLLAR, HOLLAR_VDEBT, ETH, AETH,
-///         PRIME, APRIME, GOV, SWAPPER, TARGET_HF, DELEVER_TRIGGER, TVL_CAP.
+///         defaulting to the **lark-2** values (GIGAETH and aGETH: mainnet's) —
+///         so a lark-2 deploy needs no env, and lark-4 (or mainnet) just supplies
+///         a `.env`. Required: PRIVATE_KEY, SYNTH (address of the SyntheticToken
+///         from DeploySynth). Optional overrides (else default): POOL, HOLLAR,
+///         HOLLAR_VDEBT, GIGAETH, AGETH, PRIME, APRIME, GOV, SWAPPER, TARGET_HF,
+///         DELEVER_TRIGGER, TVL_CAP.
 ///
 ///         The synthetic's liquidation threshold is NOT a deploy parameter — the
 ///         vault reads it live off the Aave reserve config, so it cannot drift.
@@ -31,8 +33,8 @@ contract DeployMain is Script {
     address constant D_POOL = 0x1b02E051683b5cfaC5929C25E84adb26ECf87B38;
     address constant D_HOLLAR = 0x531a654d1696ED52e7275A8cede955E82620f99a;
     address constant D_HOLLAR_VDEBT = 0x342923782cCaEBf9c38DD9cb40436e82C42c73B5;
-    address constant D_ETH = 0x0000000000000000000000000000000100000022; // collateral, 18dp
-    address constant D_AETH = 0x11a8f7fFbB7e0fbEd88BC20179Dd45B4Bd6874ff;
+    address constant D_GIGAETH = 0x0000000000000000000000000000000100001068; // collateral, asset 4200, 18dp
+    address constant D_AGETH = 0x8a598fE3E3A471ce865332E330d303502a0e2F52;
     address constant D_PRIME = 0x000000000000000000000000000000010000002B; // loop asset, 6dp
     address constant D_APRIME = 0x4C892a298A9C6b4cEd988b3D6E9CF93333aADcF7;
     address constant D_GOV = 0xAa7e0000000000000000000000000000000Aa7e0;
@@ -44,8 +46,8 @@ contract DeployMain is Script {
         address pool = vm.envOr("POOL", D_POOL);
         address hollar = vm.envOr("HOLLAR", D_HOLLAR);
         address hollarVDebt = vm.envOr("HOLLAR_VDEBT", D_HOLLAR_VDEBT);
-        address eth = vm.envOr("ETH", D_ETH);
-        address aEth = vm.envOr("AETH", D_AETH);
+        address gigaEth = vm.envOr("GIGAETH", D_GIGAETH);
+        address aGeth = vm.envOr("AGETH", D_AGETH);
         address prime = vm.envOr("PRIME", D_PRIME);
         address aPrime = vm.envOr("APRIME", D_APRIME);
         address gov = vm.envOr("GOV", D_GOV);
@@ -66,19 +68,19 @@ contract DeployMain is Script {
         );
         SubLoop subLoop = SubLoop(address(new ERC1967Proxy(address(loopImpl), loopInit)));
 
-        CollateralVault vaultImpl = new CollateralVault();
+        CollateralVault vaultImpl = new CollateralVault(address(new CompoundLogic()));
         bytes memory vaultInit = abi.encodeCall(
             CollateralVault.initialize,
             (
                 "Juicer ETH",
                 "jETH",
-                eth,
+                gigaEth,
                 pool,
                 address(subLoop),
                 swapper,
                 hollar,
                 synth,
-                aEth,
+                aGeth,
                 hollarVDebt,
                 tvlCap,
                 gov

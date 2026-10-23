@@ -17,8 +17,8 @@ The HOLLAR debt-token implementation and storage are unchanged.
 - The deployer receives no implicit authority. Configure the committee's actual
   execution address, not a member's wallet or the keeper key.
 
-There is one rate across enrolled Main vaults. SubLoop is not eligible and keeps
-paying the undiscounted HOLLAR rate. A rate does not guarantee an APY: PRIME yield,
+Enrolled Main vaults share one rate. The loop has its own enrollment, cap and
+rate ([loop discount](#loop-discount)). A rate does not guarantee an APY: PRIME yield,
 base borrowing rate, utilization, trading costs and deployment progress vary.
 
 ## Eligibility
@@ -39,7 +39,7 @@ not a permissionless proof that a contract is a genuine vault.
 left in the vault. Raw synthetic, ordinary HOLLAR, PRIME, or user-held vault
 shares do not grant eligibility. The existing underlying and receipt tokens
 remain transferable; a recipient cannot gain this discount without enrollment
-and mint authority. Do not enroll EOAs, arbitrary minters or SubLoop.
+and mint authority. Do not enroll EOAs, arbitrary minters, or SubLoop as a vault.
 
 Both synthetic and HOLLAR use 18-decimal $1 units. The rate returned at a refresh
 is `discountBps * min(aJSYNTH balance, HOLLAR debt) / HOLLAR debt`, rounded down;
@@ -49,6 +49,38 @@ backing, not a liquidation-threshold or oracle-based eligibility test.
 
 The explicit bounded set makes atomic repricing possible. It is not a second
 tradeable badge token or a permission for the committee to enroll borrowers.
+
+## Loop discount
+
+At loop leverage L the loop owes about (L−1)/L of Juicer's HOLLAR, so it has its
+own enrollment and rate:
+
+- `registerLoop(loop, cap)`: governance, once. The loop must have code, use the
+  debt token's pool and HOLLAR, and fund a registered vault
+  (`vault.yieldSource() == loop`), so vaults register first. `cap` bounds the
+  discounted HOLLAR notional.
+- `setLoopCap(cap)` and `unregisterLoop()`: governance. Unregistering settles
+  accrued interest at the old cached rate, then reads zero.
+- `setLoopDiscountBps(0..10000)`: governance or the committee, zero at
+  deployment. It refreshes only the loop; `setDiscountBps` and `refreshAll()`
+  refresh it as well.
+
+The next-version launch proposal sets the Main rate to 40% and the loop's to 90%
+in batch 4, with a 69% protocol fee ([revenue mix](protocol-fees.md#revenue-mix)).
+That batch refuses to emit them until the discount is installed and the loop
+enrolled, since the calls would otherwise revert unseen inside the dispatch.
+
+The rate at a refresh is `loopDiscountBps * min(cap, debt) / debt`. The GHO
+strategy call does not see the borrower, so `balanceOf(loop)` returns the cap
+with the top bit (`LOOP_TAG`) set and `calculateDiscountRate` prices tagged
+inputs at the loop rate. For the loop, `balanceOf` is that strategy input, not a
+token balance; it reads storage only, so it cannot fail inside a HOLLAR mint or
+burn. Untagged Main eligibility is unchanged.
+
+Aave's account data values the loop's debt without the pending discount, which
+the debt token realizes at the loop's next borrow or repay, or at any refresh.
+Until then loop equity and health factor read the full-rate debt, which is
+conservative; the saving reaches carry at the next action.
 
 ## Cache and lifecycle
 
@@ -93,15 +125,19 @@ debt and foregone interest, not assume a fixed expense from the percentage alone
 3. Deploy `JuicerDiscount` at its default zero rate. `DeployDiscount.s.sol`
    reads `HOLLAR_VDEBT`, `SYNTH`, `ASYNTH`, `DISCOUNT_GOVERNANCE`,
    `DISCOUNT_COMMITTEE`, comma-separated `DISCOUNT_VAULTS`, and optional
-   `DISCOUNT_BPS` (default zero). It prints target/calldata pairs for installation;
+   `DISCOUNT_BPS` (default zero), plus `DISCOUNT_LOOP` with `DISCOUNT_LOOP_CAP`
+   (whole HOLLAR) and `DISCOUNT_LOOP_BPS` (default zero) to enroll the loop.
+   It prints target/calldata pairs for installation;
    it never executes those governance calls. A Forge simulation without
    `--broadcast` does not deploy anything to the network.
 4. Execute installation as an atomic governance batch: set both HOLLAR discount
    references; set each Main vault's controller; register each vault; set the
-   explicitly approved percentage. Include existing mint/loop/harvester wiring
-   for newly created vaults. Never register the shared SubLoop.
-5. Assert the complete participant list, cached percentages, committee rate
-   authority and absence of deployer admin authority. Estimate the full-list
+   explicitly approved percentage; then enroll the loop with its approved cap and
+   rate. Include existing mint/loop/harvester wiring for newly created vaults.
+   Never register the shared SubLoop as a vault.
+5. Assert the complete participant list, the loop's cap and rate
+   (`verify-readiness.ts` with `JUICER_LOOP_DISCOUNT_CAP`/`_BPS`), cached
+   percentages, committee rate authority and absence of deployer admin authority. Estimate the full-list
    refresh on the target runtime before enactment, including newly accrued debt.
 6. To replace a controller later, first set its rate to zero and checkpoint all
    participants. Then install/wire/enroll the replacement in the governance
@@ -122,19 +158,22 @@ Set `DISCOUNT_FORK_BLOCK` to pin a fork. Without `DISCOUNT_FORK_RPC`, fork tests
 are explicitly skipped. London mode accommodates Hydration RPC headers without
 `prevrandao`. Unit tests cover authority, enrollment, zero/dust backing,
 rate bounds, cache refresh, atomic rollback, first/incremental deposits, up-rebalance,
-peg maintenance, settlement and exits after revocation. Fork tests use the deployed
-HOLLAR debt token, controlling only its normalized debt index and synthetic backing,
-to check historical-interest preservation, future repricing, full waiver and repay.
+peg maintenance, settlement and exits after revocation, and the loop's enrollment,
+cap, separate rate and tag. Fork tests use the deployed HOLLAR debt token,
+controlling only its normalized debt index and synthetic backing, to check
+historical-interest preservation, future repricing, full waiver, repay and the
+loop's capped rate beside a Main vault's.
 They are not end-to-end tests of the Substrate-backed collateral/router paths.
 
-The UI must read `getDiscountPercent(vault)` separately from the SubLoop rate:
+The UI must read `getDiscountPercent` for the vault and for SubLoop separately:
 
 ```text
 annual net carry = mainLtv * (loopLeverage * primeYield
                    - (loopLeverage - 1) * subLoopBorrowRate - mainBorrowRate)
-mainBorrowRate = reserveBorrowRate * (1 - cachedDiscountBps / 10000)
+mainBorrowRate = reserveBorrowRate * (1 - getDiscountPercent(vault) / 10000)
+subLoopBorrowRate = reserveBorrowRate * (1 - getDiscountPercent(subLoop) / 10000)
 ```
 
 This is an annualized carry approximation, not exact compounded APY. A display
-that subtracts one common borrowing rate from PRIME yield will miss this Main-only
-discount; frontend integration is separate from the contract implementation.
+that subtracts one common borrowing rate from PRIME yield will miss both
+discounts; frontend integration is separate from the contract implementation.

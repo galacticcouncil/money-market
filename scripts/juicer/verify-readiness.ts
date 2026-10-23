@@ -24,16 +24,24 @@
 //     scripts/juicer/verify-readiness.ts
 //
 // Optional: JUICER_SWAPPER, JUICER_GUARDIAN, JUICER_LOOPER,
-//           JUICER_SYNTH_ASSET_ID, JUICER_WITHDRAWAL_DELAY (seconds; default 43200), POOL.
+//           JUICER_SYNTH_ASSET_ID, JUICER_WITHDRAWAL_DELAY (seconds; default 43200), POOL,
+//           JUICER_COMPOUND_LOGIC_CODEHASH (keccak256 of the reviewed CompoundLogic runtime:
+//           the vault implementation binds a separately deployed helper),
+//           JUICER_PRIME_POOL_FEE_PPM (the approved PRIME pool fee; the launch proposal sets 100),
+//           JUICER_PROTOCOL_FEE_BPS (the approved per-vault fee; default 500, the registration rate).
 // Next version (each adds its checks only when set): JUICER_KEEPERS (comma list),
 //           JUICER_HARVEST_THRESHOLD (WAD), JUICER_INTENT_TTL (seconds),
-//           JUICER_INTENT_DRIFT_BPS, JUICER_RESERVE_HOLLAR (per vault).
+//           JUICER_INTENT_DRIFT_BPS, JUICER_RESERVE_HOLLAR (per vault),
+//           JUICER_REBALANCE_BAND (relever,target,delever LTV bps),
+//           JUICER_ADMISSION_MAX_DEFICIT_BPS (the approved deposit admission cap),
+//           JUICER_LOOP_DISCOUNT_CAP (HOLLAR) with JUICER_LOOP_DISCOUNT_BPS (default 0);
+//           without the cap, SubLoop must not be discounted.
 
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { ethers } from "ethers";
 import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "./rounding-native";
-import { readNextState, nextChecks } from "./next-governance";
+import { readNextState, nextChecks, parseBand } from "./next-governance";
 
 const WS = process.env.WS_URL || "wss://hdx.tarn.hydration.cloud";
 const RPC = process.env.RPC_URL || "https://hdx.tarn.hydration.cloud";
@@ -65,7 +73,14 @@ const NEXT_EXPECTED = {
   ...(process.env.JUICER_INTENT_TTL ? { intentTtl: Number(process.env.JUICER_INTENT_TTL) } : {}),
   ...(process.env.JUICER_INTENT_DRIFT_BPS ? { intentDriftBps: Number(process.env.JUICER_INTENT_DRIFT_BPS) } : {}),
   ...(process.env.JUICER_RESERVE_HOLLAR ? { reserve: ethers.utils.parseUnits(process.env.JUICER_RESERVE_HOLLAR, 18) } : {}),
+  ...(process.env.JUICER_REBALANCE_BAND ? { band: parseBand(process.env.JUICER_REBALANCE_BAND) } : {}),
+  ...(process.env.JUICER_ADMISSION_MAX_DEFICIT_BPS ? { admissionMaxDeficitBps: Number(process.env.JUICER_ADMISSION_MAX_DEFICIT_BPS) } : {}),
 };
+const LOOP_CAP = process.env.JUICER_LOOP_DISCOUNT_CAP ? ethers.utils.parseUnits(process.env.JUICER_LOOP_DISCOUNT_CAP, 18) : undefined;
+const LOOP_BPS = Number(process.env.JUICER_LOOP_DISCOUNT_BPS ?? "0");
+const HELPER_HASH = process.env.JUICER_COMPOUND_LOGIC_CODEHASH;
+const POOL_FEE_PPM = process.env.JUICER_PRIME_POOL_FEE_PPM ? Number(process.env.JUICER_PRIME_POOL_FEE_PPM) : undefined;
+const PROTOCOL_FEE_BPS = Number(process.env.JUICER_PROTOCOL_FEE_BPS ?? "500");
 
 for (const address of [SYNTH, SUBLOOP, HARVESTER, EXECUTION, FEES, FEE_RECIPIENT, DISCOUNT, COMMITTEE, POOL, ...VAULTS]) {
   if (!ethers.utils.isAddress(address) || eq(address, ethers.constants.AddressZero)) {
@@ -76,8 +91,11 @@ if (VAULTS.length === 0 || new Set(VAULTS.map(v => v.toLowerCase())).size !== VA
   throw new Error("JUICER_VAULTS must contain a nonempty, unique list");
 }
 if (!Number.isInteger(DISCOUNT_BPS) || DISCOUNT_BPS < 0 || DISCOUNT_BPS > 10000
+    || !Number.isInteger(LOOP_BPS) || LOOP_BPS < 0 || LOOP_BPS > 10000 || (LOOP_CAP && LOOP_CAP.lte(0))
+    || (POOL_FEE_PPM !== undefined && (!Number.isInteger(POOL_FEE_PPM) || POOL_FEE_PPM < 0 || POOL_FEE_PPM >= 1000000))
+    || !Number.isInteger(PROTOCOL_FEE_BPS) || PROTOCOL_FEE_BPS < 0 || PROTOCOL_FEE_BPS > 10000
     || !Number.isInteger(SLIPPAGE_PPM) || SLIPPAGE_PPM < 0 || SLIPPAGE_PPM >= 1000000) {
-  throw new Error("invalid explicitly approved discount or slippage rate");
+  throw new Error("invalid explicitly approved discount, slippage or pool fee rate");
 }
 if (!Number.isInteger(WITHDRAWAL_DELAY) || WITHDRAWAL_DELAY < 0 || WITHDRAWAL_DELAY > 0xffffffff) {
   throw new Error("invalid withdrawal delay; expected uint32 seconds");
@@ -249,10 +267,15 @@ async function main() {
       const rewardLedger = new ethers.Contract(rewards, ["function vault() view returns (address)"], provider);
       add("O. Main debt settlement", `${vault}: bound yield ownership`,
         eq(rewards, await buffer.yieldAccounting()) && eq(await rewardLedger.vault(), vault), rewards);
-      for (const target of [address, rewards, await v.compoundLogic()]) {
+      const helper = await v.compoundLogic();
+      for (const target of [address, rewards, helper]) {
         const code = await provider.getCode(target);
         const size = (code.length - 2) / 2;
         add("O. Main debt settlement", `${target}: deployed size`, size > 0 && size <= 24576, `${size} bytes`);
+      }
+      if (HELPER_HASH) {
+        add("O. Main debt settlement", `${vault}: helper is the reviewed CompoundLogic`,
+          eq(ethers.utils.keccak256(await provider.getCode(helper)), HELPER_HASH), helper);
       }
     }
   });
@@ -495,6 +518,12 @@ async function main() {
         route.poolId === EXPECT.poolId,
       JSON.stringify(route)
     );
+    if (POOL_FEE_PPM !== undefined) {
+      const pool: any = await sread(() => api.query.stableswap.pools(EXPECT.poolId));
+      const fee = pool?.isSome ? pool.unwrap().fee.toNumber() : undefined;
+      add("F. Wiring", `pool ${EXPECT.poolId} fee == ${POOL_FEE_PPM} ppm (approved)`, fee === POOL_FEE_PPM,
+        fee === undefined ? "pool not found" : `got ${fee} ppm`);
+    }
 
     const ppmRaw = await sread(() => loopC.dcaSlippagePpm());
     const ppm = Number(ppmRaw ?? 0);
@@ -713,6 +742,9 @@ async function main() {
       "function discountBps() view returns (uint16)",
       "function isRegistered(address) view returns (bool)",
       "function vaults() view returns (address[])",
+      "function loop() view returns (address)",
+      "function loopCap() view returns (uint256)",
+      "function loopDiscountBps() view returns (uint16)",
     ], provider);
     const group = "J. Fees and discount";
     add(group, "fee owner is governance", (await sread(() => fees.hasRole(ethers.constants.HashZero, GOV))) === true);
@@ -728,7 +760,17 @@ async function main() {
     const participants = await sread(() => discount.vaults());
     add(group, "exact approved discount participant set", Array.isArray(participants)
       && participants.length === VAULTS.length && VAULTS.every(v => participants.some((p: string) => eq(p, v))));
-    add(group, "SubLoop is not discounted", (await sread(() => discount.isRegistered(SUBLOOP))) === false);
+    const loop = await sread(() => discount.loop());
+    if (LOOP_CAP) {
+      add(group, "SubLoop enrolled at its own rate", eq(loop, SUBLOOP));
+      const cap = await sread(() => discount.loopCap());
+      add(group, "approved loop discount cap", !!cap && cap.eq(LOOP_CAP), cap ? ethers.utils.formatUnits(cap, 18) : "read failed");
+      const loopRate = await sread(() => discount.loopDiscountBps());
+      add(group, "explicitly approved loop discount rate", loopRate !== undefined && Number(loopRate) === LOOP_BPS, String(loopRate));
+    } else {
+      add(group, "SubLoop is not discounted", (await sread(() => discount.isRegistered(SUBLOOP))) === false
+        && (loop === undefined || eq(loop, ethers.constants.AddressZero)));
+    }
     const debtAddress = await discount.debtToken();
     const debt = new ethers.Contract(debtAddress, [
       "function getDiscountToken() view returns (address)",
@@ -745,7 +787,8 @@ async function main() {
         "function deficitStop() view returns (bool)",
       ], provider);
       add(group, `${vault}: fee pointer`, eq(await sread(() => c.feeController()), FEES));
-      add(group, `${vault}: initial 5% fee`, Number(await sread(() => fees.protocolFeeBps(vault))) === 500);
+      const fee = await sread(() => fees.protocolFeeBps(vault));
+      add(group, `${vault}: approved protocol fee`, fee !== undefined && Number(fee) === PROTOCOL_FEE_BPS, `${fee} bps, approved ${PROTOCOL_FEE_BPS}`);
       add(group, `${vault}: binding validates`, (await sread(async () => { await fees.validateVault(vault, HARVESTER); return true; })) === true);
       add(group, `${vault}: discount pointer`, eq(await sread(() => c.discountController()), DISCOUNT));
       add(group, `${vault}: same HOLLAR debt token`, eq(await sread(() => c.hollarDebtToken()), debtAddress));
@@ -756,7 +799,7 @@ async function main() {
   });
 
   if (Object.keys(NEXT_EXPECTED).length) {
-    const group = "N. Next version: keepers, threshold, ICE, reserve";
+    const group = "N. Next version: keepers, threshold, ICE, bands, admission, reserve";
     await section(group, async () => {
       const state = await readNextState(provider, { subLoop: SUBLOOP, vaults: VAULTS, controller: EXECUTION, keepers: KEEPERS });
       for (const check of nextChecks(state, NEXT_EXPECTED)) add(group, check.name, check.ok, check.detail);

@@ -12,11 +12,13 @@ const BTC = '0x00000000000000000000000000000000000000b7';
 const PRIME = '0x000000000000000000000000000000010000002b';
 const WETH = '0x0000000000000000000000000000000100000022';
 const TBTC = '0x00000000000000000000000000000001000f453d';
+const GIGAETH = '0x0000000000000000000000000000000100001068';
 const ORACLE = '0x00000000000000000000000000000000000000c0';
 const FEED: Record<string, Address> = {
   [PRIME]: '0x00000000000000000000000000000000000000f1', [WETH]: '0x00000000000000000000000000000000000000f2',
-  [TBTC]: '0x00000000000000000000000000000000000000f3',
+  [TBTC]: '0x00000000000000000000000000000000000000f3', [GIGAETH]: '0x00000000000000000000000000000000000000f4',
 };
+const ROUNDLESS = FEED[GIGAETH];
 const ALLOCATED = toEventSelector('Allocated()');
 const CHECKPOINT = toEventSelector('YieldCheckpoint(uint256,uint256)');
 // each vault's yield accounting contract
@@ -29,7 +31,8 @@ function chain(allocationEvents = true) {
     block: 1_000n,
     time: 1_000_000n,
     timestamps: new Map<bigint, bigint>(),
-    rounds: Object.fromEntries([PRIME, WETH, TBTC].map(a => [a, {answer: 100n, updatedAt: 990_000n}])) as
+    ethAsset: WETH as Address,
+    rounds: Object.fromEntries([PRIME, WETH, TBTC, GIGAETH].map(a => [a, {answer: 100n, updatedAt: 990_000n}])) as
       Record<string, {answer: bigint; updatedAt: bigint}>,
     logs: [] as any[],
     calls: [] as string[],
@@ -52,11 +55,13 @@ function keeper(c: Chain, name = 'k0') {
   const k = Object.create(JuicerLooper.prototype) as any;
   Object.assign(k, {cycle: 0, subLoop: LOOP, vaults: [ETH, BTC], harvester: '', pool: LOOP});
   k.read = async (_abi: unknown, address: string, fn: string, args: any[] = []) => {
-    if (c.oracleDown && ['ADDRESSES_PROVIDER', 'latestRoundData'].includes(fn)) throw new Error('oracle unavailable');
+    if (c.oracleDown && ['ADDRESSES_PROVIDER', 'latestRoundData', 'getAssetPrice'].includes(fn)) throw new Error('oracle unavailable');
     const views: Record<string, () => unknown> = {
-      prime: () => PRIME, asset: () => address === ETH ? WETH : TBTC, ADDRESSES_PROVIDER: () => LOOP,
+      prime: () => PRIME, asset: () => address === ETH ? c.ethAsset : TBTC, ADDRESSES_PROVIDER: () => LOOP,
       getPriceOracle: () => ORACLE, getSourceOfAsset: () => FEED[args[0].toLowerCase()], yieldAccounting: () => books(address as Address),
+      getAssetPrice: () => c.rounds[args[0].toLowerCase()].answer,
       latestRoundData: () => {
+        if (address.toLowerCase() === ROUNDLESS) throw new Error('no rounds');
         const asset = Object.keys(FEED).find(a => FEED[a] === address.toLowerCase())!;
         return [1n, c.rounds[asset].answer, 0n, c.rounds[asset].updatedAt, 1n];
       },
@@ -118,6 +123,17 @@ test('oracle updates sync only the vaults whose prices moved, once each', async 
   assert.deepEqual(await sync(c, k), ['k0:sync:btc']);
   c.update(PRIME);
   assert.deepEqual(await sync(c, k), ['k0:sync:eth', 'k0:sync:btc']);
+  assert.deepEqual(await sync(c, k), []);
+});
+
+test('a composite source without rounds is watched through the oracle price', async () => {
+  const c = chain();
+  c.ethAsset = GIGAETH;
+  const k = keeper(c);
+  assert.deepEqual(await sync(c, k), ['k0:sync:eth', 'k0:sync:btc']);
+  assert.deepEqual(await sync(c, k), []);
+  c.update(GIGAETH);
+  assert.deepEqual(await sync(c, k), ['k0:sync:eth']);
   assert.deepEqual(await sync(c, k), []);
 });
 

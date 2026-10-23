@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fairOutput,pegPremium,sizeToTarget,pegMinOut,freshReference,orientRoute,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute,depositOwed,userDeposit,botIdentity,depositStop,depositBlock} from '../policy.mjs';
+import {fairOutput,pegPremium,sizeToTarget,pegMinOut,pegEdge,arbTrade,freshReference,quotePairs,orientRoute,omnipoolRatio,omnipoolAfter,sizeOmnipoolTrade,deviationBps,correctionGainBps,replayTrades,swapRoute,depositOwed,userDeposit,botIdentity,depositStop,depositBlock} from '../policy.mjs';
 test('PRIME NAV and token decimals govern the quote, not a 1:1 reserve ratio',()=>{
  assert.equal(fairOutput(1000000n,106290112n,100000000n,6,18),1062901120000000000n);
  assert.equal(fairOutput(1062901120000000000n,100000000n,106290112n,18,6),1000000n);
@@ -24,6 +24,36 @@ test('a peg trade pays at most the loss cap under the oracle',()=>{
  assert.equal(pegMinOut({out:9994n,fair:10000n}),null);
  assert.equal(pegMinOut({out:9996n,fair:10000n}),9995n);
  assert.equal(pegMinOut({out:10100n,fair:10000n}),10097n);
+});
+test('a fill\'s edge over the oracle comes in 1/100 bps, negative when it falls short',()=>{
+ assert.equal(pegEdge(1001467n,1000000n),1467n);
+ assert.equal(pegEdge(997735n,1000000n),-2265n);
+ assert.throws(()=>pegEdge(1n,0n));
+});
+test('a profit-seeking peg trade never fills under the oracle plus its profit',()=>{
+ assert.equal(pegMinOut({out:10000n,fair:10000n,minProfitCbps:0n}),10000n);
+ assert.equal(pegMinOut({out:9999n,fair:10000n,minProfitCbps:0n}),null);
+ assert.equal(pegMinOut({out:10012n,fair:10000n,minProfitCbps:1000n}),10010n);
+ assert.equal(pegMinOut({out:10009n,fair:10000n,minProfitCbps:1000n}),null);
+ assert.equal(pegMinOut({out:10100n,fair:10000n,minProfitCbps:0n}),10097n,'quote drift still applies above the floor');
+ assert.equal(pegMinOut({out:10000n,fair:10000n,minProfitCbps:-1n}),null);
+});
+test('a profit-seeking arb trades only past its profit, and only as far as the next probe stays there',async()=>{
+ const rich=async(id,a)=>id===43?1467n-a:-2265n,none=()=>0n;
+ const t=await arbTrade({edgeAfter:rich,inputs:[43,222],max:()=>100000n,minProfit:none});
+ assert.deepEqual([t.input,t.before,t.edges],[43,1467n,[1467n,-2265n]]);
+ assert.ok(t.amount<=1467n&&t.amount>=1467n-100000n/1024n,'it sells until the next probe breaks even');
+ assert.deepEqual(await arbTrade({edgeAfter:rich,inputs:[43,222],max:()=>100000n,minProfit:()=>1500n}),{edges:[1467n,-2265n]},'short of its profit it stays out');
+ assert.equal((await arbTrade({edgeAfter:rich,inputs:[43,222],max:()=>100n,minProfit:none})).amount,100n,'inventory caps the sale');
+ const cheap=await arbTrade({edgeAfter:async(id,a)=>id===222?250n-a:-1050n,inputs:[43,222],max:()=>1000n,minProfit:()=>100n});
+ assert.deepEqual([cheap.input,cheap.amount],[222,150n],'a cheap pool is bought back to the fee plus the profit');
+ assert.equal((await arbTrade({edgeAfter:async()=>0n,inputs:[43,222],max:()=>1000n,minProfit:none})).amount,0n,'at the band edge there is nothing left to take');
+});
+test('each side keeps its own profit: mainnet leaves a rich pool alone longer than a cheap one',async()=>{
+ const mainnet=id=>id===43?1500n:400n;
+ assert.deepEqual(await arbTrade({edgeAfter:async(id,a)=>id===43?1470n-a:-2270n,inputs:[43,222],max:()=>100000n,minProfit:mainnet}),{edges:[1470n,-2270n]},'14.7 bps over the oracle is not enough to sell');
+ const cheap=await arbTrade({edgeAfter:async(id,a)=>id===222?500n-a:-1300n,inputs:[43,222],max:()=>1000n,minProfit:mainnet});
+ assert.deepEqual([cheap.input,cheap.amount],[222,100n],'5 bps is enough to buy, down to 4');
 });
 test('stale, future or nonpositive canonical references cannot be refreshed',()=>{
  const good={price:1n,updatedAt:900n,chainTime:1000n,headAge:10,maxAge:200n};
@@ -106,4 +136,9 @@ test('deposits read the keepers\' deficit stop on new vaults and isUnderfunded o
  assert.equal(depositBlock({...open,depositsPaused:true,deficitStop:true}),'deposits-paused');
  assert.equal(depositBlock({...open,underfunded:true}),'underfunded');
  assert.equal(depositBlock({...open,size:10n}),'tvl-cap');
+});
+test('markets quotes each vault collateral against HOLLAR and PRIME, lark 4 and 0 as before', () => {
+ assert.deepEqual(quotePairs([34,1000765]),[[43,222],[34,222],[222,1000765],[34,43],[43,1000765]]);
+ assert.deepEqual(quotePairs([4200,1000765]),[[43,222],[222,4200],[222,1000765],[43,4200],[43,1000765]],'GIGAETH behind jETH');
+ assert.deepEqual(quotePairs([]),[[43,222]]);
 });

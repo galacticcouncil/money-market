@@ -2,6 +2,8 @@
 // shallower than --min-depth-usd gets liquidity up to --target-depth-usd at its current
 // ratio, so the price never moves: minted to the deployer's account (PRIME within its
 // deposit fuse, HOLLAR from the test facilitator) and added as it, in one referendum.
+// --fee-ppm (or the profile's primePool.feePpm) sets the pool fee: a profit-seeking arb's band
+// narrows by the cut, the fallback when the PRIME lanes cannot take it.
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {context,deployer,HOLLAR,token,live} from './lark-context.mjs';
@@ -10,6 +12,8 @@ const require=createRequire(import.meta.url),{blake2AsU8a}=require('@polkadot/ut
 const arg=(name,fallback)=>process.argv.find(a=>a.startsWith(`--${name}=`))?.split('=')[1]??fallback;
 const MIN=BigInt(arg('min-depth-usd',profile.primePool.minDepthUsd)),TARGET=BigInt(arg('target-depth-usd',profile.primePool.targetDepthUsd));
 assert.ok(TARGET>=MIN,'target depth below the minimum');
+const feeArg=arg('fee-ppm',profile.primePool.feePpm??null),FEE=feeArg===null?null:Number(feeArg);
+assert.ok(FEE===null||Number.isInteger(FEE)&&FEE>=0&&FEE<=10000,'--fee-ppm is a whole number of ppm, at most 1%');
 const ID=143,ORACLE='0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760',LABEL='prime-pool-liquidity';
 const account=u8aToHex(blake2AsU8a(u8aConcat(stringToU8a('sts'),bnToU8a(ID,{bitLength:32,isLe:true})),256));
 const plain=x=>JSON.parse(JSON.stringify(x,(_,y)=>typeof y==='bigint'?y.toString():y));
@@ -45,10 +49,13 @@ try{
   assert.ok(added?.data[0].isOk,`${LABEL}: adding liquidity fails: ${added?.data[0]}`);
   await enact(LABEL,calls);
  }
+ const fee=async()=>(await api.query.stableswap.pools(ID)).unwrap().fee.toNumber();
+ if(FEE!==null&&await fee()!==FEE)await enact(`prime-pool-fee-${FEE}`,[api.tx.stableswap.updatePoolFee(ID,FEE)]);
  if(live){
   const after=await depth();
   assert.ok(after.usd>=MIN,`pool 143 holds $${after.usd}, under $${MIN}`);
-  r.primePool={...r.primePool,after:plain(after),minDepthUsd:MIN.toString()};r.checks.primePool=true;save();
+  if(FEE!==null)assert.equal(await fee(),FEE,'pool 143 fee not applied');
+  r.primePool={...r.primePool,after:plain(after),minDepthUsd:MIN.toString(),...(FEE===null?{}:{feePpm:FEE})};r.checks.primePool=true;save();
   console.log('POOL 143 READY',JSON.stringify(plain(after)));
  }
 }finally{await c.api.disconnect();}
