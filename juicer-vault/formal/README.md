@@ -62,7 +62,7 @@ JuicerLean/
    ├─ PublicTransferProofs.lean wallet, funded-unit and allowance preservation
    ├─ PublicClaimProofs.lean started-request claims and concrete queue partitions
    ├─ PublicCertificates.lean checked public-call semantics and combined invariant certificates
-   ├─ SolidityDispatch.lean typed 31-opcode fixture dispatcher and universal raw-call correspondence
+   ├─ SolidityDispatch.lean typed 33-opcode fixture dispatcher and universal raw-call correspondence
    ├─ PublicReachability.lean certified raw-call domain and arbitrary finite trace preservation
    ├─ PublicBoundaryRegressions.lean fabricated future epochs and vault impersonation boundaries
    ├─ ScaledDebt.lean     Aave half-up ray arithmetic and executable scaled-balance histories
@@ -73,6 +73,9 @@ JuicerLean/
    ├─ SharedIntent.lean   shared SubLoop intents, two vaults, gifts and harvest ordering
    ├─ AuditProgress.lean  conditional queue and pacing progress proofs
    ├─ AuditLossAllocation.lean executable audit counterexamples for loss assignment
+   ├─ PublicConfigProofs.lean band and admission setters, band triggers, borrow-to-target and admission
+   ├─ LoopConfig.lean     SubLoop's per-vault band registry and admission bound
+   ├─ Discount.lean       JuicerDiscount's tagged loop eligibility and capped rates
    └─ Refine.lean         Phase 3: integer floor guard conservatively refines the real floor,
                            incl. the loop-yield (accrueLoop) and re-peg fixed-point refinements
 ```
@@ -93,7 +96,12 @@ JuicerLean/
 | `principalFloored_refines` | the on-chain integer floor guard conservatively implies the real floor |
 | `run_LoopSafe` / `run_SafeBacked` | the full `LoopSafe`/`Safe`/`freedBacked` bundle is closed under **any** trace of ops (deposit, tick, repay, deLever, accrueLoop, redemption) |
 | `genesis_run_mainHF` | `mainHF ≥ 1` from genesis (deposit) through any subsequent valid op trace |
-| `solidity_dispatch_corresponds` | the complete source-pinned 31-opcode fixture dispatcher selects the same raw model call for every action |
+| `solidity_dispatch_corresponds` | the complete source-pinned 33-opcode fixture dispatcher selects the same raw model call for every action |
+| `rebalanceTail_quiet` / `raw_rebalance_band` | for every band SubLoop accepts: no action between target − relever and target + delever, a relever only below that window (absent fresh credit), a delever only above it, and borrowing never overshoots the band target or breaks the synthetic floor |
+| `deposit_admitted` / `admission_uncovered_bound` | every successful deposit passed the configured admission bound, so admitted uncovered Main debt is at most bound/10000 of it |
+| `setBand_accepts` / `LoopConfig.setBand_isolated` | the setters accept exactly SubLoop's inputs, and one vault's band never moves another's |
+| `Discount.vault_rate_unchanged` / `Discount.loop_rate` | the loop tag never changes a vault's Main rate; the loop is discounted at its own rate on at most its cap, and every cached rate is at most 10000 |
+| `redemption_claimAmount_preserves` / `partial_claim_stays_open` | exact-amount claims keep every redemption bound; a claim of less than the settled amount keeps the request open |
 | `validSolidityTrace_invariant` | every arbitrary finite raw trace in the certified Solidity action domain preserves the combined public invariant |
 | `validSolidityReachable_invariant` | every state reachable through certified raw fixture transitions satisfies the combined public invariant |
 | `ordinaryTrace_fixture_ready` | every arbitrary finite ordinary trace from any of the three Solidity fixture genesis states preserves the financial invariant and all public-call readiness premises |
@@ -110,7 +118,7 @@ JuicerLean/
 aligned with PR #79's audit fixes, including the earlier allowance and ceil-rescale fixes. `solidity-manifest.json` records the
 exact source snapshot. the real-number models prove ideal accounting properties;
 `FixedPoint/Runtime.lean` adds current integer arithmetic, epoch and rescale behavior.
-Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 1,526 Lean cases with the
+Run `python3 check-runtime.py` to rebuild proofs, regenerate and compare 2,061 Lean cases with the
 actual Solidity, and detect source, compiled-artifact or storage-layout drift. Same integrity bar: 0 `sorry`, axioms
 `propext`/`Classical.choice`/`Quot.sound` only.
 
@@ -195,7 +203,7 @@ The old Verity bridge remains a separate simplified reference model; see [bridge
 from fixture genesis. The checker compares state and outcomes after every step, enforces accounting
 partitions and rejects incomplete traces. every action is decoded through the typed Solidity map,
 checked against the fixture domain and executed by `rawRunCall`; every successful post-state must
-carry the combined certificate. twenty-one opcodes, including compound, are admitted from their pre-state
+carry the combined certificate. twenty-three opcodes, including compound and the two config setters, are admitted from their pre-state
 invariant alone; transfer and transferFrom additionally require ordinary holders and bounded
 destinations, claim requires a started request, and sync, requestRedeem and deposit require
 account/request epochs and scales consistent with the book's history. requestRedeem also requires
@@ -205,7 +213,7 @@ pokeSettle requires backed queue collateral, consistent batch weights/budgets, b
 source pull/cost rates at most 10000 basis points. harvest burns the minimum of its quote and
 the single-vault fixture's held-share capacity; the capacity bound is unconditional. startUnwinds
 requires consistent metadata, queue backing, ordinary waiting owners and a fee rate at most
-10000 basis points; its proof covers arbitrary loop lengths. all 31 opcodes have preservation
+10000 basis points; its proof covers arbitrary loop lengths. all 33 opcodes have preservation
 proofs based on inputs. domain admission uses those rules or a raw revert, with no successful
 post-state certificate fallback.
 
@@ -258,7 +266,7 @@ cash and debt capacity, positive lane capacity, no uint64 wrap and continued kee
 those assumptions it proves bounded progress for arbitrary empty and funded queues, target
 clearance despite repayment rounding, and at most one extra pacing quantum per fragment.
 `AuditLossAllocation.lean` retains the original loss-allocation counterexamples and adds the
-implemented policy boundaries: deposits admit at most a rounded-up 50 bps deficit, a pending
+implemented policy boundaries: deposits admit at most a rounded-up deficit of the configured bound (50 bps by default, 250 at launch), a pending
 intent freezes deposits/requests/pulls, parked gifts keep a per-vault owner, and partial reserve
 recovery restores the prior loss carry before current wallet weight can mint units. capped exit
 cost above a request's earned allowance remains an explicit source liability under the principal
@@ -266,7 +274,7 @@ preservation policy. this maps audit findings #3/#19 and #32/#39 to the shared r
 #5/#12/#29/#30/#31 to conditional progress, and #6/#13/#15/#22/#25/#35/#38 to the executable
 loss-allocation boundaries.
 
-`check-dispatch.py` independently checks all 31 target, selector and action-argument mappings
+`check-dispatch.py` independently checks all 33 target, selector and action-argument mappings
 against the pinned Solidity `perform` functions. `solidity_dispatch_corresponds` and
 `solidity_execute_corresponds` then prove the typed dispatcher equals the raw Lean public-call
 machine for every action, including unsupported opcodes.

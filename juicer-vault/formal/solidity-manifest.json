@@ -1,8 +1,8 @@
 {
-  "baseRevision": "74b8d9a7d3f2b766fa39d6fce319075ba61bf8de",
-  "change": "loop HOLLAR discount, per-vault rebalance bands and a separately deployed vault helper, plus the loop-set admission bound; the model keeps the default band, 50 bps admission and the Main-only discount",
+  "baseRevision": "a4a889575bd64664ee6b9a491982b5c33fee348f",
+  "change": "per-vault rebalance bands, the configured admission bound and exact-amount claims are in the public-call model with their setters; SubLoop's band registry and JuicerDiscount's rates are compared against the production contracts; bytecode and body pins no longer depend on build order",
   "formalBaseRevision": "21f5aa7b203d0ae79f44e05c87ed75f8d242a1ef",
-  "reviewed": "2026-10-21",
+  "reviewed": "2026-10-26",
   "files": {
     "src/CollateralVault.sol": "9f1792b85bc51509e32509ee086fe067404fbd3070c295e4af8d0491961f5142",
     "src/JuicerYieldAccounting.sol": "fe7fbac094f1e52e374dc3b97036e9fc151940c32407c7a412b65797dcd8184e",
