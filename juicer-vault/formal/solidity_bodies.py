@@ -217,7 +217,7 @@ def _normalized_ast(value, labels=None):
     def label(number):
         return labels.setdefault(number, len(labels)) if number >= 0 else number
 
-    ignored = {"id", "src", "scope", "nameLocation", "documentation"}
+    ignored = {"id", "src", "scope", "nameLocation", "nameLocations", "memberLocation", "documentation"}
     if isinstance(value, dict):
         normalized = {}
         for key, child in sorted(value.items()):
