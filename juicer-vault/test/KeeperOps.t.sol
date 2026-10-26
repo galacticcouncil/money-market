@@ -318,4 +318,44 @@ contract KeeperOpsTest is Test {
         vault.rebalance();
         assertEq(hollarDebt.balanceOf(address(vault)), debtBefore, "64% waits for the exit");
     }
+
+    function _exitNinetyPercentSettled(bool claimIt) internal {
+        loop.setRebalanceBand(address(vault), 0, 1000, 800);
+        uint256 id = vault.requestRedeem(vault.balanceOf(address(this)) * 9 / 10, address(this));
+        vm.warp(block.timestamp + vault.withdrawalDelay());
+        vault.startUnwinds(1);
+        for (uint256 i; i < 400 && loop.unwindTargetEquity() != 0; ++i) loop.pokeRepay();
+        vault.pokeSettle();
+        assertEq(vault.queueHead(), vault.queueUnwind());
+        assertGt(vault.totalQueuedCollateral(), 0);
+        if (claimIt) vault.claim(id, address(this), type(uint256).max);
+    }
+
+    function _thirtyDollarDepositDeploysAtTarget() internal {
+        uint256 beforeDebt = hollarDebt.balanceOf(address(vault));
+        eth.mint(address(this), 0.01e18);
+        eth.approve(address(vault), 0.01e18);
+        vault.deposit(0.01e18, address(this));
+        vault.rebalance();
+        uint256 afterDebt = hollarDebt.balanceOf(address(vault));
+        vault.rebalance();
+        assertEq(hollarDebt.balanceOf(address(vault)), afterDebt, "nothing left for a second pass");
+        assertApproxEqAbs(afterDebt - beforeDebt, 22.5e18, 1e12, "the deposit deploys at the 75% target");
+    }
+
+    function test_unclaimedExitDoesNotShrinkNewDepositCredit() public {
+        _exitNinetyPercentSettled(false);
+        _thirtyDollarDepositDeploysAtTarget();
+    }
+
+    function test_claimedExitNewDepositCredit() public {
+        _exitNinetyPercentSettled(true);
+        _thirtyDollarDepositDeploysAtTarget();
+    }
+
+    function test_unclaimedExitDefaultBandNewDepositCredit() public {
+        _exitNinetyPercentSettled(false);
+        loop.setRebalanceBand(address(vault), 0, 0, 0);
+        _thirtyDollarDepositDeploysAtTarget();
+    }
 }

@@ -551,7 +551,7 @@ def rawRunCall (input : State) (action : Action) : Result := do
       s := { s with synth := oldSynth }
       let wanted := (target - debt8) * 10^10
       let amount := if resize then wanted else min wanted
-        (coll8 * min s.reinvest s.assets / s.assets * 7500 / 10000 * 10^10)
+        (coll8 * min s.reinvest s.supplied / s.supplied * 7500 / 10000 * 10^10)
       if amount == 0 then return (s, 0)
       if s.mainUnits != 0 && s.debt == 0 then throw 18
       let borrowed := amount - s.borrowLoss

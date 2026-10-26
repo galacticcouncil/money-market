@@ -39,6 +39,7 @@ library SyntheticFloor {
 }
 
 interface ICompoundVault is IMainDebtVault {
+    function collateralAToken() external view returns (IERC20);
     function feeController() external view returns (IJuicerFeeController);
     function mainDebt() external view returns (IMainDebt);
     function yieldAccounting() external view returns (JuicerYieldAccounting);
@@ -168,7 +169,9 @@ contract CompoundLogic {
             if (!resize) {
                 // Earned collateral bypasses price-move hysteresis, only up to
                 // its own borrowing capacity and the band target.
-                uint256 credit8 = Math.mulDiv(value8, Math.min(credit, v.totalAssets()), v.totalAssets());
+                // priced against the collateral behind value8: settled exits wait in the vault, not in aave
+                uint256 held = v.collateralAToken().balanceOf(address(this));
+                uint256 credit8 = held == 0 ? 0 : Math.mulDiv(value8, Math.min(credit, held), held);
                 add = Math.min(add, credit8 * targetLtv / 10_000 * 1e10);
             }
             uint256 wanted = add;
