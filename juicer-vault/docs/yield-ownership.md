@@ -51,9 +51,10 @@ PRIME for shares minted at the pre-swap source NAV, so each slice's swap cost,
 bounded by its lane's approved shortfall, lowers every attached vault's source
 equity. The next allocation absorbs it from unconverted rewards first, including
 rewards of holders who did not trigger the deployment. Once those rewards are
-exhausted the cost reaches Main backing. Deposits then enforce the 50 bps
-on-chain ceiling; keepers stop the source ramp and set `deficitStop` at
-`DEFICIT_STOP_BPS` (50), and resume below `DEFICIT_RESUME_BPS` (25).
+exhausted the cost reaches Main backing. Deposits then enforce the on-chain
+ceiling (`admissionMaxDeficitBps`, 250 bps at launch); keepers stop the source ramp
+and set `deficitStop` at `DEFICIT_STOP_BPS` (250), and resume below
+`DEFICIT_RESUME_BPS` (200).
 Deploying collateral that is already deposited (`rebalance`) is not gated by
 that stop.
 
