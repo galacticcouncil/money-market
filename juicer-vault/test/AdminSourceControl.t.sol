@@ -153,7 +153,7 @@ contract AdminSourceControlTest is Test {
         loop.pokeRepay();
         hollar.mint(address(vault), 1e18);
         vault.pokeSettle();
-        vault.claim(id, address(this));
+        vault.claim(id, address(this), type(uint256).max);
 
         assertEq(vault.balanceOf(address(this)), 0, "holder fully exited");
         assertEq(loop.pendingUnwindOf(address(vault)), 0, "source owes nothing in flight");

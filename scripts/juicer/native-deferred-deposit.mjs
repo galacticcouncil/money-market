@@ -139,7 +139,7 @@ try {
   await call('pre-deploy-settle', 'CollateralVault', vault, 'pokeSettle');
   const request = await read('CollateralVault', vault, 'redemptions', [0n]);
   const before = await pub.readContract({address: collateral, abi: token, functionName: 'balanceOf', args: [account.address]});
-  await call('pre-deploy-claim', 'CollateralVault', vault, 'claim', [0n, account.address]);
+  await call('pre-deploy-claim', 'CollateralVault', vault, 'claim', [0n, account.address, 2n ** 256n - 1n]);
   const after = await pub.readContract({address: collateral, abi: token, functionName: 'balanceOf', args: [account.address]});
   assert.equal(after - before, request[2]);
   assert.equal(await debt(), 0n);

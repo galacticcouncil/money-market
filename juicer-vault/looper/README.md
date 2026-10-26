@@ -75,7 +75,7 @@ read each vault's pause, queue cursors and Main repayment target
   no pending deployment, periodic duty slot    -> quoted rebalance when allowed
 then, for each vault:
   settled request below the queue head,
-    DELIVER_CLAIMS=true                     -> claim(id, owner)
+    DELIVER_CLAIMS=true                     -> claim(id, owner, max)
   exit surplus >= CLAIM_MIN_SURPLUS         -> claimSurplus(id)
   PRIME or collateral oracle update since its last sync,
     or SYNC_EVERY elapsed, duty slot        -> sync()
@@ -107,7 +107,8 @@ urgent-interest alerts are emitted once per episode and reset after interest
 falls below the configured urgent threshold.
 
 Settled collateral waits for its owner by default, who claims it with `claim(id,
-receiver)` and can batch that with a swap or a bridge. `DELIVER_CLAIMS=true` pushes
+receiver, amount)` (an exact amount, or `type(uint256).max` for all settled) and can
+batch that with a swap or a bridge. `DELIVER_CLAIMS=true` pushes
 it to the owner instead, so a user signs only `requestRedeem`. Exit surplus is
 always pushed to the owner. The scan resumes at the first request still owed
 something (a surplus, or a debt slice not yet repaid), looking back

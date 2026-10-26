@@ -102,15 +102,15 @@ contract LeanLifecycleParityTest is HarvestTest {
         _assertLifecycle();
         (,,,,,, uint256 settled,,) = vault.redemptions(first);
         if (settled != 0) {
-            vault.claim(first, BOB);
+            vault.claim(first, BOB, type(uint256).max);
             _assertLifecycle();
         }
         pool.setRepayLimit(type(uint256).max);
         for (uint256 i; i < 10 && vault.queueHead() < vault.queueUnwind(); ++i) vault.pokeSettle();
         _assertLifecycle();
         (,,,,,, settled,,) = vault.redemptions(first);
-        if (settled != 0) vault.claim(first, BOB);
-        vault.claim(second, address(this));
+        if (settled != 0) vault.claim(first, BOB, type(uint256).max);
+        vault.claim(second, address(this), type(uint256).max);
         _assertLifecycle();
         assertEq(vault.totalQueuedShares(), 0);
         assertEq(vault.totalQueuedCollateral(), 0);

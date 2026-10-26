@@ -5,6 +5,7 @@ import {
   type PublicClient,
   type Address,
   type Chain,
+  maxUint256,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { CONFIG, ROUNDING_POLICIES } from './config.js';
@@ -73,7 +74,7 @@ const VAULT_ABI = [
   },
   {
     name: 'claim', type: 'function', stateMutability: 'nonpayable',
-    inputs: [{ name: 'requestId', type: 'uint256' }, { name: 'receiver', type: 'address' }],
+    inputs: [{ name: 'requestId', type: 'uint256' }, { name: 'receiver', type: 'address' }, { name: 'amount', type: 'uint256' }],
     outputs: [{ name: '', type: 'uint256' }],
   },
   nonpayable('rebalance'), // keep the LTV band
@@ -703,7 +704,7 @@ export class JuicerLooper {
         const owner = r[0] as Address, debtShare = r[3] as bigint, repaid = r[5] as bigint;
         const settled = r[6] as bigint, active = r[8] as boolean;
         if (CONFIG.DELIVER_CLAIMS && active && settled > 0n) {
-          await this.poke(VAULT_ABI, vault, 'claim', `claim ${short(vault)} #${id}`, [id, owner]);
+          await this.poke(VAULT_ABI, vault, 'claim', `claim ${short(vault)} #${id}`, [id, owner, maxUint256]);
         }
         const surplus = await this.read(LEDGER_ABI, ledger, 'surplusOf', [id]) as bigint;
         const owed = surplus >= CONFIG.CLAIM_MIN_SURPLUS

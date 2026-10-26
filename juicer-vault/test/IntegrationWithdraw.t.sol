@@ -134,7 +134,7 @@ contract IntegrationWithdrawTest is Test {
         // settle + claim
         vault.pokeSettle();
         uint256 balBefore = eth.balanceOf(address(this));
-        uint256 got = vault.claim(reqId, address(this));
+        uint256 got = vault.claim(reqId, address(this), type(uint256).max);
 
         assertApproxEqRel(got, 1e18, 0.02e18, "principal returned ~1 ETH");
         assertEq(eth.balanceOf(address(this)) - balBefore, got, "ETH received");

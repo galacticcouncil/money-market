@@ -204,7 +204,7 @@ contract DeleverQueueInterferenceTest is Test {
         assertLt(repaid, ds, "no sponsored cash silently pays the source tail");
         assertEq(vault.queueHead(), id, "unpaid Main debt keeps the claim open");
         assertTrue(active, "still claimable until fully paid");
-        uint256 paid = vault.claim(id, address(this));
+        uint256 paid = vault.claim(id, address(this), type(uint256).max);
         (, , uint256 originalDebt, , bool partiallyActive) = _req(id);
         assertEq(originalDebt, ds);
         assertTrue(partiallyActive, "unfunded collateral remains owed");
@@ -222,7 +222,7 @@ contract DeleverQueueInterferenceTest is Test {
         hollar.approve(address(ledger), missing);
         ledger.fundPosition(id + 1, missing);
         vault.pokeSettle();
-        paid += vault.claim(id, address(this));
+        paid += vault.claim(id, address(this), type(uint256).max);
         assertEq(paid, 1e18 - 1000, "all principal apart from governance bootstrap is returned");
         assertEq(vault.queueHead(), vault.queueTail());
         (, , , , bool stillActive) = _req(id);

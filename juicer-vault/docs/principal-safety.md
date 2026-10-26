@@ -46,7 +46,9 @@ Existing requests retain their recorded `unwindEligibleAt`.
    allocates Main debt and source claims at that point.
 3. Source repayments and `pokeSettle` fund collateral release. Post-start
    interest belongs to that exit, not the remaining holders' cash.
-4. `claim` pays settled collateral, including partial claims. Unpaid balances
+4. `claim(id, receiver, amount)` pays exactly `amount` of settled collateral
+   (`type(uint256).max`: all of it), so an owner can batch it with a swap or a
+   bridge; it reverts with `NothingToClaim` above what is settled. Unpaid balances
    stay open; late source surplus remains owned by the original exit holder.
 
 A shorter newly configured delay does not allow a request to jump an older

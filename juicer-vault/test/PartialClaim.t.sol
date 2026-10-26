@@ -11,6 +11,7 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {DcaDispatch} from "../src/lib/DcaDispatch.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {Artifacts} from "./helpers/Artifacts.t.sol";
+import {JuicerMainDebt} from "../src/JuicerMainDebt.sol";
 
 /// @notice a partially settled redemption survives `claim()`: only the paid slice's
 ///         shares burn and the unsettled remainder stays claimable.
@@ -133,7 +134,7 @@ contract PartialClaimTest is Test {
 
         // claim the ready slice
         uint256 balBefore = eth.balanceOf(address(this));
-        uint256 got1 = vault.claim(reqId, address(this));
+        uint256 got1 = vault.claim(reqId, address(this), type(uint256).max);
         assertGt(got1, 0, "partial claim pays something");
         assertLt(got1, 1e18, "partial claim is less than full principal");
         assertEq(eth.balanceOf(address(this)) - balBefore, got1, "ETH received == claimed");
@@ -150,7 +151,7 @@ contract PartialClaimTest is Test {
         vault.pokeSettle();
 
         // claim the remainder
-        uint256 got2 = vault.claim(reqId, address(this));
+        uint256 got2 = vault.claim(reqId, address(this), type(uint256).max);
         assertGt(got2, 0, "remainder is claimable");
 
         // total across both claims ≈ the full 1 eth principal
@@ -158,5 +159,97 @@ contract PartialClaimTest is Test {
 
         // proportional-settlement dust may remain in escrow, backed by matching collateral
         assertApproxEqAbs(vault.balanceOf(address(vault)), 0, 1e15, "escrow burned to dust once complete");
+    }
+
+    function _partiallySettled() internal returns (uint256 reqId) {
+        eth.mint(address(this), 1e18);
+        eth.approve(address(vault), 1e18);
+        uint256 shares = vault.deposit(1e18, address(this));
+        vault.rebalance();
+        for (uint256 i = 0; i < 40; i++) {
+            loop.pokeBorrow();
+        }
+        reqId = vault.requestRedeem(shares, address(this));
+        vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
+        vault.startUnwinds(100);
+        loop.setTranches(10_000_000e18, 100e6);
+        for (uint256 i = 0; i < 6; i++) {
+            loop.pokeRepay();
+        }
+        vault.pokeSettle();
+    }
+
+    function _settleRest() internal {
+        loop.setTranches(10_000_000e18, 10_000_000e6);
+        for (uint256 i = 0; i < 400; i++) {
+            if (loop.unwindTargetEquity() == 0) break;
+            loop.pokeRepay();
+        }
+        vault.pokeSettle();
+    }
+
+    function _settled(uint256 reqId) internal view returns (uint256 settled, bool active) {
+        (,,,,,, settled,, active) = vault.redemptions(reqId);
+    }
+
+    function test_exactClaimPaysTheAmountAndKeepsTheRest() public {
+        uint256 reqId = _partiallySettled();
+        (uint256 settled,) = _settled(reqId);
+        assertGt(settled, 0);
+
+        uint256 balBefore = eth.balanceOf(address(this));
+        uint256 got = vault.claim(reqId, address(this), settled / 3);
+        assertEq(got, settled / 3, "pays exactly the amount");
+        assertEq(eth.balanceOf(address(this)) - balBefore, settled / 3);
+        (uint256 left, bool active) = _settled(reqId);
+        assertEq(left, settled - settled / 3, "the rest stays claimable");
+        assertTrue(active);
+
+        assertEq(vault.claim(reqId, address(this), type(uint256).max), left, "the max amount takes what is left");
+    }
+
+    function test_exactClaimAboveSettledReverts() public {
+        uint256 reqId = _partiallySettled();
+        (uint256 settled,) = _settled(reqId);
+        vm.expectRevert(CollateralVault.NothingToClaim.selector);
+        vault.claim(reqId, address(this), settled + 1);
+        vm.expectRevert(CollateralVault.NothingToClaim.selector);
+        vault.claim(reqId, address(this), 0);
+    }
+
+    function test_repaidRequestStaysActiveUntilEmptied() public {
+        uint256 reqId = _partiallySettled();
+        _settleRest();
+        // fund the exit's round-trip shortfall so its debt slice is fully repaid
+        JuicerMainDebt ledger = JuicerMainDebt(address(vault.mainDebt()));
+        hollar.mint(address(this), 1e18);
+        hollar.approve(address(ledger), 1e18);
+        ledger.fundPosition(reqId + 1, 1e18);
+        vault.pokeSettle();
+        (uint256 settled,) = _settled(reqId);
+        (,,, uint256 debtShare,, uint256 repaid,,,) = vault.redemptions(reqId);
+        assertGe(repaid, debtShare, "fully repaid");
+
+        vault.claim(reqId, address(this), settled / 2);
+        (uint256 left, bool active) = _settled(reqId);
+        assertTrue(active, "a partial claim of a repaid request is not the last");
+        assertGt(vault.balanceOf(address(vault)), 0, "escrow burns pro rata, not all at once");
+
+        vault.claim(reqId, address(this), left);
+        (, active) = _settled(reqId);
+        assertFalse(active, "emptying a repaid request completes it");
+        assertApproxEqAbs(vault.balanceOf(address(vault)), 0, 1e15, "escrow burned to dust once complete");
+        assertApproxEqRel(settled, 1e18, 0.02e18, "full principal across the claims");
+    }
+
+    function test_thirdPartyExactClaimStillPaysTheOwner() public {
+        uint256 reqId = _partiallySettled();
+        (uint256 settled,) = _settled(reqId);
+        address keeper = address(0xBEEF);
+        uint256 balBefore = eth.balanceOf(address(this));
+        vm.prank(keeper);
+        vault.claim(reqId, keeper, settled / 2);
+        assertEq(eth.balanceOf(keeper), 0, "a third party cannot redirect");
+        assertEq(eth.balanceOf(address(this)) - balBefore, settled / 2);
     }
 }

@@ -471,7 +471,9 @@ under it, delever 300 bps over it), deposit admission fixes the loop's default 5
 discount is Main-only; the fixture sources return those defaults. per-vault bands
 (`SubLoop.setRebalanceBand`), a configured admission bound (`setAdmissionMaxDeficitBps`) and the
 loop's HOLLAR discount (`JuicerDiscount.registerLoop`, `setLoopDiscountBps`) are outside the proved
-model; the Solidity tests cover them.
+model; the Solidity tests cover them. `claim(id, receiver, amount)` is modeled at
+`type(uint256).max` (all settled); an exact partial amount is outside the model and covered by
+`PartialClaim.t.sol`.
 
 Aave/token observations must be truthful, oracle prices/configuration valid, and external calls
 successful where their results are model inputs. matching ICE's 99%-minimum arrival heuristic

@@ -146,7 +146,7 @@ contract MultiVaultFlowTest is Test {
         vm.expectRevert("Pausable: paused");
         tbtcVault.requestRedeem(1, address(this));
         vm.expectRevert("Pausable: paused");
-        tbtcVault.claim(0, address(this));
+        tbtcVault.claim(0, address(this), type(uint256).max);
         loop.unpauseEmergency();
         assertTrue(ethVault.paused(), "local pause remains in force");
         assertFalse(tbtcVault.paused());
@@ -236,7 +236,7 @@ contract MultiVaultFlowTest is Test {
         }
         ethVault.pokeSettle();
         vm.prank(ETH_USER);
-        uint256 got = ethVault.claim(reqId, ETH_USER);
+        uint256 got = ethVault.claim(reqId, ETH_USER, type(uint256).max);
 
         // principal + ~23% compounded carry
         assertGt(got, 1e18, "exit returns principal + yield, in ETH");
@@ -391,7 +391,7 @@ contract MultiVaultFlowTest is Test {
         }
         ethVault.pokeSettle();
         vm.prank(ETH_USER);
-        uint256 got = ethVault.claim(reqId, ETH_USER);
+        uint256 got = ethVault.claim(reqId, ETH_USER, type(uint256).max);
         assertGt(got, 1e18, "principal + yield survive the round-trip costs");
         assertGt(got, ((1e18 + ethGain) * 99) / 100, "unwind fee ~6bps x leverage");
         (, , uint256 promised, , , , , , bool active) = ethVault.redemptions(reqId);

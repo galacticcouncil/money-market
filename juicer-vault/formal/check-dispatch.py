@@ -29,7 +29,7 @@ def main():
         4: "else if (op == 4) data = abi.encodeCall(vault.requestRedeem, (n, actors[a]));",
         5: "else if (op == 5) data = abi.encodeCall(vault.startUnwinds, (n));",
         6: "else if (op == 6) data = abi.encodeCall(vault.pokeSettle, ());",
-        7: "else if (op == 7) data = abi.encodeCall(vault.claim, (n, actors[b]));",
+        7: "else if (op == 7) data = abi.encodeCall(vault.claim, (n, actors[b], type(uint256).max));",
         8: "else if (op == 8) data = abi.encodeCall(vault.sync, ());",
         9: "else if (op == 9) data = abi.encodeCall(vault.rebalance, ());",
         10: "else if (op == 10) { vm.warp(block.timestamp + n); _record([op, caller, a, b, n], 0, 0); return; }",

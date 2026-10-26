@@ -45,9 +45,9 @@ test('settled claims and exit surplus are pushed to their owners', () => deliver
   const { k, calls } = keeper(requests);
   await k.deliver(VAULT);
   assert.deepEqual(calls, [
-    [VAULT, 'claim', [1n, OWNER]],
+    [VAULT, 'claim', [1n, OWNER, 2n ** 256n - 1n]],
     [LEDGER, 'claimSurplus', [1n]],
-    [VAULT, 'claim', [2n, OWNER]],
+    [VAULT, 'claim', [2n, OWNER, 2n ** 256n - 1n]],
   ], 'dust surplus below the minimum is left for a later recovery');
   assert.equal(k.claimCursor.get(VAULT), 3n, 'everything delivered, the cursor moves past it');
 }));

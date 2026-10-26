@@ -141,12 +141,12 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
             token.mint(address(q), r[1]);
             for (uint256 phase = 8; phase <= 40; phase += 16) {
                 q.observeSettlement(r[phase + 3], r[phase + 4]);
-                vm.prank(OWNER); q.claim(0, RECEIVER);
+                vm.prank(OWNER); q.claim(0, RECEIVER, type(uint256).max);
                 _historyState(q, r, phase + 8);
             }
             assertEq(token.balanceOf(RECEIVER), r[1]);
             vm.expectRevert(CollateralVault.RequestNotActive.selector);
-            q.claim(0, RECEIVER);
+            q.claim(0, RECEIVER, type(uint256).max);
         }
     }
 
@@ -159,7 +159,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
         token.mint(address(q), 4);
         vm.prank(OWNER);
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
-        q.claim(0, RECEIVER);
+        q.claim(0, RECEIVER, type(uint256).max);
         _historyState(q, r, 0);
         assertEq(token.balanceOf(address(q)), 4);
         assertEq(token.balanceOf(RECEIVER), 0);

@@ -151,7 +151,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         else if (op == 4) data = abi.encodeCall(vault.requestRedeem, (n, actors[a]));
         else if (op == 5) data = abi.encodeCall(vault.startUnwinds, (n));
         else if (op == 6) data = abi.encodeCall(vault.pokeSettle, ());
-        else if (op == 7) data = abi.encodeCall(vault.claim, (n, actors[b]));
+        else if (op == 7) data = abi.encodeCall(vault.claim, (n, actors[b], type(uint256).max));
         else if (op == 8) data = abi.encodeCall(vault.sync, ());
         else if (op == 9) data = abi.encodeCall(vault.rebalance, ());
         else if (op == 10) { vm.warp(block.timestamp + n); _record([op, caller, a, b, n], 0, 0); return; }

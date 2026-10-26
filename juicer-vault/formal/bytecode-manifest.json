@@ -4,7 +4,7 @@
       "artifact": "CollateralVault.sol/CollateralVault.json",
       "dispatchMethods": {
         "approve(address,uint256)": "095ea7b3",
-        "claim(uint256,address)": "ddd5e1b2",
+        "claim(uint256,address,uint256)": "5e737548",
         "compound(address,uint256,uint256,bytes)": "526be9a8",
         "deposit(uint256,address)": "6e553f65",
         "maintainPeg()": "eebca7b6",
@@ -32,19 +32,19 @@
         "viaIR": true,
         "settingsSha256": "d0df919045cd07b7a5e1f1397a3f898ed428b1e1ea33c204cecaf5d32a28c1de",
         "creation": {
-          "bytes": 24916,
-          "sha256": "9fdefe838621378213301f30041dff6c55e4b2690241f9423c0a8b4e77471243",
+          "bytes": 24976,
+          "sha256": "9db7948adbb70a635501291e455a7bb641d0c240414349a2c1384f6fad688c6c",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
         },
         "runtimeTemplate": {
-          "bytes": 24495,
-          "sha256": "a11a22e04f3ef4f5b9771fc5d3b6b8b76a7f768a798bfc29f1508d27947ed12d",
+          "bytes": 24555,
+          "sha256": "eef360de244683f26777cb0878e47503964a2920c968d03fb71302c3e485fd65",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "immutableReferencesSha256": "9addde687f45ebd9855a0f913950014df6813214423b9f6e4ce781f1351a9b5d"
+          "immutableReferencesSha256": "cf1008b0956e461d1520db2f479ef8908182a5777d5c1b386e23c74451e3d318"
         },
         "methodCount": 95,
-        "methodIdentifiersSha256": "fc5a969bd359a8f194c3982ab37cd4b3f1a1b9f5f95adec3026c2038646815ff"
+        "methodIdentifiersSha256": "ae6c9670eb5e9f534e57cb769e1d9738f832ed73c722720dd0969461c809ae59"
       }
     },
     "CompoundLogic": {

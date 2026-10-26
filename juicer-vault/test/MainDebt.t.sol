@@ -41,7 +41,7 @@ contract MainDebtTest is PluggableYieldSourceTest {
         for (uint256 i; i < 3; ++i) {
             uint256 id = _start(_deposit(1e18));
             vault.pokeSettle();
-            vault.claim(id, address(this));
+            vault.claim(id, address(this), type(uint256).max);
             assertLe(_ledger().claimSurplus(id), 1, "no sponsored withdrawal bonus");
         }
         assertEq(_ledger().ownedCash(), 0);
@@ -95,7 +95,7 @@ contract MainDebtTest is PluggableYieldSourceTest {
         vault.pokeSettle();
         assertEq(_ledger().debtOf(id + 1), 0);
         (,,uint256 promised,,,,,,) = vault.redemptions(id);
-        assertEq(vault.claim(id, address(this)), promised);
+        assertEq(vault.claim(id, address(this), type(uint256).max), promised);
         _ledger().claimSurplus(id);
         assertEq(vault.totalAssets(), 1e18 - promised);
     }
@@ -114,7 +114,7 @@ contract MainDebtTest is PluggableYieldSourceTest {
         vault.pokeSettle();
         (,,uint256 promised,,,,,,) = vault.redemptions(id);
         assertEq(_ledger().debtOf(id + 1), 0, "the reserve closes the exit's realized shortfall");
-        assertEq(vault.claim(id, address(this)), promised, "full collateral in one claim");
+        assertEq(vault.claim(id, address(this), type(uint256).max), promised, "full collateral in one claim");
         assertEq(_ledger().surplusOf(id), 0, "unused reserve never becomes exit surplus");
         assertLt(_ledger().protocolReserve(), 10e18);
         assertGt(_ledger().interestOf(0), 0, "the reserve does not service active holders");
@@ -173,11 +173,11 @@ contract MainDebtTest is PluggableYieldSourceTest {
         vault.pokeSettle();
         assertGt(_ledger().debtOf(id + 1), 0);
         (,,uint256 promised,,,,,,) = vault.redemptions(id);
-        uint256 first = vault.claim(id, address(this));
+        uint256 first = vault.claim(id, address(this), type(uint256).max);
         assertLt(first, promised);
         _fund(id + 1, _ledger().debtOf(id + 1) + 2);
         vault.pokeSettle();
-        assertEq(first + vault.claim(id, address(this)), promised);
+        assertEq(first + vault.claim(id, address(this), type(uint256).max), promised);
         assertGt(_ledger().interestOf(0), 0, "exit funding cannot service active holders");
     }
 
@@ -232,7 +232,7 @@ contract MainDebtTest is PluggableYieldSourceTest {
         JuicerMainDebt ledger = _ledger();
         _fund(id + 1, ledger.debtOf(id + 1));
         vault.pokeSettle();
-        vault.claim(id, address(this));
+        vault.claim(id, address(this), type(uint256).max);
         ledger.claimSurplus(id);
         uint256 ownerCash = hollar.balanceOf(address(this));
         source.setPullBps(10_000);
@@ -327,7 +327,7 @@ contract MainDebtTest is PluggableYieldSourceTest {
         assertEq(vault.totalQueuedDebt(), 0);
         assertEq(_ledger().debtOf(id + 1), 0);
         (,,uint256 owed,,,,,,) = vault.redemptions(id);
-        assertEq(vault.claim(id, address(this)), owed);
+        assertEq(vault.claim(id, address(this), type(uint256).max), owed);
         assertEq(hollar.balanceOf(address(_ledger())), _ledger().ownedCash());
     }
 }

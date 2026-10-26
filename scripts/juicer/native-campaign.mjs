@@ -970,7 +970,7 @@ try {
       p.v,
       art("CollateralVault").abi,
       "claim",
-      [id, p.who.address],
+      [id, p.who.address, 2n ** 256n - 1n],
       p.who
     );
     const paid =

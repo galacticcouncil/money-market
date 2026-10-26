@@ -60,13 +60,13 @@ contract InterestPolicyEvidenceTest is PluggableYieldSourceTest {
         (,,uint256 promised,,,,,,) = vault.redemptions(id);
         assertGt(promised, 1e18, "exit includes compounded yield");
         vault.pokeSettle();
-        uint256 first = vault.claim(id, address(this));
+        uint256 first = vault.claim(id, address(this), type(uint256).max);
         uint256 shortfall = vault.totalQueuedDebt();
         assertGt(shortfall, 0, "source principal did not fund Main interest");
         assertLt(first, promised);
         hollar.mint(address(vault), shortfall);
         vault.pokeSettle();
-        assertEq(first + vault.claim(id, address(this)), promised);
+        assertEq(first + vault.claim(id, address(this), type(uint256).max), promised);
         assertEq(vault.totalQueuedDebt(), 0);
     }
 }

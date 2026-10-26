@@ -446,21 +446,28 @@ contract CollateralVault is
 
     /// @notice claim the collateral settled so far, burning only the escrowed shares matching the
     /// payout; the request closes once settlement completes.
-    function claim(uint256 requestId, address receiver) external nonReentrant whenNotPaused returns (uint256 amountOut) {
+    // an exact amount lets a batch size its next leg (swap, bridge); type(uint256).max claims all settled
+    function claim(uint256 requestId, address receiver, uint256 amount)
+        external
+        nonReentrant
+        whenNotPaused
+        returns (uint256 amountOut)
+    {
         Redemption storage r = redemptions[requestId];
         if (!r.active) revert RequestNotActive();
         // anyone (the keeper) may deliver a claim; only the owner picks another receiver
         if (msg.sender != r.owner) receiver = r.owner;
         if (receiver == address(0)) revert ZeroAddress();
-        amountOut = r.collateralSettled;
-        if (amountOut == 0) revert NothingToClaim();
+        uint256 settled = r.collateralSettled;
+        amountOut = amount == type(uint256).max ? settled : amount;
+        if (amountOut == 0 || amountOut > settled) revert NothingToClaim();
 
-        r.collateralSettled = 0;
+        r.collateralSettled = settled - amountOut;
         claimedCollateral[requestId] += amountOut;
         totalQueuedCollateral -= amountOut;
 
-        // a fully repaid debt slice accrues no more collateral, so this claim is the last
-        bool complete = r.repaid >= r.debtShare;
+        // a fully repaid debt slice accrues no more collateral, so claiming what is left is the last claim
+        bool complete = r.repaid >= r.debtShare && r.collateralSettled == 0;
 
         // burn pro rata to collateral paid on the fixed basis; the final claim burns the rounding dust
         uint256 burnNow;

@@ -208,7 +208,7 @@ contract SettleBatchTest is Test {
         assertGt(settled, 0, "user collateral settled");
         uint256 balBefore = eth.balanceOf(user);
         vm.prank(user);
-        vault.claim(userReq, user);
+        vault.claim(userReq, user, type(uint256).max);
         assertEq(eth.balanceOf(user) - balBefore, settled, "user receives the settled collateral");
     }
 }

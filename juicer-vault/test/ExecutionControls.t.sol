@@ -306,7 +306,7 @@ contract ExecutionControlsTest is HarvestTest {
         assertEq(vault.loopShares(), 0);
         assertEq(hollarDebt.balanceOf(address(vault)), 0);
         vault.pokeSettle();
-        assertEq(vault.claim(id, address(this)), claim);
+        assertEq(vault.claim(id, address(this), type(uint256).max), claim);
         assertEq(hollarDebt.balanceOf(address(vault)), 0);
         assertLe(vault.reinvestAssets(), vault.totalAssets());
     }
@@ -326,7 +326,7 @@ contract ExecutionControlsTest is HarvestTest {
             _execute(address(loop), abi.encodeCall(SubLoop.pokeRepay, ()));
         vault.pokeSettle();
         (,,uint256 promised,,,,,,) = vault.redemptions(id);
-        assertEq(vault.claim(id, address(this)), promised);
+        assertEq(vault.claim(id, address(this), type(uint256).max), promised);
         assertEq(vault.reinvestAssets(), expected, "settlement does not recreate credit");
         // a fractional usd8-vs-wei deficit no longer holds deployment back
         _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));

@@ -95,13 +95,13 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         (, , uint256 promised, , , , , , ) = vault.redemptions(id);
         uint256 previous = vault.claimedCollateral(id);
         vm.prank(user);
-        paid = vault.claim(id, user);
+        paid = vault.claim(id, user, type(uint256).max);
         assertEq(previous + paid, promised, "full recorded promise, no tolerance");
         (, , , , , , , , bool active) = vault.redemptions(id);
         assertFalse(active);
         vm.prank(user);
         vm.expectRevert(CollateralVault.RequestNotActive.selector);
-        vault.claim(id, user);
+        vault.claim(id, user, type(uint256).max);
     }
 
     function _recovery(bool reverseVaults, bool reverseClaims, uint256 firstFundingBps) internal {
@@ -147,7 +147,7 @@ contract RecoveryE2ETest is MultiVaultFlowTest {
         loop.pauseEmergency();
         vm.prank(ETH_USER);
         vm.expectRevert("Pausable: paused");
-        ethVault.claim(id, ETH_USER);
+        ethVault.claim(id, ETH_USER, type(uint256).max);
         vm.prank(BTC_USER);
         vm.expectRevert("Pausable: paused");
         tbtcVault.requestRedeem(checkpoint.offlineShares, BTC_USER);

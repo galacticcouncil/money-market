@@ -94,7 +94,7 @@ contract PluggableYieldSourceTest is Test {
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(100);
         vault.pokeSettle();
-        uint256 got = vault.claim(reqId, address(this));
+        uint256 got = vault.claim(reqId, address(this), type(uint256).max);
 
         // only DEAD_SHARES (1000 wei) may be lost, so keep the band tight
         assertApproxEqAbs(got, 1e18, 1e6, "principal returned via the generic seam");
