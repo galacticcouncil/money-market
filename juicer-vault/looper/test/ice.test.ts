@@ -35,7 +35,7 @@ type Pending = { nonce: bigint; deadline: bigint; kind: number; amountIn: bigint
 // one chain and its substrate side, shared by every keeper instance
 function chain() {
   const c = {
-    ttl: 60, hf: 2n * TARGET, unwind: 0n, safetyDebt: 0n, emergency: false, idle: 0n, nonce: 0n,
+    ttl: 60, hf: 2n * TARGET, unwind: 0n, safetyDebt: 0n, emergency: false, idle: 0n, nonce: 0n, sourcePending: 0n,
     head: {number: 1_000n, timestamp: 10_000n},
     pending: undefined as Pending | undefined,
     outcome: 1,
@@ -92,7 +92,7 @@ function keeper(c: Chain, name: 'k0' | 'k1', index: number) {
     const views: Record<string, () => unknown> = {
       effectiveHealthFactor: () => c.hf, targetHf: () => TARGET, unwindTargetEquity: () => c.unwind,
       deleverDebtTarget: () => c.safetyDebt, paused: () => false, emergencyPaused: () => c.emergency,
-      intentTtl: () => c.ttl, negativeCarryBps: () => 0n, equityOf: () => 0n, pendingUnwindOf: () => 0n,
+      intentTtl: () => c.ttl, negativeCarryBps: () => 0n, equityOf: () => 0n, pendingUnwindOf: () => c.sourcePending,
       pendingIntent: () => p ? [p.nonce, p.deadline, p.kind, false, p.amountIn, 0n, 0n, 0n, 0n] : [0n, 0n, 0, false, 0n, 0n, 0n, 0n, 0n],
       reconcile: () => p ? c.outcome : 0,
       hasRole: () => { assert.equal(args[1], KEEPER); return c.keeperRole; },
@@ -107,6 +107,8 @@ function keeper(c: Chain, name: 'k0' | 'k1', index: number) {
   };
   k.poke = async (abi: any[], address: string, fn: string, _label: string, args: unknown[] = [], direct = false) => {
     if (fn === 'maintainPeg') return false;
+    // pullFreed rejects over a waiting intent, so the simulation drops it
+    if (fn === 'pokeSettle' && c.pending) return false;
     const kind0 = fn.startsWith('pokeBorrow') ? ENTRY : fn.startsWith('pokeRepay') ? EXIT : 0;
     if (kind0 && direct && c.next[kind0] !== undefined) {
       // a submission the dry run proved must not be dropped by the zero-work guard
@@ -315,6 +317,24 @@ test('an exit probe with no intent to send still repays what an earlier fill bro
   c.unwind = 1n;
   assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, ['k0:pokeRepayQuoted(0)']);
   assert.deepEqual(c.sells, []);
+});
+
+test('mid-unwind the duty operator settles before each exit, and the other one keeps out of its way', async () => {
+  const c = chain();
+  const exit = 'pokeRepayQuoted(1060000000000000000000000000000)';
+  c.unwind = 1n;
+  c.sourcePending = 1n;
+  c.next[EXIT] = 500_000_000n;
+  const k0 = keeper(c, 'k0', 0), k1 = keeper(c, 'k1', 1);
+  assert.deepEqual((await run(c, k0)).calls, ['k0:pokeSettle', `k0:${exit}`]);
+  c.outcome = 2;
+  assert.deepEqual((await run(c, k1, false)).calls, [], 'it would land behind the next exit');
+  assert.deepEqual((await run(c, k1)).calls, ['k1:reconcile', 'k1:pokeSettle', `k1:${exit}`]);
+  c.next[EXIT] = undefined;
+  assert.deepEqual((await run(c, k0)).calls, ['k0:reconcile', 'k0:pokeSettle', 'k0:pokeRepayQuoted(0)', 'k0:pokeSettle'],
+    'the last fill is credited and pulled in the same cycle');
+  c.unwind = 0n;
+  assert.deepEqual((await run(c, k1, false)).calls, ['k1:pokeSettle'], 'with nothing left to sell, anyone settles');
 });
 
 test('router mode keeps the controller path, and a safety repayment stays on the router in intent mode', async () => {

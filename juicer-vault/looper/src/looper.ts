@@ -343,13 +343,16 @@ export class JuicerLooper {
       }
       if (!safetyAttempted && !emergency && (unwind > 0n || pending.length > 0 || started)) {
         if (ttl === 0) await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeRepay', 'pokeRepay (unwind/safety debt)');
-        else if (turn && !busy) await this.submitIntent(EXIT);
+        else if (turn && !busy) {
+          // pullFreed rejects while an intent waits: pull the credited slices before the next one goes out
+          await this.settle(pending);
+          await this.submitIntent(EXIT);
+        }
       }
     }
     // Applying already freed funds is safe even while source swaps are paused.
-    for (const vault of pending) {
-      await this.poke(VAULT_ABI, vault, 'pokeSettle', `pokeSettle ${short(vault)}`);
-    }
+    // off duty mid-unwind, a settle lands behind the duty operator's next exit and reverts
+    if (turn || ttl === 0 || paused || emergency || unwind === 0n) await this.settle(pending);
     if (turn) for (const vault of this.vaults) {
       if (!pending.includes(vault) && !frozen.has(vault) && !unsettled.has(vault)) {
         await this.serviceMainInterest(vault, time);
@@ -359,6 +362,10 @@ export class JuicerLooper {
     for (const vault of this.vaults) await this.deliver(vault);
     // frozen vaults can't sync and unallocated ones wouldn't allocate
     if (turn) await this.syncVaults(new Set([...frozen, ...unsettled]), time);
+  }
+
+  private async settle(vaults: Address[]): Promise<void> {
+    for (const vault of vaults) await this.poke(VAULT_ABI, vault, 'pokeSettle', `pokeSettle ${short(vault)}`);
   }
 
   private async fundedInterest(vault: Address): Promise<bigint> {
