@@ -88,6 +88,9 @@ def check_coverage(paths):
             admission = previous[-1]
             if code:
                 reverts[code] += 1
+                if op == 7 and code == 21 and owner and amount < previous[17] and \
+                        owner > previous[116 + 15 * amount + 6]:
+                    features["oversized_claims_rejected"] += 1
                 if op == 31:
                     features["band_rejections"] += 1
                 if op == 32:
@@ -108,6 +111,8 @@ def check_coverage(paths):
                     start = 116 + 15 * amount
                     active = state[start + 8]
                     features["partial_claims" if active else "final_claims"] += 1
+                    if owner and owner < previous[start + 6]:
+                        features["exact_partial_claims"] += 1
                     if caller != previous[start] and receiver != previous[start]:
                         features["redirected_keeper_claims"] += 1
                 if op in (2, 3) and previous[34]:
@@ -160,7 +165,8 @@ def check_coverage(paths):
             previous = state
     required = ["partial_claims", "final_claims", "redirected_keeper_claims", "band_changes",
                 "band_resets", "band_rejections", "admission_changes", "admission_rejections",
-                "banded_rebalances", "deposits_under_configured_admission"]
+                "banded_rebalances", "deposits_under_configured_admission", "exact_partial_claims",
+                "oversized_claims_rejected"]
     if any(seed % 4 in (1, 2) for seed in seeds):
         required += ["unfinished_source_batches", "receipts_during_unfinished_batch",
                      "wide_public_start_batches", "settlement_limit_reached"]

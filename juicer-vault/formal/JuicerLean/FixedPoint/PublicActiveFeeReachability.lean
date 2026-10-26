@@ -133,8 +133,8 @@ theorem raw_pokeSettle_activeFeeSafe (s : State) (caller a b n : Nat) (h : Activ
   (congrArg (OnSuccess (fun result : State × Nat => ActiveFeeSafe result.1))
     (raw_pokeSettle_factored s caller a b n)).mpr (pokeSettleTail_activeFeeSafe _ hc)
 
-theorem claimState_activeFeeSafe (s : State) (i receiver : Nat) (h : ActiveFeeSafe s) :
-    ActiveFeeSafe (claimState s i receiver) := h
+theorem claimState_activeFeeSafe (s : State) (i receiver paid : Nat) (h : ActiveFeeSafe s) :
+    ActiveFeeSafe (claimState s i receiver paid) := h
 
 theorem raw_claim_activeFeeSafe (s : State) (caller a b n : Nat) (h : ActiveFeeSafe s) :
     OnSuccess (fun result : State × Nat => ActiveFeeSafe result.1) (rawRunCall s ⟨7, caller, a, b, n⟩) := by

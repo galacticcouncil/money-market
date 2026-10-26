@@ -530,9 +530,10 @@ def rawRunCall (input : State) (action : Action) : Result := do
     if !r.claim.active then throw 20
     let receiver := if caller == r.owner then b else r.owner
     if receiver == zeroId then throw 3
-    if r.claim.settled == 0 then throw 21
-    let (next, _, burned) := claimRedemption r.claim
-    let paid := r.claim.settled
+    -- a zero action amount stands for type(uint256).max, the whole settled balance
+    let paid := if a == 0 then r.claim.settled else a
+    if paid == 0 || r.claim.settled < paid then throw 21
+    let (next, _, burned) := claimAmount r.claim paid
     s := setWallet s vaultId (wallet s vaultId - burned)
     s := { s with
       supply := s.supply - burned,

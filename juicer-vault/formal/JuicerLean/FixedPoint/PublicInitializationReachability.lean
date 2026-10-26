@@ -162,17 +162,18 @@ theorem raw_pokeSettle_initializationSafe (s : State) (caller a b n : Nat) (h : 
   (congrArg (OnSuccess (fun result : State × Nat => InitializationSafe result.1))
     (raw_pokeSettle_factored s caller a b n)).mpr (pokeSettleTail_initializationSafe _ hc)
 
-theorem claimState_initializationSafe (s : State) (i receiver : Nat) (h : InitializationSafe s)
-    (hop : OperationalInvariant s) (hi : i < s.unwind) (hp : 0 < (request s i).claim.settled) :
-    InitializationSafe (claimState s i receiver) := by
-  have wallet_eq : wallet (claimState s i receiver) 4 = wallet s 4 :=
+theorem claimState_initializationSafe (s : State) (i receiver paid : Nat) (h : InitializationSafe s)
+    (hop : OperationalInvariant s) (hi : i < s.unwind)
+    (hp : 0 < paid ∧ paid ≤ (request s i).claim.settled) :
+    InitializationSafe (claimState s i receiver paid) := by
+  have wallet_eq : wallet (claimState s i receiver paid) 4 = wallet s 4 :=
     wallet_set_other s vaultId _ (by decide)
-  have hn := claimState_operational s i receiver hop hi hp
+  have hn := claimState_operational s i receiver paid hop hi hp
   refine ⟨?_, ?_, ?_⟩
   · intro hz
     rcases h.2.1 with hs | hw
     · exact h.1 hs
-    · have hb := wallet_le_supply (claimState s i receiver) 4 hn (by decide)
+    · have hb := wallet_le_supply (claimState s i receiver paid) 4 hn (by decide)
       rw [wallet_eq, hz] at hb
       omega
   · rcases h.2.1 with hs | hw
@@ -186,12 +187,9 @@ theorem raw_claim_initializationSafe (s : State) (caller a b n : Nat) (h : Initi
     OnSuccess (fun result : State × Nat => InitializationSafe result.1) (rawRunCall s ⟨7, caller, a, b, n⟩) := by
   rw [rawRunCall_claim]
   split_ifs
-  all_goals try trivial
-  all_goals
-    apply claimState_initializationSafe s n _ h hop hi
-    have hp : ¬((request s n).claim.settled == 0) = true := by assumption
-    simp only [beq_iff_eq] at hp
-    omega
+  all_goals first
+    | trivial
+    | exact claimState_initializationSafe s n _ _ h hop hi (claimPaid_bounds (by assumption))
 
 theorem mintMainPosition_initializationSafe (s : State) (units principal : Nat) (h : InitializationSafe s) :
     InitializationSafe (mintMainPosition s units principal) := h

@@ -33,11 +33,17 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
     function _allowRescale() internal pure virtual returns (bool) { return false; }
 
     function _snapshot() internal view virtual returns (uint256[] memory out) {
+        out = _baseSnapshot(4);
+        _writeConfig(out);
+    }
+
+    // `extra` trailing slots stay free for the caller; the config always fills the last four
+    function _baseSnapshot(uint256 extra) internal view returns (uint256[] memory out) {
         JuicerYieldAccounting y = vault.yieldAccounting();
         JuicerMainDebt m = JuicerMainDebt(address(vault.mainDebt()));
         uint256 tail = vault.queueTail();
         uint256 mainTail = m.sourceTail();
-        out = new uint256[](116 + tail * 15 + mainTail * 5);
+        out = new uint256[](116 + tail * 15 + mainTail * 5 + extra);
         uint256 k;
         out[k++] = vault.totalSupply(); out[k++] = vault.totalAssets();
         out[k++] = aEth.balanceOf(address(vault)); out[k++] = eth.balanceOf(address(vault));
@@ -78,17 +84,16 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
             (uint256 units_, uint256 principal, uint256 cash, uint256 remaining, address owner) = m.positions(i);
             out[k++] = units_; out[k++] = principal; out[k++] = cash; out[k++] = remaining; out[k++] = _id(owner);
         }
-        assertEq(k, out.length);
+        assertEq(k + extra, out.length);
         if (!_allowRescale()) assertEq(y.unitScale(), 0, "rescale belongs to its separate campaign");
         _checkFixture();
     }
 
     // the source's band and admission bound for this vault, after every fixture's own fields
-    function _withConfig(uint256[] memory base) internal view returns (uint256[] memory out) {
-        out = new uint256[](base.length + 4);
-        for (uint256 i; i < base.length; ++i) out[i] = base[i];
-        (out[base.length], out[base.length + 1], out[base.length + 2]) = source.rebalanceBand(address(vault));
-        out[base.length + 3] = source.admissionMaxDeficitBps();
+    function _writeConfig(uint256[] memory out) internal view {
+        uint256 n = out.length;
+        (out[n - 4], out[n - 3], out[n - 2]) = source.rebalanceBand(address(vault));
+        out[n - 1] = source.admissionMaxDeficitBps();
     }
 
     // launch settings on even seeds, then occasional valid, reset and rejected changes
@@ -107,6 +112,13 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         else if (k == 5) _act(32, 0, 0, 0, 250);
         else if (k == 6) _act(32, 0, 0, 0, (r >> 216) % 2 == 0 ? 0 : 10000);
         else _act(32, 0, 0, 0, 10001);
+    }
+
+    // zero claims everything; otherwise half, all or one more than the settled amount
+    function _claimAmount(uint256 id, uint256 r) internal view returns (uint256) {
+        if (id >= vault.queueTail() || r % 4 == 0) return 0;
+        (,,,,,, uint256 settled,,) = vault.redemptions(id);
+        return r % 4 == 1 ? settled / 2 : r % 4 == 2 ? settled : settled + 1;
     }
 
     function _checkFixture() internal view virtual {
@@ -149,18 +161,21 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
     }
 
     function _record(uint256[5] memory action, uint256 code, uint256 value) internal {
+        // the recording is instrumentation, so it stays out of the campaign's block gas
+        vm.pauseGasMetering();
         uint256[] memory a = new uint256[](5);
         for (uint256 i; i < 5; ++i) a[i] = action[i];
         uint256[] memory status = new uint256[](2); status[0] = code; status[1] = value;
         vm.serializeUint("step", "action", a);
         vm.serializeUint("step", "status", status);
-        uint256[] memory state = _withConfig(_snapshot());
+        uint256[] memory state = _snapshot();
         bytes32 current = keccak256(abi.encode(state));
         if (code != 0) assertEq(current, lastSnapshot, "failed call changed tracked state");
         lastSnapshot = current;
         string memory row = vm.serializeUint("step", "state", state);
         vm.writeLine(tracePath, row);
         ++step;
+        vm.resumeGasMetering();
     }
 
     function _act(uint256 op, uint256 caller, uint256 a, uint256 b, uint256 n) internal {
@@ -178,7 +193,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         else if (op == 4) data = abi.encodeCall(vault.requestRedeem, (n, actors[a]));
         else if (op == 5) data = abi.encodeCall(vault.startUnwinds, (n));
         else if (op == 6) data = abi.encodeCall(vault.pokeSettle, ());
-        else if (op == 7) data = abi.encodeCall(vault.claim, (n, actors[b], type(uint256).max));
+        else if (op == 7) data = abi.encodeCall(vault.claim, (n, actors[b], a == 0 ? type(uint256).max : a));
         else if (op == 8) data = abi.encodeCall(vault.sync, ());
         else if (op == 9) data = abi.encodeCall(vault.rebalance, ());
         else if (op == 10) { vm.warp(block.timestamp + n); _record([op, caller, a, b, n], 0, 0); return; }
@@ -257,7 +272,10 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
                 _act(4, (r >> 40) % 2 == 0 ? a : b, a, 0, n);
             } else if (op == 5) _act(5, a, 0, 0, (r >> 32) % 7);
             else if (op == 6) _act(6, a, 0, 0, 0);
-            else if (op == 7) _act(7, a, 0, (r >> 24) % 8, (r >> 32) % (vault.queueTail() + 2));
+            else if (op == 7) {
+                uint256 id = (r >> 32) % (vault.queueTail() + 2);
+                _act(7, a, _claimAmount(id, r >> 64), (r >> 24) % 8, id);
+            }
             else if (op == 8) _act(8, a, 0, 0, 0);
             else if (op == 9) _act(9, a, 0, 0, 0);
             else if (op == 10) _act(10, 0, 0, 0, (r >> 32) % 30);
@@ -272,7 +290,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         _act(16, 0, 0, 0, 0); _act(14, 0, 0, 0, 0); _act(15, 0, 0, 0, 0);
         _act(10, 0, 0, 0, 20); _act(12, 0, 0, 0, 10000); _act(13, 0, 0, 0, type(uint256).max);
         for (uint256 i; i < 5; ++i) { _act(6, 0, 0, 0, 0); _act(5, 0, 0, 0, 100); }
-        for (uint256 id; id < vault.queueTail(); ++id) _act(7, 3, 0, 2, id);
+        for (uint256 id; id < vault.queueTail(); ++id) { _act(7, 3, _claimAmount(id, 1), 2, id); _act(7, 3, 0, 2, id); }
         _record([uint256(998), seed, depth, 0, step - 1], 0, 0);
         emit log_named_uint("trace seed", seed);
         emit log_named_uint("public steps", step - 2);

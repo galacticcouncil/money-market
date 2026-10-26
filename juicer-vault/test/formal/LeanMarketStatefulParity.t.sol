@@ -47,9 +47,9 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
     }
 
     function _snapshot() internal view override returns (uint256[] memory out) {
-        uint256[] memory base = super._snapshot();
+        uint256[] memory base = _baseSnapshot(0);
         JuicerMainDebt m = JuicerMainDebt(address(vault.mainDebt()));
-        out = new uint256[](base.length + 27 + m.sourceTail() * 2);
+        out = new uint256[](base.length + 27 + m.sourceTail() * 2 + 4);
         uint256 k;
         for (; k < base.length; ++k) out[k] = base[k];
         out[k++] = market.rate(); out[k++] = hollar.balanceOf(address(market));
@@ -69,7 +69,8 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
             (uint256 yield, uint256 fee) = m.sourceFees(i);
             out[k++] = yield; out[k++] = fee;
         }
-        assertEq(k, out.length);
+        assertEq(k + 4, out.length);
+        _writeConfig(out);
     }
 
     function perform(uint256 op, uint256 caller, uint256 a, uint256 b, uint256 n) public override {
@@ -211,7 +212,10 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
             else if (op == 4) _act(4, a, a, 0, vault.walletOf(actors[a]) / 100);
             else if (op == 5) _act(5, a, 0, 0, 5);
             else if (op == 6 || op == 8 || op == 9 || op == 22) _act(op, a, 0, 0, 0);
-            else if (op == 7) _act(7, a, 0, b, (r >> 32) % (vault.queueTail() + 1));
+            else if (op == 7) {
+                uint256 id = (r >> 32) % (vault.queueTail() + 1);
+                _act(7, a, _claimAmount(id, r >> 64), b, id);
+            }
             else if (op == 10) _act(10, 0, 0, 0, 15);
             else if (op == 11) _act(11, 0, 0, 0, 1e14);
             else if (op == 12) _act(12, 0, 0, 0, (r % 4 + 1) * 2500);
@@ -234,7 +238,7 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
         _act(22, 0, 0, 0, 0); _act(10, 0, 0, 0, 20);
         _act(12, 0, 0, 0, 10000); _act(13, 0, 0, 0, type(uint256).max);
         for (uint256 i; i < 6; ++i) { _act(6, 0, 0, 0, 0); _act(5, 0, 0, 0, 100); }
-        for (uint256 id; id < vault.queueTail(); ++id) _act(7, 3, 0, 2, id);
+        for (uint256 id; id < vault.queueTail(); ++id) { _act(7, 3, _claimAmount(id, 1), 2, id); _act(7, 3, 0, 2, id); }
         _act(27, 0, 0, 0, 0); _act(27, 0, 1, 0, 0);
         _record([uint256(998), seed, depth, 1, step - 1], 0, 0);
     }

@@ -69,7 +69,7 @@ def SolidityCall.arguments (call : SolidityCall) : List Nat :=
   | .transferFrom => [a.a, a.b, a.amount]
   | .requestRedeem => [a.amount, a.a]
   | .startUnwinds => [a.amount]
-  | .claim => [a.amount, a.b]
+  | .claim => [a.amount, a.b, a.a]
   | .warp | .repay | .setPullBps | .setRepayLimit | .reprice | .setProtocolFeeBps
   | .setCostBps | .accrueInterest | .setPrice | .harvest | .fundReserve
   | .setHaircut | .setTvlCap | .fundPosition | .setAdmissionMaxDeficitBps => [a.amount]

@@ -133,14 +133,14 @@ theorem raw_pokeSettle_metadata (s : State) (caller a b n : Nat) (h : PublicMeta
   (congrArg (OnSuccess (fun result : State × Nat => PublicMetadata result.1))
     (raw_pokeSettle_factored s caller a b n)).mpr (pokeSettleTail_metadata _ hc)
 
-theorem claimState_metadata (s : State) (i receiver : Nat) (h : PublicMetadata s) :
-    PublicMetadata (claimState s i receiver) :=
+theorem claimState_metadata (s : State) (i receiver paid : Nat) (h : PublicMetadata s) :
+    PublicMetadata (claimState s i receiver paid) :=
   metadata_setRequest s i _ h (metadata_request s i h)
 
 theorem raw_claim_metadata (s : State) (caller a b n : Nat) (h : PublicMetadata s) :
     OnSuccess (fun result : State × Nat => PublicMetadata result.1) (rawRunCall s ⟨7, caller, a, b, n⟩) := by
   rw [rawRunCall_claim]
-  split_ifs <;> first | trivial | exact claimState_metadata s n _ h
+  split_ifs <;> first | trivial | exact claimState_metadata s n _ _ h
 
 theorem mintMainPosition_metadata (s : State) (units principal : Nat) (h : PublicMetadata s) :
     PublicMetadata (mintMainPosition s units principal) := h

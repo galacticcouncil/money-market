@@ -159,8 +159,8 @@ theorem raw_pokeSettle_creditReady (s : State) (caller a b n : Nat) (h : CreditR
   (congrArg (OnSuccess (fun result : State × Nat => CreditReadyHistory result.1))
     (raw_pokeSettle_factored s caller a b n)).mpr (pokeSettleTail_creditReady _ hn)
 
-theorem claimState_creditReady (s : State) (i receiver : Nat) (h : CreditReadyHistory s) :
-    CreditReadyHistory (claimState s i receiver) := h
+theorem claimState_creditReady (s : State) (i receiver paid : Nat) (h : CreditReadyHistory s) :
+    CreditReadyHistory (claimState s i receiver paid) := h
 
 theorem raw_claim_creditReady (s : State) (caller a b n : Nat) (h : CreditReadyHistory s) :
     OnSuccess (fun result : State × Nat => CreditReadyHistory result.1) (rawRunCall s ⟨7, caller, a, b, n⟩) := by

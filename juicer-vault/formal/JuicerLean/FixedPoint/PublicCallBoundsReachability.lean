@@ -136,14 +136,14 @@ theorem raw_pokeSettle_callBounds (s : State) (caller a b n : Nat) (h : PublicCa
   (congrArg (OnSuccess (fun result : State × Nat => PublicCallBounds result.1))
     (raw_pokeSettle_factored s caller a b n)).mpr (pokeSettleTail_callBounds _ hc)
 
-theorem claimState_callBounds (s : State) (i receiver : Nat) (h : PublicCallBounds s) :
-    PublicCallBounds (claimState s i receiver) :=
+theorem claimState_callBounds (s : State) (i receiver paid : Nat) (h : PublicCallBounds s) :
+    PublicCallBounds (claimState s i receiver paid) :=
   callBounds_setRequest s i _ h (h.2.2 i)
 
 theorem raw_claim_callBounds (s : State) (caller a b n : Nat) (h : PublicCallBounds s) :
     OnSuccess (fun result : State × Nat => PublicCallBounds result.1) (rawRunCall s ⟨7, caller, a, b, n⟩) := by
   rw [rawRunCall_claim]
-  split_ifs <;> first | trivial | exact claimState_callBounds s n _ h
+  split_ifs <;> first | trivial | exact claimState_callBounds s n _ _ h
 
 theorem mintMainPosition_callBounds (s : State) (units principal : Nat) (h : PublicCallBounds s) :
     PublicCallBounds (mintMainPosition s units principal) := h
