@@ -34,7 +34,7 @@
     "formal/JuicerLean/FixedPoint/CheckedRefinement.lean": "28ac7a13ac770fa304b13e3c7a680761a8eac4d0e39bb6b429d93db71ac778f9",
     "formal/MachineVectors.lean": "4f640cf28c4d6a940815ab006efe0c434e613b1e4e12d921afa4d5117b36149e",
     "../bil-vault/lib/openzeppelin-contracts/contracts/utils/math/Math.sol": "85a2caf3bd06579fb55236398c1321e15fd524a8fe140dff748c0f73d7a52345",
-    "formal/JuicerLean.lean": "7221dab02d06f7d16635aa44e1e8f17ac90568070fa574dc19ee3e248cdbce47",
+    "formal/JuicerLean.lean": "b161ea64618066d0bb533174a5afae82d06223af69ce3dbc9c1dff5cab5bd645",
     "formal/JuicerLean/FixedPoint/PublicCalls.lean": "3d3e1da218b4ff12bb32e57cab15ef15a79614d445b3adc896c5bdb5ccbf5824",
     "formal/JuicerLean/FixedPoint/PublicInvariants.lean": "22c88068358f1d874f6a80ed945ff040249ab4d7489b26a7066f452d2f764c1c",
     "formal/JuicerLean/FixedPoint/PublicCertificates.lean": "5d46d711959887516914a2dc9a5e52be814c0835f4f44137aa2dad8aa0592742",
@@ -68,7 +68,7 @@
     "test/mocks/StatefulYieldSource.sol": "f83e6ebac9149942a47fe7ddacf309f683530b226064729e838334879b4ef89f",
     "test/mocks/MockSwapper.sol": "b3031758599a1f3b8cd955a0a2b367c35c47d0a741b8627d8dc5600dd894e4ce",
     "formal/check-dispatch.py": "1c662837c89fd35ceee4180ed4bb742eface3b6c3812c03bb62e44e90d3dc9ba",
-    "formal/check-runtime.py": "18f7b55ca6ef45278a1948c58e23c288f9e00878af14af1e18087da93a4eb994",
+    "formal/check-runtime.py": "e6a8e165c11289b88ede4425d2a89f8aabdf2c6f6f9ec928d5b427e61bc8ea1d",
     "formal/check-bytecode.py": "32ab0923c948c708830aafdecbd726e6b134aa30f0d882daa8ba58f5177c3202",
     "formal/bytecode-manifest.json": "5f5a38be8abe513e94b4e5990b23bf4596ebd9f10950c4a119a91395a68bb182",
     "test/formal/RescaleAmplification.t.sol": "0d3ceab17f24d4280fdbd51334a21cfe6fcc9855ea235c8b40aad8a927e57c5f",
@@ -172,6 +172,10 @@
     "test/AuditPolicyResolution.t.sol": "78703800e50b4f982d571f2885d58f3c1195997a47ed7d7581735cabee98ffe3",
     "test/YieldEntryFairness.t.sol": "172b974ac70aecfc8c31fe2b377f17cca44c8919fa6411bca0f5ebde3a06e785",
     "test/helpers/Deficit.sol": "015cb01365af78a474268e582898a2fec5c6165d28aa9dfdf240e05b8d00ec44",
-    "formal/JuicerLean/FixedPoint/PublicConfigProofs.lean": "ce4a83055358b2af76521e3529b154fbebf3aa7d9fbf35d803b6253ac2945e88"
+    "formal/JuicerLean/FixedPoint/PublicConfigProofs.lean": "ce4a83055358b2af76521e3529b154fbebf3aa7d9fbf35d803b6253ac2945e88",
+    "formal/JuicerLean/FixedPoint/LoopConfig.lean": "4069a040e3e5c22b7d68993ab31de0b729b02e5edcfd0ac1268b1a69e45a7c14",
+    "formal/JuicerLean/FixedPoint/Discount.lean": "f8e8291b5e7c66db7c5496659326cb9b33e7e566a58051a874807be1ff48b085",
+    "formal/ConfigVectors.lean": "55562a36022838264f74b21ad222752b223b48bd680b47ac70c9239d2c604556",
+    "test/formal/LeanConfigParity.t.sol": "0606af1093d73bedc8096f3120809c33b4b516054f0e015efae2bec0056b7c78"
   }
 }

@@ -28,7 +28,8 @@ def main():
     subprocess.run(lean + ["CheckAxioms.lean"], cwd=formal, check=True)
     for source, artifact in [("ParityVectors.lean", "runtime-vectors.json"),
                              ("CoverageVectors.lean", "coverage-vectors.json"),
-                             ("MachineVectors.lean", "machine-vectors.json")]:
+                             ("MachineVectors.lean", "machine-vectors.json"),
+                             ("ConfigVectors.lean", "config-vectors.json")]:
         generated = subprocess.check_output(lean + ["--run", source], cwd=formal, text=True)
         if json.loads(generated) != json.loads((formal / artifact).read_text()):
             raise SystemExit(f"{artifact} changed; regenerate it with {source}")

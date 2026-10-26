@@ -41,6 +41,8 @@ import JuicerLean.FixedPoint.PublicMetadataReachability
 import JuicerLean.FixedPoint.PublicCallBoundsReachability
 import JuicerLean.FixedPoint.PublicReadyReachability
 import JuicerLean.FixedPoint.PublicConfigProofs
+import JuicerLean.FixedPoint.LoopConfig
+import JuicerLean.FixedPoint.Discount
 import JuicerLean.FixedPoint.PublicInductionRegressions
 import JuicerLean.FixedPoint.PublicBoundaryRegressions
 import JuicerLean.Solidity.BodyProofs
