@@ -20,11 +20,16 @@ def code_summary(field, label):
         code = bytes.fromhex(raw[2:])
     except ValueError as error:
         raise SystemExit(f"bytecode drift: {label} is not fully linked hex") from error
+    # keys are solc AST ids, which shift with what a build compiles together; positions don't
+    immutables = sorted(
+        sorted([ref["start"], ref["length"]] for ref in refs)
+        for refs in field.get("immutableReferences", {}).values()
+    )
     return {
         "bytes": len(code),
         "sha256": hashlib.sha256(code).hexdigest(),
         "linkReferencesSha256": canonical_hash(field.get("linkReferences", {})),
-        "immutableReferencesSha256": canonical_hash(field.get("immutableReferences", {})),
+        "immutableReferencesSha256": canonical_hash(immutables),
     }
 
 

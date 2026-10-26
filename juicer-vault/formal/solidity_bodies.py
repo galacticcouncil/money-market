@@ -203,12 +203,37 @@ def body_trace(body):
     return trace
 
 
-def _normalized_ast(value):
+AST_REFERENCES = {"referencedDeclaration", "functionReturnParameters", "overloadedDeclarations",
+                  "assignments", "baseFunctions"}
+# declared types carry the declaration's id; array lengths share the `_$n` shape but stay literal
+TYPE_ID = re.compile(r"((?:contract|struct|enum|userDefinedValueType|super)\$_\w*?_\$)(\d+)")
+
+
+def _normalized_ast(value, labels=None):
+    # solc numbers AST nodes per compilation, so a build's file set shifts every id; relabel
+    # them in first-use order, keeping which references share a declaration (builtins are negative)
+    labels = {} if labels is None else labels
+
+    def label(number):
+        return labels.setdefault(number, len(labels)) if number >= 0 else number
+
     ignored = {"id", "src", "scope", "nameLocation", "documentation"}
     if isinstance(value, dict):
-        return {key: _normalized_ast(child) for key, child in sorted(value.items()) if key not in ignored}
+        normalized = {}
+        for key, child in sorted(value.items()):
+            if key in ignored:
+                continue
+            if key in AST_REFERENCES and isinstance(child, int):
+                normalized[key] = label(child)
+            elif key in AST_REFERENCES and isinstance(child, list):
+                normalized[key] = [label(item) if isinstance(item, int) else item for item in child]
+            elif key == "typeIdentifier" and isinstance(child, str):
+                normalized[key] = TYPE_ID.sub(lambda m: m.group(1) + str(label(int(m.group(2)))), child)
+            else:
+                normalized[key] = _normalized_ast(child, labels)
+        return normalized
     if isinstance(value, list):
-        return [_normalized_ast(child) for child in value]
+        return [_normalized_ast(child, labels) for child in value]
     return value
 
 
