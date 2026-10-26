@@ -150,14 +150,39 @@ theorem newcomer_dilutes_existing_deficit :
 def admissionDeficitBps (debt backing : ℕ) : ℕ :=
   if debt == 0 || debt ≤ backing then 0 else ceilDiv ((debt - backing) * 10000) debt
 
-def admissionReady (debt backing : ℕ) : Bool := admissionDeficitBps debt backing ≤ 50
+def admissionReady (bound debt backing : ℕ) : Bool := admissionDeficitBps debt backing ≤ bound
 
 theorem admission_ceiling_accepts_fifty_and_rejects_fifty_one_bps :
-    admissionDeficitBps 10000 9950 = 50 ∧ admissionReady 10000 9950 ∧
-    admissionDeficitBps 10000 9949 = 51 ∧ !admissionReady 10000 9949 := by decide
+    admissionDeficitBps 10000 9950 = 50 ∧ admissionReady 50 10000 9950 ∧
+    admissionDeficitBps 10000 9949 = 51 ∧ !admissionReady 50 10000 9949 := by decide
 
-theorem admitted_deficit_is_bounded (debt backing : ℕ) (h : admissionReady debt backing) :
-    admissionDeficitBps debt backing ≤ 50 := by simpa [admissionReady] using h
+theorem launch_admission_accepts_250_and_rejects_251_bps :
+    admissionDeficitBps 10000 9750 = 250 ∧ admissionReady 250 10000 9750 ∧
+    admissionDeficitBps 10000 9749 = 251 ∧ !admissionReady 250 10000 9749 := by decide
+
+theorem admitted_deficit_is_bounded (bound debt backing : ℕ) (h : admissionReady bound debt backing) :
+    admissionDeficitBps debt backing ≤ bound := by simpa [admissionReady] using h
+
+theorem admitted_shortfall_is_bounded (bound debt backing : ℕ) (h : admissionReady bound debt backing) :
+    (debt - backing) * 10000 ≤ bound * debt := by
+  have hb := admitted_deficit_is_bounded bound debt backing h
+  unfold admissionDeficitBps at hb
+  by_cases hz : debt = 0 ∨ debt ≤ backing
+  · rcases hz with hz | hz
+    · simp [hz]
+    · simp [Nat.sub_eq_zero_of_le hz]
+  · simp only [not_or, not_le] at hz
+    have hcond : (debt == 0 || decide (debt ≤ backing)) = false := by
+      simp only [Bool.or_eq_false_iff, beq_eq_false_iff_ne, decide_eq_false_iff_not, not_le]
+      exact ⟨hz.1, hz.2⟩
+    rw [hcond] at hb
+    simp only [Bool.false_eq_true, ite_false] at hb
+    exact (ceilDiv_bounds _ _ (Nat.pos_of_ne_zero hz.1)).1.trans (Nat.mul_le_mul_right _ hb)
+
+theorem looser_admission_admits_more (low high debt backing : ℕ) (hle : low ≤ high)
+    (h : admissionReady low debt backing) : admissionReady high debt backing := by
+  simp only [admissionReady, decide_eq_true_eq] at h ⊢
+  omega
 
 def activeAdmissionDeficitBps (totalDebt totalUnits activeUnits backing : ℕ) : ℕ :=
   admissionDeficitBps (mainDebtOf totalDebt totalUnits { units := activeUnits }) backing

@@ -299,11 +299,11 @@ theorem rawRunCall_initializationSafe (s : State) (action : Action) (h : Initial
     (locked : action.op = 2 → action.caller ≠ 4)
     (started : action.op = 7 → action.amount < s.unwind) :
     OnSuccess (fun result : State × Nat => InitializationSafe result.1) (rawRunCall s action) := by
-  by_cases unsupported : 31 ≤ action.op
+  by_cases unsupported : 33 ≤ action.op
   · rw [rawRunCall_unsupported s action unsupported]
     trivial
   · rcases action with ⟨op, caller, a, b, n⟩
-    have hop : op ≤ 30 := by change ¬ 31 ≤ op at unsupported; omega
+    have hop : op ≤ 32 := by change ¬ 33 ≤ op at unsupported; omega
     interval_cases op
     · exact raw_deposit_initializationSafe s caller a b n h
     · exact h
@@ -349,6 +349,8 @@ theorem rawRunCall_initializationSafe (s : State) (action : Action) (h : Initial
     · exact h
     · exact h
     · exact h
+    · exact onSuccess_setBand _ s _ _ _ _ (fun _ => h)
+    · exact onSuccess_setAdmission _ s _ _ _ _ (fun _ => h)
 
 def LockedAddressAction (a : Action) : Prop := a.op = 2 → a.caller ≠ 4
 

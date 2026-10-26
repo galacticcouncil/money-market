@@ -74,7 +74,7 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
 
     function perform(uint256 op, uint256 caller, uint256 a, uint256 b, uint256 n) public override {
         require(msg.sender == address(this));
-        if (op <= 16) { super.perform(op, caller, a, b, n); return; }
+        if (op <= 16 || op >= 31) { super.perform(op, caller, a, b, n); return; }
         address target;
         bytes memory data;
         if (op == 17) { target = address(market); data = abi.encodeCall(market.reprice, (n)); }
@@ -165,6 +165,7 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
         _act(0, 0, 0, 0, 30e18);
         for (uint256 i = 1; i < 4; ++i) _act(0, i, 0, i, 20e18);
         _act(26, 0, 0, 0, 100e18);
+        _launchConfig(seed);
         _act(9, 0, 0, 0, 0);
         _act(17, 0, 0, 0, 125e16);
         _act(23, 0, 0, 0, 0);
@@ -203,6 +204,7 @@ contract LeanMarketStatefulParityTest is LeanStatefulParityTest {
         for (uint256 i; i < depth; ++i) {
             uint256 r = _next(); uint256 op = (r >> 16) % 31;
             uint256 a = r % 4; uint256 b = (r >> 8) % 4;
+            _maybeConfigure(r);
             if (op == 0) _act(0, a, 0, b, ((r >> 32) % 10 + 1) * 1e15);
             else if (op == 1) _act(1, a, 0, b, type(uint256).max);
             else if (op == 2 || op == 3) _act(op, op == 2 ? a : b, a, b, vault.balanceOf(actors[a]) / 20);

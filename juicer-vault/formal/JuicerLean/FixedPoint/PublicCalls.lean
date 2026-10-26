@@ -9,6 +9,13 @@ def vaultId := 5
 def fundId := 6
 def zeroId := 7
 
+-- the band SubLoop.rebalanceBand returns: only setter-validated values, a reset reads back 0/500/300
+structure Band where
+  gap : Nat := 0
+  relever : Nat := 500
+  delever : Nat := 300
+  valid : relever ≠ 0 ∧ delever ≠ 0 ∧ gap ≤ 5000 ∧ relever ≤ 5000 ∧ delever ≤ 2500 := by decide
+
 structure Request where
   owner : Nat := zeroId
   claim : RedemptionState := ⟨0, 0, 0, 0, 0, 0, 0, false⟩
@@ -81,6 +88,8 @@ structure State where
   treasuryCash : Nat := 0
   repayCalls : Nat := 0
   tvlCap : Nat := 1000 * wad
+  band : Band := {}
+  admission : Fin 10001 := 50
 
 def wallet (s : State) (i : Nat) := s.wallets[i]?.getD 0
 def account (s : State) (i : Nat) := s.accounts[i]?.getD {}
@@ -134,6 +143,8 @@ def admissionDeficitBps (s : State) : Nat :=
   let required := requiredBacking debt (position s 0).principal cash s.feeBps
   let unbacked := required - backing
   ceilDiv (max uncovered unbacked * 10000) debt
+
+def targetLtv (s : State) : Nat := 7500 - s.band.gap
 
 def checkpoint (s : State) (a b : Nat) : State := Id.run do
   let mut s := s
@@ -455,7 +466,7 @@ def rawRunCall (input : State) (action : Action) : Result := do
     if supply != 0 && activeAssets s == 0 then throw 8
     let shares := if supply == 0 then n - 1000 else ceilDiv (n * supply) (activeAssets s)
     let needed := if supply == 0 then n else ceilDiv (shares * activeAssets s) supply
-    if 50 < admissionDeficitBps s then throw 28
+    if s.admission.val < admissionDeficitBps s then throw 28
     if s.collateral[caller]! < n then throw 15
     if s.supply == 0 then s := setWallet { s with supply := 1000 } 4 1000
     s := setWallet s b (wallet s b + shares)
@@ -542,8 +553,9 @@ def rawRunCall (input : State) (action : Action) : Result := do
     if coll8 == 0 then return (s, 0)
     let debt8 := s.debt / 10^10
     let exiting := s.pending != 0 || s.head != s.unwind || s.freed != 0
-    let resize := !exiting && debt8 * 10000 / coll8 + 500 < 7500
-    let target := coll8 * 7500 / 10000
+    let ltv := targetLtv s
+    let resize := !exiting && debt8 * 10000 / coll8 + s.band.relever < ltv
+    let target := coll8 * ltv / 10000
     if resize || (s.reinvest != 0 && debt8 < target) then
       if pendingAccounting s || s.activeRemaining != 0 then throw 18
       let oldSynth := s.synth
@@ -551,7 +563,7 @@ def rawRunCall (input : State) (action : Action) : Result := do
       s := { s with synth := oldSynth }
       let wanted := (target - debt8) * 10^10
       let amount := if resize then wanted else min wanted
-        (coll8 * min s.reinvest s.supplied / s.supplied * 7500 / 10000 * 10^10)
+        (coll8 * min s.reinvest s.supplied / s.supplied * ltv / 10000 * 10^10)
       if amount == 0 then return (s, 0)
       if s.mainUnits != 0 && s.debt == 0 then throw 18
       let borrowed := amount - s.borrowLoss
@@ -568,7 +580,7 @@ def rawRunCall (input : State) (action : Action) : Result := do
         sourceCash := s.sourceCash + amount,
         basis := s.basis + amount,
         reinvest := 0 }, shares)
-    if !exiting && 7800 < debt8 * 10000 / coll8 then
+    if !exiting && ltv + s.band.delever < debt8 * 10000 / coll8 then
       let active := s.held - s.book.source - s.book.protocol
       let equity8 := sourceEquity s / 10^10 * active / s.held
       let slice := active * min (debt8 - target) equity8 / equity8
@@ -625,6 +637,14 @@ def rawRunCall (input : State) (action : Action) : Result := do
   else if op == 30 then
     s := setPosition s 0 { position s 0 with cash := (position s 0).cash + n }
     return ({ s with ownedCash := s.ownedCash + n }, 0)
+  else if op == 31 then
+    if a == 0 && b == 0 && n == 0 then return ({ s with band := {} }, 0)
+    if h : b ≠ 0 ∧ n ≠ 0 ∧ a ≤ 5000 ∧ b ≤ 5000 ∧ n ≤ 2500 then
+      return ({ s with band := ⟨a, b, n, h⟩ }, 0)
+    throw 29
+  else if op == 32 then
+    if h : n ≤ 10000 then return ({ s with admission := ⟨n, by omega⟩ }, 0)
+    throw 29
   else throw 99
 
 def rawExecute (s : State) (a : Action) : State × Nat × Nat :=
@@ -665,6 +685,6 @@ def snapshot (s : State) : Array Nat := Id.run do
       s.delever, s.lastHarvest, s.treasuryCash, s.batchAmount, s.batchCost, s.batchTotal,
       s.batchWeight, s.batchCursor, s.batchTail, s.repayCalls, s.tvlCap]
     for f in s.sourceFees do out := out ++ #[f.yieldLeft, f.feeLeft]
-  return out
+  return out ++ #[s.band.gap, s.band.relever, s.band.delever, s.admission.val]
 
 end Juicer.PublicCalls

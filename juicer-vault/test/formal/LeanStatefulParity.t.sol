@@ -83,6 +83,32 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         _checkFixture();
     }
 
+    // the source's band and admission bound for this vault, after every fixture's own fields
+    function _withConfig(uint256[] memory base) internal view returns (uint256[] memory out) {
+        out = new uint256[](base.length + 4);
+        for (uint256 i; i < base.length; ++i) out[i] = base[i];
+        (out[base.length], out[base.length + 1], out[base.length + 2]) = source.rebalanceBand(address(vault));
+        out[base.length + 3] = source.admissionMaxDeficitBps();
+    }
+
+    // launch settings on even seeds, then occasional valid, reset and rejected changes
+    function _launchConfig(uint256 seed) internal {
+        if (seed % 2 == 0) { _act(31, 0, 0, 1000, 800); _act(32, 0, 0, 0, 250); }
+    }
+
+    function _maybeConfigure(uint256 r) internal {
+        if ((r >> 200) % 16 != 0) return;
+        uint256 k = (r >> 208) % 8;
+        if (k == 0) _act(31, 0, 0, 1000, 800);
+        else if (k == 1) _act(31, 0, 500, 300, 150);
+        else if (k == 2) _act(31, 0, 0, 0, 0);
+        else if (k == 3) _act(31, 0, 0, 0, 800);
+        else if (k == 4) _act(31, 0, 100, 600, 2501);
+        else if (k == 5) _act(32, 0, 0, 0, 250);
+        else if (k == 6) _act(32, 0, 0, 0, (r >> 216) % 2 == 0 ? 0 : 10000);
+        else _act(32, 0, 0, 0, 10001);
+    }
+
     function _checkFixture() internal view virtual {
         JuicerMainDebt m = JuicerMainDebt(address(vault.mainDebt()));
         assertEq(source.sharesOf(address(vault)), vault.loopShares());
@@ -118,6 +144,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         if (selector == CollateralVault.NothingToClaim.selector) return 21;
         if (keccak256(reason) == keccak256(abi.encodeWithSignature("Error(string)", "Pausable: not paused"))) return 22;
         if (selector == CollateralVault.PrincipalShortfall.selector) return 28;
+        if (selector == bytes4(keccak256("InvalidParameters()"))) return 29;
         revert(string.concat("unclassified revert: ", vm.toString(reason)));
     }
 
@@ -127,7 +154,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         uint256[] memory status = new uint256[](2); status[0] = code; status[1] = value;
         vm.serializeUint("step", "action", a);
         vm.serializeUint("step", "status", status);
-        uint256[] memory state = _snapshot();
+        uint256[] memory state = _withConfig(_snapshot());
         bytes32 current = keccak256(abi.encode(state));
         if (code != 0) assertEq(current, lastSnapshot, "failed call changed tracked state");
         lastSnapshot = current;
@@ -164,6 +191,11 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         else if (op == 14) data = n == 0 ? abi.encodeCall(vault.unpause, ()) : abi.encodeCall(vault.pause, ());
         else if (op == 15) data = n == 0 ? abi.encodeCall(vault.unpauseDeposits, ()) : abi.encodeCall(vault.pauseDeposits, ());
         else if (op == 16) { target = address(source); data = abi.encodeCall(source.setEmergencyPaused, (n != 0)); }
+        else if (op == 31) {
+            target = address(source);
+            data = abi.encodeCall(source.setRebalanceBand, (address(vault), uint16(a), uint16(b), uint16(n)));
+        }
+        else if (op == 32) { target = address(source); data = abi.encodeCall(source.setAdmissionMaxDeficitBps, (uint16(n))); }
         else revert("unknown action");
         vm.prank(actors[caller]);
         (bool ok, bytes memory result) = target.call(data);
@@ -184,6 +216,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         _act(0, 1, 0, 1, 1e18); // bootstrap guard before any deposit
         _act(0, 0, 0, 0, 20e18);
         for (uint256 i = 1; i < 4; ++i) _act(0, i, 0, i, 10e18);
+        _launchConfig(seed);
         _act(9, 0, 0, 0, 0);
         _act(11, 0, 0, 0, 2e18);
         _act(8, 0, 0, 0, 0);
@@ -210,6 +243,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
             uint256 a = r % 4;
             uint256 b = (r >> 8) % 4;
             uint256 op = (r >> 16) % 18;
+            _maybeConfigure(r);
             if (op == 0) _act(0, a, 0, b, ((r >> 32) % 20 + 1) * 1e15);
             else if (op == 1) _act(1, a, 0, b, r % 2 == 0 ? type(uint256).max : (r >> 32) % 1e18);
             else if (op == 2 || op == 3) {

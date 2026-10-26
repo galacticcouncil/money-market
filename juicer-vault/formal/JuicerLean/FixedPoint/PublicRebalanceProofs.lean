@@ -49,7 +49,7 @@ def rebalanceEnter (s : State) (resize : Bool) (coll8 debt8 target : Nat) : Resu
     let next := { (pay s 0 0).1 with synth := s.synth }
     let wanted := (target-debt8)*10^10
     let amount := if resize then wanted else min wanted
-      (coll8*min next.reinvest next.supplied/next.supplied*7500/10000*10^10)
+      (coll8*min next.reinvest next.supplied/next.supplied*targetLtv s/10000*10^10)
     borrowResultRaw next amount
 
 theorem rebalanceEnter_public (s : State) (resize : Bool) (coll8 debt8 target : Nat)
@@ -109,11 +109,12 @@ def rebalanceTail (s : State) : Result :=
     else
       let debt8 := s.debt/10^10
       let exiting := s.pending != 0 || s.head != s.unwind || s.freed != 0
-      let resize := !exiting && debt8*10000/coll8+500 < 7500
-      let target := coll8*7500/10000
+      let ltv := targetLtv s
+      let resize := !exiting && debt8*10000/coll8+s.band.relever < ltv
+      let target := coll8*ltv/10000
       if resize || (s.reinvest != 0 && debt8 < target) then
         rebalanceEnter s resize coll8 debt8 target
-      else if !exiting && 7800 < debt8*10000/coll8 then rebalanceDelever s debt8 target
+      else if !exiting && ltv+s.band.delever < debt8*10000/coll8 then rebalanceDelever s debt8 target
       else .ok (s,0)
 
 theorem rebalanceTail_public (s : State) (h : PublicInvariant s) (hf : ZeroActiveFee s) :
@@ -134,8 +135,9 @@ def rebalanceTailRaw (input : State) : Result := do
   if coll8 == 0 then return (s,0)
   let debt8 := s.debt/10^10
   let exiting := s.pending != 0 || s.head != s.unwind || s.freed != 0
-  let resize := !exiting && debt8*10000/coll8+500 < 7500
-  let target := coll8*7500/10000
+  let ltv := targetLtv s
+  let resize := !exiting && debt8*10000/coll8+s.band.relever < ltv
+  let target := coll8*ltv/10000
   if resize || (s.reinvest != 0 && debt8 < target) then
     if pendingAccounting s || s.activeRemaining != 0 then throw 18
     let oldSynth := s.synth
@@ -143,7 +145,7 @@ def rebalanceTailRaw (input : State) : Result := do
     s := { s with synth := oldSynth }
     let wanted := (target-debt8)*10^10
     let amount := if resize then wanted else min wanted
-      (coll8*min s.reinvest s.supplied/s.supplied*7500/10000*10^10)
+      (coll8*min s.reinvest s.supplied/s.supplied*ltv/10000*10^10)
     if amount == 0 then return (s,0)
     if s.mainUnits != 0 && s.debt == 0 then throw 18
     let borrowed := amount-s.borrowLoss
@@ -155,7 +157,7 @@ def rebalanceTailRaw (input : State) : Result := do
     return ({ s with
       mainUnits := total,debt := s.debt+borrowed,synth := supplied,held := s.held+shares,
       sourceCash := s.sourceCash+amount,basis := s.basis+amount,reinvest := 0 },shares)
-  if !exiting && 7800 < debt8*10000/coll8 then
+  if !exiting && ltv+s.band.delever < debt8*10000/coll8 then
     let active := s.held-s.book.source-s.book.protocol
     let equity8 := sourceEquity s/10^10*active/s.held
     let slice := active*min (debt8-target) equity8/equity8

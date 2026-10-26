@@ -270,11 +270,11 @@ theorem raw_compound_creditReady (s : State) (caller a b n : Nat) (h : CreditRea
 theorem rawRunCall_creditReady (s : State) (action : Action) (h : CreditReadyHistory s)
     (hpublic : PublicInvariant s) (hactive : ActiveFeeSafe s) (bounds : SourcePullBounds s) :
     OnSuccess (fun result : State × Nat => CreditReadyHistory result.1) (rawRunCall s action) := by
-  by_cases unsupported : 31 ≤ action.op
+  by_cases unsupported : 33 ≤ action.op
   · rw [rawRunCall_unsupported s action unsupported]
     trivial
   · rcases action with ⟨op, caller, a, b, n⟩
-    have hop : op ≤ 30 := by change ¬ 31 ≤ op at unsupported; omega
+    have hop : op ≤ 32 := by change ¬ 33 ≤ op at unsupported; omega
     interval_cases op
     · exact raw_deposit_creditReady s caller a b n h
     · exact h
@@ -318,6 +318,8 @@ theorem rawRunCall_creditReady (s : State) (action : Action) (h : CreditReadyHis
     · exact h
     · exact h
     · exact setPosition_creditReady s 0 _ h rfl (Nat.le_add_right _ _)
+    · exact onSuccess_setBand _ s _ _ _ _ (fun _ => h)
+    · exact onSuccess_setAdmission _ s _ _ _ _ (fun _ => h)
 
 theorem rawExecute_creditReady (s : State) (a : Action) (h : CreditReadyHistory s)
     (hpublic : PublicInvariant s) (hactive : ActiveFeeSafe s) (bounds : SourcePullBounds s) :

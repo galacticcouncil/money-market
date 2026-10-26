@@ -244,11 +244,11 @@ theorem raw_compound_metadata (s : State) (caller a b n : Nat) (h : PublicMetada
 
 theorem rawRunCall_metadata (s : State) (action : Action) (h : PublicMetadata s) :
     OnSuccess (fun result : State × Nat => PublicMetadata result.1) (rawRunCall s action) := by
-  by_cases unsupported : 31 ≤ action.op
+  by_cases unsupported : 33 ≤ action.op
   · rw [rawRunCall_unsupported s action unsupported]
     trivial
   · rcases action with ⟨op, caller, a, b, n⟩
-    have hop : op ≤ 30 := by change ¬ 31 ≤ op at unsupported; omega
+    have hop : op ≤ 32 := by change ¬ 33 ≤ op at unsupported; omega
     interval_cases op
     · exact raw_deposit_metadata s caller a b n h
     · exact h
@@ -292,6 +292,8 @@ theorem rawRunCall_metadata (s : State) (action : Action) (h : PublicMetadata s)
     · exact h
     · exact h
     · exact h
+    · exact onSuccess_setBand _ s _ _ _ _ (fun _ => h)
+    · exact onSuccess_setAdmission _ s _ _ _ _ (fun _ => h)
 
 theorem rawExecute_metadata (s : State) (a : Action) (h : PublicMetadata s) :
     PublicMetadata (rawExecute s a).1 := by

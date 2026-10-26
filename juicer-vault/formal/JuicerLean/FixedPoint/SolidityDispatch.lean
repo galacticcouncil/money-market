@@ -51,6 +51,8 @@ inductive DispatchSelector where
   | setHaircut
   | setTvlCap
   | fundPosition
+  | setRebalanceBand
+  | setAdmissionMaxDeficitBps
   deriving Repr, DecidableEq
 
 structure SolidityCall where
@@ -70,11 +72,12 @@ def SolidityCall.arguments (call : SolidityCall) : List Nat :=
   | .claim => [a.amount, a.b]
   | .warp | .repay | .setPullBps | .setRepayLimit | .reprice | .setProtocolFeeBps
   | .setCostBps | .accrueInterest | .setPrice | .harvest | .fundReserve
-  | .setHaircut | .setTvlCap | .fundPosition => [a.amount]
+  | .setHaircut | .setTvlCap | .fundPosition | .setAdmissionMaxDeficitBps => [a.amount]
   | .setEmergencyPaused => [(a.amount != 0).toNat]
   | .compound => [a.amount, a.b]
   | .setDebtRounding => [a.a, a.amount]
   | .claimProtocolFees => [(a.a != 0).toNat]
+  | .setRebalanceBand => [a.a, a.b, a.amount]
   | _ => []
 
 def decodeAction (a : Action) : Option SolidityCall :=
@@ -110,6 +113,8 @@ def decodeAction (a : Action) : Option SolidityCall :=
   | 28 => some ⟨.swapper, .setHaircut, a⟩
   | 29 => some ⟨.vault, .setTvlCap, a⟩
   | 30 => some ⟨.mainDebt, .fundPosition, a⟩
+  | 31 => some ⟨.source, .setRebalanceBand, a⟩
+  | 32 => some ⟨.source, .setAdmissionMaxDeficitBps, a⟩
   | _ => none
 
 def solidityDispatch (s : State) (a : Action) : Result :=
@@ -123,7 +128,7 @@ def solidityExecute (s : State) (a : Action) : State × Nat × Nat :=
   | .error code => (s, code, 0)
 
 def FixtureAction (a : Action) : Prop :=
-  a.op ≤ 30 ∧
+  a.op ≤ 32 ∧
   (a.op = 10 ∨ a.caller < actors) ∧
   (a.op = 0 → a.caller < 4 ∧ a.b < actors) ∧
   (a.op = 1 → a.caller < 4 ∧ a.b < 4) ∧
@@ -137,24 +142,26 @@ def FixtureAction (a : Action) : Prop :=
   (a.op = 18 → a.caller = 0 ∧ a.amount ≤ 10000) ∧
   (a.op = 19 → a.amount ≤ 10000) ∧
   (a.op = 28 → a.amount ≤ 10000) ∧
-  (a.op = 14 ∨ a.op = 15 ∨ a.op = 29 → a.caller = 0)
+  (a.op = 14 ∨ a.op = 15 ∨ a.op = 29 → a.caller = 0) ∧
+  (a.op = 31 → a.caller = 0 ∧ a.a < 65536 ∧ a.b < 65536 ∧ a.amount < 65536) ∧
+  (a.op = 32 → a.caller = 0 ∧ a.amount < 65536)
 
 instance (a : Action) : Decidable (FixtureAction a) := by
   unfold FixtureAction
   infer_instance
 
-theorem decodeAction_complete (a : Action) (h : a.op ≤ 30) :
+theorem decodeAction_complete (a : Action) (h : a.op ≤ 32) :
     ∃ call, decodeAction a = some call := by
   rcases a with ⟨op, caller, x, y, amount⟩
-  change op ≤ 30 at h
+  change op ≤ 32 at h
   interval_cases op <;> simp [decodeAction]
 
 theorem decodeAction_sound {a : Action} {call : SolidityCall}
-    (h : decodeAction a = some call) : a.op ≤ 30 := by
+    (h : decodeAction a = some call) : a.op ≤ 32 := by
   rcases a with ⟨op, caller, x, y, amount⟩
-  change op ≤ 30
+  change op ≤ 32
   by_contra hn
-  have hop : 31 ≤ op := by omega
+  have hop : 33 ≤ op := by omega
   simp [decodeAction, show op ≠ 0 by omega, show op ≠ 1 by omega,
     show op ≠ 2 by omega, show op ≠ 3 by omega, show op ≠ 4 by omega,
     show op ≠ 5 by omega, show op ≠ 6 by omega, show op ≠ 7 by omega,
@@ -165,19 +172,20 @@ theorem decodeAction_sound {a : Action} {call : SolidityCall}
     show op ≠ 20 by omega, show op ≠ 21 by omega, show op ≠ 22 by omega,
     show op ≠ 23 by omega, show op ≠ 24 by omega, show op ≠ 25 by omega,
     show op ≠ 26 by omega, show op ≠ 27 by omega, show op ≠ 28 by omega,
-    show op ≠ 29 by omega, show op ≠ 30 by omega] at h
+    show op ≠ 29 by omega, show op ≠ 30 by omega, show op ≠ 31 by omega,
+    show op ≠ 32 by omega] at h
 
 theorem decodeAction_preserves_action {a : Action} {call : SolidityCall}
     (h : decodeAction a = some call) : call.action = a := by
   have hop := decodeAction_sound h
   rcases a with ⟨op, caller, x, y, amount⟩
-  change op ≤ 30 at hop
+  change op ≤ 32 at hop
   interval_cases op <;> simp [decodeAction] at h <;> cases h <;> rfl
 
-theorem rawRunCall_unsupported (s : State) (a : Action) (h : 31 ≤ a.op) :
+theorem rawRunCall_unsupported (s : State) (a : Action) (h : 33 ≤ a.op) :
     rawRunCall s a = .error 99 := by
   rcases a with ⟨op, caller, x, y, amount⟩
-  change 31 ≤ op at h
+  change 33 ≤ op at h
   simp [rawRunCall, show op ≠ 0 by omega, show op ≠ 1 by omega,
     show op ≠ 2 by omega, show op ≠ 3 by omega, show op ≠ 4 by omega,
     show op ≠ 5 by omega, show op ≠ 6 by omega, show op ≠ 7 by omega,
@@ -188,7 +196,8 @@ theorem rawRunCall_unsupported (s : State) (a : Action) (h : 31 ≤ a.op) :
     show op ≠ 20 by omega, show op ≠ 21 by omega, show op ≠ 22 by omega,
     show op ≠ 23 by omega, show op ≠ 24 by omega, show op ≠ 25 by omega,
     show op ≠ 26 by omega, show op ≠ 27 by omega, show op ≠ 28 by omega,
-    show op ≠ 29 by omega, show op ≠ 30 by omega]
+    show op ≠ 29 by omega, show op ≠ 30 by omega, show op ≠ 31 by omega,
+    show op ≠ 32 by omega]
   rfl
 
 theorem solidity_dispatch_corresponds (s : State) (a : Action) :
@@ -196,9 +205,9 @@ theorem solidity_dispatch_corresponds (s : State) (a : Action) :
   unfold solidityDispatch
   cases h : decodeAction a with
   | none =>
-    have hop : 31 ≤ a.op := by
+    have hop : 33 ≤ a.op := by
       by_contra hn
-      have hle : a.op ≤ 30 := by omega
+      have hle : a.op ≤ 32 := by omega
       obtain ⟨call, hc⟩ := decodeAction_complete a hle
       rw [h] at hc
       contradiction

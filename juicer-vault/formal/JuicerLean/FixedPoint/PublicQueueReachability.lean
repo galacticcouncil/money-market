@@ -255,11 +255,11 @@ theorem raw_compound_queue (s : State) (caller a b n : Nat) (h : QueueBacking s)
 theorem rawRunCall_queue (s : State) (action : Action) (h : QueueBacking s)
     (hpublic : PublicInvariant s) (metadata : PublicMetadata s) (bounds : PublicCallBounds s) :
     OnSuccess (fun result : State × Nat => QueueBacking result.1) (rawRunCall s action) := by
-  by_cases unsupported : 31 ≤ action.op
+  by_cases unsupported : 33 ≤ action.op
   · rw [rawRunCall_unsupported s action unsupported]
     trivial
   · rcases action with ⟨op, caller, a, b, n⟩
-    have hop : op ≤ 30 := by change ¬ 31 ≤ op at unsupported; omega
+    have hop : op ≤ 32 := by change ¬ 33 ≤ op at unsupported; omega
     interval_cases op
     · exact raw_deposit_queue s caller a b n h
     · exact h
@@ -304,6 +304,8 @@ theorem rawRunCall_queue (s : State) (action : Action) (h : QueueBacking s)
     · exact h
     · exact h
     · exact queue_setPosition s 0 _ h
+    · exact onSuccess_setBand _ s _ _ _ _ (fun _ => h)
+    · exact onSuccess_setAdmission _ s _ _ _ _ (fun _ => h)
 
 theorem rawExecute_queue (s : State) (a : Action) (h : QueueBacking s)
     (hpublic : PublicInvariant s) (metadata : PublicMetadata s) (bounds : PublicCallBounds s) :

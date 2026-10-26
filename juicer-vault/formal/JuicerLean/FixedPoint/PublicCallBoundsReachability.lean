@@ -250,7 +250,7 @@ theorem rawRunCall_callBounds (s : State) (action : Action) (h : PublicCallBound
     OnSuccess (fun result : State × Nat => PublicCallBounds result.1) (rawRunCall s action) := by
   rcases action with ⟨op, caller, a, b, n⟩
   rcases fixture with ⟨hop, _, _, _, _, _, ho, _, _, hp, _, hf, hc, _, _⟩
-  change op ≤ 30 at hop
+  change op ≤ 32 at hop
   interval_cases op
   · exact raw_deposit_callBounds s caller a b n h
   · exact h
@@ -294,6 +294,8 @@ theorem rawRunCall_callBounds (s : State) (action : Action) (h : PublicCallBound
   · exact h
   · exact h
   · exact h
+  · exact onSuccess_setBand _ s _ _ _ _ (fun _ => h)
+  · exact onSuccess_setAdmission _ s _ _ _ _ (fun _ => h)
 
 theorem rawExecute_callBounds (s : State) (a : Action) (h : PublicCallBounds s)
     (fixture : FixtureAction a) : PublicCallBounds (rawExecute s a).1 := by

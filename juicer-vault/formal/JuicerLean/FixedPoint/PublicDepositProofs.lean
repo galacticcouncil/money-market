@@ -214,7 +214,7 @@ def depositTail (s : State) (caller receiver amount : Nat) : Result :=
   else
     let shares := if activeSupply s == 0 then amount-1000 else ceilDiv (amount*activeSupply s) (activeAssets s)
     let needed := if activeSupply s == 0 then amount else ceilDiv (shares*activeAssets s) (activeSupply s)
-    if 50 < admissionDeficitBps s then .error 28 else
+    if s.admission.val < admissionDeficitBps s then .error 28 else
       depositResult s caller receiver amount shares needed
 
 theorem depositTail_public (s : State) (caller receiver amount : Nat)
@@ -269,7 +269,7 @@ def depositTailRaw (s : State) (caller receiver amount : Nat) : Result :=
   else
     let shares := if activeSupply s == 0 then amount-1000 else ceilDiv (amount*activeSupply s) (activeAssets s)
     let needed := if activeSupply s == 0 then amount else ceilDiv (shares*activeAssets s) (activeSupply s)
-    if 50 < admissionDeficitBps s then .error 28 else
+    if s.admission.val < admissionDeficitBps s then .error 28 else
       depositResultRaw s caller receiver amount shares needed
 
 theorem depositTail_factored (s : State) (caller receiver amount : Nat) :
