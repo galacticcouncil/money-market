@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {Vm} from "forge-std/Vm.sol";
 import {Fixture} from "./helpers/Fixture.t.sol";
 import {ILooperPosition} from "../src/interfaces/ILooperPosition.sol";
+import {IIntentForward} from "../src/interfaces/IIntentForward.sol";
 import {LooperPosition} from "../src/LooperPosition.sol";
 import {MockIntentDispatch} from "./mocks/MockIntentDispatch.sol";
 
@@ -30,7 +31,7 @@ contract CallbackTest is Fixture {
     ) internal returns (bool ok, bytes memory ret) {
         vm.prank(sender, sender);
         (ok, ret) = address(pos).call{gas: GAS_LIMIT}(
-            abi.encodeCall(LooperPosition.execute, (owner_, id, aIn, amtIn, aOut, amtOut, data))
+            abi.encodeCall(IIntentForward.execute, (owner_, id, aIn, amtIn, aOut, amtOut, data))
         );
     }
 
@@ -97,14 +98,14 @@ contract CallbackTest is Fixture {
             address(pos), address(pos), f.id, address(hollar), f.amountIn, address(aPrime), f.amountOut, f.data
         );
         assertTrue(ok);
-        assertEq(bytes4(ret), LooperPosition.execute.selector);
+        assertEq(bytes4(ret), IIntentForward.execute.selector);
         ILooperPosition.PendingIntent memory next = pend(pos);
         uint256 submits = pallet.submits();
         (ok, ret) = _execute(
             address(pos), address(pos), f.id, address(hollar), f.amountIn, address(aPrime), f.amountOut, f.data
         );
         assertTrue(ok);
-        assertEq(bytes4(ret), LooperPosition.execute.selector);
+        assertEq(bytes4(ret), IIntentForward.execute.selector);
         assertEq(pend(pos).nonce, next.nonce);
         assertEq(pallet.submits(), submits);
     }
@@ -119,7 +120,7 @@ contract CallbackTest is Fixture {
             address(pos), address(pos), f.id, address(hollar), f.amountIn, address(aPrime), f.amountOut, f.data
         );
         assertTrue(ok, "catch path completes inside the forward gas limit");
-        assertEq(bytes4(ret), LooperPosition.execute.selector);
+        assertEq(bytes4(ret), IIntentForward.execute.selector);
         assertEq(uint8(pos.stalled()), uint8(ILooperPosition.Stall.IntentRejected));
         assertFalse(hasPending(pos));
         assertEq(vHollar.balanceOf(address(pos)), debtBefore, "the borrow rolled back with the dispatch");

@@ -128,9 +128,9 @@ contract FactoryTest is Fixture {
     function test_constructor_should_revert_invalid_implementation_when_it_uses_another_pool_or_has_no_code() public {
         LooperPosition foreign = new LooperPosition(IAavePool(makeAddr("otherPool")));
         vm.expectRevert(ILooperFactory.InvalidImplementation.selector);
-        new LooperFactory(IAavePool(address(pool)), address(foreign));
+        new LooperFactory(IAavePool(address(pool)), address(foreign), registry);
         vm.expectRevert(ILooperFactory.InvalidImplementation.selector);
-        new LooperFactory(IAavePool(address(pool)), makeAddr("noCode"));
+        new LooperFactory(IAavePool(address(pool)), makeAddr("noCode"), registry);
     }
 
     // ── deposit / initialize ──
@@ -283,7 +283,7 @@ contract FactoryTest is Fixture {
     function test_open_should_supply_at_one_x_and_stall_fee_budget_low_when_opened_without_a_budget() public {
         vm.prank(alice);
         (, address a) = factory.open(defaultParams(3e18), DEPOSIT, 0);
-        LooperPosition pos = LooperPosition(a);
+        LooperPosition pos = LooperPosition(payable(a));
         assertEq(uint8(pos.stalled()), uint8(ILooperPosition.Stall.FeeBudgetLow));
         assertFalse(hasPending(pos));
         assertEq(aPrime.balanceOf(a), DEPOSIT);

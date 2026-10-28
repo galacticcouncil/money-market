@@ -3,7 +3,7 @@ src = "src"
 out = "out"
 test = "test"
 script = "script"
-libs = ["../bil-vault/lib"]
+libs = ["../bil-vault/lib", "lib"]
 # DcaDispatch's two intent encoders are imported from the sibling juicer-vault sources
 allow_paths = ["../juicer-vault"]
 solc_version = "0.8.22"
