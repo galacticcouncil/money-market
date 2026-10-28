@@ -2,6 +2,8 @@
 pragma solidity ^0.8.22;
 
 import {Script, console2} from "forge-std/Script.sol";
+import {ERC6551Registry} from "erc6551/ERC6551Registry.sol";
+import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
 
 import {LooperFactory} from "../src/LooperFactory.sol";
 import {LooperPosition} from "../src/LooperPosition.sol";
@@ -21,16 +23,22 @@ import {IAavePool} from "../src/interfaces/IAavePool.sol";
 /// deposit of 24 KB needs ~9 M gas, far above forge's local estimate (`eth_estimateGas` on the chain
 /// knows, forge's simulation does not). `--slow` waits for each receipt so a failed create stops the
 /// run instead of sending the dependent calls to an empty address.
+///
+/// Hydration has no deterministic deployer, so the ERC-6551 registry cannot sit at its canonical address:
+/// the first run deploys one, later runs reuse it with `REGISTRY=<address>`.
 contract DeployLark is Script {
     address constant POOL = 0x1b02E051683b5cfaC5929C25E84adb26ECf87B38;
     address constant PRIME = 0x000000000000000000000000000000010000002B;
 
     function run() external {
+        address registry = vm.envOr("REGISTRY", address(0));
         vm.startBroadcast();
+        if (registry == address(0)) registry = address(new ERC6551Registry());
         LooperPosition impl = new LooperPosition(IAavePool(POOL));
-        LooperFactory factory = new LooperFactory(IAavePool(POOL), address(impl));
+        LooperFactory factory = new LooperFactory(IAavePool(POOL), address(impl), IERC6551Registry(registry));
         vm.stopBroadcast();
 
+        console2.log("registry       ", registry);
         console2.log("factory        ", address(factory));
         console2.log("implementation ", address(impl));
         console2.log("first position ", factory.predict(1));

@@ -3,7 +3,10 @@ pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC6551Registry} from "erc6551/ERC6551Registry.sol";
+import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
 import {IAavePool} from "../../src/interfaces/IAavePool.sol";
+import {IIntentForward} from "../../src/interfaces/IIntentForward.sol";
 import {ILooperPosition} from "../../src/interfaces/ILooperPosition.sol";
 import {LooperFactory} from "../../src/LooperFactory.sol";
 import {LooperPosition} from "../../src/LooperPosition.sol";
@@ -44,6 +47,7 @@ abstract contract Fixture is Test {
     MockAToken internal aDot;
     MockERC20 internal vHollar;
     MockIntentDispatch internal pallet;
+    IERC6551Registry internal registry;
     LooperFactory internal factory;
     LooperPosition internal impl;
 
@@ -76,8 +80,9 @@ abstract contract Fixture is Test {
         hollar.mint(makeAddr("hollarHolder"), 1e18);
         giftAToken(prime, aPrime, makeAddr("aPrimeHolder"), 1e6);
 
+        registry = IERC6551Registry(address(new ERC6551Registry()));
         impl = new LooperPosition(IAavePool(address(pool)));
-        factory = new LooperFactory(IAavePool(address(pool)), address(impl));
+        factory = new LooperFactory(IAavePool(address(pool)), address(impl), registry);
 
         for (uint256 i = 0; i < 2; ++i) {
             address u = i == 0 ? alice : bob;
@@ -120,7 +125,7 @@ abstract contract Fixture is Test {
     {
         vm.prank(user);
         (, address a) = factory.open(p, amount, FEE_BUDGET);
-        pos = LooperPosition(a);
+        pos = LooperPosition(payable(a));
     }
 
     function topUp(address user, LooperPosition pos, uint256 amount) internal {
@@ -174,7 +179,7 @@ abstract contract Fixture is Test {
     function dispatchTop() internal returns (bool ok, bytes memory ret) {
         MockIntentDispatch.Forward memory f = pallet.popTop();
         bytes memory data = abi.encodeCall(
-            LooperPosition.execute,
+            IIntentForward.execute,
             (f.owner, uint256(f.id), pallet.token(f.assetIn), f.amountIn, pallet.token(f.assetOut), f.amountOut, f.data)
         );
         vm.prank(f.owner, f.owner);
@@ -185,7 +190,7 @@ abstract contract Fixture is Test {
         (, out) = fillOnly(bps);
         (bool ok, bytes memory ret) = dispatchTop();
         assertTrue(ok, "callback reverted");
-        assertEq(bytes4(ret), LooperPosition.execute.selector, "ack");
+        assertEq(bytes4(ret), IIntentForward.execute.selector, "ack");
     }
 
     function fillId(uint128 id, uint256 bps) internal returns (uint256 out) {

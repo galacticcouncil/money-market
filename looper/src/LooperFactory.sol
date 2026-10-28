@@ -4,18 +4,20 @@ pragma solidity ^0.8.22;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
 
 import {IAavePool, IAaveOracle, IPoolAddressesProvider} from "./interfaces/IAavePool.sol";
 import {ILooperFactory} from "./interfaces/ILooperFactory.sol";
 import {ILooperPosition} from "./interfaces/ILooperPosition.sol";
 
 /// @title LooperFactory
-/// @notice Permissionless, admin-free deployer of one EIP-1167 `LooperPosition` clone per position. Each
-/// position is an NFT: the clone's address depends only on its token id, and whoever holds the token owns
-/// the position. A new implementation means a new factory.
-contract LooperFactory is ILooperFactory, ERC721 {
+/// @notice Permissionless, admin-free deployer of one `LooperPosition` per position. Each position is an
+/// NFT, and the clone is that NFT's ERC-6551 account, created through `registry`: its address depends only
+/// on the token id, and whoever holds the token owns the position. The NFT is enumerable, so a holder's
+/// positions are `tokenOfOwnerByIndex` then `predict`. A new implementation means a new factory.
+contract LooperFactory is ILooperFactory, ERC721Enumerable {
     using SafeERC20 for IERC20;
 
     uint256 internal constant WAD = 1e18;
@@ -23,18 +25,24 @@ contract LooperFactory is ILooperFactory, ERC721 {
     uint256 internal constant STEP_MARGIN = 0.05e18;
     /// @dev Matches the position's emergency unwind floor, below which no exit sliver is sized.
     uint256 internal constant MIN_STEP_HF = 1.01e18;
+    /// @dev One account per token: the token id already makes each address unique.
+    bytes32 internal constant ACCOUNT_SALT = bytes32(0);
 
     IAavePool public immutable pool;
     address public immutable implementation;
+    IERC6551Registry public immutable registry;
 
     uint256 public nextId = 1;
 
-    constructor(IAavePool pool_, address implementation_) ERC721("Looper Position", "LOOP") {
+    constructor(IAavePool pool_, address implementation_, IERC6551Registry registry_)
+        ERC721("Looper Position", "LOOP")
+    {
         if (implementation_.code.length == 0 || ILooperPosition(implementation_).pool() != pool_) {
             revert InvalidImplementation();
         }
         pool = pool_;
         implementation = implementation_;
+        registry = registry_;
     }
 
     /// @notice `feeBudget` of `feeAsset` funds the position's forward fees; anyone can top it up later with a
@@ -45,7 +53,7 @@ contract LooperFactory is ILooperFactory, ERC721 {
     {
         _validate(p);
         id = nextId++;
-        position = Clones.cloneDeterministic(implementation, bytes32(id));
+        position = registry.createAccount(implementation, ACCOUNT_SALT, block.chainid, address(this), id);
         _mint(msg.sender, id);
         if (feeBudget > 0) IERC20(p.feeAsset).safeTransferFrom(msg.sender, position, feeBudget);
         ILooperPosition(position).initialize(id, p);
@@ -63,7 +71,7 @@ contract LooperFactory is ILooperFactory, ERC721 {
     }
 
     function predict(uint256 id) public view returns (address) {
-        return Clones.predictDeterministicAddress(implementation, bytes32(id));
+        return registry.account(implementation, ACCOUNT_SALT, block.chainid, address(this), id);
     }
 
     /// @notice Largest leverage (WAD) `minHf` and Aave's LTV allow: `min(minHf / (minHf − LT), 1 / (1 − LTV))`.

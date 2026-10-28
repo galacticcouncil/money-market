@@ -3,8 +3,10 @@ pragma solidity ^0.8.22;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {ERC6551} from "solady/accounts/ERC6551.sol";
 
 import {IAavePool} from "./interfaces/IAavePool.sol";
+import {IIntentForward} from "./interfaces/IIntentForward.sol";
 import {ILooperPosition} from "./interfaces/ILooperPosition.sol";
 import {LooperLogic} from "./LooperLogic.sol";
 
@@ -12,7 +14,11 @@ import {LooperLogic} from "./LooperLogic.sol";
 /// @notice One leveraged Aave position per clone, owned by the holder of factory NFT `tokenId`. The clone
 /// is the Aave user, the ICE intent owner and the forward receiver, so each fill calls it back as itself
 /// and it runs the next rung. Storage and entry points only; the logic lives in `LooperLogic`.
-contract LooperPosition is ILooperPosition {
+/// The clone is also the NFT's ERC-6551 account: the holder can `execute` any call from it, Substrate
+/// dispatches included, except into the account itself, the pool and the position's own tokens.
+contract LooperPosition is ILooperPosition, IIntentForward, ERC6551 {
+    error TargetNotAllowed(address target);
+
     IAavePool public immutable pool;
 
     LooperLogic.State internal s;
@@ -28,7 +34,13 @@ contract LooperPosition is ILooperPosition {
 
     // ── factory ──
 
+    /// @dev The registry lets anyone create this account, so the first initialise must come from the NFT
+    /// contract it is bound to, for its own token id. Later calls fall through to `AlreadyInitialized`.
     function initialize(uint256 id, Params calldata p) external {
+        if (s.factory == address(0)) {
+            (, address tokenContract, uint256 boundId) = token();
+            if (msg.sender != tokenContract || id != boundId) revert NotFactory();
+        }
         LooperLogic.initialize(s, pool, id, p);
     }
 
@@ -76,7 +88,7 @@ contract LooperPosition is ILooperPosition {
     ) external returns (bytes4) {
         if (msg.sender != address(this) || owner_ != address(this)) revert WrongIntent();
         LooperLogic.execute(s, intentId, assetIn, amountIn, assetOut, amountOut, data);
-        return this.execute.selector;
+        return IIntentForward.execute.selector;
     }
 
     /// @notice One rung of the active ladder. Only callable by the position itself, behind try/catch.
@@ -84,6 +96,25 @@ contract LooperPosition is ILooperPosition {
     function step() external returns (Stall, uint256) {
         if (msg.sender != address(this)) revert NotOwner();
         return LooperLogic.step(s, pool);
+    }
+
+    // ── token-bound account (ERC-6551, holder only) ──
+
+    function execute(address target, uint256 value, bytes calldata data, uint8 operation)
+        public
+        payable
+        override
+        returns (bytes memory)
+    {
+        _checkTarget(target);
+        return super.execute(target, value, data, operation);
+    }
+
+    function executeBatch(Call[] calldata calls, uint8 operation) public payable override returns (bytes[] memory) {
+        for (uint256 i = 0; i < calls.length; ++i) {
+            _checkTarget(calls[i].target);
+        }
+        return super.executeBatch(calls, operation);
     }
 
     // ── views ──
@@ -96,7 +127,7 @@ contract LooperPosition is ILooperPosition {
         return s.tokenId;
     }
 
-    function owner() public view returns (address) {
+    function owner() public view override(ILooperPosition, ERC6551) returns (address) {
         return IERC721(s.factory).ownerOf(s.tokenId);
     }
 
@@ -203,5 +234,36 @@ contract LooperPosition is ILooperPosition {
 
     function isClosed() external view returns (bool) {
         return LooperLogic.isClosed(s);
+    }
+
+    // ── account internals ──
+
+    /// @dev Pool or position-token calls would move funds behind the ladder's books (a token is also
+    /// reachable at its asset precompile); a call into itself would pass the self-only `step` and callback.
+    function _checkTarget(address target) internal view {
+        if (
+            target == address(this) || target == address(pool) || target == address(s.coll)
+                || target == address(s.aColl) || target == address(s.debt) || target == address(s.vDebt)
+                || target == address(s.feeAsset) || target == _precompile(s.debtAssetId)
+                || target == _precompile(s.aCollAssetId) || target == _precompile(s.feeAssetId)
+        ) revert TargetNotAllowed(target);
+    }
+
+    function _precompile(uint32 assetId) internal pure returns (address) {
+        return address(uint160((uint256(1) << 32) | assetId));
+    }
+
+    /// @dev No upgrades: a new implementation still means a new factory.
+    function _authorizeUpgrade(address) internal pure override {
+        revert Unauthorized();
+    }
+
+    /// @dev An unknown selector reverts instead of being read as compressed calldata.
+    function _useLibZipCdFallback() internal pure override returns (bool) {
+        return false;
+    }
+
+    function _domainNameAndVersion() internal pure override returns (string memory, string memory) {
+        return ("LooperPosition", "1");
     }
 }
