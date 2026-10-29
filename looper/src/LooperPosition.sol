@@ -9,13 +9,14 @@ import {IAavePool} from "./interfaces/IAavePool.sol";
 import {IIntentForward} from "./interfaces/IIntentForward.sol";
 import {ILooperPosition} from "./interfaces/ILooperPosition.sol";
 import {LooperLogic} from "./LooperLogic.sol";
+import {Dispatch} from "./lib/Dispatch.sol";
 
 /// @title LooperPosition
 /// @notice One leveraged Aave position per clone, owned by the holder of factory NFT `tokenId`. The clone
 /// is the Aave user, the ICE intent owner and the forward receiver, so each fill calls it back as itself
 /// and it runs the next rung. Storage and entry points only; the logic lives in `LooperLogic`.
-/// The clone is also the NFT's ERC-6551 account: the holder can `execute` any call from it, Substrate
-/// dispatches included, except into the account itself, the pool and the position's own tokens.
+/// The clone is also the NFT's ERC-6551 account: the holder can `execute` any EVM call from it, except into
+/// the account itself, the dispatch precompile, the pool and the position's own tokens.
 contract LooperPosition is ILooperPosition, IIntentForward, ERC6551 {
     error TargetNotAllowed(address target);
 
@@ -238,13 +239,13 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC6551 {
 
     // ── account internals ──
 
-    /// @dev Pool or position-token calls would move funds behind the ladder's books (a token is also
-    /// reachable at its asset precompile); a call into itself would pass the self-only `step` and callback.
+    /// @dev Pool or token calls would move funds behind the ladder's books, and a self-call would pass the
+    /// self-only gates; a dispatch would act as the position's Substrate account, which no NFT transfer resets.
     function _checkTarget(address target) internal view {
         if (
-            target == address(this) || target == address(pool) || target == address(s.coll)
-                || target == address(s.aColl) || target == address(s.debt) || target == address(s.vDebt)
-                || target == address(s.feeAsset) || target == _precompile(s.debtAssetId)
+            target == address(this) || target == Dispatch.DISPATCH || target == address(pool)
+                || target == address(s.coll) || target == address(s.aColl) || target == address(s.debt)
+                || target == address(s.vDebt) || target == address(s.feeAsset) || target == _precompile(s.debtAssetId)
                 || target == _precompile(s.aCollAssetId) || target == _precompile(s.feeAssetId)
         ) revert TargetNotAllowed(target);
     }
