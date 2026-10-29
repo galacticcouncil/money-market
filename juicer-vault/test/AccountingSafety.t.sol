@@ -32,7 +32,7 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         vm.stopPrank();
         vault.pokeSettle();
         vm.prank(user);
-        assertEq(vault.claim(request, user), 1e18);
+        assertEq(vault.claim(request, user, type(uint256).max), 1e18);
     }
 
     function _deposit(uint256 amount) internal returns (uint256) {
@@ -52,7 +52,7 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(100);
         vault.pokeSettle();
-        uint256 returned = vault.claim(first, address(this)) + vault.claim(second, address(this));
+        uint256 returned = vault.claim(first, address(this), type(uint256).max) + vault.claim(second, address(this), type(uint256).max);
         assertApproxEqAbs(returned, 1e18 - 1000, 1, "queued requests must not leave backing unrequested");
         assertEq(vault.queueHead(), vault.queueTail());
     }
@@ -68,8 +68,8 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(100);
         vault.pokeSettle();
-        assertApproxEqAbs(vault.claim(second, address(this)), quote, 1);
-        assertApproxEqAbs(vault.claim(first, address(this)), 1e18, 1000);
+        assertApproxEqAbs(vault.claim(second, address(this), type(uint256).max), quote, 1);
+        assertApproxEqAbs(vault.claim(first, address(this), type(uint256).max), 1e18, 1000);
     }
 
     function test_deleverThenRedeemDoesNotCountDebtTwice() public {
@@ -86,7 +86,7 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         vault.pokeSettle();
         vault.startUnwinds(100);
         vault.pokeSettle();
-        assertApproxEqAbs(vault.claim(request, address(this)), 1e18 - 1000, 2);
+        assertApproxEqAbs(vault.claim(request, address(this), type(uint256).max), 1e18 - 1000, 2);
     }
 
     function test_partialClaimsUseCumulativeSettlementRounding() public {
@@ -97,10 +97,10 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         (,,uint256 promised,,,,,,) = vault.redemptions(request);
         source.setPullBps(3333);
         vault.pokeSettle();
-        uint256 first = vault.claim(request, address(this));
+        uint256 first = vault.claim(request, address(this), type(uint256).max);
         source.setPullBps(10_000);
         vault.pokeSettle();
-        uint256 last = vault.claim(request, address(this));
+        uint256 last = vault.claim(request, address(this), type(uint256).max);
         assertEq(first + last, promised);
         assertEq(vault.totalQueuedShares(), 0);
     }
@@ -132,7 +132,7 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         vm.mockCall(address(source), abi.encodeWithSignature("pendingUnwindOf(address)", address(vault)), abi.encode(0));
         vm.mockCall(address(source), abi.encodeWithSignature("freedOf(address)", address(vault)), abi.encode(0));
         vault.pokeSettle();
-        uint256 paid = vault.claim(request, address(this));
+        uint256 paid = vault.claim(request, address(this), type(uint256).max);
         (, , uint256 owed, uint256 snapshot, , uint256 repaid, , , bool active) = vault.redemptions(request);
         assertTrue(active, "unpaid principal remains claimable");
         assertEq(snapshot, debt, "source shortfall cannot erase the obligation");
@@ -147,7 +147,7 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         // Any donor can fund recovery; settlement pays only the recorded owner.
         hollar.mint(address(vault), debt - repaid);
         vault.pokeSettle();
-        assertEq(paid + vault.claim(request, address(this)), owed);
+        assertEq(paid + vault.claim(request, address(this), type(uint256).max), owed);
         assertEq(vault.totalQueuedCollateral(), 0);
         (, , , , , , , , bool stillActive) = vault.redemptions(request);
         assertFalse(stillActive);
@@ -178,7 +178,7 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         assertEq(hollar.allowance(address(vault), address(pool)), 0);
         pool.setRepayLimit(type(uint256).max);
         vault.pokeSettle();
-        assertEq(vault.claim(request, address(this)), owed);
+        assertEq(vault.claim(request, address(this), type(uint256).max), owed);
     }
 
     function test_idleCollateralDonationCanBeRedeemed() public {
@@ -189,7 +189,7 @@ contract VaultAccountingSafetyTest is PluggableYieldSourceTest {
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(100);
         vault.pokeSettle();
-        assertEq(vault.claim(request, address(this)), owed);
+        assertEq(vault.claim(request, address(this), type(uint256).max), owed);
     }
 }
 

@@ -136,14 +136,14 @@ theorem raw_pokeSettle_callBounds (s : State) (caller a b n : Nat) (h : PublicCa
   (congrArg (OnSuccess (fun result : State × Nat => PublicCallBounds result.1))
     (raw_pokeSettle_factored s caller a b n)).mpr (pokeSettleTail_callBounds _ hc)
 
-theorem claimState_callBounds (s : State) (i receiver : Nat) (h : PublicCallBounds s) :
-    PublicCallBounds (claimState s i receiver) :=
+theorem claimState_callBounds (s : State) (i receiver paid : Nat) (h : PublicCallBounds s) :
+    PublicCallBounds (claimState s i receiver paid) :=
   callBounds_setRequest s i _ h (h.2.2 i)
 
 theorem raw_claim_callBounds (s : State) (caller a b n : Nat) (h : PublicCallBounds s) :
     OnSuccess (fun result : State × Nat => PublicCallBounds result.1) (rawRunCall s ⟨7, caller, a, b, n⟩) := by
   rw [rawRunCall_claim]
-  split_ifs <;> first | trivial | exact claimState_callBounds s n _ h
+  split_ifs <;> first | trivial | exact claimState_callBounds s n _ _ h
 
 theorem mintMainPosition_callBounds (s : State) (units principal : Nat) (h : PublicCallBounds s) :
     PublicCallBounds (mintMainPosition s units principal) := h
@@ -250,7 +250,7 @@ theorem rawRunCall_callBounds (s : State) (action : Action) (h : PublicCallBound
     OnSuccess (fun result : State × Nat => PublicCallBounds result.1) (rawRunCall s action) := by
   rcases action with ⟨op, caller, a, b, n⟩
   rcases fixture with ⟨hop, _, _, _, _, _, ho, _, _, hp, _, hf, hc, _, _⟩
-  change op ≤ 30 at hop
+  change op ≤ 32 at hop
   interval_cases op
   · exact raw_deposit_callBounds s caller a b n h
   · exact h
@@ -294,6 +294,8 @@ theorem rawRunCall_callBounds (s : State) (action : Action) (h : PublicCallBound
   · exact h
   · exact h
   · exact h
+  · exact onSuccess_setBand _ s _ _ _ _ (fun _ => h)
+  · exact onSuccess_setAdmission _ s _ _ _ _ (fun _ => h)
 
 theorem rawExecute_callBounds (s : State) (a : Action) (h : PublicCallBounds s)
     (fixture : FixtureAction a) : PublicCallBounds (rawExecute s a).1 := by

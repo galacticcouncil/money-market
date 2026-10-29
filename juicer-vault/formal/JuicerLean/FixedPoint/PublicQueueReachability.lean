@@ -138,19 +138,18 @@ theorem raw_pokeSettle_queue (s : State) (caller a b n : Nat) (h : QueueBacking 
   (congrArg (OnSuccess (fun result : State × Nat => QueueBacking result.1))
     (raw_pokeSettle_factored s caller a b n)).mpr (pokeSettleTail_queue _ hc)
 
-theorem claimState_queue (s : State) (i receiver : Nat) (h : QueueBacking s) :
-    QueueBacking (claimState s i receiver) := by
+theorem claimState_queue (s : State) (i receiver paid : Nat) (h : QueueBacking s) :
+    QueueBacking (claimState s i receiver paid) := by
   refine ⟨?_, h.2⟩
-  change s.owed - (request s i).claim.settled ≤
-    s.assets - (if receiver == vaultId then 0 else (request s i).claim.settled)
+  change s.owed - paid ≤ s.assets - (if receiver == vaultId then 0 else paid)
   split
-  · simpa only [Nat.sub_zero] using (Nat.sub_le s.owed (request s i).claim.settled).trans h.1
+  · simpa only [Nat.sub_zero] using (Nat.sub_le s.owed paid).trans h.1
   · exact Nat.sub_le_sub_right h.1 _
 
 theorem raw_claim_queue (s : State) (caller a b n : Nat) (h : QueueBacking s) :
     OnSuccess (fun result : State × Nat => QueueBacking result.1) (rawRunCall s ⟨7, caller, a, b, n⟩) := by
   rw [rawRunCall_claim]
-  split_ifs <;> first | trivial | exact claimState_queue s n _ h
+  split_ifs <;> first | trivial | exact claimState_queue s n _ _ h
 
 theorem mintMainPosition_queue (s : State) (units principal : Nat) (h : QueueBacking s) :
     QueueBacking (mintMainPosition s units principal) := queue_setPosition _ 0 _ h
@@ -255,11 +254,11 @@ theorem raw_compound_queue (s : State) (caller a b n : Nat) (h : QueueBacking s)
 theorem rawRunCall_queue (s : State) (action : Action) (h : QueueBacking s)
     (hpublic : PublicInvariant s) (metadata : PublicMetadata s) (bounds : PublicCallBounds s) :
     OnSuccess (fun result : State × Nat => QueueBacking result.1) (rawRunCall s action) := by
-  by_cases unsupported : 31 ≤ action.op
+  by_cases unsupported : 33 ≤ action.op
   · rw [rawRunCall_unsupported s action unsupported]
     trivial
   · rcases action with ⟨op, caller, a, b, n⟩
-    have hop : op ≤ 30 := by change ¬ 31 ≤ op at unsupported; omega
+    have hop : op ≤ 32 := by change ¬ 33 ≤ op at unsupported; omega
     interval_cases op
     · exact raw_deposit_queue s caller a b n h
     · exact h
@@ -304,6 +303,8 @@ theorem rawRunCall_queue (s : State) (action : Action) (h : QueueBacking s)
     · exact h
     · exact h
     · exact queue_setPosition s 0 _ h
+    · exact onSuccess_setBand _ s _ _ _ _ (fun _ => h)
+    · exact onSuccess_setAdmission _ s _ _ _ _ (fun _ => h)
 
 theorem rawExecute_queue (s : State) (a : Action) (h : QueueBacking s)
     (hpublic : PublicInvariant s) (metadata : PublicMetadata s) (bounds : PublicCallBounds s) :

@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import "forge-std/Script.sol";
 import {CollateralVault} from "../src/CollateralVault.sol";
+import {CompoundLogic} from "../src/lib/CompoundLogic.sol";
 
 /// @notice Deploy a fresh CollateralVault *implementation* (no proxy, no init)
 ///         for a UUPS upgrade of the existing vault proxy. The proxy's
@@ -17,7 +18,7 @@ contract DeployVaultImpl is Script {
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerKey);
-        CollateralVault impl = new CollateralVault();
+        CollateralVault impl = new CollateralVault(address(new CompoundLogic()));
         vm.stopBroadcast();
         console2.log("CollateralVault impl:", address(impl));
     }

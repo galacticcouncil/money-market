@@ -17,16 +17,37 @@ export async function sizeToTarget(priceAfter,before,max,target=0n){
  while(hi-lo>step&&hi-lo>1n){const mid=(lo+hi)/2n;if(crossed(await priceAfter(mid)))hi=mid;else lo=mid;}
  return lo;
 }
-// a peg trade may pay the pool fee, never more than `maxLossBps` under the oracle
-export function pegMinOut({out,fair,maxLossBps=5n,driftBps=2n}){
- if(out<=0n||fair<=0n||maxLossBps<0n||driftBps<0n||driftBps>=10000n)return null;
- const floor=ceilDiv(fair*(10000n-maxLossBps),10000n);
+// a peg trade may pay the pool fee, never more than `maxLossBps` under the oracle; a profit-seeking
+// one never fills under the oracle plus `minProfitCbps` (1/100 bps)
+export function pegMinOut({out,fair,maxLossBps=5n,driftBps=2n,minProfitCbps}){
+ if(out<=0n||fair<=0n||maxLossBps<0n||minProfitCbps<0n||driftBps<0n||driftBps>=10000n)return null;
+ const floor=ceilDiv(fair*(1000000n+(minProfitCbps??-maxLossBps*100n)),1000000n);
  if(out<floor)return null;
  const quoteMinimum=out*(10000n-driftBps)/10000n;
  return quoteMinimum>floor?quoteMinimum:floor;
 }
+// what a fill beats its oracle-fair output by, in 1/100 bps; negative when it falls short
+export function pegEdge(out,fair){
+ if(fair<=0n)throw Error('nonpositive pricing input');
+ return (out-fair)*1000000n/fair;
+}
+// a profit-seeking arb sells whichever side's probe beats the oracle by that side's `minProfit` (1/100
+// bps), only as far as the next probe still does: the pool comes to rest at the fee plus that profit
+export async function arbTrade({edgeAfter,inputs,max,minProfit}){
+ const edges=[];
+ for(const id of inputs)edges.push(await edgeAfter(id,0n));
+ const excess=edges.map((e,i)=>e-minProfit(inputs[i]));
+ const i=excess[0]>=excess[1]?0:1,input=inputs[i];
+ if(excess[i]<0n)return {edges};
+ return {edges,input,before:edges[i],amount:await sizeToTarget(a=>edgeAfter(input,a),edges[i],max(input),minProfit(input))};
+}
 export function freshReference({price,updatedAt,chainTime,headAge,maxAge=86400n}){
  return price>0n&&updatedAt>0n&&updatedAt<=chainTime&&chainTime-updatedAt<=maxAge&&headAge>=-30&&headAge<=120;
+}
+// what markets quotes: PRIME/HOLLAR, then each vault collateral against HOLLAR and PRIME
+export function quotePairs(collateral,prime=43,hollar=222){
+ const pair=(a,b)=>a<b?[a,b]:[b,a];
+ return [[prime,hollar],...collateral.map(id=>pair(id,hollar)),...collateral.map(id=>pair(id,prime))];
 }
 export function orientRoute(route,input,output){
  if(!route.length)return [];

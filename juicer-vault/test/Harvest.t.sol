@@ -194,7 +194,7 @@ contract HarvestTest is Test {
             loop.pokeRepay();
         }
         vault.pokeSettle();
-        uint256 got = vault.claim(reqId, address(this));
+        uint256 got = vault.claim(reqId, address(this), type(uint256).max);
         assertApproxEqRel(got, 0.5e18, 0.02e18, "exiter principal intact");
     }
 }

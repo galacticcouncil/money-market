@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 interface IHollarDiscountDebtToken {
     function POOL() external view returns (address);
+    function UNDERLYING_ASSET_ADDRESS() external view returns (address);
     function getDiscountToken() external view returns (address);
     function getDiscountRateStrategy() external view returns (address);
     function getDiscountPercent(address borrower) external view returns (uint256);
@@ -23,6 +24,12 @@ interface IDiscountVault {
     function synthetic() external view returns (address);
     function hollarDebtToken() external view returns (address);
     function discountController() external view returns (address);
+    function yieldSource() external view returns (address);
+}
+
+interface IDiscountLoop {
+    function pool() external view returns (address);
+    function hollar() external view returns (address);
 }
 
 interface ISyntheticAToken {

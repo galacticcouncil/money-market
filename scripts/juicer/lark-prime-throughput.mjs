@@ -1,8 +1,8 @@
 // Lark only: deposits, ramp and unwinds share one PRIME lane. At 50 HOLLAR a trade and
 // 1 HOLLAR/s of budget the deploys take every turn and the loop never levers. Raise both
 // directions to the profile's trade size, budget and refill (Lark 4: 1,000, 10,000, 10/s;
-// Lark 0: 2,500, 25,000, 50/s), with the source's own tranches to match; the 6 bps price
-// limit and 60 s pacing stay.
+// Lark 0: 2,500, 25,000, 50/s), with the source's own tranches to match; the price limit
+// from prime-cap and 60 s pacing stay.
 // The markets peg resupplies nearly every PRIME the loop buys, so refill its inventory too.
 import assert from 'node:assert/strict';
 import {context,artifact,live} from './lark-context.mjs';

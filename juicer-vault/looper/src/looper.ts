@@ -5,6 +5,7 @@ import {
   type PublicClient,
   type Address,
   type Chain,
+  maxUint256,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { CONFIG, ROUNDING_POLICIES } from './config.js';
@@ -73,7 +74,7 @@ const VAULT_ABI = [
   },
   {
     name: 'claim', type: 'function', stateMutability: 'nonpayable',
-    inputs: [{ name: 'requestId', type: 'uint256' }, { name: 'receiver', type: 'address' }],
+    inputs: [{ name: 'requestId', type: 'uint256' }, { name: 'receiver', type: 'address' }, { name: 'amount', type: 'uint256' }],
     outputs: [{ name: '', type: 'uint256' }],
   },
   nonpayable('rebalance'), // keep the LTV band
@@ -123,6 +124,7 @@ const ICE_SEND_ABI = parseAbi([
 const KEEPER_ROLE = keccak256(toHex('KEEPER_ROLE'));
 const ORACLE_ABI = parseAbi([
   'function getSourceOfAsset(address asset) view returns (address)',
+  'function getAssetPrice(address asset) view returns (uint256)',
   'function latestRoundData() view returns (uint80, int256 answer, uint256, uint256 updatedAt, uint80)',
 ]);
 
@@ -450,8 +452,11 @@ export class JuicerLooper {
       try {
         const source = (await this.read(ORACLE_ABI, oracle, 'getSourceOfAsset', [asset]) as Address).toLowerCase();
         if (/^0x0{40}$/.test(source)) continue;
-        const round = await this.read(ORACLE_ABI, source as Address, 'latestRoundData') as readonly bigint[];
-        const feed = feedUpdate(seen.get(source), round[1], round[3], now);
+        // a composite source without rounds (gigaeth) is watched through the oracle's price
+        const [answer, updatedAt] = await this.read(ORACLE_ABI, source as Address, 'latestRoundData')
+          .then(round => [(round as readonly bigint[])[1], (round as readonly bigint[])[3]])
+          .catch(async () => [await this.read(ORACLE_ABI, oracle, 'getAssetPrice', [asset]) as bigint, 0n]);
+        const feed = feedUpdate(seen.get(source), answer, updatedAt, now);
         seen.set(source, feed);
         updates.set(asset, feed.at);
       } catch (error) {
@@ -696,13 +701,19 @@ export class JuicerLooper {
       // ids below the head are fully settled, so one claim pays out the whole request
       for (let n = 0; id < head && n < 16; ++n, ++id) {
         const r = await this.read(VAULT_ABI, vault, 'redemptions', [id]) as readonly unknown[];
-        const owner = r[0] as Address, settled = r[6] as bigint, active = r[8] as boolean;
-        if (active && settled > 0n) await this.poke(VAULT_ABI, vault, 'claim', `claim ${short(vault)} #${id}`, [id, owner]);
+        const owner = r[0] as Address, debtShare = r[3] as bigint, repaid = r[5] as bigint;
+        const settled = r[6] as bigint, active = r[8] as boolean;
+        if (CONFIG.DELIVER_CLAIMS && active && settled > 0n) {
+          await this.poke(VAULT_ABI, vault, 'claim', `claim ${short(vault)} #${id}`, [id, owner, maxUint256]);
+        }
         const surplus = await this.read(LEDGER_ABI, ledger, 'surplusOf', [id]) as bigint;
         const owed = surplus >= CONFIG.CLAIM_MIN_SURPLUS
           && !(await this.poke(LEDGER_ABI, ledger, 'claimSurplus', `claimSurplus ${short(vault)} #${id}`, [id]));
-        // stop at the first request still owed something, so a failed delivery is retried
-        const still = (await this.read(VAULT_ABI, vault, 'redemptions', [id]) as readonly unknown[])[8] as boolean;
+        // stop at the first request still owed something, so a failed delivery is retried;
+        // a claim left to its owner holds nothing back once its debt slice is repaid
+        const still = CONFIG.DELIVER_CLAIMS
+          ? (await this.read(VAULT_ABI, vault, 'redemptions', [id]) as readonly unknown[])[8] as boolean
+          : active && repaid < debtShare;
         if (next === undefined && (still || owed)) next = id;
       }
       cursors.set(vault, next ?? id);

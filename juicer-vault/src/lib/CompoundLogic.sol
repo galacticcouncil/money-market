@@ -39,6 +39,7 @@ library SyntheticFloor {
 }
 
 interface ICompoundVault is IMainDebtVault {
+    function collateralAToken() external view returns (IERC20);
     function feeController() external view returns (IJuicerFeeController);
     function mainDebt() external view returns (IMainDebt);
     function yieldAccounting() external view returns (JuicerYieldAccounting);
@@ -51,15 +52,11 @@ interface ICompoundVault is IMainDebtVault {
     function synthLtBps() external view returns (uint256);
 }
 
-/// @dev stateless delegatecall logic deployed with the vault implementation, which supplies the
+/// @dev stateless delegatecall logic bound into the vault implementation, which supplies the
 /// reentrancy and pause guards. no storage, delegate targets or approvals survive a call.
 contract CompoundLogic {
     using SafeERC20 for IERC20;
     uint256 internal constant BPS = 10_000;
-    // rebalance hysteresis around the reserve's max LTV: relever when utilization
-    // drifts this far below it, delever when a price drop pushes it this far above
-    uint256 internal constant LTV_BAND_LOW_GAP_BPS = 500;
-    uint256 internal constant LTV_BAND_HIGH_GAP_BPS = 300;
     uint256 internal constant VARIABLE_RATE = 2;
     uint256 internal constant LTV_MASK = 0xFFFF; // reserve configuration bits 0-15
     error ZeroAmount();
@@ -160,17 +157,22 @@ contract CompoundLogic {
         uint256 value8 = coll8 > supplied / 1e10 ? coll8 - supplied / 1e10 : 0;
         if (value8 == 0) return (shares, supplied, 0, credit);
         uint256 ltv = debt8 * 10_000 / value8;
-        uint256 maxLtv = pool.getConfiguration(address(v.collateral())) & LTV_MASK;
-        uint256 targetDebt8 = value8 * maxLtv / 10_000;
-        bool resize = !exiting && ltv + LTV_BAND_LOW_GAP_BPS < maxLtv;
+        // hysteresis around a target below the reserve's live max LTV, set per vault on the source
+        (uint256 gap, uint256 relever, uint256 delever) = v.yieldSource().rebalanceBand(address(this));
+        uint256 targetLtv = pool.getConfiguration(address(v.collateral())) & LTV_MASK;
+        targetLtv = targetLtv > gap ? targetLtv - gap : 0;
+        uint256 targetDebt8 = value8 * targetLtv / 10_000;
+        bool resize = !exiting && ltv + relever < targetLtv;
         if (resize || (credit != 0 && debt8 < targetDebt8)) {
             uint256 previousDebt = ledger.beforeDeposit();
             uint256 add = (targetDebt8 - debt8) * 1e10;
             if (!resize) {
                 // Earned collateral bypasses price-move hysteresis, only up to
-                // its own borrowing capacity and the current reserve target.
-                uint256 credit8 = Math.mulDiv(value8, Math.min(credit, v.totalAssets()), v.totalAssets());
-                add = Math.min(add, credit8 * maxLtv / 10_000 * 1e10);
+                // its own borrowing capacity and the band target.
+                // priced against the collateral behind value8: settled exits wait in the vault, not in aave
+                uint256 held = v.collateralAToken().balanceOf(address(this));
+                uint256 credit8 = held == 0 ? 0 : Math.mulDiv(value8, Math.min(credit, held), held);
+                add = Math.min(add, credit8 * targetLtv / 10_000 * 1e10);
             }
             uint256 wanted = add;
             add = Math.min(add, v.yieldSource().admissionCapacity());
@@ -192,7 +194,7 @@ contract CompoundLogic {
             // Preserve unused reinvestment credit when the shared trade budget
             // only admits part of the intended additional borrow.
             credit = Math.mulDiv(credit, wanted - add, wanted);
-        } else if (!exiting && ltv > maxLtv + LTV_BAND_HIGH_GAP_BPS) {
+        } else if (!exiting && ltv > targetLtv + delever) {
             uint256 activeShares = shares - v.yieldAccounting().reservedShares();
             uint256 equity8 = shares == 0 ? 0 : Math.mulDiv(v.yieldSource().equityOf(address(this)), activeShares, shares);
             uint256 repayment8 = Math.min(debt8 - targetDebt8, equity8);

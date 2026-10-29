@@ -5,7 +5,7 @@ source-batch and redemption models into the raw executable public-call machine.
 `PublicCertificates.lean` wraps that machine with a decidable post-state certificate: a raw
 success is preserved exactly when it satisfies the combined invariant, while a rejected result
 rolls back with the model-only code 98.
-`SolidityDispatch.lean` maps every fixture opcode 0–30 to a typed target, selector and action
+`SolidityDispatch.lean` maps every fixture opcode 0–32 to a typed target, selector and action
 argument projection. `check-dispatch.py` checks that table against both Solidity `perform`
 functions, and the universal `solidity_dispatch_corresponds` theorem equates the typed dispatcher
 with `rawRunCall` for every action.
@@ -19,11 +19,11 @@ post-call snapshot and success/revert outcome. it also checks the holder, reques
 Main-cash/debt and collateral partitions and the lazy liability bound after every call. its
 computed certificate also carries proofs of collateral custody, source/cash partitions and the
 combined holder/waiting-request lifecycle and operational request/array partitions for every
-accepted post-state. each row must satisfy `FixtureAction` and `ValidSolidityAction`; 21 opcodes
+accepted post-state. each row must satisfy `FixtureAction` and `ValidSolidityAction`; 23 opcodes
 satisfy the latter from the certified pre-state alone, transfers additionally require ordinary
 holders and bounded destinations, claims require started requests, and sync requires consistent
 account/request epochs and scales. the remaining opcodes have the input conditions described
-below, including queue backing, batch budgets and source capacity. all 31 have structural rules;
+below, including queue backing, batch budgets and source capacity. all 33 have structural rules;
 the only fallback admits raw reverts. the replay still certifies every resulting state and advances
 with the raw typed dispatcher, so no checked-call guard can hide a raw transition mismatch.
 
@@ -56,17 +56,36 @@ queue/batch/claim boundaries. Required boundary cases must actually execute.
 `check-runtime.py` includes the default campaigns, their Lean replay and two focused ten-call
 harvest-capacity replays.
 
-the current PR #79 gate covers 24 campaigns, 9,690 recorded steps, 1,901 expected reverts and 416
-corrupted-output checks.
+the current PR #82 gate covers 24 campaigns, 10,499 recorded steps, 1,966 expected reverts and 416
+corrupted-output checks. recording runs with gas metering paused, so a campaign's gas covers its calls
+and fits the default block gas limit without the gate's raised budget.
 
 | fixture | seeds | random depth | recorded steps | expected reverts | mutation checks |
 | --- | --- | --- | --- | --- | --- |
-| baseline | 1–8 | 192 | 2,419 | 662 | 96 |
-| market | 1–8 | 192 | 2,598 | 499 | 160 |
-| loss/recovery (`rescale` CLI name) | 1–8 | 192 | 4,673 | 740 | 160 |
+| baseline | 1–8 | 192 | 2,820 | 696 | 96 |
+| market | 1–8 | 192 | 3,006 | 533 | 160 |
+| loss/recovery (`rescale` CLI name) | 1–8 | 192 | 4,673 | 737 | 160 |
 
 the third fixture keeps the `rescale` command-line and trace-file name for compatibility, while its
 coverage report is `loss-recovery-coverage.json`.
+
+## configuration
+
+opcodes 31 and 32 call the source's `setRebalanceBand` and `setAdmissionMaxDeficitBps`. both fixture
+sources apply SubLoop's bounds and its default read-back, and every snapshot ends with the vault's
+band and admission bound. even seeds switch to the launch settings after the opening deposits
+(band 0/1000/800 around the fixture's 7500 max LTV, 250 bps admission); every baseline and market
+campaign also inserts valid, reset and rejected changes at random points. the coverage gates require
+band changes, resets and rejections, admission changes and rejections, rebalances that move debt or
+loop shares under a non-default band, deposits under a non-default admission bound and, in the
+market fixture, a price-driven delever under a non-default band. the loss/recovery fixture keeps the
+defaults. `LeanConfigParity.t.sol` separately replays a 160-step band/admission history against the
+production SubLoop, including an unregistered vault, and compares JuicerDiscount's rates and setters.
+
+claims take an exact amount: opcode 7's owner field carries it, with zero standing for
+`type(uint256).max`. random claims pick zero, half, all or one more than the settled amount, and the
+final drain claims half of every settled request before the rest. the coverage gates require exact
+partial claims and rejected oversized claims.
 
 the historical pre-PR #79 corpus contains 48 campaigns and 22,609 recorded steps, including 16,315 vault calls,
 637 Harvester/fee-controller calls and 5,657 environment actions. The longest sequence has 720
@@ -192,7 +211,7 @@ lists from a certified input. `ValidSolidityTrace` defines the raw domain as sou
 actions admitted by a structural input theorem or a raw revert. successful post-state certificates
 are checked separately and are no longer an admission fallback.
 `validSolidityTrace_invariant` and `validSolidityReachable_invariant` prove preservation through
-arbitrary finite traces in that domain, while the default replay checks membership for all 9,690
+arbitrary finite traces in that domain, while the default replay checks membership for all 10,499
 recorded actions. a fabricated orphan-claim storage state is a concrete counterexample to raw
 preservation over unrestricted states and is excluded by the domain.
 
@@ -212,7 +231,7 @@ the typed opcode theorem and source checker establish fixture-dispatch correspon
 ABI selectors to reviewed hashes. it does not prove the internal contract bodies equivalent to
 `rawRunCall`. sync, requestRedeem and deposit have structural preservation under account/request
 metadata consistent with the book history. deposit also requires zero reward index at zero supply;
-replay checks these input premises throughout all 9,690 steps. requestRedeem requires an ordinary
+replay checks these input premises throughout all 10,499 steps. requestRedeem requires an ordinary
 owner and deposit a bounded receiver, both supplied by the fixture domain. rebalance is proved
 under a zero-fee remainder at zero active source remainder. settlement loops preserve the
 invariant for any iteration count under backed owed collateral and a Main position count equal

@@ -19,6 +19,7 @@ contract MockDiscountAToken is MockERC20 {
 ///      Interest arithmetic is exercised against the deployed GHO token in fork tests.
 contract MockDiscountDebtToken is ERC20 {
     address public immutable POOL;
+    address public UNDERLYING_ASSET_ADDRESS;
     address public policy;
     address public failingBorrower;
     mapping(address => uint256) public getDiscountPercent;
@@ -31,6 +32,10 @@ contract MockDiscountDebtToken is ERC20 {
 
     function setPolicy(address value) external {
         policy = value;
+    }
+
+    function setUnderlying(address value) external {
+        UNDERLYING_ASSET_ADDRESS = value;
     }
 
     function setFailingBorrower(address value) external {
@@ -70,6 +75,7 @@ contract MockDiscountVault {
     address public immutable synthetic;
     address public immutable hollarDebtToken;
     address public discountController;
+    address public yieldSource;
 
     constructor(address pool_, address synthetic_, address debt_, address controller_) {
         pool = pool_;
@@ -80,5 +86,19 @@ contract MockDiscountVault {
 
     function setController(address value) external {
         discountController = value;
+    }
+
+    function setYieldSource(address value) external {
+        yieldSource = value;
+    }
+}
+
+contract MockDiscountLoop {
+    address public immutable pool;
+    address public immutable hollar;
+
+    constructor(address pool_, address hollar_) {
+        pool = pool_;
+        hollar = hollar_;
     }
 }

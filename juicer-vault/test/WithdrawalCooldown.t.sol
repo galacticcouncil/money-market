@@ -39,7 +39,7 @@ contract WithdrawalCooldownTest is PluggableYieldSourceTest {
         assertEq(source.sharesOf(address(vault)), sourceShares);
         assertEq(source.pendingUnwindOf(address(vault)), 0);
         vm.expectRevert(CollateralVault.NothingToClaim.selector);
-        vault.claim(id, address(this));
+        vault.claim(id, address(this), type(uint256).max);
 
         vm.warp(ready);
         vm.prank(address(0xB0B));
@@ -52,7 +52,7 @@ contract WithdrawalCooldownTest is PluggableYieldSourceTest {
         vault.startUnwinds(16);
         assertEq(source.sharesOf(address(vault)), left, "cannot start twice");
         vault.pokeSettle();
-        assertGt(vault.claim(id, address(this)), 0);
+        assertGt(vault.claim(id, address(this), type(uint256).max), 0);
     }
 
     function test_delayChangesOnlyAffectFutureRequestsAndPreserveFifo() public {
@@ -87,7 +87,7 @@ contract WithdrawalCooldownTest is PluggableYieldSourceTest {
         assertEq(vault.queueHead(), 0);
         vault.startUnwinds(1);
         vault.pokeSettle();
-        assertGt(vault.claim(id, address(this)), 0);
+        assertGt(vault.claim(id, address(this), type(uint256).max), 0);
     }
 
     function test_waitingSharesKeepTheirYieldAndDebtUntilStart() public {
@@ -117,7 +117,7 @@ contract WithdrawalCooldownTest is PluggableYieldSourceTest {
         assertEq(minted, 1e18);
         _ready(id);
         vault.pokeSettle();
-        assertEq(vault.claim(id, address(this)), shares);
+        assertEq(vault.claim(id, address(this), type(uint256).max), shares);
         assertEq(vault.convertToAssets(minted), 1e18);
     }
 
@@ -129,7 +129,7 @@ contract WithdrawalCooldownTest is PluggableYieldSourceTest {
         assertEq(vault.queueHead(), 0);
         assertEq(vault.totalQueuedCollateral(), 0);
         vm.expectRevert(CollateralVault.NothingToClaim.selector);
-        vault.claim(id, address(this));
+        vault.claim(id, address(this), type(uint256).max);
     }
 
     function test_delegatedAndSplitRequestsCannotReuseAnOldTimer() public {
@@ -189,14 +189,14 @@ contract WithdrawalCooldownTest is PluggableYieldSourceTest {
         assertEq(afterRepaid, repaid);
         assertEq(vault.queueHead(), first);
         vm.expectRevert("Pausable: paused");
-        vault.claim(first, address(this));
+        vault.claim(first, address(this), type(uint256).max);
         vm.expectRevert("Pausable: paused");
-        vault.claim(second, address(this));
+        vault.claim(second, address(this), type(uint256).max);
         vault.unpause();
-        assertEq(vault.claim(first, address(this)), settled);
+        assertEq(vault.claim(first, address(this), type(uint256).max), settled);
         vault.pokeSettle();
-        assertGt(vault.claim(first, address(this)), 0);
-        assertGt(vault.claim(second, address(this)), 0);
+        assertGt(vault.claim(first, address(this), type(uint256).max), 0);
+        assertGt(vault.claim(second, address(this), type(uint256).max), 0);
     }
 
     function test_freezeKeepsPegAndCommittedMainRepaymentAvailable() public {
@@ -242,10 +242,10 @@ contract WithdrawalCooldownTest is PluggableYieldSourceTest {
         vault.unpause();
         assertTrue(vault.paused());
         vm.expectRevert("Pausable: paused");
-        vault.claim(id, address(this));
+        vault.claim(id, address(this), type(uint256).max);
         vault.maintainPeg();
         source.setEmergencyPaused(false);
-        assertGt(vault.claim(id, address(this)), 0);
+        assertGt(vault.claim(id, address(this), type(uint256).max), 0);
     }
 }
 

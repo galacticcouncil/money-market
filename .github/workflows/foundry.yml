@@ -94,3 +94,58 @@ jobs:
         run: |
           node --test scripts/juicer/source-storage.test.mjs
           node scripts/juicer/check-source-storage.mjs --artifact juicer-vault/out-production/SubLoop.sol/SubLoop.json
+
+  juicer-formal:
+    name: Juicer formal gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      # the bytecode manifest pins the default profile's compiler settings
+      FOUNDRY_PROFILE: default
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Initialize Juicer libraries
+        run: >-
+          git submodule update --init --depth 1
+          bil-vault/lib/forge-std
+          bil-vault/lib/openzeppelin-contracts
+          bil-vault/lib/openzeppelin-contracts-upgradeable
+          bil-vault/lib/solmate
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Install Aave sources
+        run: npm ci --ignore-scripts
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
+        with:
+          version: v1.5.1
+
+      # the gate compiles offline
+      - name: Install solc
+        run: |
+          mkdir -p /tmp/solc && cd /tmp/solc
+          printf 'pragma solidity 0.8.22;\ncontract A {}\n' > A.sol
+          forge build --root . --use 0.8.22 --contracts . --out out --cache-path cache
+
+      # third-party actions are not allowed here, so install elan directly (v4.2.4)
+      - name: Install Lean
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/227caca133724d5516bee25c2aeb3e609478f2d8/elan-init.sh -o /tmp/elan-init.sh
+          sh /tmp/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch the Mathlib build
+        working-directory: juicer-vault/formal
+        run: lake exe cache get
+
+      - name: Run the formal gate
+        working-directory: juicer-vault/formal
+        run: python3 check-runtime.py

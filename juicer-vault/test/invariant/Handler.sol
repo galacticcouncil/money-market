@@ -143,7 +143,7 @@ contract Handler is Test {
         if (!active || settled == 0) return;
         // claims can be partial, so track the actual escrow burn
         uint256 escrowBefore = vault.balanceOf(address(vault));
-        ghostClaimed += vault.claim(id, address(this));
+        ghostClaimed += vault.claim(id, address(this), type(uint256).max);
         ghostEscrowed -= (escrowBefore - vault.balanceOf(address(vault)));
     }
 }

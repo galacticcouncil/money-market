@@ -1,6 +1,7 @@
 # current Solidity mapping
 
-reviewed in the PR #79 `juicer-pr46-fixes` working tree on 13 october 2026.
+reviewed in the PR #79 `juicer-pr46-fixes` working tree on 13 october 2026. PR #82's rebalance bands,
+admission bound, loop discount and exact-amount claims were added on 26 october 2026 at `a4a8895`.
 the manifests below pin the exact source and artifact inputs.
 accounting rejects unrepresentable funded debits and preserves the requested allowance
 bound; [rounding evidence](ROUNDING.md) records the remaining recipient display rounding.
@@ -34,14 +35,17 @@ references and method ids for 11 production contracts; the checks fail if either
 | vested source fees | `vestFee`, `settleFee` | junior fee bounds, cost reduction, no early charge; 48 comparisons |
 | protocol reserve | `reserveDraw`, `spendable`, `repaymentLimit` | no active/unfinished draw, amount caps and protected fee cash; existing reserve regressions |
 | controller credit, pacing, expiry and safety lanes | `Policy`, `available`, `policyCharge`, `executionMinimum`, `pacingNextAt` | credit/size bounds, no refill on refresh, quote only tightens oracle floor; 64 availability, 32 executed quote and 32 proportional-pacing comparisons, including uint64 casts |
-| FIFO start and collateral claims | `queueReady`, `startQueue`, `settleRedemption`, `claimRedemption` | work/FIFO bounds, full final burn, recipient protection; 32 queue and 48 claim comparisons |
+| FIFO start and collateral claims | `queueReady`, `startQueue`, `settleRedemption`, `claimRedemption`, `claimAmount` | work/FIFO bounds, full final burn, recipient protection, exact partial claims that keep every bound and leave the request open; 32 queue and 48 claim comparisons |
 | repeated settlement/claim histories | `RedemptionState.valid`, `settleQueue` | cumulative collateral/burn bounds, unpaid-head stop, final payout/burn; 24 three-claim histories; zero-share, debt-free empty requests advance both cursors |
-| stateful vault/Main/harvest/loss-recovery sequences | `PublicCalls.State`, `SolidityDispatch`, `ValidSolidityTrace`, `PublicInvariant` | complete source-checked 31-opcode fixture map; arbitrary finite certified raw-trace preservation; independent replay from fixture genesis with exact outcomes, snapshots and rollback |
+| stateful vault/Main/harvest/loss-recovery sequences | `PublicCalls.State`, `SolidityDispatch`, `ValidSolidityTrace`, `PublicInvariant` | complete source-checked 33-opcode fixture map; arbitrary finite certified raw-trace preservation; independent replay from fixture genesis with exact outcomes, snapshots and rollback |
 | shared-loop harvest and ICE histories | lifecycle and runtime projections | repeated harvests across two vaults sharing one loop; long actual-SubLoop intent expiry/reconcile/late-callback/exit sequence |
 | shared intent/harvest accounting | `SharedIntent.State`, `SharedIntent.call`, `SharedIntent.snapshot` | 1,176 calls against production SubLoop and Harvester: two-vault fills, refunds, gifts, rebases, cost checkpoints and reconcile-before-weight ordering |
-| audit liveness and loss allocation | `AuditProgress`, `AuditLossAllocation` | conditional arbitrary-queue progress and fragmented-pacing bounds; executable 50 bps admission, frozen pending-intent membership, owned parked gifts, loss-carry recovery and capped-cost liability boundaries |
+| audit liveness and loss allocation | `AuditProgress`, `AuditLossAllocation` | conditional arbitrary-queue progress and fragmented-pacing bounds; executable admission at any configured bound (50 bps default, 250 bps launch), frozen pending-intent membership, owned parked gifts, loss-carry recovery and capped-cost liability boundaries |
 | checked arithmetic and failure | `Checked`, checked account/backing/borrow/batch/claim/rescale operations | success refinement, exact arithmetic revert classes, atomic failure semantics; 488 primitive, 40 account and eight backing comparisons |
 | external observations | `payValid`, `exactReceipt`, `exactPayment`, callback/arrival theorems | conditional cash/debt bounds; detection threshold does not authenticate token origin |
+| `CompoundLogic.rebalance` band; deposit admission | `Band`, `targetLtv`, `admission`, opcodes 9, 0, 31 and 32 | for every band SubLoop accepts: quiet between the relever and delever triggers, borrowing capped at the band target with the synthetic floor intact, delevers only above the trigger; every successful deposit passed the configured bound; banded and launch-configured stateful campaigns |
+| `SubLoop.setRebalanceBand`, `rebalanceBand`, `setAdmissionMaxDeficitBps` | `LoopConfig.setBand`, `bandOf`, `setAdmission` | acceptance, default read-back, per-vault isolation and model-band validity; a 160-step history against the production SubLoop |
+| `JuicerDiscount.balanceOf`, `calculateDiscountRate` and rate/cap setters | `Discount.rate`, `loopEligibility`, setters | tag round trip, untagged Main rate unchanged, loop discounted at its own rate on at most its cap, every rate at most 10000; 360 rate and 15 setter comparisons against the production contract |
 
 ## integer properties
 
@@ -178,10 +182,10 @@ invariant; otherwise it returns the model-only code 98 and `execute` rolls back.
 `runCall_success_preserves`, `execute_preserves` and `certifiedReplay_total` cover every checked
 call and every finite checked-call list from a certified input.
 
-`SolidityDispatch.lean` gives every fixture opcode 0–30 a typed target, selector and action-argument
+`SolidityDispatch.lean` gives every fixture opcode 0–32 a typed target, selector and action-argument
 projection. `check-dispatch.py` checks the map against both pinned Solidity `perform` functions;
 `solidity_dispatch_corresponds` and `solidity_execute_corresponds` prove that the typed map equals
-the raw Lean dispatcher for every action. `PublicReachability.lean` proves 21 opcodes
+the raw Lean dispatcher for every action. `PublicReachability.lean` proves 23 opcodes
 preserve `PublicInvariant` from the current state alone. `PublicTransferProofs.lean` adds transfer
 and transferFrom for ordinary holders and bounded destinations; `PublicClaimProofs.lean` adds
 claims of started requests. `PublicMetadataProofs.lean`, `PublicAllocationProofs.lean` and
@@ -254,12 +258,12 @@ Main and delegatecall logic, using the existing deterministic pool/token/source 
 `StatefulReplay.lean` keeps its own predicted state from fixture genesis; it never resets from
 a Solidity snapshot. Each call checks its outcome, all tracked holder/allowance/request/Main
 fields, and share, cash, collateral and lazy-liability partitions. The default eight seeds cover
-2,419 recorded steps, including 662 expected reverts and 48 deliberately corrupted outputs rejected by
+2,820 recorded steps, including 696 expected reverts and 48 deliberately corrupted outputs rejected by
 the checker. Coverage gates require partial/final claims, keeper receiver protection, 71-request
 starts, resumed 64-cohort batches with late receipts and the 32-request settlement limit.
 `LeanMarketStatefulParity.t.sol` adds the actual Harvester and fee controller with changing source
 values, collateral prices, debt observations and execution costs. Its default eight campaigns pass
-2,598 recorded steps, 495 expected reverts and 104 corrupted-output checks. Coverage gates require
+3,006 recorded steps, 533 expected reverts and 104 corrupted-output checks. Coverage gates require
 harvests/reward mints, fee collection, interest servicing, debt-rounding retries, peg top-ups,
 source costs/losses and completed price-driven deleveraging. Both fixtures run in the formal check.
 `LeanRescaleStatefulParity.t.sol` retains its historical contract and trace name but now adds long
@@ -332,11 +336,11 @@ states, preventing the PR #79 ordering fix from becoming a no-op in the model.
 
 ## verification
 
-1,594 source theorem/lemma declarations compile, including declarations with same-line attributes.
-the axiom audit checks all 2,996 kernel theorem
+1,679 source theorem/lemma declarations compile, including declarations with same-line attributes.
+the axiom audit checks all 3,130 kernel theorem
 declarations, including generated lemmas, and finds only `propext`, `Classical.choice` and
 `Quot.sound`. the public-call machine includes rollback and certified-history custody theorems;
-its 31-opcode typed fixture dispatch correspondence is universally proved and source-checked.
+its 33-opcode typed fixture dispatch correspondence is universally proved and source-checked.
 `Solidity/BodyProofs.lean` proves the extracted solc AST of `_shiftIndex` equals
 `Runtime.ceilShift` for every uint256 input pair, including arithmetic checks and shifts beyond
 the word width. It also binds compiled ASTs for vault `deposit`, `startUnwinds`, `pokeSettle` and
@@ -348,23 +352,23 @@ bounds. The extractor, semantic labeling and compiler remain trusted; see
 32 leading entrypoint prefixes and the explicit transfer check to compiler ASTs. it proves rejection,
 lock reset and conditional composition with the raw public invariant, including modeled rollback.
 it does not establish whole-protocol callback safety; the exact limits are in the same scope record.
-the comparison datasets contain 1,526 rows: 570 runtime, 352 coverage and 604 machine-boundary and history
-cases. validation also includes 512 transfer-rounding fuzz cases, the public vault lifecycle,
-rollback regressions, seeded rescale suites and public loss-recovery fixtures. all three generated
+the comparison datasets contain 2,061 rows: 570 runtime, 352 coverage, 604 machine-boundary and history
+cases and 535 configuration cases. validation also includes 512 transfer-rounding fuzz cases, the public vault lifecycle,
+rollback regressions, seeded rescale suites and public loss-recovery fixtures. all four generated
 datasets reproduce exactly.
 the Aave scaled-debt trace adds 516 calls with 43 expected reverts. the full formal check invokes
-126 formal Foundry tests, 18 PR #79 regressions and the two targeted shared-flow histories,
+129 formal Foundry tests, 18 PR #79 regressions and the two targeted shared-flow histories,
 all with zero failures or skips;
 source fingerprints, all 19 accounting slots and the six private
 Main batch slots also pass. the legacy environment-gated Verity fork suite is outside this formal gate.
-the broader `test/formal/**` acceptance run passes 160 tests with zero failures; its only skip
+the broader `test/formal/**` acceptance run passes 163 tests with zero failures; its only skip
 is that legacy Verity fork setup, which is unavailable offline.
-the repository-wide offline Forge run passes 738 tests with zero failures and 13 expected
+the repository-wide offline Forge run passes 783 tests with zero failures and 13 expected
 fork/campaign skips.
 the gate includes source-body extraction and 24 rejection/mutation tests for its supported AST
 boundary, plus 24 guard-extractor tests. formal compiler remappings are fixed and relative, with automatic discovery disabled.
-the production Paris build binds 11 contracts and 445 selectors, including the two loss-carry and
-two parked-gift getters. CollateralVault is 24,495 bytes (81 bytes below the deployment limit),
+the production Paris build binds 11 contracts and 457 selectors, including the two loss-carry and
+two parked-gift getters. CollateralVault is 24,555 bytes (21 bytes below the deployment limit),
 JuicerYieldAccounting is 13,506 bytes, Harvester is 9,858 bytes and SubLoopLogic is 23,602 bytes.
 this artifact refresh includes the executable PR #79 fixes.
 
@@ -376,7 +380,7 @@ From `juicer-vault/formal`, with the pinned Lean/Mathlib dependencies and Foundr
 python3 check-runtime.py
 ```
 
-this builds the proofs, regenerates and compares 1,526 cases across three datasets, checks source
+this builds the proofs, regenerates and compares 2,061 cases across four datasets, checks source
 fingerprints, compiled production artifacts and storage slots, then runs the comparison suites,
 512 transfer-bound fuzz cases, the allowance, rounding and corrected account/request rescale
 regressions, the 516-call Aave scaled-debt replay, PR #79 regressions and both shared-flow histories. after a reviewed
@@ -404,7 +408,7 @@ assembly implementation. Valid configuration and truthful external observations 
 Four 64-bit rescale steps suffice for an initial total below `2^256`; checked scale/epoch counter
 overflow reverts rather than silently wrapping.
 
-the 1,526 vector cases and 516 scaled-debt calls are cross-language comparisons, not a proof of
+the 2,061 vector cases and 516 scaled-debt calls are cross-language comparisons, not a proof of
 every Solidity trace. the lifecycle and Main transition systems derive their numerical partitions
 from genesis and cover the listed call sequences. every successful checked `runCall` has a
 kernel proof of the combined public invariant, and checked execution and replay preserve it for
@@ -430,7 +434,7 @@ input invariant; in particular, the orphan claim's fabricated input is not reach
 `validSolidityTrace_invariant` proves every arbitrary finite raw
 trace in that domain preserves `PublicInvariant`; `validSolidityReachable_invariant` gives the
 equivalent inductive reachability result. the stateful runner now advances through the raw typed
-dispatcher and checked all 9,690 default actions for domain membership using input rules or
+dispatcher and checked all 10,499 default actions for domain membership using input rules or
 reverts. metadata consistency is inductive even outside that domain. bounded source/fee rates and
 ordinary stored request owners follow from initial bounds and fixture actions alone.
 
@@ -465,6 +469,16 @@ trusted administrative configuration are not replaced
 by the arithmetic models. protocol fee-controller binding/custody and the deployed Aave Pool remain
 fixture boundaries rather than formalized external protocol implementations. the scaled-debt model
 matches the pinned token history but does not prove Aave's assembly or arbitrary Pool behavior.
+
+the rebalance reads the vault's band from model state and deposits compare against the configured
+admission bound; opcodes 31 and 32 change both under SubLoop's validation, so the band theorems hold
+for every band it accepts, including the launch band, and every admission bound up to 10000 bps.
+`claim(id, receiver, amount)` is modeled for exact amounts as well as `type(uint256).max`.
+`LoopConfig.lean` models SubLoop's per-vault registry and `Discount.lean` JuicerDiscount's tagged rate;
+both are compared against the production contracts. a discount only changes how Main or loop debt
+grows, which the public-call machine already takes as an arbitrary observation; the GHO debt token's
+accrual is outside this repository and is not modeled. the stateful fixtures keep one vault and a 7500
+max LTV, so per-vault band isolation rests on the registry proof and its production comparison.
 
 Aave/token observations must be truthful, oracle prices/configuration valid, and external calls
 successful where their results are model inputs. matching ICE's 99%-minimum arrival heuristic

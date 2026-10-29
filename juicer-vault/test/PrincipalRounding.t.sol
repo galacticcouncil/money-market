@@ -35,7 +35,7 @@ contract PrincipalRoundingTest is PluggableYieldSourceTest {
 
     function _claim(address user, uint256 id) internal returns (uint256) {
         vm.prank(user);
-        return vault.claim(id, user);
+        return vault.claim(id, user, type(uint256).max);
     }
 
     function test_oddDepositAtTwoToOnePriceCannotLosePrincipalOrDiluteHolder() public {

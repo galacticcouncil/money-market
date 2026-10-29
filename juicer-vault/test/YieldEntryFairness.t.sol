@@ -45,7 +45,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         for (uint256 i; i < 400 && loop.unwindTargetEquity() != 0; ++i) loop.pokeRepay();
         vault.pokeSettle();
         vm.prank(NEWCOMER);
-        uint256 collateralOut = vault.claim(id, NEWCOMER);
+        uint256 collateralOut = vault.claim(id, NEWCOMER, type(uint256).max);
         uint256 hollarOut = JuicerMainDebt(address(vault.mainDebt())).claimSurplus(id);
         assertLe(collateralOut + hollarOut / 3000, 1e18 + 1e9,
             "an exit cannot take carry that predates its deposit");
@@ -63,7 +63,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         vault.pokeSettle();
         uint256 before = eth.balanceOf(NEWCOMER);
         vm.prank(address(0xD00D));
-        uint256 out = vault.claim(id, address(0xD00D));
+        uint256 out = vault.claim(id, address(0xD00D), type(uint256).max);
         assertGt(out, 0);
         assertEq(eth.balanceOf(NEWCOMER), before + out, "the keeper delivers to the owner");
         assertEq(eth.balanceOf(address(0xD00D)), 0, "a caller cannot redirect someone else's claim");
@@ -350,7 +350,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         assertEq(y.balanceOf(address(this)), 0, "no units left behind");
         for (uint256 i; i < 400 && loop.unwindTargetEquity() != 0; ++i) loop.pokeRepay();
         vault.pokeSettle();
-        vault.claim(id, address(this));
+        vault.claim(id, address(this), type(uint256).max);
         assertEq(vault.balanceOf(address(this)), 0);
         assertEq(_rewardValue(address(this)), 0);
         aPrime.mint(address(loop), aPrime.balanceOf(address(loop)) / 20);
@@ -447,7 +447,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         }
         assertEq(vault.totalQueuedDebt(), 0, "fees cannot consume principal's execution budget");
         (,,uint256 promised,,,,,,) = vault.redemptions(id);
-        assertEq(vault.claim(id, address(this)), promised);
+        assertEq(vault.claim(id, address(this), type(uint256).max), promised);
     }
 
     function test_lateExecutionCostReducesReservedFeeAfterPartialSurplus() public {
@@ -518,7 +518,7 @@ contract YieldEntryFairnessTest is HarvestTest {
         vault.startUnwinds(1);
         vault.pokeSettle();
         vm.prank(NEWCOMER);
-        assertGe(vault.claim(id, NEWCOMER), 1e18 - 1000);
+        assertGe(vault.claim(id, NEWCOMER, type(uint256).max), 1e18 - 1000);
         assertEq(ledger.debtOf(id + 1), 0);
     }
 

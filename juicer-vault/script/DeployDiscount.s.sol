@@ -17,8 +17,12 @@ contract DeployDiscount is Script {
         address committee = vm.envAddress("DISCOUNT_COMMITTEE");
         address[] memory vaults = vm.envAddress("DISCOUNT_VAULTS", ",");
         uint256 bps = vm.envOr("DISCOUNT_BPS", uint256(0));
-        require(bps <= 10_000, "discount bps");
+        address loop = vm.envOr("DISCOUNT_LOOP", address(0));
+        uint256 loopCap = vm.envOr("DISCOUNT_LOOP_CAP", uint256(0)) * 1e18; // whole HOLLAR
+        uint256 loopBps = vm.envOr("DISCOUNT_LOOP_BPS", uint256(0));
+        require(bps <= 10_000 && loopBps <= 10_000, "discount bps");
         require(vaults.length > 0 && vaults.length <= 16, "vault count");
+        require((loop == address(0)) == (loopCap == 0), "loop and its cap go together");
 
         vm.startBroadcast();
         discount = new JuicerDiscount(debt, synth, aSynth, governance, committee);
@@ -35,6 +39,10 @@ contract DeployDiscount is Script {
             _print(address(discount), abi.encodeCall(JuicerDiscount.registerVault, (vaults[i])));
         }
         _print(address(discount), abi.encodeCall(JuicerDiscount.setDiscountBps, (uint16(bps))));
+        if (loop != address(0)) {
+            _print(address(discount), abi.encodeCall(JuicerDiscount.registerLoop, (loop, loopCap)));
+            _print(address(discount), abi.encodeCall(JuicerDiscount.setLoopDiscountBps, (uint16(loopBps))));
+        }
     }
 
     function _print(address target, bytes memory data) internal pure {

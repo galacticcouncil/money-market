@@ -9,7 +9,7 @@ try{
  for(const vault of c.r.vaults){
   let record=c.r.checks.hostedExits.find(x=>x.vault===vault.address);
   if(!record){
-   const shares=vault.assetId===34?10n**15n:10n**13n;
+   const shares=vault.name==='ETH'?10n**15n:10n**13n;
    assert.ok(await c.read('CollateralVault',vault.address,'balanceOf',[deployer.address])>=shares);
    const id=await c.read('CollateralVault',vault.address,'queueTail');
    record={vault:vault.address,name:vault.name,id:id.toString(),shares:shares.toString(),owner:deployer.address};

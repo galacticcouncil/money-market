@@ -129,7 +129,7 @@ contract CollateralVaultDiscountTest is Test {
         vault.pokeSettle();
         assertLt(aSynth.balanceOf(address(vault)), beforeSynth);
         assertEq(debt.lastEligibleBalance(address(vault)), aSynth.balanceOf(address(vault)));
-        assertGt(vault.claim(request, address(this)), 0);
+        assertGt(vault.claim(request, address(this), type(uint256).max), 0);
     }
 
     function test_detachImmediatelyClearsDiscountAndExitsStillWork() public {
@@ -143,7 +143,7 @@ contract CollateralVaultDiscountTest is Test {
         vm.warp(vm.getBlockTimestamp() + vault.withdrawalDelay());
         vault.startUnwinds(100);
         vault.pokeSettle();
-        assertGt(vault.claim(request, address(this)), 0);
+        assertGt(vault.claim(request, address(this), type(uint256).max), 0);
     }
 
     function test_unregisterLeavesRepaymentAndPegMaintenanceAvailable() public {
@@ -157,7 +157,7 @@ contract CollateralVaultDiscountTest is Test {
         vault.startUnwinds(100);
         vault.pokeSettle();
         assertEq(debt.getDiscountPercent(address(vault)), 0);
-        assertGt(vault.claim(request, address(this)), 0);
+        assertGt(vault.claim(request, address(this), type(uint256).max), 0);
     }
 
     function test_committeeCannotChangeVaultControllerOrEligibility() public {

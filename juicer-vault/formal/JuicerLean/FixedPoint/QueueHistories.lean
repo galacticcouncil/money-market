@@ -68,15 +68,44 @@ theorem redemption_claim_preserves (r : RedemptionState) (h : r.valid) (hs : 0 <
     · exact Nat.add_sub_of_le hm
   · simp
 
+theorem redemption_claimAmount_preserves (r : RedemptionState) (amount : ℕ) (h : r.valid)
+    (hpos : 0 < amount) (hle : amount ≤ r.settled) : (claimAmount r amount).1.valid := by
+  have he := h.2.2.2.2 (by omega)
+  have hc := redemption_claimed_bounded r h
+  have hb := redemption_burned_bounded r h
+  have hm : r.burned ≤ r.shares * (r.claimed + amount) / r.owed := by
+    rw [h.2.2.2.1]
+    exact Nat.div_le_div_right (Nat.mul_le_mul_left _ (by omega))
+  unfold RedemptionState.valid
+  simp only [claimAmount]
+  refine ⟨h.1, h.2.1, ?_, ?_, ?_⟩
+  · have : r.claimed + amount + (r.settled - amount) = r.claimed + r.settled := by omega
+    rw [this]
+    exact he.le
+  · split_ifs with hd
+    · have hd' : r.repaid = r.debt := by have := h.2.1; omega
+      have hfull : r.claimed + r.settled = r.owed := by simpa [claimEntitlement, hd'] using he
+      have ho : 0 < r.owed := by omega
+      have hall : r.claimed + amount = r.owed := by omega
+      simp [hall, Nat.add_sub_of_le hb, ho]
+    · exact Nat.add_sub_of_le hm
+  · intro _
+    have : r.claimed + amount + (r.settled - amount) = r.claimed + r.settled := by omega
+    rw [this]
+    exact he
+
 inductive RedemptionState.Step : RedemptionState → RedemptionState → Prop
   | settle (r : RedemptionState) (paid : ℕ) : Step r (settleRedemption r paid)
   | claim (r : RedemptionState) (ha : r.active = true) (hs : 0 < r.settled) :
       Step r (claimRedemption r).1
+  | claimPart (r : RedemptionState) (amount : ℕ) (ha : r.active = true) (hpos : 0 < amount)
+      (hle : amount ≤ r.settled) : Step r (claimAmount r amount).1
 
 theorem redemption_step_preserves (r r' : RedemptionState) (h : r.valid) (step : r.Step r') : r'.valid := by
   cases step with
   | settle paid => exact redemption_settle_preserves _ paid h
   | claim ha hs => exact redemption_claim_preserves _ h hs
+  | claimPart amount ha hpos hle => exact redemption_claimAmount_preserves _ amount h hpos hle
 
 theorem redemption_trace_preserves (r r' : RedemptionState) (h : r.valid)
     (steps : Relation.ReflTransGen RedemptionState.Step r r') : r'.valid := by
@@ -108,6 +137,25 @@ theorem final_claim_pays_all (r : RedemptionState) (h : r.valid) (hs : 0 < r.set
   have hp : r.repaid = r.debt := by have := h.2.1; omega
   have hc : r.claimed + r.settled = r.owed := by simpa [claimEntitlement, hp] using he
   exact ⟨hc, final_claim_burns_all r hd (redemption_burned_bounded r h)⟩
+
+theorem claimAmount_conserves (r : RedemptionState) (amount : ℕ) (hle : amount ≤ r.settled) :
+    (claimAmount r amount).1.claimed + (claimAmount r amount).1.settled = r.claimed + r.settled ∧
+      (claimAmount r amount).2.1 = amount := by
+  refine ⟨?_, rfl⟩
+  show r.claimed + amount + (r.settled - amount) = r.claimed + r.settled
+  omega
+
+theorem partial_claim_stays_open (r : RedemptionState) (amount : ℕ) (hlt : amount < r.settled) :
+    (claimAmount r amount).1.active = r.active := by
+  simp only [claimAmount]
+  rw [if_neg (by omega)]
+
+theorem exact_final_claim_closes (r : RedemptionState) (h : r.valid) (hs : 0 < r.settled)
+    (hd : r.debt ≤ r.repaid) :
+    (claimAmount r r.settled).1.active = false ∧ (claimAmount r r.settled).1.burned = r.shares := by
+  rw [claimAmount_settled]
+  have := final_claim_pays_all r h hs hd
+  exact ⟨this.2.2, this.2.1⟩
 
 def settleQueue : ℕ → List (RedemptionState × ℕ) → List RedemptionState × ℕ
   | 0, rows => (rows.map Prod.fst, 0)

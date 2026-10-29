@@ -82,15 +82,37 @@ def check_coverage(paths):
                 extra = state[116 + state[17] * 15 + state[30] * 5:]
             calls += 1
             vault_calls += op in (*range(10), 14, 15, 22, 24)
-            other_calls += op in (18, 23, 27)
+            other_calls += op in (18, 23, 27, 31, 32)
+            # the trace ends with the source's band and admission bound
+            banded = tuple(previous[-4:-1]) != (0, 500, 300)
+            admission = previous[-1]
             if code:
                 reverts[code] += 1
+                if op == 7 and code == 21 and owner and amount < previous[17] and \
+                        owner > previous[116 + 15 * amount + 6]:
+                    features["oversized_claims_rejected"] += 1
+                if op == 31:
+                    features["band_rejections"] += 1
+                if op == 32:
+                    features["admission_rejections"] += 1
+                if op == 0 and code == 28 and admission != 50:
+                    features["deposits_stopped_by_configured_admission"] += 1
             else:
                 actions[op] += 1
+                if op == 31:
+                    features["band_resets" if (owner, receiver, amount) == (0, 0, 0) else "band_changes"] += 1
+                if op == 32 and state[-1] != 50:
+                    features["admission_changes"] += 1
+                if op == 9 and banded and (state[5] != previous[5] or state[7] != previous[7]):
+                    features["banded_rebalances"] += 1
+                if op == 0 and admission != 50:
+                    features["deposits_under_configured_admission"] += 1
                 if op == 7:
                     start = 116 + 15 * amount
                     active = state[start + 8]
                     features["partial_claims" if active else "final_claims"] += 1
+                    if owner and owner < previous[start + 6]:
+                        features["exact_partial_claims"] += 1
                     if caller != previous[start] and receiver != previous[start]:
                         features["redirected_keeper_claims"] += 1
                 if op in (2, 3) and previous[34]:
@@ -126,6 +148,8 @@ def check_coverage(paths):
                         features["harvest_fees_collected"] += 1
                     if op == 9 and extra[16] > old_extra[16]:
                         features["price_delever_started"] += 1
+                        if banded:
+                            features["banded_price_delevers"] += 1
                     if op == 6 and old_extra[16] and not extra[16]:
                         features["price_delever_completed"] += 1
                     if op == 17 and extra[0] < old_extra[0]:
@@ -139,7 +163,10 @@ def check_coverage(paths):
             if state[31] > 0:
                 features["unfinished_source_batches"] += 1
             previous = state
-    required = ["partial_claims", "final_claims", "redirected_keeper_claims"]
+    required = ["partial_claims", "final_claims", "redirected_keeper_claims", "band_changes",
+                "band_resets", "band_rejections", "admission_changes", "admission_rejections",
+                "banded_rebalances", "deposits_under_configured_admission", "exact_partial_claims",
+                "oversized_claims_rejected"]
     if any(seed % 4 in (1, 2) for seed in seeds):
         required += ["unfinished_source_batches", "receipts_during_unfinished_batch",
                      "wide_public_start_batches", "settlement_limit_reached"]
@@ -148,7 +175,7 @@ def check_coverage(paths):
                      "interest_serviced_by_compound", "repayment_retries", "interest_accrual",
                      "peg_topups", "source_execution_costs", "source_fees_collected",
                      "harvest_fees_collected", "price_delever_started", "price_delever_completed",
-                     "source_value_losses", "protocol_fee_claims"]
+                     "source_value_losses", "protocol_fee_claims", "banded_price_delevers"]
         for code in (24, 26):
             if not reverts[code]:
                 raise SystemExit(f"missing market guard/revert coverage: {code}")

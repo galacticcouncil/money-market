@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {JuicerDiscount} from "../src/JuicerDiscount.sol";
 import {SyntheticToken} from "../src/SyntheticToken.sol";
 import {IHollarDiscountDebtToken} from "../src/interfaces/IJuicerDiscount.sol";
-import {MockDiscountAToken, MockDiscountVault} from "./mocks/MockDiscount.sol";
+import {MockDiscountAToken, MockDiscountLoop, MockDiscountVault} from "./mocks/MockDiscount.sol";
 import {Artifacts} from "./helpers/Artifacts.t.sol";
 
 interface IGhoDebtActions {
@@ -123,5 +123,23 @@ contract JuicerDiscountForkTest is Test {
             assertEq(debt.getDiscountPercent(participants[i]), 0);
             assertApproxEqAbs(IERC20(DEBT).balanceOf(participants[i]), 1_020e18, 5);
         }
+    }
+
+    function testFork_loopAccruesAtItsOwnCappedRate() public {
+        MockDiscountLoop loop = new MockDiscountLoop(POOL, HOLLAR);
+        vault.setYieldSource(address(loop));
+        discount.registerLoop(address(loop), 500e18);
+        vm.prank(COMMITTEE);
+        discount.setLoopDiscountBps(5_000);
+        _borrow(address(loop), 1_000e18, RAY);
+        assertEq(debt.getDiscountPercent(address(loop)), 2_500);
+        _setIndex(11 * RAY / 10);
+        assertApproxEqAbs(IERC20(DEBT).balanceOf(address(loop)), 1_075e18, 5);
+        assertApproxEqAbs(IERC20(DEBT).balanceOf(address(vault)), 1_020e18, 5, "main keeps its own rate");
+        discount.unregisterLoop();
+        assertEq(debt.getDiscountPercent(address(loop)), 0);
+        assertApproxEqAbs(IERC20(DEBT).balanceOf(address(loop)), 1_075e18, 5);
+        _setIndex(121 * RAY / 100);
+        assertApproxEqAbs(IERC20(DEBT).balanceOf(address(loop)), 11_825e17, 5);
     }
 }

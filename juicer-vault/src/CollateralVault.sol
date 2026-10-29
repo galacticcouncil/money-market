@@ -157,9 +157,12 @@ contract CollateralVault is
     error Unauthorized(address account, bytes32 role);
     error InsufficientRoundingReserve();
 
+    /// @dev the helper is deployed on its own: creating it here would put both bytecodes in one
+    /// transaction, past what a Hydration transaction can carry
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        compoundLogic = address(new CompoundLogic());
+    constructor(address compoundLogic_) {
+        if (compoundLogic_.code.length == 0) revert ZeroAddress();
+        compoundLogic = compoundLogic_;
         _disableInitializers();
     }
 
@@ -443,21 +446,28 @@ contract CollateralVault is
 
     /// @notice claim the collateral settled so far, burning only the escrowed shares matching the
     /// payout; the request closes once settlement completes.
-    function claim(uint256 requestId, address receiver) external nonReentrant whenNotPaused returns (uint256 amountOut) {
+    // an exact amount lets a batch size its next leg (swap, bridge); type(uint256).max claims all settled
+    function claim(uint256 requestId, address receiver, uint256 amount)
+        external
+        nonReentrant
+        whenNotPaused
+        returns (uint256 amountOut)
+    {
         Redemption storage r = redemptions[requestId];
         if (!r.active) revert RequestNotActive();
         // anyone (the keeper) may deliver a claim; only the owner picks another receiver
         if (msg.sender != r.owner) receiver = r.owner;
         if (receiver == address(0)) revert ZeroAddress();
-        amountOut = r.collateralSettled;
-        if (amountOut == 0) revert NothingToClaim();
+        uint256 settled = r.collateralSettled;
+        amountOut = amount == type(uint256).max ? settled : amount;
+        if (amountOut == 0 || amountOut > settled) revert NothingToClaim();
 
-        r.collateralSettled = 0;
+        r.collateralSettled = settled - amountOut;
         claimedCollateral[requestId] += amountOut;
         totalQueuedCollateral -= amountOut;
 
-        // a fully repaid debt slice accrues no more collateral, so this claim is the last
-        bool complete = r.repaid >= r.debtShare;
+        // a fully repaid debt slice accrues no more collateral, so claiming what is left is the last claim
+        bool complete = r.repaid >= r.debtShare && r.collateralSettled == 0;
 
         // burn pro rata to collateral paid on the fixed basis; the final claim burns the rounding dust
         uint256 burnNow;
@@ -505,8 +515,8 @@ contract CollateralVault is
         loopShares -= shares;
     }
 
-    /// @notice resize the Main position to the reserve's max LTV after a price move,
-    /// growing or shrinking the loop and the synthetic in lockstep.
+    /// @notice resize the Main position to the source's band target under the reserve's max LTV
+    /// after a price move, growing or shrinking the loop and the synthetic in lockstep.
     function rebalance() external nonReentrant whenNotPaused returns (uint256 work) {
         yieldAccounting.checkpoint(address(0), address(0));
         // not a safety de-lever (the synthetic floors HF). a committed de-lever settles first;

@@ -33,11 +33,17 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
     function _allowRescale() internal pure virtual returns (bool) { return false; }
 
     function _snapshot() internal view virtual returns (uint256[] memory out) {
+        out = _baseSnapshot(4);
+        _writeConfig(out);
+    }
+
+    // `extra` trailing slots stay free for the caller; the config always fills the last four
+    function _baseSnapshot(uint256 extra) internal view returns (uint256[] memory out) {
         JuicerYieldAccounting y = vault.yieldAccounting();
         JuicerMainDebt m = JuicerMainDebt(address(vault.mainDebt()));
         uint256 tail = vault.queueTail();
         uint256 mainTail = m.sourceTail();
-        out = new uint256[](116 + tail * 15 + mainTail * 5);
+        out = new uint256[](116 + tail * 15 + mainTail * 5 + extra);
         uint256 k;
         out[k++] = vault.totalSupply(); out[k++] = vault.totalAssets();
         out[k++] = aEth.balanceOf(address(vault)); out[k++] = eth.balanceOf(address(vault));
@@ -78,9 +84,41 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
             (uint256 units_, uint256 principal, uint256 cash, uint256 remaining, address owner) = m.positions(i);
             out[k++] = units_; out[k++] = principal; out[k++] = cash; out[k++] = remaining; out[k++] = _id(owner);
         }
-        assertEq(k, out.length);
+        assertEq(k + extra, out.length);
         if (!_allowRescale()) assertEq(y.unitScale(), 0, "rescale belongs to its separate campaign");
         _checkFixture();
+    }
+
+    // the source's band and admission bound for this vault, after every fixture's own fields
+    function _writeConfig(uint256[] memory out) internal view {
+        uint256 n = out.length;
+        (out[n - 4], out[n - 3], out[n - 2]) = source.rebalanceBand(address(vault));
+        out[n - 1] = source.admissionMaxDeficitBps();
+    }
+
+    // launch settings on even seeds, then occasional valid, reset and rejected changes
+    function _launchConfig(uint256 seed) internal {
+        if (seed % 2 == 0) { _act(31, 0, 0, 1000, 800); _act(32, 0, 0, 0, 250); }
+    }
+
+    function _maybeConfigure(uint256 r) internal {
+        if ((r >> 200) % 16 != 0) return;
+        uint256 k = (r >> 208) % 8;
+        if (k == 0) _act(31, 0, 0, 1000, 800);
+        else if (k == 1) _act(31, 0, 500, 300, 150);
+        else if (k == 2) _act(31, 0, 0, 0, 0);
+        else if (k == 3) _act(31, 0, 0, 0, 800);
+        else if (k == 4) _act(31, 0, 100, 600, 2501);
+        else if (k == 5) _act(32, 0, 0, 0, 250);
+        else if (k == 6) _act(32, 0, 0, 0, (r >> 216) % 2 == 0 ? 0 : 10000);
+        else _act(32, 0, 0, 0, 10001);
+    }
+
+    // zero claims everything; otherwise half, all or one more than the settled amount
+    function _claimAmount(uint256 id, uint256 r) internal view returns (uint256) {
+        if (id >= vault.queueTail() || r % 4 == 0) return 0;
+        (,,,,,, uint256 settled,,) = vault.redemptions(id);
+        return r % 4 == 1 ? settled / 2 : r % 4 == 2 ? settled : settled + 1;
     }
 
     function _checkFixture() internal view virtual {
@@ -118,10 +156,13 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         if (selector == CollateralVault.NothingToClaim.selector) return 21;
         if (keccak256(reason) == keccak256(abi.encodeWithSignature("Error(string)", "Pausable: not paused"))) return 22;
         if (selector == CollateralVault.PrincipalShortfall.selector) return 28;
+        if (selector == bytes4(keccak256("InvalidParameters()"))) return 29;
         revert(string.concat("unclassified revert: ", vm.toString(reason)));
     }
 
     function _record(uint256[5] memory action, uint256 code, uint256 value) internal {
+        // the recording is instrumentation, so it stays out of the campaign's block gas
+        vm.pauseGasMetering();
         uint256[] memory a = new uint256[](5);
         for (uint256 i; i < 5; ++i) a[i] = action[i];
         uint256[] memory status = new uint256[](2); status[0] = code; status[1] = value;
@@ -134,6 +175,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         string memory row = vm.serializeUint("step", "state", state);
         vm.writeLine(tracePath, row);
         ++step;
+        vm.resumeGasMetering();
     }
 
     function _act(uint256 op, uint256 caller, uint256 a, uint256 b, uint256 n) internal {
@@ -151,7 +193,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         else if (op == 4) data = abi.encodeCall(vault.requestRedeem, (n, actors[a]));
         else if (op == 5) data = abi.encodeCall(vault.startUnwinds, (n));
         else if (op == 6) data = abi.encodeCall(vault.pokeSettle, ());
-        else if (op == 7) data = abi.encodeCall(vault.claim, (n, actors[b]));
+        else if (op == 7) data = abi.encodeCall(vault.claim, (n, actors[b], a == 0 ? type(uint256).max : a));
         else if (op == 8) data = abi.encodeCall(vault.sync, ());
         else if (op == 9) data = abi.encodeCall(vault.rebalance, ());
         else if (op == 10) { vm.warp(block.timestamp + n); _record([op, caller, a, b, n], 0, 0); return; }
@@ -164,6 +206,11 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         else if (op == 14) data = n == 0 ? abi.encodeCall(vault.unpause, ()) : abi.encodeCall(vault.pause, ());
         else if (op == 15) data = n == 0 ? abi.encodeCall(vault.unpauseDeposits, ()) : abi.encodeCall(vault.pauseDeposits, ());
         else if (op == 16) { target = address(source); data = abi.encodeCall(source.setEmergencyPaused, (n != 0)); }
+        else if (op == 31) {
+            target = address(source);
+            data = abi.encodeCall(source.setRebalanceBand, (address(vault), uint16(a), uint16(b), uint16(n)));
+        }
+        else if (op == 32) { target = address(source); data = abi.encodeCall(source.setAdmissionMaxDeficitBps, (uint16(n))); }
         else revert("unknown action");
         vm.prank(actors[caller]);
         (bool ok, bytes memory result) = target.call(data);
@@ -184,6 +231,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         _act(0, 1, 0, 1, 1e18); // bootstrap guard before any deposit
         _act(0, 0, 0, 0, 20e18);
         for (uint256 i = 1; i < 4; ++i) _act(0, i, 0, i, 10e18);
+        _launchConfig(seed);
         _act(9, 0, 0, 0, 0);
         _act(11, 0, 0, 0, 2e18);
         _act(8, 0, 0, 0, 0);
@@ -210,6 +258,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
             uint256 a = r % 4;
             uint256 b = (r >> 8) % 4;
             uint256 op = (r >> 16) % 18;
+            _maybeConfigure(r);
             if (op == 0) _act(0, a, 0, b, ((r >> 32) % 20 + 1) * 1e15);
             else if (op == 1) _act(1, a, 0, b, r % 2 == 0 ? type(uint256).max : (r >> 32) % 1e18);
             else if (op == 2 || op == 3) {
@@ -223,7 +272,10 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
                 _act(4, (r >> 40) % 2 == 0 ? a : b, a, 0, n);
             } else if (op == 5) _act(5, a, 0, 0, (r >> 32) % 7);
             else if (op == 6) _act(6, a, 0, 0, 0);
-            else if (op == 7) _act(7, a, 0, (r >> 24) % 8, (r >> 32) % (vault.queueTail() + 2));
+            else if (op == 7) {
+                uint256 id = (r >> 32) % (vault.queueTail() + 2);
+                _act(7, a, _claimAmount(id, r >> 64), (r >> 24) % 8, id);
+            }
             else if (op == 8) _act(8, a, 0, 0, 0);
             else if (op == 9) _act(9, a, 0, 0, 0);
             else if (op == 10) _act(10, 0, 0, 0, (r >> 32) % 30);
@@ -238,7 +290,7 @@ contract LeanStatefulParityTest is PluggableYieldSourceTest {
         _act(16, 0, 0, 0, 0); _act(14, 0, 0, 0, 0); _act(15, 0, 0, 0, 0);
         _act(10, 0, 0, 0, 20); _act(12, 0, 0, 0, 10000); _act(13, 0, 0, 0, type(uint256).max);
         for (uint256 i; i < 5; ++i) { _act(6, 0, 0, 0, 0); _act(5, 0, 0, 0, 100); }
-        for (uint256 id; id < vault.queueTail(); ++id) _act(7, 3, 0, 2, id);
+        for (uint256 id; id < vault.queueTail(); ++id) { _act(7, 3, _claimAmount(id, 1), 2, id); _act(7, 3, 0, 2, id); }
         _record([uint256(998), seed, depth, 0, step - 1], 0, 0);
         emit log_named_uint("trace seed", seed);
         emit log_named_uint("public steps", step - 2);

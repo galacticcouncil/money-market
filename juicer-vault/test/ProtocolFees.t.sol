@@ -426,7 +426,7 @@ contract ProtocolFeesTest is HarvestTest {
         assertEq(eth.balanceOf(address(vault)), idle);
         assertEq(vault.roundingReserve(), reserve);
         assertEq(fees.claimableProtocolFees(address(eth)), 0.05e18);
-        assertEq(vault.claim(request, address(this)), settled);
+        assertEq(vault.claim(request, address(this), type(uint256).max), settled);
         assertEq(eth.balanceOf(address(vault)), idle - settled);
         assertGe(eth.balanceOf(address(vault)), reserve);
     }

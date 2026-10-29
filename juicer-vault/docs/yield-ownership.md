@@ -51,9 +51,10 @@ PRIME for shares minted at the pre-swap source NAV, so each slice's swap cost,
 bounded by its lane's approved shortfall, lowers every attached vault's source
 equity. The next allocation absorbs it from unconverted rewards first, including
 rewards of holders who did not trigger the deployment. Once those rewards are
-exhausted the cost reaches Main backing. Deposits then enforce the 50 bps
-on-chain ceiling; keepers stop the source ramp and set `deficitStop` at
-`DEFICIT_STOP_BPS` (50), and resume below `DEFICIT_RESUME_BPS` (25).
+exhausted the cost reaches Main backing. Deposits then enforce the on-chain
+ceiling (`admissionMaxDeficitBps`, 250 bps at launch); keepers stop the source ramp
+and set `deficitStop` at `DEFICIT_STOP_BPS` (250), and resume below
+`DEFICIT_RESUME_BPS` (200).
 Deploying collateral that is already deposited (`rebalance`) is not gated by
 that stop.
 
@@ -207,12 +208,16 @@ Fee policy and funding constraints do not insure the position.
 ## Reinvestment and execution policy
 
 Newly compounded collateral records borrowing capacity. `rebalance` can use that
-capacity without waiting for the five-percentage-point price-movement band. It
-borrows only within the current reserve LTV, routes HOLLAR synchronously into the
+capacity without waiting for the price-movement band. It
+borrows only up to the band target, routes HOLLAR synchronously into the
 source, and retains the existing pause and outstanding-exit guards; it no longer
 checks underfunding.
 Deposit and rebalance execution live in the vault's immutable helper to preserve
-the EIP-170 runtime limit; the helper writes no vault storage directly.
+the EIP-170 runtime limit; the helper writes no vault storage directly. It is
+deployed on its own and passed to the vault implementation's constructor, as the
+loop's logic is: creating it inside the vault put both bytecodes in one transaction,
+near Hydration's transaction gas cap. Readiness checks its code hash when
+`JUICER_COMPOUND_LOGIC_CODEHASH` is set.
 
 Source ramping excludes positive, unconverted carry from its borrowing budget:
 that carry is waiting to buy collateral, not to increase PRIME leverage again.
@@ -235,6 +240,29 @@ reserve requires an execution-cost coverage model; this PR does not authorize
 lower production reserves, widen slippage, or claim that retained yield will be
 converted within a fixed time. Shared route budgets and liquidity-based partial
 trade limits remain in the execution-controls workstream.
+
+## Rebalance band
+
+`rebalance` keeps each vault's Main LTV inside a band read from the source on
+every call: `SubLoop.rebalanceBand(vault)` returns a target gap under the
+collateral reserve's live max LTV, then the relever and delever gaps around that
+target. The vault relevers to the target once its LTV is more than the relever
+gap under it, and delevers back to it once the LTV is more than the delever gap
+over it. Unset, the band is 0/500/300: the target is the max LTV, relever 5%
+under it, delever 3% over it, the earlier constants.
+
+The loop's `ADMIN_ROLE` sets it per vault with `setRebalanceBand(vault, target,
+relever, delever)`; all zeros restores the default. Relever and delever gaps are
+nonzero, the target and relever gaps at most 50%, the delever gap at most 25%.
+The band stays relative to the live max LTV, so a governance LTV change moves it;
+absolute bands were removed once because they drifted from governance. Earned
+credit still deploys inside the band, only up to the target.
+
+The next-version proposal sets relever 65%, target 75% and delever 83% on both
+vaults (`NEXT.band` in `scripts/juicer/next-governance.ts`, or
+`JUICER_REBALANCE_BAND`): GIGAETH at a 75% max LTV gets 0/1000/800 and tBTC at
+80% gets 500/1000/800. The wider relever side leaves some borrowing capacity idle
+in exchange for fewer loop round trips on ordinary price swings.
 
 ## Validation and rollout
 

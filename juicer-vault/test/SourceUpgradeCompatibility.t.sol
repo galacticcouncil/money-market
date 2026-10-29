@@ -181,7 +181,7 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
     function _claimEthExit() internal {
         (,,uint256 promised,,,,,,) = ethVault.redemptions(0);
         vm.prank(ETH_USER);
-        uint256 paid = ethVault.claim(0, ETH_USER);
+        uint256 paid = ethVault.claim(0, ETH_USER, type(uint256).max);
         assertEq(paid, promised, "exact collateral promise, no haircut");
         assertGe(paid, 1e18 / 2, "deposited-token principal");
     }
@@ -219,7 +219,7 @@ contract SourceUpgradeCompatibilityTest is MultiVaultFlowTest {
         _upgrade();
         vm.prank(ETH_USER);
         vm.expectRevert("Pausable: paused");
-        ethVault.claim(0, ETH_USER);
+        ethVault.claim(0, ETH_USER, type(uint256).max);
         JuicerMainDebt ledger = _ledger(ethVault);
         vm.expectRevert(JuicerMainDebt.Paused.selector);
         ledger.claimSurplus(0);

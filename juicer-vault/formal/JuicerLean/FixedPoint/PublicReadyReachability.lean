@@ -49,9 +49,9 @@ theorem ordinaryAction_locked {s : State} {a : Action} (h : OrdinaryAction s a) 
 theorem ordinaryAction_valid (s : State) (a : Action) (h : PublicReady s) (ordinary : OrdinaryAction s a) :
     ValidSolidityAction s a := by
   have fixture := ordinary.1
-  have hop : a.op ≤ 30 := fixture.1
+  have hop : a.op ≤ 32 := fixture.1
   rcases a with ⟨op, caller, owner, receiver, amount⟩
-  change op ≤ 30 at hop
+  change op ≤ 32 at hop
   interval_cases op
   · exact deposit_action_valid fixture rfl h.metadata h.initialization.1
   · exact structural_action_valid fixture (by norm_num [StructuralOpcode])
@@ -79,6 +79,8 @@ theorem ordinaryAction_valid (s : State) (a : Action) (h : PublicReady s) (ordin
   · exact structural_action_valid fixture (by norm_num [StructuralOpcode])
   · exact structural_action_valid fixture (by norm_num [StructuralOpcode])
   · exact harvest_action_valid fixture rfl h.metadata (harvestBound_all s)
+  · exact structural_action_valid fixture (by norm_num [StructuralOpcode])
+  · exact structural_action_valid fixture (by norm_num [StructuralOpcode])
   · exact structural_action_valid fixture (by norm_num [StructuralOpcode])
   · exact structural_action_valid fixture (by norm_num [StructuralOpcode])
   · exact structural_action_valid fixture (by norm_num [StructuralOpcode])

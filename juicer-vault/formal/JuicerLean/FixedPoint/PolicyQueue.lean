@@ -96,6 +96,18 @@ def claimRedemption (r : RedemptionState) : RedemptionState × ℕ × ℕ :=
   ({ r with claimed, settled := 0, burned := r.burned + burn, active := if complete then false else r.active },
     r.settled, burn)
 
+-- claim(id, receiver, amount) for an exact amount; the last claim is the one that empties a repaid slice
+def claimAmount (r : RedemptionState) (amount : ℕ) : RedemptionState × ℕ × ℕ :=
+  let claimed := r.claimed + amount
+  let settled := r.settled - amount
+  let complete := r.debt ≤ r.repaid ∧ settled = 0
+  let burn := if complete then r.shares - r.burned else r.shares * claimed / r.owed - r.burned
+  ({ r with claimed, settled, burned := r.burned + burn, active := if complete then false else r.active },
+    amount, burn)
+
+theorem claimAmount_settled (r : RedemptionState) : claimAmount r r.settled = claimRedemption r := by
+  simp [claimAmount, claimRedemption]
+
 def claimReceiver (caller owner requested : ℕ) : ℕ := if caller == owner then requested else owner
 
 def queueReady : ℕ → ℕ → List ℕ → ℕ

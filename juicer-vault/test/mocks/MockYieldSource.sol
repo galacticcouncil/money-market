@@ -101,8 +101,39 @@ contract MockYieldSource is IYieldSource {
         return 0; // 1:1 custody, no yield/loss modelled → never underwater
     }
 
-    function admissionMaxDeficitBps() external pure returns (uint16) {
-        return 50;
+    error InvalidParameters();
+
+    struct Band {
+        uint16 targetGap;
+        uint16 releverGap;
+        uint16 deleverGap;
+    }
+
+    mapping(address => Band) internal _bands;
+    uint16 internal _admissionBps = 50;
+
+    // same bounds and reset as SubLoop.setRebalanceBand
+    function setRebalanceBand(address vault, uint16 targetGap, uint16 releverGap, uint16 deleverGap) external {
+        bool reset = targetGap == 0 && releverGap == 0 && deleverGap == 0;
+        bool bounded = releverGap != 0 && deleverGap != 0 && targetGap <= 5_000 && releverGap <= 5_000
+            && deleverGap <= 2_500;
+        if (!(reset || bounded)) revert InvalidParameters();
+        _bands[vault] = Band(targetGap, releverGap, deleverGap);
+    }
+
+    function rebalanceBand(address vault) external view returns (uint16, uint16, uint16) {
+        Band memory band = _bands[vault];
+        if (band.releverGap == 0) return (0, 500, 300);
+        return (band.targetGap, band.releverGap, band.deleverGap);
+    }
+
+    function setAdmissionMaxDeficitBps(uint16 bps) external {
+        if (bps > 10_000) revert InvalidParameters();
+        _admissionBps = bps;
+    }
+
+    function admissionMaxDeficitBps() external view returns (uint16) {
+        return _admissionBps;
     }
 
     function harvest() external returns (uint256 surplus) {

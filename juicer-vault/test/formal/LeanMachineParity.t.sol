@@ -13,6 +13,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Artifacts} from "../helpers/Artifacts.t.sol";
 
 contract HistoryQueue is ParityQueue {
+    constructor(address logic) ParityQueue(logic) {}
+
     function observeSettlement(uint256 repaid, uint256 settled) external {
         redemptions[0].repaid = repaid;
         redemptions[0].collateralSettled = settled;
@@ -133,23 +135,23 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
         uint256 count = vm.parseJsonUint(machine, ".historiesCount");
         for (uint256 i; i < count; ++i) {
             uint256[] memory r = vm.parseJsonUintArray(machine, string.concat(".histories[", vm.toString(i), "]"));
-            HistoryQueue q = HistoryQueue(vm.deployCode("LeanMachineParity.t.sol:HistoryQueue"));
+            HistoryQueue q = HistoryQueue(vm.deployCode("LeanMachineParity.t.sol:HistoryQueue", abi.encode(Artifacts.compoundLogic())));
             MockERC20 token = new MockERC20("claim", "claim", 18);
             q.seed(r, OWNER, IERC20(address(token)), address(source));
             token.mint(address(q), r[1]);
             for (uint256 phase = 8; phase <= 40; phase += 16) {
                 q.observeSettlement(r[phase + 3], r[phase + 4]);
-                vm.prank(OWNER); q.claim(0, RECEIVER);
+                vm.prank(OWNER); q.claim(0, RECEIVER, type(uint256).max);
                 _historyState(q, r, phase + 8);
             }
             assertEq(token.balanceOf(RECEIVER), r[1]);
             vm.expectRevert(CollateralVault.RequestNotActive.selector);
-            q.claim(0, RECEIVER);
+            q.claim(0, RECEIVER, type(uint256).max);
         }
     }
 
     function test_claimOverflowRollsBackEarlierWrites() public {
-        HistoryQueue q = HistoryQueue(vm.deployCode("LeanMachineParity.t.sol:HistoryQueue"));
+        HistoryQueue q = HistoryQueue(vm.deployCode("LeanMachineParity.t.sol:HistoryQueue", abi.encode(Artifacts.compoundLogic())));
         MockERC20 token = new MockERC20("claim", "claim", 18);
         uint256[] memory r = new uint256[](8);
         r[0] = type(uint256).max; r[1] = 4; r[2] = 2; r[3] = 1; r[4] = 2; r[7] = 1;
@@ -157,7 +159,7 @@ contract LeanOrchestrationParityTest is LeanCoverageParityTest {
         token.mint(address(q), 4);
         vm.prank(OWNER);
         vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
-        q.claim(0, RECEIVER);
+        q.claim(0, RECEIVER, type(uint256).max);
         _historyState(q, r, 0);
         assertEq(token.balanceOf(address(q)), 4);
         assertEq(token.balanceOf(RECEIVER), 0);

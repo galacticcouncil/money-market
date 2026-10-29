@@ -173,4 +173,189 @@ contract KeeperOpsTest is Test {
         assertApproxEqRel(debtAfter, 1_125e18, 0.05e18, "debt ~ max LTV (not driven to zero)");
         assertGe(aSynth.balanceOf(address(vault)) * SYNTH_LT / 1e4, debtAfter, "INV-1 still holds");
     }
+
+    function _studyBand(CollateralVault v) internal {
+        loop.setRebalanceBand(address(v), 0, 1_000, 800);
+    }
+
+    function _settleDelever() internal {
+        for (uint256 i = 0; i < 400; i++) {
+            if (loop.unwindTargetEquity() == 0) break;
+            loop.pokeRepay();
+        }
+        vault.pokeSettle();
+    }
+
+    function test_bandDefaultsToTheOriginalHysteresis() public view {
+        (uint16 target, uint16 relever, uint16 delever) = loop.rebalanceBand(address(vault));
+        assertEq(target, 0);
+        assertEq(relever, 500);
+        assertEq(delever, 300);
+    }
+
+    function test_bandSetterIsAdminOnlyBoundedAndPerVault() public {
+        vm.prank(address(0xBAD));
+        vm.expectRevert();
+        loop.setRebalanceBand(address(vault), 0, 1_000, 800);
+        vm.expectRevert(SubLoop.InvalidParameters.selector);
+        loop.setRebalanceBand(address(0xBEEF), 0, 1_000, 800);
+        uint16[3][6] memory invalid = [
+            [uint16(0), 0, 800], [uint16(0), 1_000, 0], [uint16(5_001), 1_000, 800],
+            [uint16(0), 5_001, 800], [uint16(0), 1_000, 2_501], [uint16(1), 0, 0]
+        ];
+        for (uint256 i; i < invalid.length; ++i) {
+            vm.expectRevert(SubLoop.InvalidParameters.selector);
+            loop.setRebalanceBand(address(vault), invalid[i][0], invalid[i][1], invalid[i][2]);
+        }
+        loop.registerVault(address(0xBEEF));
+        vm.expectEmit(true, false, false, true, address(loop));
+        emit SubLoop.RebalanceBandSet(address(0xBEEF), 500, 1_000, 800);
+        loop.setRebalanceBand(address(0xBEEF), 500, 1_000, 800);
+        (uint16 target, uint16 relever, uint16 delever) = loop.rebalanceBand(address(0xBEEF));
+        assertEq(target, 500);
+        assertEq(relever, 1_000);
+        assertEq(delever, 800);
+        (, relever,) = loop.rebalanceBand(address(vault));
+        assertEq(relever, 500, "other vaults keep theirs");
+        loop.setRebalanceBand(address(0xBEEF), 5_000, 5_000, 2_500);
+        loop.setRebalanceBand(address(0xBEEF), 0, 0, 0);
+        (target, relever, delever) = loop.rebalanceBand(address(0xBEEF));
+        assertEq(target, 0);
+        assertEq(relever, 500);
+        assertEq(delever, 300);
+    }
+
+    function test_wideReleverSideWaitsBelowSixtyFive() public {
+        _studyBand(vault);
+        uint256 debtBefore = hollarDebt.balanceOf(address(vault));
+        pool.setPrice(address(eth), 3_309e18);
+        vault.rebalance();
+        assertEq(hollarDebt.balanceOf(address(vault)), debtBefore, "68% is inside 65-83");
+        pool.setPrice(address(eth), 3_500e18);
+        vault.rebalance();
+        assertApproxEqRel(hollarDebt.balanceOf(address(vault)), 2_625e18, 0.01e18, "64% relevers to 75%");
+    }
+
+    function test_defaultBandReleversWhereTheWideOneWaits() public {
+        pool.setPrice(address(eth), 3_309e18);
+        vault.rebalance();
+        assertApproxEqRel(hollarDebt.balanceOf(address(vault)), 2_481.75e18, 0.01e18, "68% is under 70%");
+    }
+
+    function test_wideDeleverSideWaitsAboveEightyThree() public {
+        _ramp();
+        _studyBand(vault);
+        uint256 debtBefore = hollarDebt.balanceOf(address(vault));
+        pool.setPrice(address(eth), 2_744e18);
+        vault.rebalance();
+        assertEq(vault.deleverTarget(), 0, "82% is inside 65-83");
+        assertEq(hollarDebt.balanceOf(address(vault)), debtBefore);
+        pool.setPrice(address(eth), 2_700e18);
+        vault.rebalance();
+        assertGt(vault.deleverTarget(), 0, "83.3% delevers");
+        _settleDelever();
+        assertApproxEqRel(hollarDebt.balanceOf(address(vault)), 2_025e18, 0.05e18, "back to 75%");
+        assertGe(aSynth.balanceOf(address(vault)) * SYNTH_LT / 1e4, hollarDebt.balanceOf(address(vault)));
+    }
+
+    function test_bandTargetFollowsAGovernanceLtvRaise() public {
+        loop.setRebalanceBand(address(vault), 500, 500, 300);
+        pool.setLtv(address(eth), 8500);
+        pool.setPrice(address(eth), 3_030e18);
+        vault.rebalance();
+        assertApproxEqRel(hollarDebt.balanceOf(address(vault)), 2_424e18, 0.01e18, "80% under an 85% max");
+    }
+
+    function test_bandTargetFollowsAGovernanceLtvCut() public {
+        _ramp();
+        loop.setRebalanceBand(address(vault), 500, 1_000, 800);
+        vault.rebalance();
+        assertEq(vault.deleverTarget(), 0, "75% is inside 60-78");
+        pool.setLtv(address(eth), 7000);
+        vault.rebalance();
+        assertGt(vault.deleverTarget(), 0, "75% is over 65+8");
+        _settleDelever();
+        assertApproxEqRel(hollarDebt.balanceOf(address(vault)), 1_950e18, 0.05e18, "65% under a 70% max");
+    }
+
+    function test_creditDeploysToTheTargetInsideAWideBand() public {
+        _studyBand(vault);
+        pool.setPrice(address(eth), 3_309e18);
+        uint256 debtBefore = hollarDebt.balanceOf(address(vault));
+        eth.mint(address(this), 0.01e18);
+        eth.approve(address(vault), 0.01e18);
+        vault.deposit(0.01e18, address(this));
+        vault.rebalance();
+        assertApproxEqRel(
+            hollarDebt.balanceOf(address(vault)) - debtBefore, 24.8175e18, 0.02e18, "the deposit levers to 75%, the drift waits"
+        );
+    }
+
+    function test_bandsArePerVault() public {
+        CollateralVault other = CollateralVault(Artifacts.proxy(Artifacts.collateralVault(), abi.encodeCall(CollateralVault.initialize,
+            ("Juicer ETH 2","jETH2",address(eth),address(pool),address(loop),address(0),address(hollar),address(synth),address(aEth),address(hollarDebt),1_000e18,address(this)))));
+        synth.grantRole(synth.MINTER_ROLE(), address(other));
+        RoundingReserveFixture.fund(other);
+        loop.registerVault(address(other));
+        eth.mint(address(this), 1e18);
+        eth.approve(address(other), 1e18);
+        other.deposit(1e18, address(this));
+        other.rebalance();
+        _studyBand(vault);
+        uint256 debtBefore = hollarDebt.balanceOf(address(vault));
+        pool.setPrice(address(eth), 3_309e18);
+        vault.rebalance();
+        other.rebalance();
+        assertEq(hollarDebt.balanceOf(address(vault)), debtBefore, "wide band waits");
+        assertApproxEqRel(hollarDebt.balanceOf(address(other)), 2_481.75e18, 0.01e18, "default band relevers");
+    }
+
+    function test_exitsStillHoldPriceResizingInsideABand() public {
+        _studyBand(vault);
+        vault.requestRedeem(vault.balanceOf(address(this)) / 10, address(this));
+        uint256 debtBefore = hollarDebt.balanceOf(address(vault));
+        pool.setPrice(address(eth), 3_500e18);
+        vault.rebalance();
+        assertEq(hollarDebt.balanceOf(address(vault)), debtBefore, "64% waits for the exit");
+    }
+
+    function _exitNinetyPercentSettled(bool claimIt) internal {
+        loop.setRebalanceBand(address(vault), 0, 1000, 800);
+        uint256 id = vault.requestRedeem(vault.balanceOf(address(this)) * 9 / 10, address(this));
+        vm.warp(block.timestamp + vault.withdrawalDelay());
+        vault.startUnwinds(1);
+        for (uint256 i; i < 400 && loop.unwindTargetEquity() != 0; ++i) loop.pokeRepay();
+        vault.pokeSettle();
+        assertEq(vault.queueHead(), vault.queueUnwind());
+        assertGt(vault.totalQueuedCollateral(), 0);
+        if (claimIt) vault.claim(id, address(this), type(uint256).max);
+    }
+
+    function _thirtyDollarDepositDeploysAtTarget() internal {
+        uint256 beforeDebt = hollarDebt.balanceOf(address(vault));
+        eth.mint(address(this), 0.01e18);
+        eth.approve(address(vault), 0.01e18);
+        vault.deposit(0.01e18, address(this));
+        vault.rebalance();
+        uint256 afterDebt = hollarDebt.balanceOf(address(vault));
+        vault.rebalance();
+        assertEq(hollarDebt.balanceOf(address(vault)), afterDebt, "nothing left for a second pass");
+        assertApproxEqAbs(afterDebt - beforeDebt, 22.5e18, 1e12, "the deposit deploys at the 75% target");
+    }
+
+    function test_unclaimedExitDoesNotShrinkNewDepositCredit() public {
+        _exitNinetyPercentSettled(false);
+        _thirtyDollarDepositDeploysAtTarget();
+    }
+
+    function test_claimedExitNewDepositCredit() public {
+        _exitNinetyPercentSettled(true);
+        _thirtyDollarDepositDeploysAtTarget();
+    }
+
+    function test_unclaimedExitDefaultBandNewDepositCredit() public {
+        _exitNinetyPercentSettled(false);
+        loop.setRebalanceBand(address(vault), 0, 0, 0);
+        _thirtyDollarDepositDeploysAtTarget();
+    }
 }
