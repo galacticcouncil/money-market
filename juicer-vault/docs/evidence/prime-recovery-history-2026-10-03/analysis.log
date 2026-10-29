@@ -1,0 +1,885 @@
+{
+  "window": {
+    "from": "2026-09-02",
+    "toExclusive": "2026-10-02"
+  },
+  "coverage": {
+    "reservePoints": 1970,
+    "maximumSamplingGapMinutes": 26.7,
+    "activityDaysComplete": 29,
+    "activityDaysPartial": [
+      {
+        "date": "2026-09-29",
+        "rows": 2750,
+        "exhausted": false
+      }
+    ],
+    "activityRowsCollected": 12084,
+    "issuanceChanges": [
+      {
+        "fromBlock": 15176400,
+        "toBlock": 15177000,
+        "from": "2026-09-29 12:38:36",
+        "to": "2026-09-29 12:59:00"
+      }
+    ]
+  },
+  "source": "https://hydration-explorer.neckwork.net/api",
+  "mathDependencies": {
+    "stableswap": {
+      "version": "2.5.0",
+      "wasmSha256": "a3cb6c3ea278d231cf6af1e75dbeabe465a24825b379f27c008f030d43234c93"
+    },
+    "hsm": {
+      "version": "1.2.0",
+      "wasmSha256": "b98b025623d907590d055bcfe6e03a24406379638a1af7c40e4b79cd7f8205eb"
+    }
+  },
+  "dcaBudget": {
+    "scheduleId": 37930,
+    "status": "active",
+    "createdAt": {
+      "blockHeight": 15053858,
+      "timestamp": "2026-09-26 09:41:12",
+      "extrinsicIndex": null
+    },
+    "latestExecution": "2026-10-02 23:30:42",
+    "totalPrime": 943396.226415,
+    "soldPrime": 914629.241218,
+    "remainingPrimeBeforeFees": 28766.985197,
+    "fractionSold": 0.9695069956911769,
+    "primePerTrade": 93.396226,
+    "periodBlocks": 27,
+    "nominalHoursRemainingBeforeFees": 4.62015218853704,
+    "caveat": "Residual budget subtracts swap input only, not transaction fees. Nominal time assumes uninterrupted cadence and no top-up; this is a finite Treasury schedule, not permanent arbitrage capacity."
+  },
+  "flow": [
+    {
+      "name": "before-dca",
+      "from": "2026-09-02",
+      "to": "2026-09-26",
+      "completeDays": 24,
+      "classifiedActions": 498,
+      "sellCount": 423,
+      "buyCount": 75,
+      "soldUsd": 196445.18217650894,
+      "boughtUsd": 155762.8734953485,
+      "meanDailySoldUsd": 8185.215924021206,
+      "meanDailyBoughtUsd": 6490.119728972854,
+      "dailySalesUsd": {
+        "count": 24,
+        "min": 47.0295356554854,
+        "median": 276.8565029462087,
+        "p90": 16010.50638819973,
+        "max": 129002.37053447701,
+        "mean": 8185.215924021203
+      },
+      "saleGapsMinutes": {
+        "count": 422,
+        "min": 0,
+        "median": 20.9,
+        "p90": 261.7400000000001,
+        "max": 1110.6,
+        "mean": 81.53696682464464
+      },
+      "treasurySellUsd": 0,
+      "treasuryShareOfSells": 0,
+      "daily": [
+        {
+          "date": "2026-09-02",
+          "soldUsd": 62.06799323644226,
+          "boughtUsd": 40007.902847680605
+        },
+        {
+          "date": "2026-09-03",
+          "soldUsd": 236.57953887596153,
+          "boughtUsd": 0
+        },
+        {
+          "date": "2026-09-04",
+          "soldUsd": 10395.977538269643,
+          "boughtUsd": 150.36049939605152
+        },
+        {
+          "date": "2026-09-05",
+          "soldUsd": 347.84946876128754,
+          "boughtUsd": 0
+        },
+        {
+          "date": "2026-09-06",
+          "soldUsd": 259.9233233232404,
+          "boughtUsd": 0
+        },
+        {
+          "date": "2026-09-07",
+          "soldUsd": 330.7420337932222,
+          "boughtUsd": 0
+        },
+        {
+          "date": "2026-09-08",
+          "soldUsd": 515.2521927205938,
+          "boughtUsd": 32721.889417142513
+        },
+        {
+          "date": "2026-09-09",
+          "soldUsd": 592.4410518476138,
+          "boughtUsd": 28.068780510395925
+        },
+        {
+          "date": "2026-09-10",
+          "soldUsd": 109.94166352406712,
+          "boughtUsd": 1136.993607715594
+        },
+        {
+          "date": "2026-09-11",
+          "soldUsd": 129002.37053447701,
+          "boughtUsd": 25039.127046089256
+        },
+        {
+          "date": "2026-09-12",
+          "soldUsd": 133.1550145388835,
+          "boughtUsd": 0
+        },
+        {
+          "date": "2026-09-13",
+          "soldUsd": 239.21440167435298,
+          "boughtUsd": 0
+        },
+        {
+          "date": "2026-09-14",
+          "soldUsd": 293.78968256917693,
+          "boughtUsd": 0
+        },
+        {
+          "date": "2026-09-15",
+          "soldUsd": 57.494500866893375,
+          "boughtUsd": 23385.70321798262
+        },
+        {
+          "date": "2026-09-16",
+          "soldUsd": 1377.1422668591679,
+          "boughtUsd": 127.93752828422284
+        },
+        {
+          "date": "2026-09-17",
+          "soldUsd": 30213.249855790127,
+          "boughtUsd": 22473.410573315858
+        },
+        {
+          "date": "2026-09-18",
+          "soldUsd": 62.43049791109044,
+          "boughtUsd": 634.4451096564153
+        },
+        {
+          "date": "2026-09-19",
+          "soldUsd": 223.44062261026363,
+          "boughtUsd": 349.7332573528979
+        },
+        {
+          "date": "2026-09-20",
+          "soldUsd": 73.16140353590862,
+          "boughtUsd": 0
+        },
+        {
+          "date": "2026-09-21",
+          "soldUsd": 1765.4626918890422,
+          "boughtUsd": 0
+        },
+        {
+          "date": "2026-09-22",
+          "soldUsd": 113.48964793647654,
+          "boughtUsd": 24.912480523079438
+        },
+        {
+          "date": "2026-09-23",
+          "soldUsd": 18416.733038169776,
+          "boughtUsd": 4533.694347638557
+        },
+        {
+          "date": "2026-09-24",
+          "soldUsd": 47.0295356554854,
+          "boughtUsd": 4515.063544720348
+        },
+        {
+          "date": "2026-09-25",
+          "soldUsd": 1576.2436776732302,
+          "boughtUsd": 633.6312373400608
+        }
+      ]
+    },
+    {
+      "name": "recent-dca",
+      "from": "2026-09-26",
+      "to": "2026-10-02",
+      "completeDays": 5,
+      "classifiedActions": 8799,
+      "sellCount": 6861,
+      "buyCount": 1938,
+      "soldUsd": 679794.6605586655,
+      "boughtUsd": 587557.4259657814,
+      "meanDailySoldUsd": 135958.9321117331,
+      "meanDailyBoughtUsd": 117511.48519315629,
+      "dailySalesUsd": {
+        "count": 5,
+        "min": 83709.1300167356,
+        "median": 147715.89518143624,
+        "p90": 157361.27042498853,
+        "max": 161197.9903541264,
+        "mean": 135958.93211173295
+      },
+      "saleGapsMinutes": {
+        "count": 6859,
+        "min": 0,
+        "median": 0.9,
+        "p90": 1.1,
+        "max": 526.4,
+        "mean": 1.0415804053068012
+      },
+      "treasurySellUsd": 669623.5202095832,
+      "treasuryShareOfSells": 0.9850379225680833,
+      "daily": [
+        {
+          "date": "2026-09-26",
+          "soldUsd": 83709.1300167356,
+          "boughtUsd": 42644.75939834735
+        },
+        {
+          "date": "2026-09-27",
+          "soldUsd": 135565.45447508464,
+          "boughtUsd": 111170.36579793325
+        },
+        {
+          "date": "2026-09-28",
+          "soldUsd": 147715.89518143624,
+          "boughtUsd": 129104.20924463411
+        },
+        {
+          "date": "2026-09-30",
+          "soldUsd": 161197.9903541264,
+          "boughtUsd": 169235.30859719418
+        },
+        {
+          "date": "2026-10-01",
+          "soldUsd": 151606.1905312817,
+          "boughtUsd": 135402.7829276787
+        }
+      ]
+    }
+  ],
+  "quoteSummary": [
+    {
+      "name": "before-dca",
+      "from": "2026-09-02",
+      "to": "2026-09-26",
+      "points": 1569,
+      "sizes": [
+        {
+          "hollar": 100,
+          "effectiveLossVsPoolPegBps": {
+            "count": 1569,
+            "min": 46.9652655000008,
+            "median": 86.31846619999828,
+            "p90": 104.50251615000016,
+            "max": 106.02227450000056,
+            "mean": 88.37957272331676
+          },
+          "fractionWithin8Bp": 0
+        },
+        {
+          "hollar": 1000,
+          "effectiveLossVsPoolPegBps": {
+            "count": 1569,
+            "min": 47.17422045500075,
+            "median": 86.6256639149976,
+            "p90": 104.86811116000028,
+            "max": 106.39317453499997,
+            "mean": 88.69499702201021
+          },
+          "fractionWithin8Bp": 0
+        },
+        {
+          "hollar": 8000,
+          "effectiveLossVsPoolPegBps": {
+            "count": 1569,
+            "min": 48.8186797206247,
+            "median": 89.05892918624758,
+            "p90": 107.77083831562506,
+            "max": 109.33762361124977,
+            "mean": 91.19423094394233
+          },
+          "fractionWithin8Bp": 0
+        }
+      ]
+    },
+    {
+      "name": "recent-dca",
+      "from": "2026-09-26",
+      "to": "2026-10-02",
+      "points": 401,
+      "sizes": [
+        {
+          "hollar": 100,
+          "effectiveLossVsPoolPegBps": {
+            "count": 401,
+            "min": 21.181922121696893,
+            "median": 57.231593875261,
+            "p90": 81.36825759113675,
+            "max": 102.30023661170429,
+            "mean": 56.69538272218562
+          },
+          "fractionWithin8Bp": 0
+        },
+        {
+          "hollar": 1000,
+          "effectiveLossVsPoolPegBps": {
+            "count": 401,
+            "min": 21.35541555887577,
+            "median": 57.46135061525659,
+            "p90": 81.66066402222505,
+            "max": 102.65841087619742,
+            "mean": 56.93101259171158
+          },
+          "fractionWithin8Bp": 0
+        },
+        {
+          "hollar": 8000,
+          "effectiveLossVsPoolPegBps": {
+            "count": 401,
+            "min": 22.71182410191086,
+            "median": 59.27296699742901,
+            "p90": 83.97492966231157,
+            "max": 105.50064250622438,
+            "mean": 58.789264368427986
+          },
+          "fractionWithin8Bp": 0
+        }
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "period": "before-dca",
+      "totalHollar": 8000,
+      "chunkHollar": 100,
+      "trials": 1569,
+      "completed": 995,
+      "censored": {
+        "window-ended": 574,
+        "issuance-changed": 0,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 3.8113798697704624,
+      "worstImmediateSliceLossBps": 6.225240092879725,
+      "immediateEverySliceWithin8Bp": true,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 2.6426484138091837
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 995,
+          "min": 0.35,
+          "median": 38.56,
+          "p90": 107.50733333333334,
+          "max": 217.89666666666668,
+          "mean": 52.052425460636556
+        },
+        "capitalHoursForCompleted": {
+          "count": 995,
+          "min": 2765,
+          "median": 274974.00000000023,
+          "p90": 797615.7666666673,
+          "max": 1720277.0000000016,
+          "mean": 379225.0571189279
+        },
+        "lossUsdIfSameQuoteRestored": 2.6426484138091837,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 0.31389726027397286,
+        "medianBreakEvenAnnualMarginalReturnPct": 3.7232929492318525
+      }
+    },
+    {
+      "period": "recent-dca",
+      "totalHollar": 8000,
+      "chunkHollar": 100,
+      "trials": 401,
+      "completed": 367,
+      "censored": {
+        "window-ended": 9,
+        "issuance-changed": 25,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 3.8113798697704624,
+      "worstImmediateSliceLossBps": 6.225240092879725,
+      "immediateEverySliceWithin8Bp": true,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 2.6426484138091837
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 367,
+          "min": 0.3933333333333333,
+          "median": 4.181666666666667,
+          "p90": 11.934000000000012,
+          "max": 19.626666666666665,
+          "mean": 5.4686875567665725
+        },
+        "capitalHoursForCompleted": {
+          "count": 367,
+          "min": 3107.3333333333358,
+          "median": 16472.666666666664,
+          "p90": 52864.09999999997,
+          "max": 106637.33333333336,
+          "mean": 23560.75386012715
+        },
+        "lossUsdIfSameQuoteRestored": 2.6426484138091837,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 0.018804414003044136,
+        "medianBreakEvenAnnualMarginalReturnPct": 62.151974306249556
+      }
+    },
+    {
+      "period": "before-dca",
+      "totalHollar": 8000,
+      "chunkHollar": 1000,
+      "trials": 1569,
+      "completed": 999,
+      "censored": {
+        "window-ended": 570,
+        "issuance-changed": 0,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 3.8113309956343073,
+      "worstImmediateSliceLossBps": 6.0587174128368115,
+      "immediateEverySliceWithin8Bp": true,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 2.775747559946467
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 999,
+          "min": 0.35,
+          "median": 38.845,
+          "p90": 107.37133333333334,
+          "max": 217.89666666666668,
+          "mean": 52.241955288622
+        },
+        "capitalHoursForCompleted": {
+          "count": 999,
+          "min": 2450,
+          "median": 249991.66666666666,
+          "p90": 751599.3333333335,
+          "max": 1524513.3333333337,
+          "mean": 346596.93693693687
+        },
+        "lossUsdIfSameQuoteRestored": 2.775747559946467,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 0.28537861491628613,
+        "medianBreakEvenAnnualMarginalReturnPct": 3.628805318827487
+      }
+    },
+    {
+      "period": "recent-dca",
+      "totalHollar": 8000,
+      "chunkHollar": 1000,
+      "trials": 401,
+      "completed": 370,
+      "censored": {
+        "window-ended": 9,
+        "issuance-changed": 22,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 3.8113309956343073,
+      "worstImmediateSliceLossBps": 6.0587174128368115,
+      "immediateEverySliceWithin8Bp": true,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 2.775747559946467
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 370,
+          "min": 0.3933333333333333,
+          "median": 3.755,
+          "p90": 10.758666666666667,
+          "max": 19.243333333333332,
+          "mean": 4.948752252252251
+        },
+        "capitalHoursForCompleted": {
+          "count": 370,
+          "min": 2753.3333333333335,
+          "median": 14040,
+          "p90": 43931.50000000005,
+          "max": 96878.33333333334,
+          "mean": 20378.41441441441
+        },
+        "lossUsdIfSameQuoteRestored": 2.775747559946467,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 0.01602739726027397,
+        "medianBreakEvenAnnualMarginalReturnPct": 64.61332547454046
+      }
+    },
+    {
+      "period": "before-dca",
+      "totalHollar": 8000,
+      "chunkHollar": 8000,
+      "trials": 1569,
+      "completed": 1569,
+      "censored": {
+        "window-ended": 0,
+        "issuance-changed": 0,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 3.81153074210215,
+      "worstImmediateSliceLossBps": 4.7644134276281225,
+      "immediateEverySliceWithin8Bp": true,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 3.81153074210215
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 1569,
+          "min": 0,
+          "median": 0,
+          "p90": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "capitalHoursForCompleted": {
+          "count": 1569,
+          "min": 0,
+          "median": 0,
+          "p90": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "lossUsdIfSameQuoteRestored": 3.81153074210215,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 0,
+        "medianBreakEvenAnnualMarginalReturnPct": null
+      }
+    },
+    {
+      "period": "recent-dca",
+      "totalHollar": 8000,
+      "chunkHollar": 8000,
+      "trials": 401,
+      "completed": 401,
+      "censored": {
+        "window-ended": 0,
+        "issuance-changed": 0,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 3.81153074210215,
+      "worstImmediateSliceLossBps": 4.7644134276281225,
+      "immediateEverySliceWithin8Bp": true,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 3.81153074210215
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 401,
+          "min": 0,
+          "median": 0,
+          "p90": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "capitalHoursForCompleted": {
+          "count": 401,
+          "min": 0,
+          "median": 0,
+          "p90": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "lossUsdIfSameQuoteRestored": 3.81153074210215,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 0,
+        "medianBreakEvenAnnualMarginalReturnPct": null
+      }
+    },
+    {
+      "period": "before-dca",
+      "totalHollar": 40000,
+      "chunkHollar": 100,
+      "trials": 1569,
+      "completed": 371,
+      "censored": {
+        "window-ended": 1198,
+        "issuance-changed": 0,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 42.840882291166054,
+      "worstImmediateSliceLossBps": 18.18474108888246,
+      "immediateEverySliceWithin8Bp": false,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 13.213242069039552
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 371,
+          "min": 1.1516666666666666,
+          "median": 138.69166666666666,
+          "p90": 190.32166666666666,
+          "max": 204.32166666666666,
+          "mean": 107.80820305480684
+        },
+        "capitalHoursForCompleted": {
+          "count": 371,
+          "min": 21753.83333333341,
+          "median": 2261992.6666666665,
+          "p90": 3260112.8333333316,
+          "max": 4421156.166666673,
+          "mean": 2097988.1985624544
+        },
+        "lossUsdIfSameQuoteRestored": 13.213242069039552,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 2.5821834094368343,
+        "medianBreakEvenAnnualMarginalReturnPct": 11.473871342310343
+      }
+    },
+    {
+      "period": "recent-dca",
+      "totalHollar": 40000,
+      "chunkHollar": 100,
+      "trials": 401,
+      "completed": 207,
+      "censored": {
+        "window-ended": 80,
+        "issuance-changed": 114,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 42.840882291166054,
+      "worstImmediateSliceLossBps": 18.18474108888246,
+      "immediateEverySliceWithin8Bp": false,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 13.213242069039552
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 207,
+          "min": 4.918333333333333,
+          "median": 29.02166666666667,
+          "p90": 42.24633333333334,
+          "max": 56.303333333333335,
+          "mean": 29.878172302737504
+        },
+        "capitalHoursForCompleted": {
+          "count": 207,
+          "min": 62580.1666666666,
+          "median": 533099.9999999998,
+          "p90": 857163.6333333332,
+          "max": 1159311.8333333335,
+          "mean": 552365.4613526572
+        },
+        "lossUsdIfSameQuoteRestored": 13.213242069039552,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 0.6085616438356162,
+        "medianBreakEvenAnnualMarginalReturnPct": 48.684698620489264
+      }
+    },
+    {
+      "period": "before-dca",
+      "totalHollar": 40000,
+      "chunkHollar": 1000,
+      "trials": 1569,
+      "completed": 371,
+      "censored": {
+        "window-ended": 1198,
+        "issuance-changed": 0,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 42.84064323289931,
+      "worstImmediateSliceLossBps": 18.013713488509442,
+      "immediateEverySliceWithin8Bp": false,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 13.878737799735973
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 371,
+          "min": 1.1516666666666666,
+          "median": 138.69166666666666,
+          "p90": 190.32166666666666,
+          "max": 204.32166666666666,
+          "mean": 107.80820305480684
+        },
+        "capitalHoursForCompleted": {
+          "count": 371,
+          "min": 21251.66666666667,
+          "median": 2207090,
+          "p90": 3185465.0000000014,
+          "max": 4334235,
+          "mean": 2045604.433962265
+        },
+        "lossUsdIfSameQuoteRestored": 13.878737799735973,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 2.5195091324200916,
+        "medianBreakEvenAnnualMarginalReturnPct": 11.495058724134983
+      }
+    },
+    {
+      "period": "recent-dca",
+      "totalHollar": 40000,
+      "chunkHollar": 1000,
+      "trials": 401,
+      "completed": 212,
+      "censored": {
+        "window-ended": 78,
+        "issuance-changed": 111,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 42.84064323289931,
+      "worstImmediateSliceLossBps": 18.013713488509442,
+      "immediateEverySliceWithin8Bp": false,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 13.878737799735973
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 212,
+          "min": 3.915,
+          "median": 28.674999999999997,
+          "p90": 40.80416666666667,
+          "max": 48.946666666666665,
+          "mean": 28.440298742138367
+        },
+        "capitalHoursForCompleted": {
+          "count": 212,
+          "min": 60033.33333333333,
+          "median": 522118.3333333334,
+          "p90": 838896.5,
+          "max": 1130930,
+          "mean": 540116.210691824
+        },
+        "lossUsdIfSameQuoteRestored": 13.878737799735973,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 0.596025494672755,
+        "medianBreakEvenAnnualMarginalReturnPct": 48.59172248842265
+      }
+    },
+    {
+      "period": "before-dca",
+      "totalHollar": 40000,
+      "chunkHollar": 8000,
+      "trials": 1569,
+      "completed": 567,
+      "censored": {
+        "window-ended": 1002,
+        "issuance-changed": 0,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 42.841685526960646,
+      "worstImmediateSliceLossBps": 16.689082305261227,
+      "immediateEverySliceWithin8Bp": false,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 19.057653710515297
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 567,
+          "min": 0.7766666666666666,
+          "median": 75.695,
+          "p90": 137.44100000000003,
+          "max": 203.55833333333334,
+          "mean": 78.29173721340386
+        },
+        "capitalHoursForCompleted": {
+          "count": 567,
+          "min": 18533.333333333332,
+          "median": 2032560.0000000002,
+          "p90": 3501456,
+          "max": 4141040,
+          "mean": 2042332.3221634356
+        },
+        "lossUsdIfSameQuoteRestored": 19.057653710515297,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 2.32027397260274,
+        "medianBreakEvenAnnualMarginalReturnPct": 10.250527350339535
+      }
+    },
+    {
+      "period": "recent-dca",
+      "totalHollar": 40000,
+      "chunkHollar": 8000,
+      "trials": 401,
+      "completed": 244,
+      "censored": {
+        "window-ended": 70,
+        "issuance-changed": 87,
+        "observation-gap": 0
+      },
+      "immediateSequentialLossUsd": 42.841685526960646,
+      "worstImmediateSliceLossBps": 16.689082305261227,
+      "immediateEverySliceWithin8Bp": false,
+      "perfectRefill": {
+        "completionHours": 0,
+        "lossUsd": 19.057653710515297
+      },
+      "observedNetInventorySchedule": {
+        "completionHoursForCompleted": {
+          "count": 244,
+          "min": 2.8516666666666666,
+          "median": 24.3725,
+          "p90": 34.202666666666666,
+          "max": 42.461666666666666,
+          "mean": 22.618531420765024
+        },
+        "capitalHoursForCompleted": {
+          "count": 244,
+          "min": 43293.33333333333,
+          "median": 437040,
+          "p90": 688364.0000000001,
+          "max": 957013.3333333333,
+          "mean": 443190.98360655736
+        },
+        "lossUsdIfSameQuoteRestored": 19.057653710515297,
+        "medianDelayExpenseAtOnePctAnnualMarginalReturnUsd": 0.49890410958904113,
+        "medianBreakEvenAnnualMarginalReturnPct": 47.672551416817974
+      }
+    }
+  ],
+  "latestSnapshot": {
+    "block": 15279000,
+    "hash": "0xa6286b5a6fbf4a88a94a99ab3c33fe37994c85e34c5d1f4f5ce3fde8bdc4b958",
+    "time": "2026-10-01 23:52:00",
+    "t": 1790898720,
+    "reserves": [
+      "460773829417",
+      "580547571855060337066904"
+    ],
+    "pegs": [
+      {
+        "num": "244708132494859646864611782910164865850",
+        "den": "230556221538033921785066817944408379150",
+        "price": 1.0613816051565155
+      },
+      {
+        "num": "1",
+        "den": "1",
+        "price": 1
+      }
+    ],
+    "issuance": "1047478053609110871642810",
+    "amplification": 100,
+    "amplificationRamp": null,
+    "feePermill": 400,
+    "specVersion": 447
+  },
+  "pinnedQuoteBlock": "15318402",
+  "limitations": [
+    "Historical endpoint sales and purchases are not all proven arbitrage; representative raw blocks confirm pool 143 and Treasury DCA, not all routes or external profits.",
+    "Recent gross replenishment is dominated by finite Treasury DCA 37930. Its observed activity must not be repeated indefinitely in an annual model; pre-DCA and no-refill cases remain relevant.",
+    "One capped activity day is excluded entirely from daily flow statistics. Exact reserve observations cover that day too; no missing interval is assumed empty.",
+    "Pool-peg quote loss measures reserve imbalance, trade impact and fees against that point's stored peg. It is not loss against independent fair value or the vault oracle.",
+    "Inventory schedules require both observed net PRIME increases and HOLLAR decreases, counting competing flow. They are independent historical start scenarios, not simultaneous orders or guaranteed future capacity.",
+    "Schedules stop at LP issuance changes and observation gaps over one hour. Incomplete trials remain censored, not instantaneous fills; completed-only quantiles have survivor bias.",
+    "The timing benchmark holds the original pinned execution quote constant and credits historical inventory quantities. Same-quote restoration and future repetitions are assumptions; it is not a replay of the historical prices or an endogenous arbitrage simulation.",
+    "Perfect arbitrage resets the executable state before each slice with zero replenishment latency; normal pool fees and each slice's impact remain. External inventory/capital is assumed available.",
+    "Delay expense is per 1% annual marginal return on the unexecuted HOLLAR amount, not a new APY estimate. Real carry depends on when Main/source debt is borrowed, yield accrual and compounding.",
+    "The production oracle guard, fresh previews, native circuit breakers and risk limits still apply. Neither scenario configures a keeper or changes on-chain policy."
+  ],
+  "inputs": {
+    "historySha256": "76afbaa6f55aa2ca8a0ed2c4c92ef6ca73ba42c7ebe9ed7626aa77b4bbc4f805",
+    "marketSha256": "babbc5c4d9de05c7465ef81668195837bff78718a9b2020c2171c353b596de67"
+  }
+}

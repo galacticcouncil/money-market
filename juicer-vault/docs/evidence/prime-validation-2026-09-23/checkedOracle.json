@@ -1,0 +1,22 @@
+{
+  "address": "0x09221057Cf7E75953D199FB319E606972A6A82Cd",
+  "block": "14939389",
+  "checks": {
+    "100013124": [
+      false,
+      "574"
+    ],
+    "106081891": [
+      true,
+      "2"
+    ],
+    "checkOracle": "0x000001040000000000000000000000dE0000002B",
+    "checkDecimals": 8,
+    "maxDiffBps": "100",
+    "pusher": "0x582e2fAc5af62dC024396b5e7F549c72273A69c3",
+    "checkPrice": [
+      true,
+      "106105730"
+    ]
+  }
+}

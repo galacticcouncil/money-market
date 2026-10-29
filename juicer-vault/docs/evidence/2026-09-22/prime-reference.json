@@ -1,0 +1,45 @@
+{
+  "endpoint": "https://api.mainnet-beta.solana.com",
+  "program": "97V7JsExNC6yFWu5KjK1FLfVkNVvtMpAFL5QkLWKEGxY",
+  "slot": 449369007,
+  "retrievedAt": "2026-09-22T11:44:41.428Z",
+  "accounts": [
+    {
+      "address": "Ev92L9D2CsPczeKHF3UWybQSweQCG4NRfexwJfVwyqsn",
+      "priceRaw": "1060655354868219273",
+      "scale": "1000000000000000000",
+      "wyldsPerPrime": 1.0606553548682192,
+      "updatedAt": "2026-09-22T11:36:07.000Z",
+      "ageSeconds": 514.4279999732971,
+      "maxStalenessSeconds": 3600,
+      "fresh": true
+    }
+  ],
+  "raw": {
+    "jsonrpc": "2.0",
+    "result": {
+      "context": {
+        "slot": 449369007,
+        "apiVersion": "4.2.1"
+      },
+      "value": [
+        {
+          "pubkey": "Ev92L9D2CsPczeKHF3UWybQSweQCG4NRfexwJfVwyqsn",
+          "account": {
+            "lamports": 2122800,
+            "data": [
+              "D+Cs2bP2VRDr+XWMJ4xejU4oLCekDbMH4wWnY8Psx6A+aGk60l/qG/IxD8P0sJ0OH+pVTH30i86hDdp36td8qKCYKFqYoKLtZIjSz8DgJHS9o12KcUJfS4/vyCbOq8BAMKLCqvU9Z+IAB8jtFV2VLgA7HhXOdmb+p4XPviFld9V4/OOSDplycYk9CfhsNLgOAAAAAAAAAAAAAGSns7bgDSdosmoAAAAAEA4AAAAAAAD9",
+              "base64"
+            ],
+            "owner": "97V7JsExNC6yFWu5KjK1FLfVkNVvtMpAFL5QkLWKEGxY",
+            "executable": false,
+            "rentEpoch": 18446744073709552000,
+            "space": 177
+          }
+        }
+      ]
+    },
+    "id": 1
+  },
+  "caveat": "PRIME/wYLDS reference only. Does not verify pauses, executable size, USDC redemption funding, bridging, or a settlement commitment."
+}

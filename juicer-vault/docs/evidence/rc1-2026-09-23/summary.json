@@ -1,0 +1,184 @@
+{
+  "date": "2026-09-23",
+  "scope": "RC1 review checkpoint, not production activation approval",
+  "logFormatting": "Trailing whitespace and empty final lines normalized; raw-input and archived hashes are both recorded.",
+  "checks": {
+    "pressure-pinned": {
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "file": "pressure-pinned.log",
+      "sha256": "2c5cd9230acfa3cd068b37176b890d6f0a189af2d23e3a53f1d81fe41fc15d7d",
+      "rawInputSha256": "2c5cd9230acfa3cd068b37176b890d6f0a189af2d23e3a53f1d81fe41fc15d7d",
+      "status": "passed"
+    },
+    "peg-pinned": {
+      "tests": 17,
+      "pass": 17,
+      "fail": 0,
+      "skipped": 0,
+      "file": "peg-pinned.log",
+      "sha256": "e49976ae2e78e596fb8b4707e091f744695c24b0287e4a077b949a8317695244",
+      "rawInputSha256": "e49976ae2e78e596fb8b4707e091f744695c24b0287e4a077b949a8317695244",
+      "status": "passed"
+    },
+    "coupled-peg-model": {
+      "tests": 24,
+      "pass": 24,
+      "fail": 0,
+      "skipped": 0,
+      "file": "coupled-peg-model.log",
+      "sha256": "1943eda5ed562219b7f1b88c2a4b9b7ceee48962a52d7e437d80ce8333418cb5",
+      "rawInputSha256": "1943eda5ed562219b7f1b88c2a4b9b7ceee48962a52d7e437d80ce8333418cb5",
+      "status": "passed"
+    },
+    "interest-policy-model": {
+      "tests": 21,
+      "pass": 21,
+      "fail": 0,
+      "skipped": 0,
+      "file": "interest-policy-model.log",
+      "sha256": "97cc2a4c872d6a7337845c22041ec9ab710e219a235c84a0d323bdd12995cf33",
+      "rawInputSha256": "97cc2a4c872d6a7337845c22041ec9ab710e219a235c84a0d323bdd12995cf33",
+      "status": "passed"
+    },
+    "neckwork-calibration": {
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skipped": 0,
+      "file": "neckwork-calibration.log",
+      "sha256": "980ab30aae29e43fd908bc98acc28c3eba31cb0e8908a0009b2874edc7021d7f",
+      "rawInputSha256": "980ab30aae29e43fd908bc98acc28c3eba31cb0e8908a0009b2874edc7021d7f",
+      "status": "passed"
+    },
+    "source-storage": {
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "file": "source-storage.log",
+      "sha256": "3b15139859045ef2b0f79b7faef3c5ef0db910fc975bc62da73e59fcd561e84c",
+      "rawInputSha256": "3b15139859045ef2b0f79b7faef3c5ef0db910fc975bc62da73e59fcd561e84c",
+      "status": "passed"
+    },
+    "route-calibration": {
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "file": "route-calibration.log",
+      "sha256": "603d3e06a93f506e861ac5b848d15bdce0daf368873e006cfc5f8e95f2ed2506",
+      "rawInputSha256": "603d3e06a93f506e861ac5b848d15bdce0daf368873e006cfc5f8e95f2ed2506",
+      "status": "passed"
+    },
+    "prime-replenishment": {
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0,
+      "file": "prime-replenishment.log",
+      "sha256": "11c1257f9ec3b70df45a7238d7c703a0aabe4db57f8739b36d692561ccb7bc53",
+      "rawInputSha256": "11c1257f9ec3b70df45a7238d7c703a0aabe4db57f8739b36d692561ccb7bc53",
+      "status": "passed"
+    },
+    "rounding": {
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "skipped": 0,
+      "file": "rounding.log",
+      "sha256": "b9407a3d2d18bfcd388178c2cfb0e997d42c33512482ef124d40e5b03a856f85",
+      "rawInputSha256": "b9407a3d2d18bfcd388178c2cfb0e997d42c33512482ef124d40e5b03a856f85",
+      "status": "passed"
+    },
+    "pressure-model": {
+      "tests": 8,
+      "pass": 7,
+      "fail": 1,
+      "skipped": 0,
+      "file": "pressure-model.log",
+      "sha256": "32974c50da98d2e037c6bd53ba3e97b42985762b9c982aa2c58d87a19032edea",
+      "rawInputSha256": "32974c50da98d2e037c6bd53ba3e97b42985762b9c982aa2c58d87a19032edea",
+      "status": "research-replay-follow-up"
+    },
+    "peg-model": {
+      "tests": 17,
+      "pass": 15,
+      "fail": 2,
+      "skipped": 0,
+      "file": "peg-model.log",
+      "sha256": "860430c1ac0c62facd7f88f3009a5e09c9a75224f94acd682e652f28795f311c",
+      "rawInputSha256": "f1527c077ee062162506005eb15224b12eab6742636a58f150b71ef1e4ab6f66",
+      "status": "research-replay-follow-up"
+    },
+    "solidity": {
+      "passed": 287,
+      "failed": 0,
+      "skipped": 11,
+      "file": "solidity.log",
+      "sha256": "148c5e9e7238ba635de0a791553412f7eed14f1a0773385a9804d437b36a490b",
+      "rawInputSha256": "148c5e9e7238ba635de0a791553412f7eed14f1a0773385a9804d437b36a490b"
+    },
+    "keeper": {
+      "file": "keeper.log",
+      "sha256": "e335a8972bfe673b3684303b3c8177a464cbda7d1fe800b46354497ccadcdc85",
+      "rawInputSha256": "e335a8972bfe673b3684303b3c8177a464cbda7d1fe800b46354497ccadcdc85"
+    },
+    "keeper-build": {
+      "file": "keeper-build.log",
+      "sha256": "9f7d241ea4bbd7154c13c11f5dfc50a34a60f7748d3714e317e3bf050cfd4c7a",
+      "rawInputSha256": "629da133fd59012c7e5f97c21ad9dbf874436cd572d9b4d7c32f97e2b8bc7731"
+    }
+  },
+  "artifacts": {
+    "CollateralVault": {
+      "runtimeBytes": 24381,
+      "templateSha256": "7870bc4d8b78c30bae787dd7d4c09c7331e2a023acd35edef79f7f9d602c69ce",
+      "localSourcesMatch": true
+    },
+    "SubLoop": {
+      "runtimeBytes": 20436,
+      "templateSha256": "c37e86aeef7cce46587b853afa7fce18745757497cf85dc9aa81e8ae9561a08f",
+      "localSourcesMatch": true
+    },
+    "PropellerMainDebt": {
+      "runtimeBytes": 14279,
+      "templateSha256": "f56bec19ef4cd3a1b828f8e684905f670c5beae180e3c6c43841a13eb3f65fa7",
+      "localSourcesMatch": true
+    },
+    "PropellerFeeController": {
+      "runtimeBytes": 8052,
+      "templateSha256": "dd16c1ec3d01a53dd4992f73120b5705fea2763346e74c20fa5d0efb12a051d9",
+      "localSourcesMatch": true
+    },
+    "Harvester": {
+      "runtimeBytes": 7042,
+      "templateSha256": "41331b93874caaa952c9bf9e6372fe60ba9b1f7fec42663ca4a767abfb9eceaa",
+      "localSourcesMatch": true
+    },
+    "CompoundLogic": {
+      "runtimeBytes": 4974,
+      "templateSha256": "651b76697670a11c99ef77fc66903121c41e5475cca68efc68d9d52369a37ff6",
+      "localSourcesMatch": true
+    },
+    "PropellerDiscount": {
+      "runtimeBytes": 6740,
+      "templateSha256": "0ba6189d099e8a73012aa68829c51901793e66ea5eb190a99ebca7d1a54e5fdb",
+      "localSourcesMatch": true
+    }
+  },
+  "fixtures": {
+    "historical": "../../../../scripts/propeller/fixtures/market-20260922.json",
+    "freshRoute": "../route-execution-2026-09-23/market.json",
+    "pricing": "../prime-validation-2026-09-23/summary.json"
+  },
+  "limitations": [
+    "Eleven ordinary Forge skips: eight opt-in campaign methods and three optional setups. Separate campaign/fork evidence retains its own scope.",
+    "Keeper runner reports two test files, not two individual assertions; its build completed separately.",
+    "Historical pressure and peg suites pass with their checked-in September 22 fixture. Substituting the September 23 route fixture exposes one rejected-quote search failure and two snapshot-specific shock threshold failures. These are recorded, not waived or counted as passes.",
+    "Fresh pricing/refill and native-route calibration suites pass with their explicitly selected archived fixtures.",
+    "No Solidity changes were made during the documentation handoff; runtime templates and local source hashes match prior native evidence."
+  ]
+}

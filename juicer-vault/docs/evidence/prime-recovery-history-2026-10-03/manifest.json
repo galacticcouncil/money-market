@@ -1,0 +1,53 @@
+{
+  "parentCommit": "171f4b5587b9202299ae347c12fb665a1682aa36",
+  "scope": "Public read-only Neckwork historical calibration and perfect-refill comparison. No new annual contract campaign or production change.",
+  "files": {
+    "analysis.json": "f494dff4bc2c8f9949a2ec6e2730ab4c12747fd5a8bc42378cbc6757429eb93b",
+    "analysis.log": "f8149ba3d94a13a51e69b5426a86cb676ab58feac46bb3a82a9ca99ae11acb18",
+    "collection.log": "89182c3e3ae64da550def2c1e6ee7d58ef580b5367000a85024a0ec48874af73",
+    "history.json.gz": "3dd94583e572564d369549b740e12e4b181bf903c770a7d200427540400ae7be",
+    "raw-responses.json.gz": "468abde0ff2c403f096b80a80fc955b5c20ed625e87252e9d3e7d95cd409106d",
+    "rpc-verification.json": "431f7a2f503e80fbe56a37d46a0c6622e0e80ac4b114dfdde9d28146c98f449c",
+    "rpc-verification.log": "0890634e36e28bd35a0d9553bed48040784cad2f6786b161d2641cfdd46d5e15",
+    "tests.log": "a94b85c90c6e30bebf7203ca984e89e2a2cdccf0ab6718f7aa64ea15a5a14e7f"
+  },
+  "sources": {
+    "scripts/propeller/collect-prime-recovery.mjs": "f047203945b0521a83f4235b6f0197f9513839f5c65d3751a4a0ad1d76ccfa22",
+    "scripts/propeller/analyze-prime-recovery.mjs": "36e53df0c1aeb99a211d356f96e0c73d480cd0761bb7a3ebf05c5b8828aa7411",
+    "scripts/propeller/analyze-prime-recovery.test.mjs": "8424e7fcc413449a5fd40e88ca6192644af0e3a85783e8714c28b9fa509aa603",
+    "scripts/propeller/verify-prime-history.mjs": "b650de3efa82200c67cf29f0c2145556ae093da4f041f69622366c87aa90b988",
+    "propeller-vault/docs/prime-recovery-history-2026-10-03.md": "195bb063b47360b76c5b51076f45d5aa61c697319c90b8980ac8975771a14df5"
+  },
+  "inputHashes": {
+    "historySha256": "76afbaa6f55aa2ca8a0ed2c4c92ef6ca73ba42c7ebe9ed7626aa77b4bbc4f805",
+    "marketSha256": "babbc5c4d9de05c7465ef81668195837bff78718a9b2020c2171c353b596de67"
+  },
+  "coverage": {
+    "reservePoints": 1970,
+    "maximumSamplingGapMinutes": 26.7,
+    "activityDaysComplete": 29,
+    "activityDaysPartial": [
+      {
+        "date": "2026-09-29",
+        "rows": 2750,
+        "exhausted": false
+      }
+    ],
+    "activityRowsCollected": 12084,
+    "issuanceChanges": [
+      {
+        "fromBlock": 15176400,
+        "toBlock": 15177000,
+        "from": "2026-09-29 12:38:36",
+        "to": "2026-09-29 12:59:00"
+      }
+    ]
+  },
+  "validation": {
+    "historicalRecoveryScenarios": 12,
+    "archivedApiResponsesVerified": 113,
+    "independentArchiveRpcSnapshots": 4,
+    "recoveryTestsPassed": 5,
+    "existingApyTestsPassed": 9
+  }
+}

@@ -1,0 +1,22 @@
+✔ uses PRIME-specific net APY, preserves daily compounding, adds only Aave income (0.823183ms)
+✔ rejects failed or incomplete campaigns instead of returning a fabricated zero (0.865704ms)
+✔ keeper costs and exit shortfalls remain separate from funded crypto (0.276555ms)
+✔ higher APY cannot win through subsidy, insolvency or a missing asset case (0.315925ms)
+✔ daily no-op budget and source funding losses cannot disappear from economics (0.161193ms)
+✔ hourly accrual reconstructs Hastra net APY without double-counting fees (0.863914ms)
+✔ zero-work safety observations cost RPC overhead, not invented chain fees (0.461758ms)
+✔ counts controlled deposits, service legs, useful settlement and failed writes (0.201503ms)
+✔ shared operators and deployment are allocated once by aggregate TVL (0.186203ms)
+✔ external bills larger than principal are visible; negative multi-year wealth has no CAGR (0.204213ms)
+✔ funded crypto, user carry, protocol carry, insolvency and closing costs stay distinct (0.188583ms)
+✔ cannot win on missing/duplicate asset, subsidy, missing admission or loss (0.383466ms)
+✔ parser rejects incomplete, failed and impossible service counts (3.636018ms)
+✔ each round retains the preceding baseline to expose non-improvements (0.709312ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 69.905895

@@ -1,0 +1,357 @@
+[
+  {
+    "time": "2026-10-05T11:39:19.188901542Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": " Starting Propeller Looper..."
+  },
+  {
+    "time": "2026-10-05T11:39:19.189214533Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": " SubLoop: 0x7016805f0f1ab369a1e308038db22eefe3d4b49f"
+  },
+  {
+    "time": "2026-10-05T11:39:19.189235923Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": " Poll interval: 30000ms"
+  },
+  {
+    "time": "2026-10-05T11:39:19.303596948Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": ""
+  },
+  {
+    "time": "2026-10-05T11:39:19.303627668Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": " [2026-10-05T11:39:19.303Z] maintainer cycle #1"
+  },
+  {
+    "time": "2026-10-05T11:39:19.875340036Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:39:19.899112207Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:39:19.975446375Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   HF 1.121 → target 1.050   leverage 4.65×"
+  },
+  {
+    "time": "2026-10-05T11:39:33.341929828Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   harvest (skim+distribute): skipped (Address: low-level delegate call failed)"
+  },
+  {
+    "time": "2026-10-05T11:40:03.351990235Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": ""
+  },
+  {
+    "time": "2026-10-05T11:40:03.352012165Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": " [2026-10-05T11:40:03.349Z] maintainer cycle #2"
+  },
+  {
+    "time": "2026-10-05T11:40:03.390298819Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:40:03.397423496Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:40:03.404741734Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   HF 1.121 → target 1.050   leverage 4.65×"
+  },
+  {
+    "time": "2026-10-05T11:40:03.736875297Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   startUnwinds 0x40cc…876a → 0x26d7d2e43016562acb88bc865226d9909c61f4f28353b78aa92d5400d7e22ed2"
+  },
+  {
+    "time": "2026-10-05T11:40:08.041161026Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   startUnwinds 0x5b15…5acd → 0xefc96f989f9ffe6ebda99dbc6d76c03d853cfaa1d8202fce93b22cf6c106fa56"
+  },
+  {
+    "time": "2026-10-05T11:40:29.520989863Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   harvest (skim+distribute): skipped (Address: low-level delegate call failed)"
+  },
+  {
+    "time": "2026-10-05T11:40:38.440563183Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeRepay (unwind/safety debt): skipped (The contract function \"preview\" reverted with the following signature:)"
+  },
+  {
+    "time": "2026-10-05T11:40:38.461283532Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:40:38.482269671Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:41:08.497814987Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": ""
+  },
+  {
+    "time": "2026-10-05T11:41:08.497836407Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": " [2026-10-05T11:41:08.497Z] maintainer cycle #3"
+  },
+  {
+    "time": "2026-10-05T11:41:08.535528472Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:41:08.542765659Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:41:08.550736127Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   HF 1.121 → target 1.050   leverage 4.65×"
+  },
+  {
+    "time": "2026-10-05T11:41:21.825645408Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   harvest (skim+distribute): skipped (Address: low-level delegate call failed)"
+  },
+  {
+    "time": "2026-10-05T11:41:30.233398641Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeRepay (unwind/safety debt): skipped (The contract function \"preview\" reverted with the following signature:)"
+  },
+  {
+    "time": "2026-10-05T11:41:30.260667352Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:41:30.277598798Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:42:00.283570324Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": ""
+  },
+  {
+    "time": "2026-10-05T11:42:00.283587865Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": " [2026-10-05T11:42:00.283Z] maintainer cycle #4"
+  },
+  {
+    "time": "2026-10-05T11:42:00.319359841Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:42:00.325671664Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:42:00.331029046Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   HF 1.121 → target 1.050   leverage 4.65×"
+  },
+  {
+    "time": "2026-10-05T11:42:13.604556756Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   harvest (skim+distribute): skipped (Address: low-level delegate call failed)"
+  },
+  {
+    "time": "2026-10-05T11:42:22.009639544Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeRepay (unwind/safety debt): skipped (The contract function \"preview\" reverted with the following signature:)"
+  },
+  {
+    "time": "2026-10-05T11:42:22.026493850Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:42:22.044588237Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:42:52.046462579Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": ""
+  },
+  {
+    "time": "2026-10-05T11:42:52.046483259Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": " [2026-10-05T11:42:52.046Z] maintainer cycle #5"
+  },
+  {
+    "time": "2026-10-05T11:42:52.061834310Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:42:52.067013630Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:42:52.071862440Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   HF 1.121 → target 1.050   leverage 4.65×"
+  },
+  {
+    "time": "2026-10-05T11:43:00.575501848Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeRepay (unwind/safety debt): skipped (The contract function \"preview\" reverted with the following signature:)"
+  },
+  {
+    "time": "2026-10-05T11:43:00.609654947Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:43:00.628564485Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:43:30.633940095Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": ""
+  },
+  {
+    "time": "2026-10-05T11:43:30.633962325Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": " [2026-10-05T11:43:30.633Z] maintainer cycle #6"
+  },
+  {
+    "time": "2026-10-05T11:43:30.674095033Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:43:30.679372623Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:43:30.684849934Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   HF 1.121 → target 1.050   leverage 4.65×"
+  },
+  {
+    "time": "2026-10-05T11:43:44.161205674Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   harvest (skim+distribute): skipped (Address: low-level delegate call failed)"
+  },
+  {
+    "time": "2026-10-05T11:43:52.568953872Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeRepay (unwind/safety debt): skipped (The contract function \"preview\" reverted with the following signature:)"
+  },
+  {
+    "time": "2026-10-05T11:43:52.584554961Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:43:52.601126273Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:44:22.601708867Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": ""
+  },
+  {
+    "time": "2026-10-05T11:44:22.601736556Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": " [2026-10-05T11:44:22.601Z] maintainer cycle #7"
+  },
+  {
+    "time": "2026-10-05T11:44:22.621666333Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:44:22.630304180Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:44:22.641383300Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   HF 1.121 → target 1.050   leverage 4.65×"
+  },
+  {
+    "time": "2026-10-05T11:44:31.171449109Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeRepay (unwind/safety debt): skipped (The contract function \"preview\" reverted with the following signature:)"
+  },
+  {
+    "time": "2026-10-05T11:44:31.208094236Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:44:31.232149010Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:45:01.237742266Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": ""
+  },
+  {
+    "time": "2026-10-05T11:45:01.237777837Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": " [2026-10-05T11:45:01.237Z] maintainer cycle #8"
+  },
+  {
+    "time": "2026-10-05T11:45:01.279497331Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:45:01.284797571Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   maintainPeg 0x5b15…5acd: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:45:01.291339082Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   HF 1.121 → target 1.050   leverage 4.65×"
+  },
+  {
+    "time": "2026-10-05T11:45:09.776855985Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeRepay (unwind/safety debt): skipped (The contract function \"preview\" reverted with the following signature:)"
+  },
+  {
+    "time": "2026-10-05T11:45:09.794820997Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x40cc…876a: no useful work"
+  },
+  {
+    "time": "2026-10-05T11:45:09.816282085Z",
+    "task": "i2k7h3pgmjud61zvy8l708ywe",
+    "line": "   pokeSettle 0x5b15…5acd: no useful work"
+  }
+]
