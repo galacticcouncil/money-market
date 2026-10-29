@@ -323,6 +323,46 @@ export const strategyHYPE: IReserveParams = {
   borrowableIsolation: false,
 };
 
+// ZEC (Wormhole NTT, asset 1001357, 8 decimals) — raw Omnipool asset, same params as HYPE.
+// Caps sized to $1M supply / $500k borrow at the ZEC/USD feed at listing ($1,234.90).
+export const strategyZEC: IReserveParams = {
+  strategy: rateStrategyDOT,
+  baseLTVAsCollateral: "7000",
+  liquidationThreshold: "7500",
+  liquidationBonus: "10700",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: true,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "8",
+  aTokenImpl: eContractid.AToken,
+  reserveFactor, // 20%
+  supplyCap: "809",
+  borrowCap: "404",
+  debtCeiling,
+  borrowableIsolation: false,
+};
+
+// SPY (Wormhole NTT, asset 1001356, 18 decimals) — raw Omnipool asset, same params as HYPE/ZEC.
+// Caps sized to $1M supply / $500k borrow at the SPY/USD feed at listing ($772.94).
+export const strategySPY: IReserveParams = {
+  strategy: rateStrategyDOT,
+  baseLTVAsCollateral: "7000",
+  liquidationThreshold: "7500",
+  liquidationBonus: "10700",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: true,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "18",
+  aTokenImpl: eContractid.AToken,
+  reserveFactor, // 20%
+  supplyCap: "1293",
+  borrowCap: "646",
+  debtCeiling,
+  borrowableIsolation: false,
+};
+
 export const strategyGSOL: IReserveParams = {
   strategy: rateStrategyDOT,
   baseLTVAsCollateral: "6000",
