@@ -531,7 +531,8 @@ library LooperLogic {
         uint256 own = s.collId;
         for (uint256 i = 0; (cfg >> (2 * i)) != 0; ++i) {
             if (i != own && (cfg >> (2 * i + 1)) & 1 == 1) {
-                pool.setUserUseReserveAsCollateral(pool.getReserveAddressById(uint16(i)), false);
+                // a gift whose reserve refuses the disable (paused, or beside a zero-LTV gift) must not block exits
+                try pool.setUserUseReserveAsCollateral(pool.getReserveAddressById(uint16(i)), false) {} catch {}
             }
         }
         if (s.aColl.scaledBalanceOf(address(this)) > 0 && (cfg >> (2 * own + 1)) & 1 == 0) {
