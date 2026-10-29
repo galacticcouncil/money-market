@@ -335,8 +335,9 @@ library LooperLogic {
         }
 
         uint256 need = _grossColl(s, owedBase, slip, pC);
+        // one debt unit over the floor, so the floored `minOut` of this sliver still clears `minProceeds`
         uint256 floorIn = Math.max(
-            _grossColl(s, Units.toBase(minProceeds, pD, s.decD, Math.Rounding.Up), slip, pC), s.minIntentAToken
+            _grossColl(s, Units.toBase(minProceeds + 1, pD, s.decD, Math.Rounding.Up), slip, pC), s.minIntentAToken
         );
         uint256 sliver = Math.min(Math.min(Math.max(need, floorIn), cap), s.aColl.balanceOf(address(this)));
         uint256 minOut = Units.fromBase(
