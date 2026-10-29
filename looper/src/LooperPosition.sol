@@ -16,9 +16,13 @@ import {Dispatch} from "./lib/Dispatch.sol";
 /// is the Aave user, the ICE intent owner and the forward receiver, so each fill calls it back as itself
 /// and it runs the next rung. Storage and entry points only; the logic lives in `LooperLogic`.
 /// The clone is also the NFT's ERC-6551 account: the holder can `execute` any EVM call from it, except into
-/// the account itself, the dispatch precompile, the pool and the position's own tokens.
+/// the account itself, the dispatch precompile, the pool and the position's own tokens, and no credit delegation.
 contract LooperPosition is ILooperPosition, IIntentForward, ERC6551 {
     error TargetNotAllowed(address target);
+    error SelectorNotAllowed(bytes4 selector);
+
+    /// @dev Every Aave debt token has it; a delegation would let someone borrow against this position after a sale.
+    bytes4 internal constant APPROVE_DELEGATION = bytes4(keccak256("approveDelegation(address,uint256)"));
 
     IAavePool public immutable pool;
 
@@ -107,13 +111,13 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC6551 {
         override
         returns (bytes memory)
     {
-        _checkTarget(target);
+        _checkCall(target, data);
         return super.execute(target, value, data, operation);
     }
 
     function executeBatch(Call[] calldata calls, uint8 operation) public payable override returns (bytes[] memory) {
         for (uint256 i = 0; i < calls.length; ++i) {
-            _checkTarget(calls[i].target);
+            _checkCall(calls[i].target, calls[i].data);
         }
         return super.executeBatch(calls, operation);
     }
@@ -238,6 +242,11 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC6551 {
     }
 
     // ── account internals ──
+
+    function _checkCall(address target, bytes calldata data) internal view {
+        _checkTarget(target);
+        if (data.length >= 4 && bytes4(data[:4]) == APPROVE_DELEGATION) revert SelectorNotAllowed(APPROVE_DELEGATION);
+    }
 
     /// @dev Pool or token calls would move funds behind the ladder's books, and a self-call would pass the
     /// self-only gates; a dispatch would act as the position's Substrate account, which no NFT transfer resets.
