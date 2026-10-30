@@ -33,13 +33,13 @@
         "settingsSha256": "d0df919045cd07b7a5e1f1397a3f898ed428b1e1ea33c204cecaf5d32a28c1de",
         "creation": {
           "bytes": 24976,
-          "sha256": "b5c0972405d6f0b307e4871ce3c2e1174f95231b65b3f6028ac57214d15e1aed",
+          "sha256": "7bb228db223415ad180385d3a93b8b8afd53d2c4878a3abbcc5d72b2b34129a2",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         },
         "runtimeTemplate": {
           "bytes": 24555,
-          "sha256": "cd81f8efb867175622d8d4554917bc184c6dd89e1c675db16ceb8733a1e2b18b",
+          "sha256": "60a2d24a7aa7193fde3cec619a16dd64eb155f1cb789f12ed5118c0a2c1f05e2",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "213ba66cb0cec5558f2eb37fcb9100c0aa4c1faee889803592e03e1b6a500284"
         },
@@ -60,14 +60,14 @@
         "viaIR": true,
         "settingsSha256": "5f097e4d73b72044314be6b4b571fe43b9d3aff2e302e9fa599736a0dcb48500",
         "creation": {
-          "bytes": 15861,
-          "sha256": "62d76aa11c4a8ce13344375dbb43959e93c64b5f7b8d386bbe409f16ae680f16",
+          "bytes": 20147,
+          "sha256": "6e5fb6a805e2ed0b009783711e5246c7715f4ca23cebc0cfa9d767df124f8d22",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         },
         "runtimeTemplate": {
-          "bytes": 15833,
-          "sha256": "5bb64325375a91f078485d0a8d436aaaf9be86ed28e1bec9b1e2ba5634bfbebb",
+          "bytes": 20119,
+          "sha256": "59d36fb4b8a108e03a29fe46a41a88296463866ff00f3e6d05dde4d4f21319d7",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         },
@@ -267,19 +267,19 @@
         "viaIR": true,
         "settingsSha256": "8a15e54db3c4ee3045f00295fe843b8ee91f9b9219923f1df4751d7f5af24db3",
         "creation": {
-          "bytes": 22055,
-          "sha256": "aa34f81cb7dc54aa21e934b918913b56711f0f72182f4a7bb2a72e58ae36a994",
+          "bytes": 22691,
+          "sha256": "a224e10928cb765009fc1bcfbad9140dc50e431f9fc0ab02ab57b3e014a25b5d",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         },
         "runtimeTemplate": {
-          "bytes": 21676,
-          "sha256": "50f231b85eef05cb8328969425ebca372d14e078339092eee30438bc48182314",
+          "bytes": 22312,
+          "sha256": "5360e3bfa071cde313c1994bca9808b3f8fee59e30a6f974a3675f945ab059db",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-          "immutableReferencesSha256": "f6298277af458975d61b97ed6716420348b220ed87935a5752bd74ca1ea6fe0e"
+          "immutableReferencesSha256": "0c83167c71824c2f95d58510507807625bb3f66038addf6775b810b46e6d5672"
         },
-        "methodCount": 95,
-        "methodIdentifiersSha256": "f80d40d947a3562c17c963892bbf2972e35456c7cbd62ab68bd1c62b34f3976a"
+        "methodCount": 97,
+        "methodIdentifiersSha256": "be753250c436ce5147ec5891708058a6cf797531a0b55a387d640626488cc824"
       },
       "dispatchMethods": {
         "clearCollateral(address)": "4542ed3c"
@@ -299,13 +299,13 @@
         "settingsSha256": "2f01125db79bbb63b13a8f088facaf6a6740d261755247fe9163a69130dc5374",
         "creation": {
           "bytes": 23658,
-          "sha256": "5b94d284d3a43e393bef54ec152235f2c56061e259cb9d65afb9b5981a1a3815",
+          "sha256": "3cd272d543d4c6f9f06edd0f17cd8e34a4a91f1938a96f04f51975f6a22f2f44",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
         },
         "runtimeTemplate": {
           "bytes": 23602,
-          "sha256": "262ba579d8153d310930befa326974e110099ede977a975eafd37d4ce3416269",
+          "sha256": "ce356d9a4d8882d39d6ffbf828a913be1a1e65c1b47411a926e65eab02327ef6",
           "linkReferencesSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
           "immutableReferencesSha256": "9968bc504f03b133feac5476389fbb2dcece3b0f6c6d6503d92bd1922d29e6eb"
         },

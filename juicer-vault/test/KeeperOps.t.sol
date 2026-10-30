@@ -12,6 +12,7 @@ import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {Artifacts} from "./helpers/Artifacts.t.sol";
 import {CollateralStub} from "./mocks/CollateralStub.sol";
+import {JuicerMainDebt} from "../src/JuicerMainDebt.sol";
 
 /// @notice keeper ops: rebalance toward the live max ltv, and maintainPeg re-topping
 ///         the synthetic as main debt accrues.
@@ -381,5 +382,157 @@ contract KeeperOpsTest is Test {
         pool.setPrice(address(eth), 3_309e18);
         vault.rebalance();
         assertApproxEqRel(hollarDebt.balanceOf(address(vault)), 2_481.75e18, 0.01e18, "the default band relevers at 68%");
+    }
+
+    // headroom exits: collateral leaves from the vault's LTV room and the loop stays whole
+
+    function _requestTenth(uint256 primePrice) internal returns (uint256 id) {
+        _ramp();
+        pool.setPrice(address(eth), 3_600e18); // 62.5% ltv, under the 75% max
+        pool.setPrice(address(prime), primePrice);
+        id = vault.requestRedeem(vault.balanceOf(address(this)) / 10, address(this));
+        vm.warp(block.timestamp + vault.withdrawalDelay());
+    }
+
+    function _fundReserve(uint256 amount) internal returns (JuicerMainDebt ledger) {
+        ledger = JuicerMainDebt(address(vault.mainDebt()));
+        hollar.mint(address(this), amount);
+        hollar.approve(address(ledger), amount);
+        ledger.fundReserve(amount);
+    }
+
+    /// loop equity net of the active Main position, per active vault share (1e18)
+    function _netPerShare() internal view returns (uint256) {
+        (uint256 debt,, uint256 cash) = vault.mainDebt().activePosition();
+        uint256 equity = loop.equityOf(address(vault)) * 1e10 + cash;
+        uint256 active = vault.totalSupply() - vault.totalQueuedShares();
+        return equity > debt ? (equity - debt) * 1e18 / active : 0;
+    }
+
+    function _redemption(uint256 id) internal view returns (uint256 owed, uint256 debtShare, uint256 settled, bool active) {
+        (,, owed, debtShare,,, settled,, active) = vault.redemptions(id);
+    }
+
+    function test_headroomExitPaysCollateralWithoutSellingTheLoop() public {
+        uint256 id = _requestTenth(0.99e18); // the loop is under its debt: a shortfall
+        loop.setExitHeadroom(address(vault), true, 0);
+        JuicerMainDebt ledger = _fundReserve(100e18);
+        uint256 loopShares = vault.loopShares();
+        uint256 primeHeld = aPrime.balanceOf(address(loop));
+        uint256 net = _netPerShare();
+
+        vault.startUnwinds(1);
+        assertEq(loop.unwindTargetEquity(), 0, "nothing to sell");
+        assertEq(vault.loopShares(), loopShares, "the holders who stay keep the slice");
+        (uint256 owed, uint256 debtShare,,) = _redemption(id);
+        assertGt(debtShare, 0, "the exit keeps only its shortfall");
+        assertLt(debtShare, 30e18);
+        // equityOf has 8 decimals
+        assertGe(_netPerShare() + 1e11, net, "the holders who stay are not worse off");
+
+        uint256 reserve = ledger.protocolReserve();
+        vault.pokeSettle();
+        assertEq(vault.queueHead(), id + 1, "settled at once");
+        (,, uint256 settled,) = _redemption(id);
+        assertEq(settled, owed);
+        assertApproxEqAbs(reserve - ledger.protocolReserve(), debtShare, 1e12, "the reserve covers the shortfall");
+        uint256 before_ = eth.balanceOf(address(this));
+        vault.claim(id, address(this), type(uint256).max);
+        assertEq(eth.balanceOf(address(this)) - before_, owed, "the full collateral promise");
+        assertEq(aPrime.balanceOf(address(loop)), primeHeld, "no prime sold");
+    }
+
+    function test_headroomExitUnwindsOnlyTheSurplus() public {
+        uint256 id = _requestTenth(1.01e18); // the loop is over its debt: a surplus
+        loop.setExitHeadroom(address(vault), true, 0);
+        uint256 loopShares = vault.loopShares();
+        uint256 net = _netPerShare();
+
+        vault.startUnwinds(1);
+        (uint256 owed, uint256 debtShare,,) = _redemption(id);
+        assertEq(debtShare, 0, "the debt stays with the holders who stay");
+        uint256 unwound = loopShares - vault.loopShares();
+        assertGt(unwound, 0);
+        assertLt(unwound, loopShares / 50, "only the surplus leaves the loop");
+        // equityOf has 8 decimals
+        assertGe(_netPerShare() + 1e11, net, "the holders who stay are not worse off");
+
+        vault.pokeSettle();
+        (,, uint256 settled,) = _redemption(id);
+        assertEq(settled, owed, "collateral first, the surplus after");
+        for (uint256 i; i < 400 && loop.unwindTargetEquity() != 0; ++i) loop.pokeRepay();
+        vault.pokeSettle();
+        JuicerMainDebt ledger = JuicerMainDebt(address(vault.mainDebt()));
+        uint256 surplus = ledger.surplusOf(id);
+        assertGt(surplus, 0);
+        uint256 before_ = hollar.balanceOf(address(this));
+        ledger.claimSurplus(id);
+        assertEq(hollar.balanceOf(address(this)) - before_, surplus, "the surplus pays the owner in HOLLAR");
+    }
+
+    function test_headroomIsOffUntilEnabled() public {
+        uint256 id = _requestTenth(0.99e18);
+        _fundReserve(100e18);
+        vault.startUnwinds(1);
+        (, uint256 debtShare,,) = _redemption(id);
+        assertGt(loop.unwindTargetEquity(), 100e18, "the slice unwinds as before");
+        assertGt(debtShare, 200e18, "with its whole debt share");
+    }
+
+    function test_headroomStaysUnderTheCap() public {
+        uint256 id = _requestTenth(0.99e18);
+        pool.setPrice(address(eth), 3_000e18); // back at the 75% max
+        loop.setExitHeadroom(address(vault), true, 0);
+        _fundReserve(100e18);
+        vault.startUnwinds(1);
+        (, uint256 debtShare,,) = _redemption(id);
+        assertGt(debtShare, 200e18, "no room under the cap: the queue");
+    }
+
+    function test_aShortfallWithoutReserveQueues() public {
+        uint256 id = _requestTenth(0.99e18);
+        loop.setExitHeadroom(address(vault), true, 0);
+        vault.startUnwinds(1);
+        (, uint256 debtShare,,) = _redemption(id);
+        assertGt(debtShare, 200e18, "the reserve cannot cover the shortfall: the queue");
+    }
+
+    function test_headroomGapLowersTheCap() public {
+        _ramp();
+        pool.setPrice(address(eth), 3_600e18);
+        pool.setPrice(address(prime), 1.01e18);
+        loop.setExitHeadroom(address(vault), true, 1_000); // cap 65%
+        uint256 tenth = vault.requestRedeem(vault.balanceOf(address(this)) / 10, address(this));
+        uint256 small = vault.requestRedeem(vault.balanceOf(address(this)) / 100, address(this));
+        vm.warp(block.timestamp + vault.withdrawalDelay());
+        vault.startUnwinds(1);
+        (, uint256 debtShare,,) = _redemption(tenth);
+        assertGt(debtShare, 0, "69% after a tenth leaves: the queue");
+        for (uint256 i; i < 400 && loop.unwindTargetEquity() != 0; ++i) loop.pokeRepay();
+        vault.pokeSettle();
+        vault.startUnwinds(1);
+        (, debtShare,,) = _redemption(small);
+        assertEq(debtShare, 0, "a small exit fits under 65%");
+    }
+
+    function test_setExitHeadroomIsAdminOnlyBoundedAndPerVault() public {
+        vm.prank(address(0xBAD));
+        vm.expectRevert();
+        loop.setExitHeadroom(address(vault), true, 0);
+        vm.expectRevert(SubLoop.InvalidParameters.selector);
+        loop.setExitHeadroom(address(0xBEEF), true, 0);
+        vm.expectRevert(SubLoop.InvalidParameters.selector);
+        loop.setExitHeadroom(address(vault), true, 10_001);
+        (bool enabled, uint16 gap) = loop.exitHeadroom(address(vault));
+        assertFalse(enabled, "off until governance turns it on");
+        vm.expectEmit(true, false, false, true, address(loop));
+        emit SubLoop.ExitHeadroomSet(address(vault), true, 500);
+        loop.setExitHeadroom(address(vault), true, 500);
+        (enabled, gap) = loop.exitHeadroom(address(vault));
+        assertTrue(enabled);
+        assertEq(gap, 500);
+        loop.setExitHeadroom(address(vault), false, 0);
+        (enabled,) = loop.exitHeadroom(address(vault));
+        assertFalse(enabled);
     }
 }

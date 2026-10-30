@@ -479,6 +479,10 @@ both are compared against the production contracts. a discount only changes how 
 grows, which the public-call machine already takes as an arbitrary observation; the GHO debt token's
 accrual is outside this repository and is not modeled. the stateful fixtures keep one vault and a 7500
 max LTV, so per-vault band isolation rests on the registry proof and its production comparison.
+headroom exits (`SubLoop.setExitHeadroom`, the headroom branch of `CompoundLogic.startExit`) are
+outside the model. the stateful fixtures plug a yield source without `exitHeadroom`, which reads as
+off, so every exit they replay takes the unwind queue; the headroom path is covered by Solidity tests
+(`KeeperOps`).
 
 Aave/token observations must be truthful, oracle prices/configuration valid, and external calls
 successful where their results are model inputs. matching ICE's 99%-minimum arrival heuristic

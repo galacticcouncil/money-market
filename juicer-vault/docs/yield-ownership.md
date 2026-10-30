@@ -205,6 +205,36 @@ exceeded available net funding; the keepers' deficit check compares active Main
 debt with source backing only.
 Fee policy and funding constraints do not insure the position.
 
+## Headroom exits
+
+An exit normally unwinds its own slice of the loop and repays its own Main debt
+from the proceeds, so every exit sells aPRIME into pool 143. Exit throughput is
+then the loop's sale rate, about $35–40k an hour on Lark at 2,500 aPRIME a
+minute, shared by all exits and independent of TVL.
+
+With headroom exits on (`SubLoop.setExitHeadroom(vault, true, gap)`, off in
+storage, on in the launch proposal), an exit that keeps the vault's LTV at or
+under the collateral's max LTV less `gap`, counting the collateral still owed to
+earlier exits, settles without selling the loop.
+- The holders who stay keep the exiter's loop slice together with the Main
+  debt it backs: the exiter's debt share, less their share of the active Main
+  cash. They give up collateral and gain loop equity of the same value.
+- If the slice is worth more than that debt, only the surplus unwinds and pays
+  the owner in HOLLAR (`claimSurplus`), less the protocol fee a full exit would
+  pay. The request carries no debt and settles on the next `pokeSettle`.
+- If it is worth less, the request carries only the shortfall's share of the
+  debt and cash, and the protocol reserve covers it at settlement, as it covers
+  any exit's realized shortfall. Without room in the reserve for it and the debt
+  of earlier unsettled exits, the exit takes the unwind queue.
+- An exit that would take the vault over the cap takes the unwind queue too.
+
+Deposits refill the headroom without a trade, and the loop sells only when a
+price move takes the vault past its delever point. The cost is leverage: the
+holders who stay carry more debt per collateral until deposits or a delever
+bring the vault back to its target. The take-over happens at the oracle marks
+deposits already use. The logic is in `CompoundLogic.startExit`
+(`HeadroomExit`); the vault is unchanged.
+
 ## Reinvestment and execution policy
 
 Newly compounded collateral records borrowing capacity. `rebalance` can use that

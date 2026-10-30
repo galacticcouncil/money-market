@@ -38,7 +38,17 @@ library SyntheticFloor {
     }
 }
 
+interface IExitHeadroom {
+    function exitHeadroom(address vault) external view returns (bool enabled, uint16 gapBps);
+}
+
+interface IReserveLedger {
+    function protocolReserve() external view returns (uint256);
+}
+
 interface ICompoundVault is IMainDebtVault {
+    function totalQueuedDebt() external view returns (uint256);
+    function roundingReserve() external view returns (uint256);
     function collateralAToken() external view returns (IERC20);
     function feeController() external view returns (IJuicerFeeController);
     function mainDebt() external view returns (IMainDebt);
@@ -66,6 +76,18 @@ contract CompoundLogic {
     error PrincipalNotFloored();
     event Rebalanced(uint256 ltvBefore, uint256 ltvAfter);
     event Harvested(uint256 collateralAmount);
+    event HeadroomExit(uint256 indexed id, uint256 keptShares, uint256 unwoundShares, uint256 shortfall);
+
+    struct Exit {
+        uint256 id;
+        address owner;
+        uint256 shares;
+        uint256 supply;
+        uint256 slice;
+        uint256 activeSlice;
+        uint256 feeSlice;
+        uint256 basis;
+    }
 
     /// @dev `paid` is cash spent, a de-lever target's unit; the synthetic burn follows the debt reduction
     function repay(uint256 key, uint256 amount, uint256 recovery)
@@ -129,6 +151,10 @@ contract CompoundLogic {
             shares, supply);
         uint256 slice = activeSlice + rewardSlice + feeSlice;
         uint256 basis = Math.mulDiv(source.principalOf(address(this)), shares, supply);
+        bool settled;
+        (settled, remainingShares, debt) = _fromHeadroom(v, source, held,
+            Exit(id, owner, shares, supply, slice, activeSlice, feeSlice, basis));
+        if (settled) return (remainingShares, debt);
         uint256 before_ = source.pendingUnwindOf(address(this));
         if (slice != 0) source.requestUnwindProtected(slice, basis);
         uint256 claim = source.pendingUnwindOf(address(this)) - before_;
@@ -142,6 +168,75 @@ contract CompoundLogic {
         if (slice == 0 && debt > Math.mulDiv(cash, shares, supply)) revert NoLoopEquity();
         remainingShares = held - slice;
     }
+    /// @dev settles an exit from the vault's LTV headroom: the holders who stay keep the exiter's loop
+    /// slice with the Main debt it backs, so nothing is sold; only a surplus over that debt unwinds.
+    /// a shortfall is the protocol reserve's at settlement, as on any exit; without room there, it queues
+    function _fromHeadroom(ICompoundVault v, IYieldSource source, uint256 held, Exit memory e)
+        private returns (bool, uint256, uint256)
+    {
+        if (e.slice == 0 || !_headroomOpen(v, e)) return (false, 0, 0);
+        uint256 value = Math.mulDiv(source.equityOf(address(this)) * 1e10, e.slice, source.sharesOf(address(this)));
+        (uint256 activeDebt,, uint256 cash) = v.mainDebt().activePosition();
+        uint256 need = Math.mulDiv(activeDebt, e.shares, e.supply);
+        cash = Math.mulDiv(cash, e.shares, e.supply);
+        // a debt share the exiter's cash covers leaves them owed cash the ledger pays on the queue
+        if (value == 0 || cash >= need) return (false, 0, 0);
+        need -= cash;
+        uint256 debt;
+        if (need > value) {
+            uint256 shortfall = need - value;
+            if (v.totalQueuedDebt() + shortfall > IReserveLedger(address(v.mainDebt())).protocolReserve()) {
+                return (false, 0, 0);
+            }
+            // the exit keeps only the shortfall's share of the debt and cash
+            debt = v.mainDebt().startExit(e.id, e.owner, Math.mulDiv(e.shares, shortfall, need, Math.Rounding.Up),
+                e.supply, 0, 0, 0);
+            emit HeadroomExit(e.id, e.slice, 0, shortfall);
+            return (true, held, debt);
+        }
+        uint256 unwind = e.slice - Math.mulDiv(e.slice, need, value, Math.Rounding.Up);
+        uint256 claim;
+        if (unwind != 0) {
+            uint256 before_ = source.pendingUnwindOf(address(this));
+            source.requestUnwindProtected(unwind, 0);
+            claim = source.pendingUnwindOf(address(this)) - before_;
+        }
+        // the fee a full exit would pay, out of the surplus the unwind returns
+        uint256 fee = _fee(v, Math.mulDiv(value, e.activeSlice, e.slice), e.basis)
+            + Math.mulDiv(value, e.feeSlice, e.slice);
+        debt = v.mainDebt().startExit(e.id, e.owner, 0, e.supply, claim, 0, fee);
+        emit HeadroomExit(e.id, e.slice - unwind, unwind, 0);
+        return (true, held - unwind, debt);
+    }
+
+    /// @dev on for this vault, and its LTV after this exit and the releases still owed stays under the cap
+    function _headroomOpen(ICompoundVault v, Exit memory e) private view returns (bool) {
+        uint256 cap;
+        try IExitHeadroom(address(v.yieldSource())).exitHeadroom(address(this)) returns (bool enabled, uint16 gap) {
+            cap = v.pool().getConfiguration(address(v.collateral())) & LTV_MASK;
+            if (!enabled || cap <= gap) return false;
+            cap -= gap;
+        } catch {
+            return false;
+        }
+        uint256 supplied = v.collateralAToken().balanceOf(address(this));
+        uint256 idle = v.collateral().balanceOf(address(this));
+        idle = idle > v.roundingReserve() ? idle - v.roundingReserve() : 0;
+        uint256 queued = v.totalQueuedCollateral();
+        uint256 leaving = Math.ceilDiv((v.totalAssets() - queued) * e.shares, e.supply) + (queued > idle ? queued - idle : 0);
+        if (leaving >= supplied) return false;
+        (uint256 coll8, uint256 debt8,,,,) = v.pool().getUserAccountData(address(this));
+        uint256 synth8 = v.syntheticSupplied() / 1e10;
+        if (coll8 <= synth8) return false;
+        return debt8 * BPS <= Math.mulDiv(coll8 - synth8, supplied - leaving, supplied) * cap;
+    }
+
+    /// @dev the protocol fee on an exit's gain over its cost basis
+    function _fee(ICompoundVault v, uint256 activeValue, uint256 basis) private view returns (uint256) {
+        if (address(v.feeController()) == address(0) || activeValue <= basis) return 0;
+        return Math.mulDiv(activeValue - basis, v.feeController().protocolFeeBps(address(this)), BPS);
+    }
+
 
     /// @dev returns state to the vault. while exits are in flight only deposited/earned
     /// credit deploys; price resizing waits

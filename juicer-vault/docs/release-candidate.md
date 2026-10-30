@@ -25,7 +25,9 @@ initialization, 250 from the launch proposal) plus the keepers' hysteretic
 rather than on every transfer, and funded earnings sit in holders' balances with
 no claims. On `juicer-discount-bands` the loop's HOLLAR can also be discounted, at
 its own capped rate that starts at zero, and each vault's rebalance band is set on
-the loop. The lists below describe RC1; the activation gates still apply.
+the loop. Exits that fit under a vault's max LTV settle without selling the loop
+([headroom exits](yield-ownership.md#headroom-exits)). The lists below describe RC1;
+the activation gates still apply.
 
 The candidate is on `feat/propeller-interest-buffer`; the name is historical.
 Sponsored operating buffers have been replaced. The commit containing this
