@@ -18,7 +18,7 @@ function complete(ids){
  const marks={
   chain:()=>core.checks.chain=true,prepare:()=>core.checks.testAccountsFunded=true,'prime-pool':()=>core.checks.primePool=true,
   deploy:()=>core.vaults.push({name:'ETH',rounding:{}},{name:'TBTC',rounding:{}}),wire:()=>verified('bind-execution-controller'),shares:()=>core.checks.shareAssets={},
-  prices:()=>prices.oracles=[{},{},{}],discount:()=>prices.addresses.discount='0x01',market:()=>verified('testnet-guardians-and-open-bootstrap'),
+  prices:()=>prices.oracles=[...Object.values(LARK0.collateral).map(x=>({assetId:x.assetId})),{assetId:43}],discount:()=>prices.addresses.discount='0x01',market:()=>verified('testnet-guardians-and-open-bootstrap'),
   bootstrap:()=>core.checks.bootstrapNoBorrow=true,'prime-cap':()=>verified('arb.refill-hollar-with-quote-reserve'),adapter:()=>core.checks.adapterWhitelisted=true,
   routes:()=>core.checks.primeCollateralRoutes=true,'harvest-cap':()=>verified('approved-lark-only-collateral-hundred-bps'),throughput:()=>verified('lark-prime-tranches-2500'),
   sync:()=>core.checks.mainnetSync=true,'sync-inventory':()=>core.checks.syncInventory=true,wrap:()=>verified('pools-underlying-stash'),
@@ -70,6 +70,10 @@ test('journal markers complete each step', () => {
  const all=complete(STEPS.filter(s=>!s.output).map(s=>s.id));
  for(const s of STEPS.filter(s=>!s.output))assert.equal(stepStatus(s,all),'done',s.id);
  assert.equal(stepStatus(step('deploy'),{core:{vaults:[{name:'ETH',rounding:{}}]}}),'pending','one vault is not a deployment');
+ const rc=resolveProfile('lark4rc',{});
+ assert.equal(stepStatus(step('deploy'),{profile:rc,core:{vaults:[{name:'TBTC',rounding:{}}]}}),'done','a jbtc-only profile deploys one vault');
+ assert.equal(stepStatus(step('prices'),{profile:rc,prices:{oracles:[{assetId:rc.collateral.TBTC.assetId},{assetId:43}]}}),'done','and prices tbtc plus prime');
+ assert.equal(stepStatus(step('deploy'),{profile:LARK0,core:{vaults:[{name:'TBTC',rounding:{}}]}}),'pending');
  const lark4=complete([]);lark4.profile=resolveProfile('lark4',{});lark4.core.governance.push({label:'lark-prime-tranches-1000',verified:true});
  assert.equal(stepStatus(step('throughput'),lark4),'done','each profile finishes its own lane size');
  assert.equal(stepStatus(step('throughput'),{...lark4,profile:LARK0}),'pending');

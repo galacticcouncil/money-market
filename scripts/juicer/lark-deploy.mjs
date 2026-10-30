@@ -38,7 +38,7 @@ try{
   const sourceInit=v.encodeFunctionData({abi:artifact('SubLoop').abi,functionName:'initialize',args:[POOL,HOLLAR,token(43),reserves.PRIME.aTokenAddress,1050000000000000000n,1100000000000000000n,GOV]});
   a.source=await deploy('ERC1967Proxy',[a.subImpl,sourceInit],'SubLoop.proxy');save();
   a.harvester=await deploy('Harvester',[a.source,token(43),GOV]);save();
-  const treasury=await readSig(reserves.ETH.aTokenAddress,'function RESERVE_TREASURY_ADDRESS() view returns(address)');
+  const treasury=await readSig(reserves[collateral[0][0]].aTokenAddress,'function RESERVE_TREASURY_ADDRESS() view returns(address)');
   a.fees=await deploy('JuicerFeeController',[GOV,treasury]);save();
   a.controller=await deploy('ExecutionController',[GOV,60n,5n]);save();
   r.feeRecipient=treasury;

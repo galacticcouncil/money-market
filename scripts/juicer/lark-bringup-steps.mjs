@@ -2,14 +2,15 @@
 // completion is read back from the deployment journals, so a rerun resumes where it stopped.
 const gov=(s,label)=>!!s.core?.governance?.some(g=>g.label===label&&g.verified);
 const check=(s,name)=>!!s.core?.checks?.[name];
+const names=s=>Object.keys(s.profile?.collateral??{ETH:0,TBTC:0});
 export const STEPS=[
  {id:'chain',script:'lark-chain-check.mjs',what:'preflight: runtime 447+ with ICE, money-market reserves and oracles, pool 143 route, synthetic asset id, facilitator',done:s=>check(s,'chain')},
  {id:'prepare',script:'lark-prepare.mjs',what:'isolated test accounts (deployer, keeper, arb), contract deployer whitelist',done:s=>check(s,'testAccountsFunded')},
  {id:'prime-pool',script:'lark-prime-pool.mjs',what:'PRIME stableswap pool 143 depth; a shallow pool gets liquidity at its ratio (creates the HOLLAR facilitator bucket); the profile\'s pool fee, if it sets one',done:s=>check(s,'primePool')},
- {id:'deploy',script:'lark-deploy.mjs',live:true,needs:['adapter'],what:'HydraAugustus adapter, implementation, synthetic, source, harvester, fees, controller, both vaults and Main ledgers',done:s=>s.core?.vaults?.length===2&&s.core.vaults.every(x=>x.rounding)},
+ {id:'deploy',script:'lark-deploy.mjs',live:true,needs:['adapter'],what:'HydraAugustus adapter, implementation, synthetic, source, harvester, fees, controller, both vaults and Main ledgers',done:s=>names(s).every(n=>s.core?.vaults?.some(x=>x.name===n&&x.rounding))},
  {id:'wire',script:'lark-wire.mjs',what:'synthetic asset and money-market reserve listing, source, vaults, custody, execution budgets and lanes, controller',done:s=>gov(s,'bind-execution-controller')},
  {id:'shares',script:'lark-share-assets.mjs',what:'the vault shares as sufficient Erc20 assets at the ids after the synthetic\'s',done:s=>!!s.core?.checks?.shareAssets},
- {id:'prices',script:'lark-prices-deploy.mjs',live:true,journal:'prices',what:'ManagedOracle mirrors of the mainnet collateral and PRIME feeds; a pool share such as GIGAETH keeps its forked source',done:s=>s.prices?.oracles?.length===3},
+ {id:'prices',script:'lark-prices-deploy.mjs',live:true,journal:'prices',what:'ManagedOracle mirrors of the mainnet collateral and PRIME feeds; a pool share such as GIGAETH keeps its forked source',done:s=>s.profile?[...Object.values(s.profile.collateral).map(x=>x.assetId),43].every(id=>s.prices?.oracles?.some(o=>o.assetId===id)):s.prices?.oracles?.length===3},
  {id:'discount',script:'lark-discount-deploy.mjs',live:true,journal:'prices',what:'zero-discount JuicerDiscount',done:s=>!!s.prices?.addresses?.discount},
  {id:'market',script:'lark-market-setup.mjs',what:'zero discount with the loop enrolled, mirror price sources, pool 143 peg on the PRIME mirror, bot and UI funding, arb binding and HOLLAR, guardians, open bootstrap',done:s=>gov(s,'testnet-guardians-and-open-bootstrap')},
  {id:'bootstrap',script:'lark-bootstrap.mjs',what:'bootstrap deposits without borrowing, temporary admin revoked',done:s=>check(s,'bootstrapNoBorrow')},
