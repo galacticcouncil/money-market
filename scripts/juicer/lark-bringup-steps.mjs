@@ -24,7 +24,7 @@ export const STEPS=[
  {id:'stable',script:'lark-stable-inventory.mjs',what:'both sides of every stableswap pool the pools bot corrects',done:s=>gov(s,'pools-stable-inventory')},
  {id:'release',script:'lark-release-deposits.mjs',what:'test mints the deposit fuse parked, released; GSOL for pools',done:s=>check(s,'depositRelease')},
  {id:'seed',script:'lark-seed-bots.mjs',args:['--round=baseline'],what:'what the Lark 4 bots reported missing, minted up front',done:s=>gov(s,'bots-seed-baseline')},
- {id:'params',script:'lark-next-params.mjs',what:'harvest threshold 2e14, 1,000 HOLLAR protocol reserve per vault, 65/75/83 bands, 69% fee, 40% Main and 90% loop discounts',done:s=>check(s,'nextParameters')},
+ {id:'params',script:'lark-next-params.mjs',what:'harvest threshold 2e14, 1,000 HOLLAR protocol reserve per vault, 65/75/83 bands, headroom exits on, 69% fee, 40% Main and 90% loop discounts',done:s=>check(s,'nextParameters')},
  {id:'admission',script:'lark-admission-cap.mjs',what:'deposit admission at the profile\'s deficit cap (250 bps; keepers stop at 250, resume at 200)',done:s=>check(s,'admissionCap')},
  {id:'guardian',script:'lark-deposit-guardian.mjs',what:'DEPOSIT_GUARDIAN_ROLE (setDeficitStop only) for both keepers on both vaults',done:s=>check(s,'depositGuardian')},
  {id:'ice',script:'lark-ice-wiring.mjs',what:'ICE: 300 s intents with 2 bps drift, KEEPER_ROLE for both keepers, async entry and unwind lanes, WETH for the callback fee',done:s=>check(s,'iceWiring')},

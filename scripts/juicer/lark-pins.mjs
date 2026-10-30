@@ -8,7 +8,7 @@ import {LARK4_IDENTITY as L4} from './lark4-identity.mjs';
 const SIGNERS={markets:'//Alice//propeller-20261005-arb',pools:'//Alice//propeller-20261007-pools',replay:'//Alice//propeller-20261007-replay'};
 // the next version's parameters, as the mainnet proposal sets them (next-governance.ts)
 export const NEXT_PARAMS={harvestThreshold:2n*10n**14n,reserve:1000n*10n**18n,
- band:{relever:6500,target:7500,delever:8300},admissionMaxDeficitBps:250,
+ band:{relever:6500,target:7500,delever:8300},admissionMaxDeficitBps:250,exitHeadroom:{enabled:true,gapBps:0},
  revenue:{protocolFeeBps:6900,mainDiscountBps:4000,loopDiscountBps:9000},
  primePoolFeePpm:100};
 // the loop keeps each band relative to the collateral's live max LTV, as bandGaps in next-governance.ts

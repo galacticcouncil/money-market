@@ -1,5 +1,5 @@
 // The next version's governance surface, shared by the mainnet proposal and the readiness
-// checker: keeper roles, the harvest threshold, ICE, rebalance bands, deposit admission, the revenue mix and the protocol reserve.
+// checker: keeper roles, the harvest threshold, ICE, rebalance bands, deposit admission, headroom exits, the revenue mix and the protocol reserve.
 // One reader, then pure planning: callers get back only the calls still missing, or the checks.
 import { BigNumber, BigNumberish, Contract, utils } from "ethers";
 
@@ -16,6 +16,8 @@ export const NEXT = {
   // deposits close above this source deficit; levering a deposit to the target costs ~50 bps,
   // the contract default, so at 50 the loop's own entry cost closes them (lark 0, 22 oct: 6.5 h)
   admissionMaxDeficitBps: 250,
+  // exits settle from each vault's LTV headroom without selling the loop, up to the max LTV
+  exitHeadroom: { enabled: true, gapBps: 0 },
   // PRIME/HOLLAR stableswap fee at launch, Permill: 1 bp, from 4
   primePoolFeePpm: 100,
   // ~80% of treasury income in collateral: juicenomics at $450k, 21 Oct (81.4% closed form,
@@ -43,6 +45,7 @@ const loopI = new utils.Interface([
   "function configureIntents(uint32,uint16)",
   "function setRebalanceBand(address,uint16,uint16,uint16)",
   "function setAdmissionMaxDeficitBps(uint16)",
+  "function setExitHeadroom(address,bool,uint16)",
 ]);
 const controlI = new utils.Interface(["function configureAsync(bytes32,bool)"]);
 const discountI = new utils.Interface(["function setDiscountBps(uint16)", "function setLoopDiscountBps(uint16)"]);
@@ -54,6 +57,7 @@ export type Call = { to: string; data: string; label: string };
 export type Check = { name: string; ok: boolean; detail?: string };
 type Roles = Record<string, { keeper?: boolean; guardian?: boolean; admin?: boolean }>;
 export type Band = { relever: number; target: number; delever: number };
+export type ExitHeadroom = { enabled: boolean; gapBps: number };
 export type Revenue = { protocolFeeBps: number; mainDiscountBps: number; loopDiscountBps: number };
 export type NextState = {
   subLoop: {
@@ -65,7 +69,7 @@ export type NextState = {
   vaults: {
     address: string; guardianRole?: string; keepers: Roles; mainDebt: string; protocolReserve?: BigNumber;
     // the loop's gaps (target below max LTV, relever below and delever above target), and the live max LTV
-    gaps?: Band; maxLtv?: number; protocolFeeBps?: number;
+    gaps?: Band; maxLtv?: number; protocolFeeBps?: number; exitHeadroom?: ExitHeadroom;
   }[];
   discount?: { address: string; installed: boolean; discountBps?: number; loopDiscountBps?: number; loop?: string };
   fees?: string;
@@ -73,8 +77,21 @@ export type NextState = {
 };
 export type Expected = {
   keepers?: string[]; harvestThreshold?: BigNumberish; intentTtl?: number; intentDriftBps?: number; reserve?: BigNumberish;
-  band?: Band; revenue?: Revenue; admissionMaxDeficitBps?: number;
+  band?: Band; revenue?: Revenue; admissionMaxDeficitBps?: number; exitHeadroom?: ExitHeadroom;
 };
+
+const showHeadroom = (h: ExitHeadroom) => h.enabled ? `on, ${h.gapBps} bps under max LTV` : "off";
+
+/// "off", "on" or "on,500": headroom exits and their gap under max LTV in bps
+export function parseExitHeadroom(text: string): ExitHeadroom {
+  const [mode, gap, ...rest] = text.split(",").map(s => s.trim());
+  if (rest.length || (mode !== "on" && mode !== "off") || (mode === "off" && gap !== undefined)) {
+    throw new Error(`exit headroom "${text}": off, on, or on,<gap bps>`);
+  }
+  const gapBps = gap === undefined ? 0 : Number(gap);
+  if (!(Number.isInteger(gapBps) && gapBps >= 0 && gapBps <= 10000)) throw new Error(`exit headroom gap "${gap}" out of range`);
+  return { enabled: mode === "on", gapBps };
+}
 
 /// "6500,7500,8300": relever, target and delever LTVs in bps
 export function parseBand(text: string): Band {
@@ -110,7 +127,7 @@ export async function readNextState(provider: any, { subLoop, vaults, controller
     "function KEEPER_ROLE() view returns (bytes32)", "function hasRole(bytes32,address) view returns (bool)",
     "function hollar() view returns (address)", "function primeAToken() view returns (address)",
     "function pool() view returns (address)", "function rebalanceBand(address) view returns (uint16,uint16,uint16)",
-    "function admissionMaxDeficitBps() view returns (uint16)",
+    "function admissionMaxDeficitBps() view returns (uint16)", "function exitHeadroom(address) view returns (bool,uint16)",
   ], provider);
   const pool = await maybe<string>(() => loop.pool());
   const reserves = pool && new Contract(pool, ["function getConfiguration(address) view returns (uint256)"], provider);
@@ -136,12 +153,14 @@ export async function readNextState(provider: any, { subLoop, vaults, controller
     const guardianRole = await maybe(() => v.DEPOSIT_GUARDIAN_ROLE());
     const mainDebt = await v.mainDebt();
     const gaps = await maybe<number[]>(() => loop.rebalanceBand(address));
+    const headroom = await maybe<[boolean, number]>(() => loop.exitHeadroom(address));
     const collateral = await maybe<string>(() => v.collateral());
     const config = reserves && collateral ? await maybe<BigNumber>(() => reserves.getConfiguration(collateral)) : undefined;
     const row = { address, guardianRole, keepers: {} as Roles, mainDebt,
       protocolReserve: await maybe(() => new Contract(mainDebt, ["function protocolReserve() view returns (uint256)"], provider).protocolReserve()),
       gaps: gaps && { target: Number(gaps[0]), relever: Number(gaps[1]), delever: Number(gaps[2]) },
       maxLtv: config === undefined ? undefined : BigNumber.from(config).and(0xffff).toNumber(),
+      exitHeadroom: headroom && { enabled: headroom[0], gapBps: Number(headroom[1]) },
       protocolFeeBps: undefined as number | undefined };
     if (fees) {
       const fee = await maybe<number>(() => new Contract(fees, ["function protocolFeeBps(address) view returns (uint16)"], provider).protocolFeeBps(address));
@@ -208,6 +227,9 @@ function validate(e: Expected) {
   if (e.admissionMaxDeficitBps !== undefined && !(Number.isInteger(e.admissionMaxDeficitBps) && e.admissionMaxDeficitBps >= 0 && e.admissionMaxDeficitBps <= 10000)) {
     throw new Error(`admission deficit cap ${e.admissionMaxDeficitBps} bps out of range`);
   }
+  if (e.exitHeadroom !== undefined && !(Number.isInteger(e.exitHeadroom.gapBps) && e.exitHeadroom.gapBps >= 0 && e.exitHeadroom.gapBps <= 10000)) {
+    throw new Error(`exit headroom gap ${e.exitHeadroom.gapBps} bps out of range`);
+  }
   if (e.band !== undefined) {
     const { relever, target, delever } = e.band;
     if (![relever, target, delever].every(Number.isInteger) || !(0 < relever && relever < target && target < delever)
@@ -219,7 +241,7 @@ function validate(e: Expected) {
 
 const missingSurface = (what: string) => new Error(`${what} missing on chain: these are not the next version's contracts`);
 
-/// keeper roles, the threshold, ICE, bands, admission and the revenue mix; the Main and vault wiring stays in the existing batches
+/// keeper roles, the threshold, ICE, bands, admission, headroom exits and the revenue mix; the Main and vault wiring stays in the existing batches
 export function nextCalls(state: NextState, e: Expected): Call[] {
   validate(e);
   const calls: Call[] = [];
@@ -272,6 +294,16 @@ export function nextCalls(state: NextState, e: Expected): Call[] {
     if (loop.admissionMaxDeficitBps !== e.admissionMaxDeficitBps) {
       calls.push({ to: loop.address, data: loopI.encodeFunctionData("setAdmissionMaxDeficitBps", [e.admissionMaxDeficitBps]),
         label: `subLoop.setAdmissionMaxDeficitBps(${e.admissionMaxDeficitBps})` });
+    }
+  }
+  if (e.exitHeadroom !== undefined) {
+    const h = e.exitHeadroom;
+    for (const v of state.vaults) {
+      if (!v.exitHeadroom) throw missingSurface("SubLoop exitHeadroom");
+      if (v.exitHeadroom.enabled !== h.enabled || v.exitHeadroom.gapBps !== h.gapBps) {
+        calls.push({ to: loop.address, data: loopI.encodeFunctionData("setExitHeadroom", [v.address, h.enabled, h.gapBps]),
+          label: `subLoop.setExitHeadroom(${v.address}, ${h.enabled}, ${h.gapBps})` });
+      }
     }
   }
   if (e.revenue !== undefined) {
@@ -358,6 +390,14 @@ export function nextChecks(state: NextState, e: Expected): Check[] {
   }
   if (e.admissionMaxDeficitBps !== undefined) {
     out.push({ name: "deposit admission deficit cap (bps)", ok: loop.admissionMaxDeficitBps === e.admissionMaxDeficitBps, detail: String(loop.admissionMaxDeficitBps) });
+  }
+  if (e.exitHeadroom !== undefined) {
+    const h = e.exitHeadroom;
+    for (const v of state.vaults) {
+      out.push({ name: `${v.address}: headroom exits ${showHeadroom(h)}`,
+        ok: !!v.exitHeadroom && v.exitHeadroom.enabled === h.enabled && v.exitHeadroom.gapBps === h.gapBps,
+        detail: v.exitHeadroom ? showHeadroom(v.exitHeadroom) : "unreadable" });
+    }
   }
   if (e.reserve !== undefined) {
     for (const v of state.vaults) {

@@ -30,7 +30,8 @@
 // proposal passes as is; before it, override with the registration values (fee 500, rates 0):
 //           JUICER_PRIME_POOL_FEE_PPM (default 100), JUICER_PROTOCOL_FEE_BPS (default 6900),
 //           JUICER_DISCOUNT_BPS (Main, default 4000), JUICER_LOOP_DISCOUNT_BPS (default 9000),
-//           JUICER_ADMISSION_MAX_DEFICIT_BPS (default 250), JUICER_REBALANCE_BAND (default 6500,7500,8300).
+//           JUICER_ADMISSION_MAX_DEFICIT_BPS (default 250), JUICER_REBALANCE_BAND (default 6500,7500,8300),
+//           JUICER_EXIT_HEADROOM (off, on or on,<gap bps>; default on).
 // Next version (each adds its checks only when set): JUICER_KEEPERS (comma list),
 //           JUICER_HARVEST_THRESHOLD (WAD), JUICER_INTENT_TTL (seconds),
 //           JUICER_INTENT_DRIFT_BPS, JUICER_RESERVE_HOLLAR (per vault),
@@ -41,7 +42,7 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 import { ethers } from "ethers";
 import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "./rounding-native";
-import { NEXT, readNextState, nextChecks, parseBand, envNumber } from "./next-governance";
+import { NEXT, readNextState, nextChecks, parseBand, envNumber, parseExitHeadroom } from "./next-governance";
 
 const WS = process.env.WS_URL || "wss://hdx.tarn.hydration.cloud";
 const RPC = process.env.RPC_URL || "https://hdx.tarn.hydration.cloud";
@@ -75,6 +76,7 @@ const NEXT_EXPECTED = {
   ...(process.env.JUICER_RESERVE_HOLLAR ? { reserve: ethers.utils.parseUnits(process.env.JUICER_RESERVE_HOLLAR, 18) } : {}),
   band: process.env.JUICER_REBALANCE_BAND ? parseBand(process.env.JUICER_REBALANCE_BAND) : NEXT.band,
   admissionMaxDeficitBps: envNumber("JUICER_ADMISSION_MAX_DEFICIT_BPS", NEXT.admissionMaxDeficitBps),
+  exitHeadroom: process.env.JUICER_EXIT_HEADROOM !== undefined ? parseExitHeadroom(process.env.JUICER_EXIT_HEADROOM) : NEXT.exitHeadroom,
 };
 const LOOP_CAP = process.env.JUICER_LOOP_DISCOUNT_CAP ? ethers.utils.parseUnits(process.env.JUICER_LOOP_DISCOUNT_CAP, 18) : undefined;
 const LOOP_BPS = envNumber("JUICER_LOOP_DISCOUNT_BPS", NEXT.revenue.loopDiscountBps);
@@ -803,7 +805,7 @@ async function main() {
   });
 
   if (Object.keys(NEXT_EXPECTED).length) {
-    const group = "N. Next version: keepers, threshold, ICE, bands, admission, reserve";
+    const group = "N. Next version: keepers, threshold, ICE, bands, admission, headroom exits, reserve";
     await section(group, async () => {
       const state = await readNextState(provider, { subLoop: SUBLOOP, vaults: VAULTS, controller: EXECUTION, keepers: KEEPERS });
       for (const check of nextChecks(state, NEXT_EXPECTED)) add(group, check.name, check.ok, check.detail);

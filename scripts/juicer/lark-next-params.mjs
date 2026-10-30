@@ -1,12 +1,12 @@
 // Next-version parameters on a new Lark: harvest threshold 2e14 (~0.02% of principal) and a
 // 1,000 HOLLAR protocol reserve per vault, which governance funds from the test facilitator; then
-// the launch economics: rebalance bands, protocol fee and the Main and loop discounts. pool 143's
+// the launch economics: rebalance bands, headroom exits, protocol fee and the Main and loop discounts. pool 143's
 // fee comes from lark-prime-pool.mjs, PRIME lanes from lark-prime-throughput.mjs. Lark 4 keeps its own.
 import assert from 'node:assert/strict';
 import {context,artifact,v,GOV,HOLLAR,POOL,live} from './lark-context.mjs';
 import {profile,NEXT_PARAMS,bandGaps} from './lark-pins.mjs';
 const THRESHOLD=NEXT_PARAMS.harvestThreshold,RESERVE=NEXT_PARAMS.reserve,LABEL='next-version-parameters';
-const {band:BAND,revenue:REVENUE}=NEXT_PARAMS,ECONOMICS='next-version-economics';
+const {band:BAND,revenue:REVENUE,exitHeadroom:HEADROOM}=NEXT_PARAMS,ECONOMICS='next-version-economics';
 assert.ok(!profile.legacy,`${profile.name} keeps the parameters of its #62 contracts`);
 const c=await context();
 try{
@@ -33,12 +33,15 @@ try{
  const maxLtv=async x=>Number(await readSig(POOL,'function getConfiguration(address) view returns(uint256)',[x.asset])&0xffffn);
  const gapsOf=async x=>{const [target,relever,delever]=await read('SubLoop',source,'rebalanceBand',[x.address]);return {target:Number(target),relever:Number(relever),delever:Number(delever)};};
  const same=(a,b)=>a.target===b.target&&a.relever===b.relever&&a.delever===b.delever;
+ const headroomOf=async x=>{const [enabled,gap]=await read('SubLoop',source,'exitHeadroom',[x.address]);return {enabled,gapBps:Number(gap)};};
+ const sameHeadroom=h=>h.enabled===HEADROOM.enabled&&h.gapBps===HEADROOM.gapBps;
  if(!r.governance.find(g=>g.label===ECONOMICS)?.verified){
   assert.equal((await read('JuicerDiscount',discount,'loop')).toLowerCase(),source.toLowerCase(),'the loop is not enrolled in the discount');
   const econ=[];
   for(const x of r.vaults){
    const want=bandGaps(await maxLtv(x),BAND);
    if(!same(await gapsOf(x),want))econ.push(govEvm(source,artifact('SubLoop').abi,'setRebalanceBand',[x.address,want.target,want.relever,want.delever],500000));
+   if(!sameHeadroom(await headroomOf(x)))econ.push(govEvm(source,artifact('SubLoop').abi,'setExitHeadroom',[x.address,HEADROOM.enabled,HEADROOM.gapBps],500000));
    if(Number(await read('JuicerFeeController',fees,'protocolFeeBps',[x.address]))!==REVENUE.protocolFeeBps){
     econ.push(govEvm(fees,artifact('JuicerFeeController').abi,'setProtocolFeeBps',[x.address,REVENUE.protocolFeeBps],500000));
    }
@@ -56,11 +59,13 @@ try{
   assert.equal(await read('SubLoop',source,'harvestThreshold'),THRESHOLD);
   const reserves={};
   for(const x of r.vaults){reserves[x.name]=(await reserveOf(x)).toString();assert.ok(BigInt(reserves[x.name])>=RESERVE,`${x.name} protocol reserve short`);}
-  const bands={},feeBps={};
+  const bands={},feeBps={},headroom={};
   for(const x of r.vaults){
    const want=bandGaps(await maxLtv(x),BAND),got=await gapsOf(x);
    assert.ok(same(got,want),`${x.name} band ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
    bands[x.name]=got;
+   headroom[x.name]=await headroomOf(x);
+   assert.ok(sameHeadroom(headroom[x.name]),`${x.name} headroom exits ${JSON.stringify(headroom[x.name])}`);
    feeBps[x.name]=Number(await read('JuicerFeeController',fees,'protocolFeeBps',[x.address]));
    assert.equal(feeBps[x.name],REVENUE.protocolFeeBps,`${x.name} protocol fee`);
   }
@@ -68,7 +73,7 @@ try{
   assert.deepEqual([mainBps,loopBps],[REVENUE.mainDiscountBps,REVENUE.loopDiscountBps],'discount rates');
   const loopCap=await read('JuicerDiscount',discount,'loopCap');
   r.discountBps=mainBps;
-  r.checks.nextParameters={harvestThreshold:THRESHOLD.toString(),protocolReserve:reserves,band:BAND,bands,protocolFeeBps:feeBps,
+  r.checks.nextParameters={harvestThreshold:THRESHOLD.toString(),protocolReserve:reserves,band:BAND,bands,exitHeadroom:headroom,protocolFeeBps:feeBps,
    discount:{mainBps,loopBps,loopCap:loopCap.toString()},note:'protocol reserve is test HOLLAR from the facilitator; not yield'};save();
   console.log('PARAMETERS',JSON.stringify(r.checks.nextParameters));
  }

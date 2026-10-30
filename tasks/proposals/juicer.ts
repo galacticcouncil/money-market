@@ -22,7 +22,7 @@ import {
 import ProposalDecoder from "../../helpers/proposal-decoder";
 import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "../../scripts/juicer/rounding-native";
-import { NEXT, readNextState, nextCalls, reserveCalls, parseBand, envNumber } from "../../scripts/juicer/next-governance";
+import { NEXT, readNextState, nextCalls, reserveCalls, parseBand, envNumber, parseExitHeadroom } from "../../scripts/juicer/next-governance";
 
 // Fixed $1 oracle (reused for the synthetic — it is pegged $1 by design, like HOLLAR).
 const GHO_ORACLE_ADDRESS = "0x6096C9D71F7c06024578a62F4B608a1Bb06834F8";
@@ -527,6 +527,7 @@ task(
   // and the loop enrolled first; JUICER_PROTOCOL_FEE_BPS, JUICER_DISCOUNT_BPS and
   // JUICER_LOOP_DISCOUNT_BPS override NEXT.revenue. JUICER_ADMISSION_MAX_DEFICIT_BPS overrides the
   // deposit admission cap (NEXT.admissionMaxDeficitBps, 250; the contract starts at 50).
+  // Headroom exits are on at launch (NEXT.exitHeadroom); JUICER_EXIT_HEADROOM=off|on|on,<gap bps>.
   const keepers = (process.env.JUICER_KEEPERS || "").split(",").map((k) => k.trim()).filter(Boolean);
   const controller = await resolve("JUICER_EXECUTION_CONTROLLER", "ExecutionController-Juicer");
   const discount = await resolve("JUICER_DISCOUNT_CONTROLLER", "JuicerDiscount-Juicer");
@@ -543,6 +544,7 @@ task(
       intentDriftBps: envNumber("JUICER_INTENT_DRIFT_BPS", NEXT.intentDriftBps),
       band: process.env.JUICER_REBALANCE_BAND ? parseBand(process.env.JUICER_REBALANCE_BAND) : NEXT.band,
       admissionMaxDeficitBps: envNumber("JUICER_ADMISSION_MAX_DEFICIT_BPS", NEXT.admissionMaxDeficitBps),
+      exitHeadroom: process.env.JUICER_EXIT_HEADROOM !== undefined ? parseExitHeadroom(process.env.JUICER_EXIT_HEADROOM) : NEXT.exitHeadroom,
       revenue: discount && fees ? {
         protocolFeeBps: envNumber("JUICER_PROTOCOL_FEE_BPS", NEXT.revenue.protocolFeeBps),
         mainDiscountBps: envNumber("JUICER_DISCOUNT_BPS", NEXT.revenue.mainDiscountBps),
@@ -558,7 +560,7 @@ task(
     clearBatch();
   } else {
     console.log(
-      "[4] skipped — set JUICER_KEEPERS and JUICER_EXECUTION_CONTROLLER (with the loop and vaults) for keeper roles, the harvest threshold, ICE, bands, the admission cap and the revenue mix"
+      "[4] skipped — set JUICER_KEEPERS and JUICER_EXECUTION_CONTROLLER (with the loop and vaults) for keeper roles, the harvest threshold, ICE, bands, the admission cap, headroom exits and the revenue mix"
     );
   }
 
@@ -618,7 +620,7 @@ task(
   await emit("BATCH 1 — list-reserve", batch1);
   await emit("BATCH 2 — configure", batch2);
   await emit("BATCH 3 — wire", batch3);
-  await emit("BATCH 4 — keepers, threshold, ICE, bands, admission, revenue mix", batch4);
+  await emit("BATCH 4 — keepers, threshold, ICE, bands, admission, headroom exits, revenue mix", batch4);
   await emit("BATCH 5 — protocol reserve", batch5);
 
   console.log(`

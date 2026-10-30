@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { BigNumber, providers, utils } from "ethers";
 import {
-  NEXT, envNumber, KEEPER_ROLE, DEPOSIT_GUARDIAN_ROLE, GUARDIAN_ROLE, readNextState, nextCalls, reserveCalls, nextChecks, bandGaps, parseBand,
+  NEXT, envNumber, parseExitHeadroom, KEEPER_ROLE, DEPOSIT_GUARDIAN_ROLE, GUARDIAN_ROLE, readNextState, nextCalls, reserveCalls, nextChecks, bandGaps, parseBand,
 } from "./next-governance";
 
 const addr = (n: number) => utils.getAddress(`0x${n.toString(16).padStart(40, "0")}`);
@@ -32,7 +32,8 @@ class Chain extends providers.StaticJsonRpcProvider {
 const v = (type: string, value: any) => () => [[type], [value]] as [string[], any[]];
 function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = false, threshold = "1000000000000000", reserve = "0", old = false,
   gaps = {} as Record<string, number[]>, ltv = { [ETH]: 7500, [BTC]: 8000 } as Record<string, number>,
-  installed = true, enrolled = true, main = 0, loopRate = 0 as number | null, fee = 500 as number | null, admission = 50 as number | null } = {}) {
+  installed = true, enrolled = true, main = 0, loopRate = 0 as number | null, fee = 500 as number | null, admission = 50 as number | null,
+  headroom = [false, 0] as [boolean, number] | null } = {}) {
   const has = (role: string, who: string) => granted.has(`${role}:${who}`);
   const roles = (extra: Record<string, any>) => ({ "hasRole(bytes32,address)": (a: utils.Result) => [["bool"], [has(a[0], a[1])]] as [string[], any[]], ...extra });
   return new Chain({
@@ -44,6 +45,7 @@ function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = fa
         "intentTtl()": v("uint32", ttl), "intentDriftBps()": v("uint16", drift), "KEEPER_ROLE()": v("bytes32", KEEPER_ROLE),
         "rebalanceBand(address)": (a: utils.Result) => [["uint16", "uint16", "uint16"], gaps[a[0]] ?? [0, 500, 300]],
         ...(admission === null ? {} : { "admissionMaxDeficitBps()": v("uint16", admission) }),
+        ...(headroom === null ? {} : { "exitHeadroom(address)": () => [["bool", "uint16"], headroom] as [string[], any[]] }),
       }),
     }),
     ...Object.fromEntries([[V1, M1, ETH], [V2, M2, BTC]].map(([vault, ledger, collateral]) => [vault, roles({
@@ -146,8 +148,8 @@ test("mainnet and lark agree on the next-version parameters", async () => {
   assert.deepEqual([ICE.ttl, ICE.driftBps], [NEXT.intentTtl, NEXT.intentDriftBps]);
   assert.equal(NEXT_PARAMS.harvestThreshold.toString(), NEXT.harvestThreshold.toString());
   assert.equal(NEXT_PARAMS.reserve.toString(), utils.parseUnits(NEXT.reserveHollar, 18).toString());
-  assert.deepEqual([NEXT_PARAMS.band, NEXT_PARAMS.revenue, NEXT_PARAMS.primePoolFeePpm, NEXT_PARAMS.admissionMaxDeficitBps],
-    [NEXT.band, NEXT.revenue, NEXT.primePoolFeePpm, NEXT.admissionMaxDeficitBps]);
+  assert.deepEqual([NEXT_PARAMS.band, NEXT_PARAMS.revenue, NEXT_PARAMS.primePoolFeePpm, NEXT_PARAMS.admissionMaxDeficitBps, NEXT_PARAMS.exitHeadroom],
+    [NEXT.band, NEXT.revenue, NEXT.primePoolFeePpm, NEXT.admissionMaxDeficitBps, NEXT.exitHeadroom]);
   for (const maxLtv of [7500, 8000, 8250]) assert.deepEqual(larkGaps(maxLtv, NEXT.band), bandGaps(maxLtv, NEXT.band));
   for (const maxLtv of [7000, 12600]) assert.throws(() => larkGaps(maxLtv, NEXT.band), /within 50% under/);
 });
@@ -242,4 +244,27 @@ test("an empty env var fails loudly instead of becoming zero", () => {
   assert.throws(() => envNumber("X", 100, { X: "" }), /X is set but empty/);
   assert.throws(() => envNumber("X", 100, { X: "  " }), /X is set but empty/);
   assert.throws(() => envNumber("X", 100, { X: "4k" }), /X=4k is not a number/);
+});
+
+test("headroom exits switch on per vault, once, and readiness reads them back", async () => {
+  const exitHeadroom = NEXT.exitHeadroom;
+  const state = await read(nextChain());
+  const calls = nextCalls(state, { exitHeadroom });
+  assert.deepEqual(calls.map(c => [c.to, c.label.split("(")[0]]), [[LOOP, "subLoop.setExitHeadroom"], [LOOP, "subLoop.setExitHeadroom"]]);
+  assert.deepEqual(decode("setExitHeadroom(address,bool,uint16)", calls[1].data).map(String), [V2, "true", "0"]);
+  assert.deepEqual(nextChecks(state, { exitHeadroom }).map(c => [c.ok, c.detail]), [[false, "off"], [false, "off"]]);
+  const on = await read(nextChain({ headroom: [true, 0] }));
+  assert.deepEqual(nextCalls(on, { exitHeadroom }), []);
+  assert.deepEqual(nextChecks(on, { exitHeadroom }).map(c => c.ok), [true, true]);
+  assert.equal(nextCalls(on, { exitHeadroom: { enabled: true, gapBps: 500 } }).length, 2, "a new gap is a change");
+  assert.throws(() => nextCalls(state, { exitHeadroom: { enabled: true, gapBps: 10001 } }), /exit headroom gap/);
+  const old = await read(nextChain({ headroom: null }));
+  assert.throws(() => nextCalls(old, { exitHeadroom }), /exitHeadroom missing on chain/);
+});
+
+test("exit headroom reads off, on, or on with a gap", () => {
+  assert.deepEqual(parseExitHeadroom("off"), { enabled: false, gapBps: 0 });
+  assert.deepEqual(parseExitHeadroom("on"), { enabled: true, gapBps: 0 });
+  assert.deepEqual(parseExitHeadroom(" on , 500 "), { enabled: true, gapBps: 500 });
+  for (const bad of ["", "yes", "off,10", "on,10001", "on,1.5", "on,1,2"]) assert.throws(() => parseExitHeadroom(bad), /exit headroom/);
 });
