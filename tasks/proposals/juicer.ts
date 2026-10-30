@@ -598,35 +598,50 @@ task(
     console.log("[5] skipped — set JUICER_RESERVE_HOLLAR to fund each Main ledger's protocol reserve");
   }
 
-  // ═════════════════════════════════════════════════════════════════════════
-  // Emit one preimage per batch
-  // ═════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════
+  // One referendum: the first batch runs on enactment, each later one on its own block
+  // ═════════════════════════════════════════════════════════════════
   const decoder = new ProposalDecoder(hre);
   await decoder.init();
 
-  const emit = async (label: string, txs: any[]) => {
+  const batches: [string, any[]][] = [
+    ["BATCH 0 — compound routes, PRIME pool fee", batch0],
+    ["BATCH 1 — list-reserve", batch1],
+    ["BATCH 2 — configure", batch2],
+    ["BATCH 3 — wire", batch3],
+    ["BATCH 4 — keepers, threshold, ICE, bands, admission, headroom exits, revenue mix", batch4],
+    ["BATCH 5 — protocol reserve", batch5],
+  ];
+  for (const [label, txs] of batches) {
     if (!txs.length) {
       console.log(`\n===== ${label}: EMPTY — nothing to do =====`);
-      return;
+      continue;
     }
     const batchAll = await generateProposalV2(txs, false);
     console.log(`\n===== ${label} (${txs.length} calls, ${batchAll.method.encodedLength} bytes) =====`);
-    console.log(batchAll.toHex());
     console.log(`\n--- ${label} decoded ---`);
     decoder.printTree(decoder.transformCall(batchAll.toHuman()));
-  };
-
-  await emit("BATCH 0 — compound routes, PRIME pool fee", batch0);
-  await emit("BATCH 1 — list-reserve", batch1);
-  await emit("BATCH 2 — configure", batch2);
-  await emit("BATCH 3 — wire", batch3);
-  await emit("BATCH 4 — keepers, threshold, ICE, bands, admission, headroom exits, revenue mix", batch4);
-  await emit("BATCH 5 — protocol reserve", batch5);
+  }
+  const [first, ...later] = batches.filter(([, txs]) => txs.length);
+  if (!first) {
+    console.log("\nnothing to propose");
+    return;
+  }
+  // scheduleAfter(n) runs at enactment + 1 + n, so each later batch gets a block to itself
+  const proposal = await generateProposalV2([
+    ...first[1],
+    ...later.map(([, txs], i) => hydrationTx.scheduler.scheduleAfter(i, null, 0, hydrationTx.utility.batchAll(txs))),
+  ], false);
+  console.log(`\n===== PROPOSAL — ${first[0].split(" — ")[0]} on enactment${later.map(([label], i) => `, ${label.split(" — ")[0]} at +${i + 1}`).join("")} (${proposal.method.encodedLength} bytes) =====`);
+  console.log(proposal.toHex());
+  console.log(`\n===== PROPOSAL hash ${proposal.method.hash.toHex()} =====`);
 
   console.log(`
-Submit each batch as its own Root referendum, IN ORDER. They are split because
+Submit the PROPOSAL as ONE Root referendum. The batches cannot share a block:
 initReserves alone is ~58e9 refTime and a combined batchAll trips
-scheduler.PermanentlyOverweight (observed on lark-2).
+scheduler.PermanentlyOverweight (observed on lark-2), so the first non-empty batch
+runs on enactment and every later one is scheduled on the following blocks, in order.
+A failed scheduled batch does not stop the next one: check each block's events.
 
 BATCH 0 stores the PRIME → collateral router routes. Without them the substrate
 router falls back to Omnipool, which cannot service PRIME, and EVERY harvest
