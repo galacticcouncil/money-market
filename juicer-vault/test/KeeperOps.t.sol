@@ -374,4 +374,12 @@ contract KeeperOpsTest is Test {
         loop.setRebalanceBand(address(vault), 0, 1_000, 100);
         loop.setRebalanceBand(address(vault), 0, 0, 0);
     }
+
+    function test_aLoopWithoutBandsKeepsTheDefaultBand() public {
+        _studyBand(vault);
+        vm.mockCallRevert(address(loop), abi.encodeWithSelector(SubLoop.rebalanceBand.selector), "");
+        pool.setPrice(address(eth), 3_309e18);
+        vault.rebalance();
+        assertApproxEqRel(hollarDebt.balanceOf(address(vault)), 2_481.75e18, 0.01e18, "the default band relevers at 68%");
+    }
 }

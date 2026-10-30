@@ -145,11 +145,22 @@ contract CompoundLogic {
 
     /// @dev returns state to the vault. while exits are in flight only deposited/earned
     /// credit deploys; price resizing waits
+    /// @dev the band's target LTV under the reserve's live max LTV, and its gaps; a loop from
+    /// before per-vault bands keeps the original band instead of reverting
+    function _band(ICompoundVault v, IAavePool pool) private view returns (uint256 target, uint256, uint256) {
+        uint256 gap;
+        uint256 relever = 500;
+        uint256 delever = 300;
+        try v.yieldSource().rebalanceBand(address(this)) returns (uint16 g, uint16 r, uint16 d) {
+            (gap, relever, delever) = (g, r, d);
+        } catch {}
+        target = pool.getConfiguration(address(v.collateral())) & LTV_MASK;
+        return (target > gap ? target - gap : 0, relever, delever);
+    }
+
     function rebalance(bool exiting) external returns (uint256 shares, uint256 supplied, uint256 target, uint256 credit) {
         ICompoundVault v = ICompoundVault(address(this));
         IAavePool pool = v.pool();
-        IERC20 hollar = v.hollar();
-        IMainDebt ledger = v.mainDebt();
         shares = v.loopShares();
         supplied = v.syntheticSupplied();
         credit = v.reinvestAssets();
@@ -158,12 +169,12 @@ contract CompoundLogic {
         if (value8 == 0) return (shares, supplied, 0, credit);
         uint256 ltv = debt8 * 10_000 / value8;
         // hysteresis around a target below the reserve's live max LTV, set per vault on the source
-        (uint256 gap, uint256 relever, uint256 delever) = v.yieldSource().rebalanceBand(address(this));
-        uint256 targetLtv = pool.getConfiguration(address(v.collateral())) & LTV_MASK;
-        targetLtv = targetLtv > gap ? targetLtv - gap : 0;
+        (uint256 targetLtv, uint256 relever, uint256 delever) = _band(v, pool);
         uint256 targetDebt8 = value8 * targetLtv / 10_000;
         bool resize = !exiting && ltv + relever < targetLtv;
         if (resize || (credit != 0 && debt8 < targetDebt8)) {
+            IERC20 hollar = v.hollar();
+            IMainDebt ledger = v.mainDebt();
             uint256 previousDebt = ledger.beforeDeposit();
             uint256 add = (targetDebt8 - debt8) * 1e10;
             if (!resize) {
@@ -206,7 +217,7 @@ contract CompoundLogic {
                 v.yieldSource().requestUnwindProtected(slice, basis);
                 shares -= slice;
                 target = v.yieldSource().pendingUnwindOf(address(this)) - pending;
-                ledger.expectDelever(target, basis);
+                v.mainDebt().expectDelever(target, basis);
             }
         }
         emit Rebalanced(ltv, v.hollarDebtToken().balanceOf(address(this)) / 1e10 * 10_000 / value8);
