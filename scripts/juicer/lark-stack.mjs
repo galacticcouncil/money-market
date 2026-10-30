@@ -9,7 +9,7 @@ const r=JSON.parse(readFileSync(FILE,'utf8'));
 assert.equal(r.rpc,profile.gateway.rpc);
 assert.equal(r.genesis,profile.genesis);
 const keeperImage=process.env.KEEPER_IMAGE,botImage=process.env.BOT_IMAGE;
-const digest=repo=>new RegExp(`^${repo}@sha256:[0-9a-f]{64}$`);
+const digest=repo=>new RegExp(`^${repo}(:[\\w][\\w.-]*)?@sha256:[0-9a-f]{64}$`);
 assert.match(keeperImage??'',digest(profile.images.keeper));
 assert.match(botImage??'',digest(profile.images.bots));
 const stack=profile.stack,keepers=process.argv.includes('--keepers'),rpcs=stack.keeperRpcUrls,endpoints=stack.botEnv;

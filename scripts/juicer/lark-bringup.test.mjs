@@ -101,6 +101,7 @@ test('a step names what it still needs before it starts', () => {
  assert.deepEqual(missing(step('deploy'),pinned,{JUICER_ARTIFACT_DIR:'/x'}),['JUICER_ADAPTER_ARTIFACT']);
  assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:'galacticcouncil/juicer-lark-keeper:latest'}),['KEEPER_IMAGE','BOT_IMAGE']);
  assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:`galacticcouncil/juicer-lark-keeper@sha256:${'1'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/juicer-lark-bots@sha256:${'2'.repeat(64)}`}),[]);
+ assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:`galacticcouncil/juicer-lark-keeper:rc-1@sha256:${'1'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/juicer-lark-bots:rc-1@sha256:${'2'.repeat(64)}`}),[],'a tag may ride along with the digest');
  assert.deepEqual(missing(step('stack'),pinned,{KEEPER_IMAGE:`${L4.images.keeper}@sha256:${'1'.repeat(64)}`,BOT_IMAGE:`galacticcouncil/juicer-lark-bots@sha256:${'2'.repeat(64)}`}),['KEEPER_IMAGE'],'lark 0 runs the renamed images');
  assert.deepEqual(missing(step('wire'),resolveProfile('lark4',{}),{}),[]);
 });
