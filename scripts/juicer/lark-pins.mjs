@@ -93,6 +93,7 @@ PROFILES.next={...PROFILES.lark0,chainName:null,genesis:null,commit:null,deploym
 // lark 4 reforked for the release candidate: jBTC first, jETH added to the running deployment later.
 // the refork's genesis and the built commit are pinned once known
 PROFILES.lark4rc={...PROFILES.next,chainName:'Lark 4 Hydration',deployment:'lark4-20261030',
+ genesis:'0x6b320d1e88d14f43170286b3b4b4ed2dedc33e35b21bc6246388fae46f8ea564',commit:'6c6c772eb9eda1ea88b72a6dd66c7985a55cc8a9',
  rpc:'https://node4.lark.hydration.cloud',ws:'wss://node4.lark.hydration.cloud',
  gateway:{rpc:'https://4.lark.hydration.cloud',ws:'wss://4.lark.hydration.cloud'},
  names:{...PROFILES.lark0.names,vaults:{TBTC:PROFILES.lark0.names.vaults.TBTC}},collateral:{TBTC:TOKENS.TBTC},
