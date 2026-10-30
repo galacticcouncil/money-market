@@ -1,17 +1,7 @@
 // @ts-nocheck
-import {
-  location,
-  generateProposalV2,
-  getApi,
-  aaveManagerCall,
-} from "../../helpers/hydration-proposal.js";
+import { location, getApi, aaveManagerCall } from "../../helpers/hydration-proposal.js";
 import { MARKET_NAME } from "../../helpers/env";
 import { task } from "hardhat/config";
-import {
-  addTransaction,
-  getBatch,
-  clearBatch,
-} from "../../helpers/transaction-batch";
 import {
   FORK,
   getPoolConfiguratorProxy,
@@ -22,7 +12,13 @@ import {
 import ProposalDecoder from "../../helpers/proposal-decoder";
 import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "../../scripts/juicer/rounding-native";
-import { NEXT, readNextState, nextCalls, reserveCalls, parseBand, envNumber, parseExitHeadroom } from "../../scripts/juicer/next-governance";
+import {
+  NEXT, LAUNCH, readNextState, nextCalls, reserveCalls, parseBand, envNumber, parseExitHeadroom, executionPolicy, readExecution,
+  executionCalls, readDiscount, discountCalls, assumePlanned, bootstrapCalls,
+} from "../../scripts/juicer/next-governance";
+import { readFileSync, writeFileSync } from "fs";
+import { resolve as resolvePath } from "path";
+import { stringToU8a, u8aConcat } from "@polkadot/util";
 
 // Fixed $1 oracle (reused for the synthetic — it is pegged $1 by design, like HOLLAR).
 const GHO_ORACLE_ADDRESS = "0x6096C9D71F7c06024578a62F4B608a1Bb06834F8";
@@ -63,9 +59,9 @@ const ROUTE_SLIPPAGE_PPM = envNumber("JUICER_SLIPPAGE_PPM", NaN);
 // the loop's entries, unwinds and the peg arbitrage all trade pool 143
 const ROUTE_POOL_FEE_PPM = envNumber("JUICER_PRIME_POOL_FEE_PPM", NEXT.primePoolFeePpm);
 
-// Per-poke tranche caps (HOLLAR 18dp in, aPRIME 6dp out).
-const DEPLOY_TRANCHE = process.env.JUICER_DEPLOY_TRANCHE || "5000";
-const UNWIND_TRANCHE = process.env.JUICER_UNWIND_TRANCHE || "5000";
+// Per-poke tranche caps (HOLLAR 18dp in, aPRIME 6dp out), one entry or unwind lane trade each.
+const DEPLOY_TRANCHE = process.env.JUICER_DEPLOY_TRANCHE || "2500";
+const UNWIND_TRANCHE = process.env.JUICER_UNWIND_TRANCHE || "2500";
 
 // Max slippage `compound` tolerates vs the oracle-fair output. Default 0 means
 // the floor equals the exact oracle price, so EVERY compound reverts until set.
@@ -128,28 +124,51 @@ const OPERATING_ROUTES: { assetIn: number; assetOut: number; route: any[] }[] = 
 const ROLE = {
   MINTER: "MINTER_ROLE",
   GUARDIAN: "GUARDIAN_ROLE",
+  VAULT: "VAULT_ROLE",
+};
+
+// the deployer-only deploy's manifest (scripts/juicer/launch-deploy.mjs) as defaults; set variables win
+function manifestEnv(m: any): Record<string, string> {
+  const a = m.addresses, vaults = m.vaults.filter((x: any) => x.address);
+  return {
+    JUICER_SYNTH: a.synth, JUICER_SUBLOOP: a.subLoop, JUICER_HARVESTER: a.harvester, JUICER_VAULTS: vaults.map((x: any) => x.address).join(","),
+    JUICER_MAIN_DEBTS: vaults.map((x: any) => x.mainDebt).join(","), JUICER_SWAPPER: a.adapter, JUICER_FEE_CONTROLLER: a.fees,
+    JUICER_EXECUTION_CONTROLLER: a.controller, JUICER_DISCOUNT_CONTROLLER: a.discount, JUICER_DISCOUNT_DEPLOYMENT: a.discountDeployment,
+    JUICER_GUARDIAN: m.committee, JUICER_ROUNDING_RESERVES: JSON.stringify(vaults.map((x: any) => x.rounding)),
+  };
+}
+
+const assetIdOf = (address: string) => {
+  const n = BigInt(address);
+  if (n >> 32n !== 1n) throw new Error(`${address} is not a registered asset's precompile`);
+  return Number(n & 0xffffffffn);
 };
 
 task(
   `juicer`,
-  `Juicer launch — list the synthetic reserve, wire the vaults, hand the guardian to the technical committee`
+  `Juicer launch — the one referendum after the deployer-only deploy: list, wire, fund, open`
 ).setAction(async function (_, hre) {
+  if (process.env.JUICER_MANIFEST) {
+    for (const [k, v] of Object.entries(manifestEnv(JSON.parse(readFileSync(process.env.JUICER_MANIFEST, "utf8"))))) process.env[k] ??= v;
+  }
   const withdrawalDelay = envNumber("JUICER_WITHDRAWAL_DELAY", 43200);
   if (!Number.isInteger(withdrawalDelay) || withdrawalDelay < 0 || withdrawalDelay > 0xffffffff) {
     throw new Error("JUICER_WITHDRAWAL_DELAY must be uint32 seconds.");
   }
-  if (!Number.isInteger(ROUTE_SLIPPAGE_PPM) || ROUTE_SLIPPAGE_PPM < 0 || ROUTE_SLIPPAGE_PPM >= 1_000_000) {
-    throw new Error("Set an explicitly reviewed JUICER_SLIPPAGE_PPM in 0..999999; there is no default.");
+  if (!Number.isInteger(ROUTE_SLIPPAGE_PPM) || ROUTE_SLIPPAGE_PPM < 0 || ROUTE_SLIPPAGE_PPM >= 1_000_000 || ROUTE_SLIPPAGE_PPM % 100 !== 0) {
+    throw new Error("Set an explicitly reviewed JUICER_SLIPPAGE_PPM in whole bps (0..999900); there is no default. It also caps both PRIME lanes.");
   }
   if (!Number.isInteger(ROUTE_POOL_FEE_PPM) || ROUTE_POOL_FEE_PPM < 0 || ROUTE_POOL_FEE_PPM >= 1_000_000) {
     throw new Error("JUICER_PRIME_POOL_FEE_PPM must be a Permill in 0..999999.");
   }
-  const { utils } = hre.ethers;
+  const { utils, constants } = hre.ethers;
   const networkId = FORK ? FORK : hre.network.name;
   const admin = POOL_ADMIN[networkId];
   const poolConfigurator = await getPoolConfiguratorProxy();
   const api = await getApi();
   const hydrationTx = api.tx;
+  const at = (address: string, abi: string[]) => hre.ethers.getContractAt(abi, address);
+  const same = (a?: string, b?: string) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
   // ── deployed contract addresses ─────────────────────────────────────────
   const resolve = async (env: string, deploymentId: string) => {
@@ -160,502 +179,427 @@ task(
       return undefined;
     }
   };
-
-  const synth = await resolve("JUICER_SYNTH", "SyntheticToken-Juicer");
-  if (!synth) {
-    throw new Error(
-      "SyntheticToken not deployed. Run script/DeploySynth.s.sol, then set JUICER_SYNTH=0x… " +
-        "(or add deployments/<net>/SyntheticToken-Juicer.json)"
-    );
-  }
-  const subLoop = await resolve("JUICER_SUBLOOP", "SubLoop-Juicer");
-  const harvester = await resolve("JUICER_HARVESTER", "Harvester-Juicer");
-  // One or more CollateralVaults, comma-separated. e.g. JUICER_VAULTS=0xETH,0xTBTC
-  const vaults = (process.env.JUICER_VAULTS || process.env.JUICER_VAULT || "")
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
-  // The HydraAugustus swapper (REQ-SWAP). Optional: if unset the vaults keep
-  // whatever they were deployed with and `compound` stays inert.
+  const need = (name: string, value?: string) => {
+    if (!value) throw new Error(`${name} is not set: run scripts/juicer/launch-deploy.mjs and pass JUICER_MANIFEST, or set it`);
+    return value;
+  };
+  const synth = need("JUICER_SYNTH", await resolve("JUICER_SYNTH", "SyntheticToken-Juicer"));
+  const subLoop = need("JUICER_SUBLOOP", await resolve("JUICER_SUBLOOP", "SubLoop-Juicer"));
+  const harvester = need("JUICER_HARVESTER", await resolve("JUICER_HARVESTER", "Harvester-Juicer"));
+  const fees = need("JUICER_FEE_CONTROLLER", await resolve("JUICER_FEE_CONTROLLER", "JuicerFeeController-Juicer"));
+  const controller = need("JUICER_EXECUTION_CONTROLLER", await resolve("JUICER_EXECUTION_CONTROLLER", "ExecutionController-Juicer"));
+  const discount = need("JUICER_DISCOUNT_CONTROLLER", await resolve("JUICER_DISCOUNT_CONTROLLER", "JuicerDiscount-Juicer"));
+  // One or more CollateralVaults, comma-separated, each with its Main ledger (JUICER_MAIN_DEBTS, same order)
+  const list = (text?: string) => (text || "").split(",").map((v) => v.trim()).filter(Boolean);
+  const vaults = list(process.env.JUICER_VAULTS || process.env.JUICER_VAULT);
+  if (!vaults.length) throw new Error("set JUICER_VAULTS (or JUICER_MANIFEST)");
+  const ledgers = list(process.env.JUICER_MAIN_DEBTS);
   const swapper = process.env.JUICER_SWAPPER;
   // Technical committee — receives GUARDIAN_ROLE (fast pause) on every contract.
   const guardian = process.env.JUICER_GUARDIAN || EMERGENCY_ADMIN[networkId];
+  const keepers = list(process.env.JUICER_KEEPERS);
+  if (!keepers.length) throw new Error("set JUICER_KEEPERS: the keepers' KEEPER_ROLE and DEPOSIT_GUARDIAN_ROLE are part of the launch");
   const rounding = parseRoundingPolicies(process.env.JUICER_ROUNDING_RESERVES || "[]", vaults);
+  const fundingSource = process.env.JUICER_FUNDING_SOURCE || "treasury";
+  if (!["treasury", "admin"].includes(fundingSource)) throw new Error("JUICER_FUNDING_SOURCE is treasury or admin");
 
-  console.log("Juicer wiring inputs");
-  console.log(`  synthetic  : ${synth}`);
-  console.log(`  subLoop    : ${subLoop ?? "(not set — wiring skipped)"}`);
-  console.log(`  harvester  : ${harvester ?? "(not set — wiring skipped)"}`);
-  console.log(`  vaults     : ${vaults.length ? vaults.join(", ") : "(none set — wiring skipped)"}`);
-  console.log(`  swapper    : ${swapper ?? "(not set — setSwapper skipped)"}`);
-  console.log(`  guardian   : ${guardian ?? "(not set — GUARDIAN grants skipped)"}`);
-  console.log(`  synth asset: ${SYNTH_ASSET_ID}`);
-  console.log(`  route      : ${ROUTE_HOLLAR}/${ROUTE_PRIME}/${ROUTE_APRIME} via pool ${ROUTE_POOL} @ ${ROUTE_SLIPPAGE_PPM}ppm\n`);
-
-  // ── ABIs ────────────────────────────────────────────────────────────────
-  const { id, Interface } = utils;
-  const accessI = new Interface(["function grantRole(bytes32,address)"]);
-  const loopI = new Interface([
-    "function registerVault(address)",
-    "function setTranches(uint256,uint256)",
-    "function configureDca(uint32,uint32,uint32,uint32,uint32)",
-    "function setHarvester(address)",
+  const loopC = await at(subLoop, [
+    "function hollar() view returns (address)", "function prime() view returns (address)", "function primeAToken() view returns (address)",
+    "function hasRole(bytes32,address) view returns (bool)", "function harvester() view returns (address)",
+    "function deployTranche() view returns (uint256)", "function unwindTranche() view returns (uint256)",
+    "function hollarAssetId() view returns (uint32)", "function primeAssetId() view returns (uint32)", "function aPrimeAssetId() view returns (uint32)",
+    "function primePoolId() view returns (uint32)", "function dcaSlippagePpm() view returns (uint32)",
   ]);
-  const vaultI = new Interface([
-    "function fundRoundingReserve(uint256)",
-    "function setWithdrawalDelay(uint32)",
-    "function setCompoundSlippageBps(uint16)",
-    "function setSwapper(address)",
+  const [hollar, prime, aPrime] = [await loopC.hollar(), await loopC.prime(), await loopC.primeAToken()];
+  const VAULT_ABI = [
+    "function asset() view returns (address)", "function mainDebt() view returns (address)", "function roundingReserve() view returns (uint256)",
+    "function totalSupply() view returns (uint256)", "function depositsPaused() view returns (bool)", "function feeController() view returns (address)",
+    "function compoundSlippageBps() view returns (uint16)", "function withdrawalDelay() view returns (uint32)", "function swapper() view returns (address)",
+    "function hasRole(bytes32,address) view returns (bool)", "function name() view returns (string)", "function symbol() view returns (string)",
+    "function decimals() view returns (uint8)",
+  ];
+  const rows = [];
+  for (const [i, address] of vaults.entries()) {
+    const c = await at(address, VAULT_ABI);
+    const bound = await c.mainDebt();
+    const mainDebt = bound !== constants.AddressZero ? bound : ledgers[i];
+    if (!mainDebt) throw new Error(`${address} has no Main ledger yet: set JUICER_MAIN_DEBTS`);
+    if (bound !== constants.AddressZero && ledgers[i] && !same(bound, ledgers[i])) throw new Error(`${address} is bound to ${bound}, not ${ledgers[i]}`);
+    const ledger = await at(mainDebt, ["function vault() view returns (address)", "function yieldAccounting() view returns (address)"]);
+    if (!same(await ledger.vault(), address)) throw new Error(`Invalid Main debt binding: ${address}`);
+    const asset = await c.asset();
+    rows.push({ address, c, mainDebt, bound, asset, assetId: assetIdOf(asset), key: (await c.symbol()).replace(/^j/, ""), yieldAccounting: await ledger.yieldAccounting() });
+  }
+
+  console.log("Juicer launch inputs");
+  console.log(`  synthetic  : ${synth} (asset ${SYNTH_ASSET_ID})`);
+  console.log(`  subLoop    : ${subLoop}`);
+  console.log(`  harvester  : ${harvester}`);
+  console.log(`  vaults     : ${rows.map((r) => `${r.address} (Main ${r.mainDebt}, collateral ${r.assetId})`).join(", ")}`);
+  console.log(`  swapper    : ${swapper ?? "(not set — the vaults keep theirs)"}`);
+  console.log(`  guardian   : ${guardian}`);
+  console.log(`  keepers    : ${keepers.join(", ")}`);
+  console.log(`  discount   : ${discount}`);
+  console.log(`  controller : ${controller}`);
+  console.log(`  route      : ${ROUTE_HOLLAR}/${ROUTE_PRIME}/${ROUTE_APRIME} via pool ${ROUTE_POOL} @ ${ROUTE_SLIPPAGE_PPM}ppm`);
+  console.log(`  funding    : ${fundingSource}\n`);
+
+  // ── the launch, in order: each step's calls are only what the chain still lacks ──
+  type Item = { step: string; label: string; tx?: any; evm?: { to: string; data: string; gas: number } };
+  const items: Item[] = [];
+  let step = "";
+  const sub = (label: string, tx: any) => { console.log(`[${step}] ${label}`); items.push({ step, label, tx }); };
+  const evm = (label: string, to: string, data: string, gas = 500_000) => { console.log(`[${step}] ${label}`); items.push({ step, label, evm: { to, data, gas } }); };
+  const plan = (calls: { to: string; data: string; label: string; gas?: number }[]) => calls.forEach((c) => evm(c.label, c.to, c.data, c.gas));
+  const iface = (sigs: string[]) => new utils.Interface(sigs);
+  const accessI = iface(["function grantRole(bytes32,address)"]);
+  const loopI = iface(["function registerVault(address)", "function setTranches(uint256,uint256)", "function configureDca(uint32,uint32,uint32,uint32,uint32)", "function setHarvester(address)"]);
+  const vaultI = iface(["function fundRoundingReserve(uint256)", "function setWithdrawalDelay(uint32)", "function setCompoundSlippageBps(uint16)",
+    "function setSwapper(address)", "function setMainDebt(address)", "function setFeeController(address)"]);
+  const tokenI = iface(["function approve(address,uint256) returns (bool)"]);
+  const MINTER = utils.id(ROLE.MINTER), GUARDIAN = utils.id(ROLE.GUARDIAN), VAULT = utils.id(ROLE.VAULT);
+  const pool = await at((await hre.deployments.get(`Pool-Proxy-${MARKET_NAME}`)).address, [
+    "function getReservesList() view returns (address[])", "function getConfiguration(address) view returns (uint256)",
   ]);
-  const harvI = new Interface(["function addVault(address)"]);
+  const oracleArtifact = await hre.deployments.get(`AaveOracle-${MARKET_NAME}`);
+  const oracle = await hre.ethers.getContractAt(oracleArtifact.abi, oracleArtifact.address);
+  const free = async (id: number, who: string) => BigInt((await api.call.currenciesApi.account(id, who)).free.toString());
+  const govAccount = await nativeAccount(api, admin);
+  const treasury = api.registry.createType("AccountId", u8aConcat(stringToU8a("modl"), api.consts.treasury.palletId.toU8a(), new Uint8Array(20))).toString();
+  const fromTreasury = (label: string, dest: string, id: number, amount: bigint) =>
+    sub(`treasury → ${label}: ${amount} of asset ${id}`, hydrationTx.dispatcher.dispatchAsTreasury(hydrationTx.currencies.transfer(dest, id, amount.toString())));
 
-  // Every EVM call is dispatched as the aave-manager so the ACL checks pass.
-  const evm = (to: string, data: string, gasLimit = 1_000_000) =>
-    addTransaction({ to, data, gasLimit });
-
-  // ═════════════════════════════════════════════════════════════════════════
-  // BATCH 0 — router routes for the compound leg (PRIME → each collateral),
-  //           and the PRIME pool's launch fee
-  // ═════════════════════════════════════════════════════════════════════════
-  // Pure substrate (no aave-manager wrapper) — forceInsertRoute and
-  // updatePoolFee are Root calls. Independent of the contracts, so this can
-  // enact before they even exist.
-  const batch0: any[] = [];
+  // ═════ chain: PRIME pool fee, compound routes, the synthetic listed and configured, the share assets ═════
+  // Pure substrate (no aave-manager wrapper) — forceInsertRoute and updatePoolFee are Root calls.
+  step = "chain";
   const primePool: any = await api.query.stableswap.pools(ROUTE_POOL);
   if (!primePool.isSome) throw new Error(`stableswap pool ${ROUTE_POOL} not found`);
   const primePoolFee = primePool.unwrap().fee.toNumber();
-  if (primePoolFee !== ROUTE_POOL_FEE_PPM) {
-    console.log(`[0] stableswap.updatePoolFee(${ROUTE_POOL}, ${primePoolFee} → ${ROUTE_POOL_FEE_PPM} ppm)`);
-    batch0.push(hydrationTx.stableswap.updatePoolFee(ROUTE_POOL, ROUTE_POOL_FEE_PPM));
-  } else {
-    console.log(`[0] pool ${ROUTE_POOL} fee already ${primePoolFee} ppm — skipping`);
-  }
+  if (primePoolFee !== ROUTE_POOL_FEE_PPM) sub(`stableswap.updatePoolFee(${ROUTE_POOL}, ${primePoolFee} → ${ROUTE_POOL_FEE_PPM} ppm)`, hydrationTx.stableswap.updatePoolFee(ROUTE_POOL, ROUTE_POOL_FEE_PPM));
+  // the default routes follow the vaults' collateral; another vault brings its own with its own referendum
+  const collaterals = new Set(rows.map((r) => r.assetId));
   const harvestRoutes = [
-    ...COMPOUND_ROUTES.map(r => ({ assetIn: ROUTE_PRIME, ...r })),
-    ...OPERATING_ROUTES,
+    ...COMPOUND_ROUTES.filter((r) => process.env.JUICER_COMPOUND_ROUTES || collaterals.has(r.assetOut)).map((r) => ({ assetIn: ROUTE_PRIME, ...r })),
+    ...OPERATING_ROUTES.filter((r) => process.env.JUICER_OPERATING_ROUTES || collaterals.has(r.assetIn)),
   ];
   for (const { assetIn, assetOut, route } of harvestRoutes) {
-    const assetPair = { assetIn, assetOut };
-    // The router CANONICALISES the pair: it stores under (min, max) and reverses
-    // the hops on the way in, then un-reverses on lookup. So a route inserted as
-    // 43 → 34 lives under key 34 → 43. Querying the un-ordered direction always
-    // returns None (verified on lark-4: all 265 stored routes have in < out), and
-    // checking it would make this "skip" branch dead for half the pairs.
-    const existing: any = await api.query.router.routes(
-      assetIn < assetOut ? assetPair : { assetIn: assetOut, assetOut: assetIn }
-    );
-    if (existing?.isSome) {
-      console.log(`[0] route ${assetIn} ↔ ${assetOut} already stored — skipping`);
-      continue;
-    }
-    console.log(
-      `[0] router.forceInsertRoute(${assetIn} → ${assetOut}, ${route.length} hops)`
-    );
-    batch0.push(hydrationTx.router.forceInsertRoute(assetPair, route));
+    // The router CANONICALISES the pair: it stores under (min, max) and reverses the hops, so query that key.
+    const existing: any = await api.query.router.routes(assetIn < assetOut ? { assetIn, assetOut } : { assetIn: assetOut, assetOut: assetIn });
+    if (existing?.isSome) continue;
+    sub(`router.forceInsertRoute(${assetIn} → ${assetOut}, ${route.length} hops)`, hydrationTx.router.forceInsertRoute({ assetIn, assetOut }, route));
   }
-
-  // ═════════════════════════════════════════════════════════════════════════
-  // BATCH 1 — list the synthetic reserve
-  // ═════════════════════════════════════════════════════════════════════════
-  // Kept separate from the rest: initReserves alone is ~58e9 refTime, and one
-  // combined batch trips scheduler.PermanentlyOverweight (observed on lark-2).
-  const substrateTxs: any[] = [];
-
-  const synthInfo: any = await api.query.assetRegistry.assets(SYNTH_ASSET_ID);
-  if (!synthInfo.isSome) {
-    console.log(`[1] register synthetic (asset ${SYNTH_ASSET_ID}) as Erc20 → ${synth}`);
-    substrateTxs.push(
-      hydrationTx.assetRegistry.register(
-        ...Object.values({
-          id: SYNTH_ASSET_ID,
-          // `assetRegistry.assetIds` is a unique index keyed on NAME (symbol is
-          // NOT indexed), so re-deploying onto a chain that still carries an
-          // earlier Juicer synth fails the whole batch with
-          // assetRegistry.AssetAlreadyRegistered even when the asset ID is free.
-          // Mainnet keeps the canonical name; a lark redeploy overrides it.
-          name: SYNTH_ASSET_NAME,
-          assetType: "Erc20",
-          existentialDeposit: "10000000000000000", // 0.01
-          symbol: "jsHOLLAR",
-          decimals: 18,
-          location: location(synth),
-          xcmRateLimit: null,
-          isSufficient: true,
-        })
-      )
-    );
-  } else {
-    console.log(`[1] synthetic asset ${SYNTH_ASSET_ID} already registered — skipping`);
+  // Substrate registration MUST precede the EVM initReserves: the precompile reads decimals from the registry.
+  if ((await api.query.assetRegistry.assets(SYNTH_ASSET_ID)).isNone) {
+    sub(`register synthetic (asset ${SYNTH_ASSET_ID}) as Erc20 → ${synth}`, hydrationTx.assetRegistry.register(
+      // `assetRegistry.assetIds` is a unique index keyed on NAME, so a lark redeploy overrides it.
+      SYNTH_ASSET_ID, SYNTH_ASSET_NAME, "Erc20", "10000000000000000", "jsHOLLAR", 18, location(synth), null, true));
   }
-
-  // Idempotency: initReserves reverts on an already-initialised reserve, and
-  // dispatchAsAaveManager swallows EVM reverts as ExecutedFailed events rather
-  // than failing the extrinsic — so a re-run would "pass" with the reserve
-  // silently unconfigured. Check first. (HDCL post-mortem #3.)
-  const reservesList: string[] = await (async () => {
-    try {
-      const pool = await hre.ethers.getContractAt(
-        ["function getReservesList() view returns (address[])"],
-        (await hre.deployments.get(`Pool-Proxy-${MARKET_NAME}`)).address
-      );
-      return (await pool.getReservesList()).map((a: string) => a.toLowerCase());
-    } catch {
-      return [];
-    }
-  })();
-  const synthAlreadyListed = reservesList.includes(synth.toLowerCase());
-
-  if (!synthAlreadyListed) {
-    console.log("[1] initReserves(synthetic)");
+  // dispatchAsAaveManager swallows EVM reverts as ExecutedFailed events, so a re-run must not repeat a listing.
+  const listed = (await pool.getReservesList()).some((a: string) => same(a, synth));
+  if (!listed) {
     const aTokenImpl = (await hre.deployments.get(`AToken-${MARKET_NAME}`)).address;
     const stableDebtImpl = (await hre.deployments.get(`StableDebtToken-${MARKET_NAME}`)).address;
     const variableDebtImpl = (await hre.deployments.get(`VariableDebtToken-${MARKET_NAME}`)).address;
     const rateStrategy = (await hre.deployments.get("ReserveStrategy-rateStrategyStables")).address;
-    const treasury = (await hre.deployments.get(TREASURY_PROXY_ID)).address;
+    const aaveTreasury = (await hre.deployments.get(TREASURY_PROXY_ID)).address;
     const incentives = (await hre.deployments.get("IncentivesProxy")).address;
-
-    const tx = await poolConfigurator.populateTransaction.initReserves(
-      [
-        {
-          aTokenImpl,
-          stableDebtTokenImpl: stableDebtImpl,
-          variableDebtTokenImpl: variableDebtImpl,
-          underlyingAssetDecimals: 18,
-          interestRateStrategyAddress: rateStrategy,
-          underlyingAsset: synth,
-          treasury,
-          incentivesController: incentives,
-          aTokenName: "Juicer aSynth",
-          aTokenSymbol: "aJSYNTH",
-          variableDebtTokenName: "Juicer Variable Debt Synth",
-          variableDebtTokenSymbol: "vdJSYNTH",
-          stableDebtTokenName: "Juicer Stable Debt Synth",
-          stableDebtTokenSymbol: "sdJSYNTH",
-          params: "0x",
-        },
-      ],
-      { gasLimit: 12_000_000 }
-    );
-    addTransaction(tx);
-  } else {
-    console.log(`[1] synthetic reserve already listed — skipping initReserves`);
+    const tx = await poolConfigurator.populateTransaction.initReserves([{
+      aTokenImpl, stableDebtTokenImpl: stableDebtImpl, variableDebtTokenImpl: variableDebtImpl, underlyingAssetDecimals: 18,
+      interestRateStrategyAddress: rateStrategy, underlyingAsset: synth, treasury: aaveTreasury, incentivesController: incentives,
+      aTokenName: "Juicer aSynth", aTokenSymbol: "aJSYNTH", variableDebtTokenName: "Juicer Variable Debt Synth",
+      variableDebtTokenSymbol: "vdJSYNTH", stableDebtTokenName: "Juicer Stable Debt Synth", stableDebtTokenSymbol: "sdJSYNTH", params: "0x",
+    }]);
+    evm("initReserves(synthetic)", tx.to, tx.data, 10_000_000);
+  }
+  const config = listed ? BigInt((await pool.getConfiguration(synth)).toString()) : 0n;
+  const bits = (from: number, width: number) => Number((config >> BigInt(from)) & ((1n << BigInt(width)) - 1n));
+  if (!listed || bits(0, 16) !== Number(SYNTH_LTV) || bits(16, 16) !== Number(SYNTH_LT) || bits(32, 16) !== Number(SYNTH_BONUS)) {
+    const tx = await poolConfigurator.populateTransaction.configureReserveAsCollateral(synth, SYNTH_LTV, SYNTH_LT, SYNTH_BONUS);
+    evm(`configureReserveAsCollateral(LTV ${SYNTH_LTV}, LT ${SYNTH_LT}, bonus ${SYNTH_BONUS})`, tx.to, tx.data);
+  }
+  if (!listed || bits(58, 1) !== 0) {
+    const tx = await poolConfigurator.populateTransaction.setReserveBorrowing(synth, false);
+    evm("setReserveBorrowing(synthetic, false)", tx.to, tx.data);
+  }
+  if (!listed || bits(116, 36) !== Number(SYNTH_SUPPLY_CAP)) {
+    const tx = await poolConfigurator.populateTransaction.setSupplyCap(synth, SYNTH_SUPPLY_CAP);
+    evm("setSupplyCap(synthetic, unlimited)", tx.to, tx.data);
+  }
+  if (!same(await oracle.getSourceOfAsset(synth), GHO_ORACLE_ADDRESS)) {
+    evm("setAssetSources(synthetic → $1 fixed oracle)", oracle.address, oracle.interface.encodeFunctionData("setAssetSources", [[synth], [GHO_ORACLE_ADDRESS]]), 1_000_000);
+  }
+  // each vault's share as a sufficient Erc20 asset after the synthetic's id, with its collateral's existential deposit
+  const shareIds = list(process.env.JUICER_SHARE_ASSET_IDS).map(Number);
+  for (const [i, r] of rows.entries()) {
+    const known: any = await api.query.assetRegistry.locationAssets(location(r.address));
+    if (known.isSome) continue;
+    const id = shareIds[i] ?? SYNTH_ASSET_ID + 1 + i, name = await r.c.name();
+    if ((await api.query.assetRegistry.assets(id)).isSome) throw new Error(`share asset id ${id} is taken`);
+    if ((await api.query.assetRegistry.assetIds(name)).isSome) throw new Error(`asset name ${name} is taken`);
+    const ed = (await api.query.assetRegistry.assets(r.assetId)).unwrap().existentialDeposit.toString();
+    sub(`register share ${await r.c.symbol()} (asset ${id}) as Erc20 → ${r.address}`,
+      hydrationTx.assetRegistry.register(id, name, "Erc20", ed, await r.c.symbol(), await r.c.decimals(), location(r.address), null, true));
   }
 
-  // Substrate registration MUST precede the EVM initReserves.
-  const batch1 = [
-    ...substrateTxs,
-    ...(await Promise.all(getBatch().map((tx) => aaveManagerCall({ ...tx, from: admin })))),
-  ];
-  clearBatch();
-
-  // ═════════════════════════════════════════════════════════════════════════
-  // BATCH 2 — configure the synthetic reserve as collateral
-  // ═════════════════════════════════════════════════════════════════════════
-  console.log(`[2] configureReserveAsCollateral(LTV ${SYNTH_LTV}, LT ${SYNTH_LT}, bonus ${SYNTH_BONUS})`);
-  addTransaction(
-    await poolConfigurator.populateTransaction.configureReserveAsCollateral(
-      synth, SYNTH_LTV, SYNTH_LT, SYNTH_BONUS, { gasLimit: 1_000_000 }
-    )
-  );
-
-  console.log("[2] setReserveBorrowing(synthetic, false)");
-  addTransaction(
-    await poolConfigurator.populateTransaction.setReserveBorrowing(synth, false, { gasLimit: 1_000_000 })
-  );
-
-  console.log("[2] setSupplyCap(synthetic, unlimited)");
-  addTransaction(
-    await poolConfigurator.populateTransaction.setSupplyCap(synth, SYNTH_SUPPLY_CAP, { gasLimit: 1_000_000 })
-  );
-
-  console.log("[2] setAssetSources(synthetic → $1 fixed oracle)");
-  {
-    const oracleArtifact = await hre.deployments.get(`AaveOracle-${MARKET_NAME}`);
-    const oracle = await hre.ethers.getContractAt(oracleArtifact.abi, oracleArtifact.address);
-    addTransaction(
-      await oracle.populateTransaction.setAssetSources([synth], [GHO_ORACLE_ADDRESS])
-    );
+  // ═════ custody: dust protection precedes every transfer into Juicer contracts ═════
+  step = "custody";
+  for (const custody of [subLoop, harvester, fees, ...rows.flatMap((r) => [r.address, r.mainDebt, r.yieldAccounting]), ...(swapper ? [swapper] : [])]) {
+    const account = await nativeAccount(api, custody);
+    if ((await api.query.duster.accountWhitelist(account)).isNone) sub(`duster.whitelistAccount(${custody})`, hydrationTx.duster.whitelistAccount(account));
   }
 
-  const batch2 = await Promise.all(
-    getBatch().map((tx) => aaveManagerCall({ ...tx, from: admin }))
-  );
-  clearBatch();
+  // ═════ funding: governance's collateral and HOLLAR, the loop's callback fees ═════
+  // governance's EVM caller pays the rounding donations, the reserve and the bootstrap, from the treasury by
+  // dispatcher.dispatchAsTreasury (Root or Treasurer, signs as the treasury); JUICER_FUNDING_SOURCE=admin: prefunded
+  step = "funding";
+  const bootstrapUnits = new Map<string, bigint>(), roundingUnits = new Map<string, bigint>();
+  for (const r of rows) {
+    const policy = rounding.get(r.address.toLowerCase());
+    if (!policy) throw new Error(`no rounding policy for ${r.address}`);
+    await nativeRoundingPolicy(api, policy, r.asset);
+    const reserve = BigInt((await r.c.roundingReserve()).toString());
+    roundingUnits.set(r.address, policy.target > reserve ? policy.target - reserve : 0n);
+    const seed = BigInt(utils.parseUnits(process.env.JUICER_BOOTSTRAP || LAUNCH.bootstrap, await r.c.decimals()).toString());
+    bootstrapUnits.set(r.address, (await r.c.totalSupply()).isZero() ? seed : 0n);
+  }
+  const reserveHollar = process.env.JUICER_RESERVE_HOLLAR ?? NEXT.reserveHollar;
+  const reserveTarget = utils.parseUnits(reserveHollar, 18);
+  const reserveHeld = await Promise.all(rows.map(async (r) => (await at(r.mainDebt, ["function protocolReserve() view returns (uint256)"])).protocolReserve()));
+  const reserveShort = reserveHeld.reduce((a, held) => a + (reserveTarget.gt(held) ? BigInt(reserveTarget.sub(held).toString()) : 0n), 0n);
+  const wants = new Map<number, bigint>();
+  for (const r of rows) wants.set(r.assetId, (wants.get(r.assetId) ?? 0n) + roundingUnits.get(r.address)! + bootstrapUnits.get(r.address)!);
+  wants.set(ROUTE_HOLLAR, (wants.get(ROUTE_HOLLAR) ?? 0n) + reserveShort);
+  const planned = new Map<number, bigint>();
+  for (const [id, amount] of wants) {
+    const held = await free(id, govAccount), short = amount > held ? amount - held : 0n;
+    planned.set(id, held + short);
+    if (short === 0n) continue;
+    if (fundingSource === "admin") throw new Error(`Prefund Aave manager ${admin} with ${short} base units of asset ${id}`);
+    if ((await free(id, treasury)) < short) throw new Error(`the treasury holds less than ${short} of asset ${id}`);
+    fromTreasury(`governance ${admin}`, govAccount, id, short);
+  }
+  // the loop's ICE callbacks pay in WETH: its fee currency reset to WETH, and HDX so a first deposit never moves it
+  const loopAccount = await nativeAccount(api, subLoop);
+  if ((await api.query.multiTransactionPayment.accountCurrencyMap(loopAccount)).unwrapOr(null)?.toNumber() !== 20) {
+    sub(`multiTransactionPayment.resetPaymentCurrency(loop ${loopAccount})`, hydrationTx.multiTransactionPayment.resetPaymentCurrency(loopAccount));
+  }
+  if ((await free(0, loopAccount)) === 0n) fromTreasury(`loop ${subLoop}`, loopAccount, 0, BigInt(LAUNCH.iceHdx.toString()));
+  const loopWeth = await free(20, loopAccount), iceWeth = BigInt(LAUNCH.iceWeth.toString());
+  if (loopWeth * 2n < iceWeth) fromTreasury(`loop ${subLoop}`, loopAccount, 20, iceWeth - loopWeth);
 
-  // ═════════════════════════════════════════════════════════════════════════
-  // BATCH 3 — wire the contracts + hand the guardian to the technical committee
-  // ═════════════════════════════════════════════════════════════════════════
-  let batch3: any[] = [];
-  if (subLoop && harvester && vaults.length) {
-    const MINTER = id(ROLE.MINTER);
-    const GUARDIAN = id(ROLE.GUARDIAN);
-
-    // Dust exemptions precede initial custody transfers. This only generates
-    // the governance proposal; it does not whitelist or move funds itself.
-    const feeController = await resolve("JUICER_FEE_CONTROLLER", "JuicerFeeController-Juicer");
-    if (!feeController) throw new Error("Set JUICER_FEE_CONTROLLER for custody dust protection");
-    const buffers: string[] = [];
-    for (const vault of vaults) {
-      const v = await hre.ethers.getContractAt(["function mainDebt() view returns (address)"], vault);
-      const address = await v.mainDebt();
-      if (address === hre.ethers.constants.AddressZero) throw new Error(`Bind Main debt ledger first: ${vault}`);
-      const buffer = await hre.ethers.getContractAt([
-        "function vault() view returns (address)",
-      ], address);
-      if ((await buffer.vault()).toLowerCase() !== vault.toLowerCase()) {
-        throw new Error(`Invalid Main debt binding: ${vault}`);
-      }
-      buffers.push(address);
+  // ═════ wire: synthetic minting, the Main ledgers, fees, harvest, the loop's route, guardians, the adapter ═════
+  step = "wire";
+  const harvC = await at(harvester, ["function feeController() view returns (address)", "function isRegistered(address) view returns (bool)"]);
+  const feesC = await at(fees, ["function bindings(address) view returns (address asset,address harvester,uint16 feeBps)"]);
+  const synthC = await at(synth, ["function hasRole(bytes32,address) view returns (bool)"]);
+  const tranches = [utils.parseUnits(DEPLOY_TRANCHE, 18), utils.parseUnits(UNWIND_TRANCHE, 6)];
+  if (!(await loopC.deployTranche()).eq(tranches[0]) || !(await loopC.unwindTranche()).eq(tranches[1])) {
+    evm(`subLoop.setTranches(${DEPLOY_TRANCHE} HOLLAR, ${UNWIND_TRANCHE} aPRIME)`, subLoop, loopI.encodeFunctionData("setTranches", tranches));
+  }
+  const dca = [ROUTE_HOLLAR, ROUTE_PRIME, ROUTE_APRIME, ROUTE_POOL, ROUTE_SLIPPAGE_PPM];
+  const liveDca = [await loopC.hollarAssetId(), await loopC.primeAssetId(), await loopC.aPrimeAssetId(), await loopC.primePoolId(), await loopC.dcaSlippagePpm()];
+  if (dca.some((x, i) => x !== Number(liveDca[i]))) evm(`subLoop.configureDca(${dca.join(", ")})`, subLoop, loopI.encodeFunctionData("configureDca", dca));
+  // before the fee binding, which checks it, and before anything can call harvest(): SubLoop.harvest reverts HarvesterUnset without it
+  if (!same(await loopC.harvester(), harvester)) evm(`subLoop.setHarvester(${harvester})`, subLoop, loopI.encodeFunctionData("setHarvester", [harvester]));
+  if (!same(await harvC.feeController(), fees)) evm(`harvester.setFeeController(${fees})`, harvester, vaultI.encodeFunctionData("setFeeController", [fees]));
+  for (const r of rows) {
+    if (!(await synthC.hasRole(MINTER, r.address))) evm(`synth.grantRole(MINTER_ROLE, ${r.address})`, synth, accessI.encodeFunctionData("grantRole", [MINTER, r.address]));
+    if (!(await loopC.hasRole(VAULT, r.address))) evm(`subLoop.registerVault(${r.address})`, subLoop, loopI.encodeFunctionData("registerVault", [r.address]));
+    // deployment-only: the ledger binds while the vault has no shares
+    if (r.bound === constants.AddressZero) evm(`vault ${r.address}.setMainDebt(${r.mainDebt})`, r.address, vaultI.encodeFunctionData("setMainDebt", [r.mainDebt]));
+    if (!same(await r.c.feeController(), fees)) evm(`vault ${r.address}.setFeeController(${fees})`, r.address, vaultI.encodeFunctionData("setFeeController", [fees]));
+    const binding = await feesC.bindings(r.address);
+    if (binding.asset === constants.AddressZero || !same(binding.harvester, harvester)) {
+      evm(`fees.registerVault(${r.address}, ${harvester})`, fees, iface(["function registerVault(address,address)"]).encodeFunctionData("registerVault", [r.address, harvester]));
     }
-    for (const custody of [subLoop, harvester, feeController, ...vaults, ...buffers, ...(swapper ? [swapper] : [])]) {
-      const account = await nativeAccount(api, custody);
-      if ((await api.query.duster.accountWhitelist(account)).isNone) {
-        batch3.push(hydrationTx.duster.whitelistAccount(account));
-      }
+    if (!(await harvC.isRegistered(r.address))) evm(`harvester.addVault(${r.address})`, harvester, iface(["function addVault(address)"]).encodeFunctionData("addVault", [r.address]));
+    if ((await r.c.compoundSlippageBps()) !== COMPOUND_SLIPPAGE_BPS) {
+      evm(`vault ${r.address}.setCompoundSlippageBps(${COMPOUND_SLIPPAGE_BPS})`, r.address, vaultI.encodeFunctionData("setCompoundSlippageBps", [COMPOUND_SLIPPAGE_BPS]));
     }
-    const required = new Map<string, { token: any; amount: any }>();
-    for (const vault of vaults) {
-      const policy = rounding.get(vault.toLowerCase())!;
-      const c = await hre.ethers.getContractAt([
-        "function asset() view returns (address)", "function roundingReserve() view returns (uint256)",
-      ], vault);
-      const collateral = await c.asset();
-      await nativeRoundingPolicy(api, policy, collateral);
-      const reserve = await c.roundingReserve();
-      const token = await hre.ethers.getContractAt([
-        "function approve(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)",
-      ], collateral);
-      if ((await token.balanceOf(vault)).lt(reserve)) throw new Error(`Unbacked rounding reserve: ${vault}`);
-      const target = hre.ethers.BigNumber.from(policy.target.toString());
-      if (reserve.lt(target)) {
-        const amount = target.sub(reserve);
-        const key = collateral.toLowerCase();
-        const old = required.get(key);
-        required.set(key, { token, amount: amount.add(old?.amount || 0) });
-        evm(collateral, token.interface.encodeFunctionData("approve", [vault, 0]));
-        evm(collateral, token.interface.encodeFunctionData("approve", [vault, amount]));
-        evm(vault, vaultI.encodeFunctionData("fundRoundingReserve", [amount]));
-        evm(collateral, token.interface.encodeFunctionData("approve", [vault, 0]));
-      }
+    if ((await r.c.withdrawalDelay()) !== withdrawalDelay) evm(`vault ${r.address}.setWithdrawalDelay(${withdrawalDelay})`, r.address, vaultI.encodeFunctionData("setWithdrawalDelay", [withdrawalDelay]));
+    if (swapper && !same(await r.c.swapper(), swapper)) evm(`vault ${r.address}.setSwapper(${swapper})`, r.address, vaultI.encodeFunctionData("setSwapper", [swapper]));
+  }
+  // Two-tier governance: ADMIN stays with the slow track, GUARDIAN (pause only) also goes to the committee.
+  for (const target of [subLoop, ...vaults]) {
+    if (!(await (await at(target, VAULT_ABI)).hasRole(GUARDIAN, guardian))) evm(`${target}.grantRole(GUARDIAN_ROLE, ${guardian})`, target, accessI.encodeFunctionData("grantRole", [GUARDIAN, guardian]));
+  }
+  // the adapter routes by asset id: PRIME and each collateral in, HOLLAR out
+  if (swapper) {
+    const adapter = await at(swapper, ["function owner() view returns (address)", "function assetId(address) view returns (uint32)", "function setAssetId(address,uint32)"]);
+    if (!same(await adapter.owner(), admin)) throw new Error(`the adapter ${swapper} is not governance's`);
+    for (const [address, id] of [[prime, ROUTE_PRIME], [hollar, ROUTE_HOLLAR], ...rows.map((r) => [r.asset, r.assetId])] as [string, number][]) {
+      if (Number(await adapter.assetId(address)) !== id) evm(`adapter.setAssetId(${address}, ${id})`, swapper, adapter.interface.encodeFunctionData("setAssetId", [address, id]));
     }
-    for (const { token, amount } of required.values()) {
-      if ((await token.balanceOf(admin)).lt(amount)) {
-        throw new Error(`Prefund Aave manager ${admin} with ${amount} base units of ${token.address} for rounding donations`);
-      }
-    }
-
-    for (const vault of vaults) {
-      console.log(`[3] synth.grantRole(MINTER_ROLE, ${vault})`);
-      evm(synth, accessI.encodeFunctionData("grantRole", [MINTER, vault]));
-
-      console.log(`[3] subLoop.registerVault(${vault})`);
-      evm(subLoop, loopI.encodeFunctionData("registerVault", [vault]));
-
-      console.log(`[3] vault.setCompoundSlippageBps(${COMPOUND_SLIPPAGE_BPS})`);
-      evm(vault, vaultI.encodeFunctionData("setCompoundSlippageBps", [COMPOUND_SLIPPAGE_BPS]));
-
-      console.log(`[3] vault.setWithdrawalDelay(${withdrawalDelay})`);
-      evm(vault, vaultI.encodeFunctionData("setWithdrawalDelay", [withdrawalDelay]));
-
-      if (swapper) {
-        console.log(`[3] vault.setSwapper(${swapper})`);
-        evm(vault, vaultI.encodeFunctionData("setSwapper", [swapper]));
-      }
-
-      console.log(`[3] harvester.addVault(${vault})`);
-      evm(harvester, harvI.encodeFunctionData("addVault", [vault]));
-    }
-
-    console.log(`[3] subLoop.setTranches(${DEPLOY_TRANCHE} HOLLAR, ${UNWIND_TRANCHE} aPRIME)`);
-    evm(
-      subLoop,
-      loopI.encodeFunctionData("setTranches", [
-        hre.ethers.utils.parseUnits(DEPLOY_TRANCHE, 18),
-        hre.ethers.utils.parseUnits(UNWIND_TRANCHE, 6),
-      ])
-    );
-
-    console.log(
-      `[3] subLoop.configureDca(${ROUTE_HOLLAR}, ${ROUTE_PRIME}, ${ROUTE_APRIME}, ${ROUTE_POOL}, ${ROUTE_SLIPPAGE_PPM})`
-    );
-    evm(
-      subLoop,
-      loopI.encodeFunctionData("configureDca", [
-        ROUTE_HOLLAR, ROUTE_PRIME, ROUTE_APRIME, ROUTE_POOL, ROUTE_SLIPPAGE_PPM,
-      ])
-    );
-
-    // MUST come before anything can call harvest(): SubLoop.harvest reverts
-    // HarvesterUnset while this is address(0), so carry realisation is blocked
-    // (it used to pay msg.sender instead — the whole loop carry claimable by
-    // anyone in the deploy→wiring window).
-    console.log(`[3] subLoop.setHarvester(${harvester})`);
-    evm(subLoop, loopI.encodeFunctionData("setHarvester", [harvester]));
-
-    // Two-tier governance: ADMIN stays with the slow econ-params track, GUARDIAN
-    // (pause only) goes to the technical committee for fast response. initialize
-    // granted GUARDIAN to the admin so the pause is never unowned; this delegates
-    // it. Governance keeps its own copy — revoking it is a separate decision.
-    if (guardian) {
-      console.log(`[3] grantRole(GUARDIAN_ROLE, ${guardian}) on subLoop + every vault`);
-      evm(subLoop, accessI.encodeFunctionData("grantRole", [GUARDIAN, guardian]));
-      for (const vault of vaults) {
-        evm(vault, accessI.encodeFunctionData("grantRole", [GUARDIAN, guardian]));
-      }
-    } else {
-      console.log("[3] no guardian configured — GUARDIAN_ROLE stays with governance only");
-    }
-
-    batch3.push(...await Promise.all(getBatch().map((tx) => aaveManagerCall({ ...tx, from: admin }))));
-    clearBatch();
-  } else {
-    console.log(
-      "[3] skipped — set JUICER_SUBLOOP, JUICER_HARVESTER and JUICER_VAULTS to emit the wiring batch"
-    );
   }
 
-  // ═════════════════════════════════════════════════════════════════════════
-  // BATCH 4 — next version: keeper roles, harvest threshold, ICE, rebalance bands,
-  //           revenue mix
-  // ═════════════════════════════════════════════════════════════════════════
-  // Keepers get SubLoop KEEPER_ROLE (quoted pokes) and each vault's DEPOSIT_GUARDIAN_ROLE,
-  // which gates only setDeficitStop; pause stays with governance and the committee.
-  // configureAsync reverts on a lane without a limit, so the execution lanes come first.
-  // JUICER_REBALANCE_BAND (relever,target,delever LTV bps) is converted against each
-  // collateral's live max LTV, so a target above it fails here rather than on chain.
-  // The revenue mix (protocol fee, Main and loop discounts) needs the discount installed
-  // and the loop enrolled first; JUICER_PROTOCOL_FEE_BPS, JUICER_DISCOUNT_BPS and
-  // JUICER_LOOP_DISCOUNT_BPS override NEXT.revenue. JUICER_ADMISSION_MAX_DEFICIT_BPS overrides the
-  // deposit admission cap (NEXT.admissionMaxDeficitBps, 250; the contract starts at 50).
-  // Headroom exits are on at launch (NEXT.exitHeadroom); JUICER_EXIT_HEADROOM=off|on|on,<gap bps>.
-  const keepers = (process.env.JUICER_KEEPERS || "").split(",").map((k) => k.trim()).filter(Boolean);
-  const controller = await resolve("JUICER_EXECUTION_CONTROLLER", "ExecutionController-Juicer");
-  const discount = await resolve("JUICER_DISCOUNT_CONTROLLER", "JuicerDiscount-Juicer");
-  const fees = await resolve("JUICER_FEE_CONTROLLER", "JuicerFeeController-Juicer");
-  const nextState = subLoop && vaults.length
-    ? await readNextState(hre.ethers.provider, { subLoop, vaults, controller, keepers, discount, fees })
-    : undefined;
-  let batch4: any[] = [];
-  if (nextState && controller && keepers.length) {
-    const expected = {
-      keepers,
-      harvestThreshold: process.env.JUICER_HARVEST_THRESHOLD || NEXT.harvestThreshold,
-      intentTtl: envNumber("JUICER_INTENT_TTL", NEXT.intentTtl),
-      intentDriftBps: envNumber("JUICER_INTENT_DRIFT_BPS", NEXT.intentDriftBps),
-      band: process.env.JUICER_REBALANCE_BAND ? parseBand(process.env.JUICER_REBALANCE_BAND) : NEXT.band,
-      admissionMaxDeficitBps: envNumber("JUICER_ADMISSION_MAX_DEFICIT_BPS", NEXT.admissionMaxDeficitBps),
-      exitHeadroom: process.env.JUICER_EXIT_HEADROOM !== undefined ? parseExitHeadroom(process.env.JUICER_EXIT_HEADROOM) : NEXT.exitHeadroom,
-      revenue: discount && fees ? {
-        protocolFeeBps: envNumber("JUICER_PROTOCOL_FEE_BPS", NEXT.revenue.protocolFeeBps),
-        mainDiscountBps: envNumber("JUICER_DISCOUNT_BPS", NEXT.revenue.mainDiscountBps),
-        loopDiscountBps: envNumber("JUICER_LOOP_DISCOUNT_BPS", NEXT.revenue.loopDiscountBps),
-      } : undefined,
-    };
-    if (!expected.revenue) console.log("[4] revenue mix skipped — set JUICER_DISCOUNT_CONTROLLER and JUICER_FEE_CONTROLLER");
-    for (const call of nextCalls(nextState, expected)) {
-      console.log(`[4] ${call.label}`);
-      evm(call.to, call.data);
-    }
-    batch4 = await Promise.all(getBatch().map((tx) => aaveManagerCall({ ...tx, from: admin })));
-    clearBatch();
-  } else {
-    console.log(
-      "[4] skipped — set JUICER_KEEPERS and JUICER_EXECUTION_CONTROLLER (with the loop and vaults) for keeper roles, the harvest threshold, ICE, bands, the admission cap, headroom exits and the revenue mix"
-    );
+  // ═════ execution: budgets, lanes and prices, quote entrypoints, then every consumer bound ═════
+  step = "execution";
+  const quotes = await at(controller, ["function maxQuoteAge() view returns (uint64)", "function maxQuoteBlocks() view returns (uint64)"]);
+  const now = Math.floor(Number((await api.query.timestamp.now()).toString()) / 1000);
+  const expiresAt = envNumber("JUICER_POLICY_EXPIRES_AT", now + LAUNCH.expiryDays * 86400);
+  const policy = executionPolicy({ subLoop, harvester, hollar, prime, aPrime, vaults: rows.map((r) => ({ address: r.address, mainDebt: r.mainDebt, collateral: r.asset, assetId: r.assetId, key: r.key })) }, {
+    expiresAt, pacing: LAUNCH.pacing, primeShortfallBps: ROUTE_SLIPPAGE_PPM / 100,
+    collateralShortfallBps: envNumber("JUICER_COLLATERAL_SHORTFALL_BPS", LAUNCH.collateralShortfallBps),
+    entry: LAUNCH.entry, unwind: LAUNCH.unwind, harvest: LAUNCH.harvest, service: LAUNCH.service,
+  }, { age: Number(await quotes.maxQuoteAge()), blocks: Number(await quotes.maxQuoteBlocks()) });
+  if (policy.limits.some((l) => l.name.startsWith("harvest") && l.maxShortfallBps > COMPOUND_SLIPPAGE_BPS)) {
+    throw new Error("the vaults' compound floor must permit the harvest lanes' shortfall");
+  }
+  plan(executionCalls(await readExecution(hre.ethers.provider, controller, policy), policy));
+
+  // ═════ discount: created by governance, installed on the HOLLAR debt token, vaults and the loop enrolled ═════
+  step = "discount";
+  const reserveData = await at(pool.address, ["function getReserveData(address) view returns ((uint256,uint128,uint128,uint128,uint128,uint128,uint40,uint16,address,address,address,address,uint128,uint128,uint128))"]);
+  const debtToken = (await reserveData.getReserveData(hollar))[10];
+  const discountState = await readDiscount(hre.ethers.provider, { discount, debtToken, vaults });
+  let creationCode = "0x";
+  if (!discountState.code) {
+    const deployment = need("JUICER_DISCOUNT_DEPLOYMENT", process.env.JUICER_DISCOUNT_DEPLOYMENT);
+    const d = await at(deployment, ["function codeHash() view returns (bytes32)", "function discount() view returns (address)", "function governance() view returns (address)"]);
+    const dir = need("JUICER_ARTIFACT_DIR", process.env.JUICER_ARTIFACT_DIR);
+    const bytecode = JSON.parse(readFileSync(resolvePath(dir, "JuicerDiscount.sol", "JuicerDiscount.json"), "utf8")).bytecode.object;
+    creationCode = bytecode.startsWith("0x") ? bytecode : `0x${bytecode}`;
+    if (utils.keccak256(creationCode) !== (await d.codeHash())) throw new Error("JUICER_ARTIFACT_DIR's JuicerDiscount is not the code the deployment pins");
+    if (!same(await d.governance(), admin)) throw new Error(`${deployment} does not answer to governance`);
+    if (!same(utils.getContractAddress({ from: deployment, nonce: 1 }), discount)) throw new Error(`the discount is ${deployment}'s first creation, not ${discount}`);
+  }
+  const loopCap = utils.parseUnits(process.env.JUICER_LOOP_DISCOUNT_CAP || utils.formatUnits(LAUNCH.loopCap, 18), 18);
+  plan(discountCalls(discountState, { discount, deployment: process.env.JUICER_DISCOUNT_DEPLOYMENT || constants.AddressZero, creationCode, debtToken, subLoop, loopCap }));
+
+  // ═════ next: keepers, harvest threshold, ICE, bands, admission, headroom exits, revenue mix ═════
+  // Keepers get SubLoop KEEPER_ROLE (quoted pokes) and each vault's DEPOSIT_GUARDIAN_ROLE (setDeficitStop only).
+  // The bands are converted against each collateral's live max LTV; the rates need the discount installed.
+  step = "next";
+  const mainDebts = Object.fromEntries(rows.map((r) => [r.address.toLowerCase(), r.mainDebt]));
+  const nextState = assumePlanned(
+    await readNextState(hre.ethers.provider, { subLoop, vaults, controller, keepers, discount: discountState.code ? discount : undefined, fees, mainDebts }),
+    { policy, discount: { address: discount, loop: subLoop }, feeBps: 500 });
+  const expected = {
+    keepers,
+    harvestThreshold: process.env.JUICER_HARVEST_THRESHOLD || NEXT.harvestThreshold,
+    intentTtl: envNumber("JUICER_INTENT_TTL", NEXT.intentTtl),
+    intentDriftBps: envNumber("JUICER_INTENT_DRIFT_BPS", NEXT.intentDriftBps),
+    band: process.env.JUICER_REBALANCE_BAND ? parseBand(process.env.JUICER_REBALANCE_BAND) : NEXT.band,
+    admissionMaxDeficitBps: envNumber("JUICER_ADMISSION_MAX_DEFICIT_BPS", NEXT.admissionMaxDeficitBps),
+    exitHeadroom: process.env.JUICER_EXIT_HEADROOM !== undefined ? parseExitHeadroom(process.env.JUICER_EXIT_HEADROOM) : NEXT.exitHeadroom,
+    revenue: {
+      protocolFeeBps: envNumber("JUICER_PROTOCOL_FEE_BPS", NEXT.revenue.protocolFeeBps),
+      mainDiscountBps: envNumber("JUICER_DISCOUNT_BPS", NEXT.revenue.mainDiscountBps),
+      loopDiscountBps: envNumber("JUICER_LOOP_DISCOUNT_BPS", NEXT.revenue.loopDiscountBps),
+    },
+  };
+  plan(nextCalls(nextState, expected));
+
+  // ═════ reserve: each Main ledger's protocol reserve, which covers a headroom exit's shortfall ═════
+  step = "reserve";
+  if (!reserveTarget.isZero()) {
+    plan(reserveCalls({
+      hollar, payer: admin, amount: reserveTarget, payerBalance: (planned.get(ROUTE_HOLLAR) ?? 0n).toString(),
+      ledgers: rows.map((r, i) => ({ address: r.mainDebt, held: reserveHeld[i] })),
+    }));
   }
 
-  // ═════════════════════════════════════════════════════════════════════════
-  // BATCH 5 — protocol reserve (optional)
-  // ═════════════════════════════════════════════════════════════════════════
-  // JUICER_RESERVE_HOLLAR per vault, paid by the governance EVM caller: from its own
-  // HOLLAR (JUICER_RESERVE_SOURCE=admin, prefunded) or minted from its facilitator (mint).
-  let batch5: any[] = [];
-  if (process.env.JUICER_RESERVE_HOLLAR) {
-    if (!nextState) throw new Error("the reserve batch needs JUICER_SUBLOOP and JUICER_VAULTS");
-    const source = process.env.JUICER_RESERVE_SOURCE || "admin";
-    if (!["admin", "mint"].includes(source)) throw new Error("JUICER_RESERVE_SOURCE is admin or mint");
-    if (nextState.vaults.some((v) => v.protocolReserve === undefined)) throw new Error("Main ledgers without protocolReserve: not the next version");
-    const hollar = await (await hre.ethers.getContractAt(["function hollar() view returns (address)"], subLoop)).hollar();
-    const token = await hre.ethers.getContractAt([
-      "function balanceOf(address) view returns (uint256)",
-      "function getFacilitator(address) view returns ((uint128,uint128,string))",
-    ], hollar);
-    const facilitator = source === "mint" ? await token.getFacilitator(admin) : undefined;
-    for (const call of reserveCalls({
-      hollar,
-      payer: admin,
-      ledgers: nextState.vaults.map((v) => ({ address: v.mainDebt, held: v.protocolReserve })),
-      amount: utils.parseUnits(process.env.JUICER_RESERVE_HOLLAR, 18),
-      payerBalance: await token.balanceOf(admin),
-      mint: facilitator && { capacity: facilitator[0], level: facilitator[1] },
-    })) {
-      console.log(`[5] ${call.label}`);
-      evm(call.to, call.data);
-    }
-    batch5 = await Promise.all(getBatch().map((tx) => aaveManagerCall({ ...tx, from: admin })));
-    clearBatch();
-  } else {
-    console.log("[5] skipped — set JUICER_RESERVE_HOLLAR to fund each Main ledger's protocol reserve");
+  // ═════ rounding: collateral donated to each vault's rounding reserve ═════
+  step = "rounding";
+  for (const r of rows) {
+    const amount = roundingUnits.get(r.address)!;
+    if (amount === 0n) continue;
+    evm(`collateral.approve(${r.address}, 0)`, r.asset, tokenI.encodeFunctionData("approve", [r.address, 0]));
+    evm(`collateral.approve(${r.address}, ${amount})`, r.asset, tokenI.encodeFunctionData("approve", [r.address, amount]));
+    evm(`vault ${r.address}.fundRoundingReserve(${amount})`, r.address, vaultI.encodeFunctionData("fundRoundingReserve", [amount]));
+    evm(`collateral.approve(${r.address}, 0)`, r.asset, tokenI.encodeFunctionData("approve", [r.address, 0]));
   }
 
-  // ═════════════════════════════════════════════════════════════════
-  // One referendum: the first batch runs on enactment, each later one on its own block
-  // ═════════════════════════════════════════════════════════════════
-  const decoder = new ProposalDecoder(hre);
-  await decoder.init();
-
-  const batches: [string, any[]][] = [
-    ["BATCH 0 — compound routes, PRIME pool fee", batch0],
-    ["BATCH 1 — list-reserve", batch1],
-    ["BATCH 2 — configure", batch2],
-    ["BATCH 3 — wire", batch3],
-    ["BATCH 4 — keepers, threshold, ICE, bands, admission, headroom exits, revenue mix", batch4],
-    ["BATCH 5 — protocol reserve", batch5],
-  ];
-  for (const [label, txs] of batches) {
-    if (!txs.length) {
-      console.log(`\n===== ${label}: EMPTY — nothing to do =====`);
-      continue;
-    }
-    const batchAll = await generateProposalV2(txs, false);
-    console.log(`\n===== ${label} (${txs.length} calls, ${batchAll.method.encodedLength} bytes) =====`);
-    console.log(`\n--- ${label} decoded ---`);
-    decoder.printTree(decoder.transformCall(batchAll.toHuman()));
+  // ═════ open: governance's bootstrap deposit, last; the first public deposit reverts until it lands ═════
+  step = "open";
+  const receiver = process.env.JUICER_BOOTSTRAP_RECEIVER || admin;
+  for (const r of rows) {
+    plan(bootstrapCalls({ vault: r.address, asset: r.asset, seed: bootstrapUnits.get(r.address)!.toString(), receiver,
+      supply: await r.c.totalSupply(), paused: await r.c.depositsPaused() }));
   }
-  const [first, ...later] = batches.filter(([, txs]) => txs.length);
-  if (!first) {
-    console.log("\nnothing to propose");
+
+  // ── batches: in order, each within a share of the scheduler's block weight ──
+  const calls = await Promise.all(items.map((i) => i.tx ?? aaveManagerCall({ to: i.evm!.to, data: i.evm!.data, gasLimit: i.evm!.gas, from: admin })));
+  const weigh = async (call: any) => {
+    const w = (await call.paymentInfo(govAccount)).weight;
+    return { ref: BigInt(w.refTime.toString()), proof: BigInt(w.proofSize.toString()) };
+  };
+  const weights = await Promise.all(calls.map(weigh));
+  const max = api.consts.scheduler.maximumWeight;
+  const pct = BigInt(envNumber("JUICER_BATCH_WEIGHT_PCT", 40));
+  const budget = { ref: BigInt(max.refTime.toString()) * pct / 100n, proof: BigInt(max.proofSize.toString()) * pct / 100n };
+  const scheduling = await weigh(hydrationTx.scheduler.scheduleAfter(0, null, 0, hydrationTx.system.remark("0x")));
+  const pack = (reserved: number) => {
+    const out: number[][] = [[]];
+    let ref = scheduling.ref * BigInt(reserved), proof = scheduling.proof * BigInt(reserved);
+    for (const [i, w] of weights.entries()) {
+      if (out.at(-1)!.length && (ref + w.ref > budget.ref || proof + w.proof > budget.proof)) { out.push([]); ref = 0n; proof = 0n; }
+      if (w.ref > budget.ref || w.proof > budget.proof) throw new Error(`${items[i].label} alone exceeds the batch weight budget`);
+      out.at(-1)!.push(i); ref += w.ref; proof += w.proof;
+    }
+    return out;
+  };
+  // the enactment batch also schedules every later one
+  let groups = pack(0);
+  for (let reserved = groups.length; ; reserved = groups.length) {
+    groups = pack(reserved);
+    if (groups.length <= reserved) break;
+  }
+  const writePlan = (proposal: any, batches: any[]) => {
+    if (!process.env.JUICER_PLAN_OUT) return;
+    writeFileSync(process.env.JUICER_PLAN_OUT, JSON.stringify({
+      proposal, batches, policy, expiresAt, discount, keepers, governance: admin,
+      values: {
+        slippagePpm: ROUTE_SLIPPAGE_PPM, primePoolFeePpm: ROUTE_POOL_FEE_PPM, withdrawalDelay, synthAssetId: SYNTH_ASSET_ID,
+        harvestThreshold: expected.harvestThreshold.toString(), intentTtl: expected.intentTtl, intentDriftBps: expected.intentDriftBps,
+        band: expected.band, admissionMaxDeficitBps: expected.admissionMaxDeficitBps, exitHeadroom: expected.exitHeadroom, revenue: expected.revenue,
+        reserveHollar, loopCapHollar: utils.formatUnits(loopCap, 18).replace(/\.0$/, ""),
+      },
+    }, (_, x) => typeof x === "bigint" ? x.toString() : x, 2) + "\n");
+    console.log(`plan written to ${process.env.JUICER_PLAN_OUT}`);
+  };
+  if (!groups[0].length) {
+    console.log("\nnothing to propose: the chain already has every launch call");
+    writePlan(null, []);
     return;
   }
+
+  const decoder = new ProposalDecoder(hre);
+  await decoder.init();
+  const fraction = (w: { ref: bigint; proof: bigint }) =>
+    `${Number(w.ref * 10000n / BigInt(max.refTime.toString())) / 100}% ref, ${Number(w.proof * 10000n / BigInt(max.proofSize.toString())) / 100}% proof of the scheduler's`;
+  const batches = [];
+  for (const [n, group] of groups.entries()) {
+    const call = hydrationTx.utility.batchAll(group.map((i) => calls[i]));
+    const weight = await weigh(call);
+    const steps = [...new Set(group.map((i) => items[i].step))];
+    const label = `BATCH ${n} — ${steps.join(", ")}`;
+    batches.push({ label, offset: n, steps, call, weight, labels: group.map((i) => items[i].label) });
+    console.log(`\n===== ${label} (${group.length} calls, ${call.method.encodedLength} bytes, weight ${weight.ref} / ${weight.proof}: ${fraction(weight)}) =====`);
+    decoder.printTree(decoder.transformCall(call.method.toHuman()));
+  }
   // scheduleAfter(n) runs at enactment + 1 + n, so each later batch gets a block to itself
-  const proposal = await generateProposalV2([
-    ...first[1],
-    ...later.map(([, txs], i) => hydrationTx.scheduler.scheduleAfter(i, null, 0, hydrationTx.utility.batchAll(txs))),
-  ], false);
-  console.log(`\n===== PROPOSAL — ${first[0].split(" — ")[0]} on enactment${later.map(([label], i) => `, ${label.split(" — ")[0]} at +${i + 1}`).join("")} (${proposal.method.encodedLength} bytes) =====`);
-  console.log(proposal.toHex());
+  const later = batches.slice(1);
+  const proposal = hydrationTx.utility.batchAll([
+    ...groups[0].map((i) => calls[i]),
+    ...later.map((b, i) => hydrationTx.scheduler.scheduleAfter(i, null, 0, b.call)),
+  ]);
+  const enactment = await weigh(proposal);
+  console.log(`\n===== PROPOSAL — BATCH 0 on enactment${later.map((b) => `, BATCH ${b.offset} at +${b.offset}`).join("")} (${proposal.method.encodedLength} bytes, enactment weight ${enactment.ref} / ${enactment.proof}: ${fraction(enactment)}) =====`);
+  console.log(proposal.method.toHex());
   console.log(`\n===== PROPOSAL hash ${proposal.method.hash.toHex()} =====`);
+  writePlan({ hash: proposal.method.hash.toHex(), len: proposal.method.encodedLength, hex: proposal.method.toHex(), enactmentWeight: enactment },
+    batches.map(({ call, ...b }) => ({ ...b, bytes: call.method.encodedLength })));
 
   console.log(`
-Submit the PROPOSAL as ONE Root referendum. The batches cannot share a block:
-initReserves alone is ~58e9 refTime and a combined batchAll trips
-scheduler.PermanentlyOverweight (observed on lark-2), so the first non-empty batch
-runs on enactment and every later one is scheduled on the following blocks, in order.
-A failed scheduled batch does not stop the next one: check each block's events.
+Submit the PROPOSAL as ONE Root referendum. BATCH 0 runs on enactment and every later batch on the
+blocks after it, in order, each within ${pct}% of the scheduler's block weight (a batch above it trips
+scheduler.PermanentlyOverweight). A failed batch does not stop the next one: check each block's events.
 
-BATCH 0 stores the PRIME → collateral router routes. Without them the substrate
-router falls back to Omnipool, which cannot service PRIME, and EVERY harvest
-reverts — Harvester.harvest calls compound(…, "") with an empty route, so the
-path is resolved on-chain, not by the caller. It also sets pool ${ROUTE_POOL}'s fee to
-${ROUTE_POOL_FEE_PPM} ppm (JUICER_PRIME_POOL_FEE_PPM).
-
-BATCH 4 needs the loop's execution lanes configured: configureAsync reverts on a lane
-without a limit. BATCH 5 is optional and needs its HOLLAR in place first.
-
-After enactment, run scripts/juicer/verify-readiness.ts before announcing (with
-JUICER_KEEPERS, JUICER_HARVEST_THRESHOLD, JUICER_INTENT_TTL, JUICER_REBALANCE_BAND,
-JUICER_PROTOCOL_FEE_BPS and JUICER_RESERVE_HOLLAR it also checks batches 4 and 5) —
-dispatcher.dispatchAsAaveManager reports EVM reverts as ExecutedFailed EVENTS,
-not extrinsic failures, so a batch can "succeed" with calls silently reverted.
+dispatcher.dispatchAsAaveManager reports EVM reverts as ExecutedFailed EVENTS and
+dispatcher.dispatchAsTreasury its inner result in TreasuryManagerCallDispatched, not as failures,
+so a batch can "succeed" with calls silently reverted. After enactment run
+scripts/juicer/verify-readiness.ts with JUICER_EXECUTION_POLICY from JUICER_PLAN_OUT before announcing.
+The execution policy expires at ${expiresAt} (JUICER_POLICY_EXPIRES_AT pins it across reruns).
 `);
 });

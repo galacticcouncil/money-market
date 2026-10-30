@@ -210,7 +210,8 @@ async function main() {
       routes.push([vault, prime, collateral], [await v.mainDebt(), collateral, hollar]);
       requiredActions.push([vault, "rebalance()"]);
     }
-    const now = (await provider.getBlock("latest")).timestamp;
+    // the chain's own clock: a chopsticks eth rpc reports block timestamps in milliseconds
+    const now = Math.floor(Number((await api.query.timestamp.now()).toString()) / 1000);
     const harvestGroups = new Set<string>();
     for (const [consumer, input, output] of routes) {
       const lane = await controller.lane(consumer, input, output);
@@ -282,6 +283,37 @@ async function main() {
       add("O. Main debt settlement", `${vault}: helper is the reviewed CompoundLogic`,
         !!HELPER_HASH && eq(ethers.utils.keccak256(await provider.getCode(helper)), HELPER_HASH),
         HELPER_HASH ? helper : "set JUICER_COMPOUND_LOGIC_CODEHASH");
+    }
+  });
+
+  // the launch referendum's own parts: share assets, the loop's callback fees, the adapter's map
+  await section("L. Launch wiring", async () => {
+    const g = "L. Launch wiring";
+    const location = (key: string) => ({ parents: 0, interior: { X1: [{ AccountKey20: { network: null, key } }] } });
+    const loop = new ethers.Contract(SUBLOOP, ["function hollar() view returns (address)", "function prime() view returns (address)"], provider);
+    const mapped: [string, number][] = [[await loop.prime(), 43], [await loop.hollar(), 222]];
+    for (const vault of VAULTS) {
+      const v = new ethers.Contract(vault, ["function mainDebt() view returns (address)", "function asset() view returns (address)"], provider);
+      const id: any = await api.query.assetRegistry.locationAssets(location(vault));
+      const detail: any = id.isSome ? ((await api.query.assetRegistry.assets(id.unwrap())) as any).unwrapOr(undefined) : undefined;
+      add(g, `${vault}: share is a sufficient Erc20 asset`, !!detail && detail.assetType.toString() === "Erc20" && detail.isSufficient.isTrue,
+        id.isSome ? `asset ${id.unwrap()}` : "unregistered");
+      const rewards = await new ethers.Contract(await v.mainDebt(), ["function yieldAccounting() view returns (address)"], provider).yieldAccounting();
+      const account = await nativeAccount(api, rewards);
+      add(g, `${rewards}: yield ownership dust protected`, (await api.call.dusterApi.isWhitelisted(account) as any).isTrue, account);
+      const asset = await v.asset();
+      mapped.push([asset, Number(BigInt(asset) & 0xffffffffn)]);
+    }
+    const loopAccount = await nativeAccount(api, SUBLOOP);
+    const currency = (await api.query.multiTransactionPayment.accountCurrencyMap(loopAccount) as any).unwrapOr(null)?.toNumber();
+    add(g, "loop pays its ICE callbacks in WETH", currency === 20, `fee currency ${currency ?? "unset"}`);
+    const weth = BigInt((await api.call.currenciesApi.account(20, loopAccount) as any).free.toString());
+    // half the callback buffer the launch funds, as lark-ice-plan tops it up
+    add(g, "loop holds WETH for its callbacks", weth >= 5_000_000_000_000_000n, `${weth} wei`);
+    if (SWAPPER) {
+      const adapter = new ethers.Contract(SWAPPER, ["function owner() view returns (address)", "function assetId(address) view returns (uint32)"], provider);
+      add(g, "adapter owned by governance", eq(await sread(() => adapter.owner()), GOV));
+      for (const [address, id] of mapped) add(g, `adapter maps ${address} to asset ${id}`, Number(await sread(() => adapter.assetId(address))) === id);
     }
   });
 
