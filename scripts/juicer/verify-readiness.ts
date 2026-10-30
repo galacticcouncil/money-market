@@ -18,7 +18,7 @@
 //   JUICER_VAULTS=0xETH,0xTBTC \
 //   JUICER_FEE_CONTROLLER=0x... JUICER_FEE_RECIPIENT=0x... \
 //   JUICER_DISCOUNT_CONTROLLER=0x... JUICER_DISCOUNT_COMMITTEE=0x... \
-//   JUICER_DISCOUNT_BPS=0 JUICER_SLIPPAGE_PPM=<approved-ppm> \
+//   JUICER_SLIPPAGE_PPM=<approved-ppm> \
 //   JUICER_ROUNDING_RESERVES='<per-vault policy JSON; see looper/README.md>' \
 //   npx ts-node --transpile-only --compiler-options '{"module":"commonjs"}' \
 //     scripts/juicer/verify-readiness.ts
@@ -27,21 +27,22 @@
 //           JUICER_SYNTH_ASSET_ID, JUICER_WITHDRAWAL_DELAY (seconds; default 43200), POOL,
 //           JUICER_COMPOUND_LOGIC_CODEHASH (keccak256 of the reviewed CompoundLogic runtime:
 //           the vault implementation binds a separately deployed helper),
-//           JUICER_PRIME_POOL_FEE_PPM (the approved PRIME pool fee; the launch proposal sets 100),
-//           JUICER_PROTOCOL_FEE_BPS (the approved per-vault fee; default 500, the registration rate).
+// The launch mix is the default (NEXT in next-governance.ts), so a deployment after the launch
+// proposal passes as is; before it, override with the registration values (fee 500, rates 0):
+//           JUICER_PRIME_POOL_FEE_PPM (default 100), JUICER_PROTOCOL_FEE_BPS (default 6900),
+//           JUICER_DISCOUNT_BPS (Main, default 4000), JUICER_LOOP_DISCOUNT_BPS (default 9000),
+//           JUICER_ADMISSION_MAX_DEFICIT_BPS (default 250), JUICER_REBALANCE_BAND (default 6500,7500,8300).
 // Next version (each adds its checks only when set): JUICER_KEEPERS (comma list),
 //           JUICER_HARVEST_THRESHOLD (WAD), JUICER_INTENT_TTL (seconds),
 //           JUICER_INTENT_DRIFT_BPS, JUICER_RESERVE_HOLLAR (per vault),
-//           JUICER_REBALANCE_BAND (relever,target,delever LTV bps),
-//           JUICER_ADMISSION_MAX_DEFICIT_BPS (the approved deposit admission cap),
-//           JUICER_LOOP_DISCOUNT_CAP (HOLLAR) with JUICER_LOOP_DISCOUNT_BPS (default 0);
-//           without the cap, SubLoop must not be discounted.
+//           JUICER_LOOP_DISCOUNT_CAP (HOLLAR, the approved cap; otherwise any nonzero cap).
+//           with JUICER_LOOP_DISCOUNT_BPS=0 and no cap, SubLoop must not be discounted.
 
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { ethers } from "ethers";
 import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "./rounding-native";
-import { readNextState, nextChecks, parseBand } from "./next-governance";
+import { NEXT, readNextState, nextChecks, parseBand, envNumber } from "./next-governance";
 
 const WS = process.env.WS_URL || "wss://hdx.tarn.hydration.cloud";
 const RPC = process.env.RPC_URL || "https://hdx.tarn.hydration.cloud";
@@ -59,7 +60,7 @@ const FEES = req("JUICER_FEE_CONTROLLER");
 const FEE_RECIPIENT = req("JUICER_FEE_RECIPIENT");
 const DISCOUNT = req("JUICER_DISCOUNT_CONTROLLER");
 const COMMITTEE = req("JUICER_DISCOUNT_COMMITTEE");
-const DISCOUNT_BPS = Number(req("JUICER_DISCOUNT_BPS"));
+const DISCOUNT_BPS = envNumber("JUICER_DISCOUNT_BPS", NEXT.revenue.mainDiscountBps);
 const SLIPPAGE_PPM = Number(req("JUICER_SLIPPAGE_PPM"));
 const WITHDRAWAL_DELAY = Number(process.env.JUICER_WITHDRAWAL_DELAY ?? "43200");
 const SYNTH_ASSET_ID = Number(process.env.JUICER_SYNTH_ASSET_ID || 5550);
@@ -73,14 +74,14 @@ const NEXT_EXPECTED = {
   ...(process.env.JUICER_INTENT_TTL ? { intentTtl: Number(process.env.JUICER_INTENT_TTL) } : {}),
   ...(process.env.JUICER_INTENT_DRIFT_BPS ? { intentDriftBps: Number(process.env.JUICER_INTENT_DRIFT_BPS) } : {}),
   ...(process.env.JUICER_RESERVE_HOLLAR ? { reserve: ethers.utils.parseUnits(process.env.JUICER_RESERVE_HOLLAR, 18) } : {}),
-  ...(process.env.JUICER_REBALANCE_BAND ? { band: parseBand(process.env.JUICER_REBALANCE_BAND) } : {}),
-  ...(process.env.JUICER_ADMISSION_MAX_DEFICIT_BPS ? { admissionMaxDeficitBps: Number(process.env.JUICER_ADMISSION_MAX_DEFICIT_BPS) } : {}),
+  band: process.env.JUICER_REBALANCE_BAND ? parseBand(process.env.JUICER_REBALANCE_BAND) : NEXT.band,
+  admissionMaxDeficitBps: envNumber("JUICER_ADMISSION_MAX_DEFICIT_BPS", NEXT.admissionMaxDeficitBps),
 };
 const LOOP_CAP = process.env.JUICER_LOOP_DISCOUNT_CAP ? ethers.utils.parseUnits(process.env.JUICER_LOOP_DISCOUNT_CAP, 18) : undefined;
-const LOOP_BPS = Number(process.env.JUICER_LOOP_DISCOUNT_BPS ?? "0");
+const LOOP_BPS = envNumber("JUICER_LOOP_DISCOUNT_BPS", NEXT.revenue.loopDiscountBps);
 const HELPER_HASH = process.env.JUICER_COMPOUND_LOGIC_CODEHASH;
-const POOL_FEE_PPM = process.env.JUICER_PRIME_POOL_FEE_PPM ? Number(process.env.JUICER_PRIME_POOL_FEE_PPM) : undefined;
-const PROTOCOL_FEE_BPS = Number(process.env.JUICER_PROTOCOL_FEE_BPS ?? "500");
+const POOL_FEE_PPM: number | undefined = envNumber("JUICER_PRIME_POOL_FEE_PPM", NEXT.primePoolFeePpm);
+const PROTOCOL_FEE_BPS = envNumber("JUICER_PROTOCOL_FEE_BPS", NEXT.revenue.protocolFeeBps);
 
 for (const address of [SYNTH, SUBLOOP, HARVESTER, EXECUTION, FEES, FEE_RECIPIENT, DISCOUNT, COMMITTEE, POOL, ...VAULTS]) {
   if (!ethers.utils.isAddress(address) || eq(address, ethers.constants.AddressZero)) {
@@ -761,10 +762,11 @@ async function main() {
     add(group, "exact approved discount participant set", Array.isArray(participants)
       && participants.length === VAULTS.length && VAULTS.every(v => participants.some((p: string) => eq(p, v))));
     const loop = await sread(() => discount.loop());
-    if (LOOP_CAP) {
+    if (LOOP_CAP || LOOP_BPS > 0) {
       add(group, "SubLoop enrolled at its own rate", eq(loop, SUBLOOP));
       const cap = await sread(() => discount.loopCap());
-      add(group, "approved loop discount cap", !!cap && cap.eq(LOOP_CAP), cap ? ethers.utils.formatUnits(cap, 18) : "read failed");
+      add(group, LOOP_CAP ? "approved loop discount cap" : "loop discount cap set",
+        !!cap && (LOOP_CAP ? cap.eq(LOOP_CAP) : cap.gt(0)), cap ? ethers.utils.formatUnits(cap, 18) : "read failed");
       const loopRate = await sread(() => discount.loopDiscountBps());
       add(group, "explicitly approved loop discount rate", loopRate !== undefined && Number(loopRate) === LOOP_BPS, String(loopRate));
     } else {
