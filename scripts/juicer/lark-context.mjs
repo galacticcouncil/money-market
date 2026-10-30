@@ -52,6 +52,13 @@ export async function context() {
   const alice = new Keyring({type:'sr25519'}).addFromUri('//Alice');
   const arb = new Keyring({type:'sr25519'}).addFromUri(profile.signers.markets);
   async function sign(tx,label,signer=alice) {
+    // alice is shared on lark: another client can take the nonce between read and submit
+    for(let attempt=0;;attempt++){
+      try{return await signOnce(attempt?api.tx(tx.method):tx,label,signer);}
+      catch(e){if(attempt>=4||!/: (Usurped|Invalid)$/.test(e.message))throw e;console.log('RESIGN',label,e.message);await new Promise(resolve=>setTimeout(resolve,6000));}
+    }
+  }
+  async function signOnce(tx,label,signer) {
     assert.ok(live,'--live required');
     let rec=r.calls.find(x=>x.label===label&&!x.evm&&!x.rejected);
     if(rec?.blockHash){assert.notEqual(rec.success,false,`${label}: previous dispatch failed`);return rec;}
@@ -76,7 +83,7 @@ export async function context() {
         Object.assign(rec,{hash:txHash.toHex(),blockHash:status.isInBlock?status.asInBlock.toHex():status.asFinalized.toHex(),success:!dispatchError,events:events.map(({event})=>({section:event.section,method:event.method,data:event.data.toJSON()}))});save();
         if (dispatchError) {const e=dispatchError.isModule?api.registry.findMetaError(dispatchError.asModule):{section:'',name:dispatchError.toString()};reject(Error(`${label}: ${e.section}.${e.name}`));return;}
         console.log('SUBSTRATE',label,rec.hash);resolve(rec);
-      }).then(u=>{unsub=u;if(settled)u();}).catch(e=>{clearTimeout(timeout);reject(e);});
+      }).then(u=>{unsub=u;if(settled)u();}).catch(e=>{clearTimeout(timeout);if(/1010:/.test(String(e))){rec.rejected=String(e).slice(0,120);save();e=Error(`${label}: Invalid`);}reject(e);});
     });
   }
   async function enact(label,calls) {
