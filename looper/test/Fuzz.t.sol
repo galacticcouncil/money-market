@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import {Fixture} from "./helpers/Fixture.t.sol";
 import {ILooperPosition} from "../src/interfaces/ILooperPosition.sol";
+import {IIntentForward} from "../src/interfaces/IIntentForward.sol";
 import {LooperPosition} from "../src/LooperPosition.sol";
 
 contract FuzzTest is Fixture {
@@ -23,7 +24,7 @@ contract FuzzTest is Fixture {
             pool.setPrice(address(prime), pool.getAssetPrice(address(prime)) * _rand(9_900, 10_100) / 10_000);
             (bool ok, bytes memory ret) = dispatchTop();
             assertTrue(ok, "callbacks never revert after the guards");
-            assertEq(bytes4(ret), LooperPosition.execute.selector);
+            assertEq(bytes4(ret), IIntentForward.execute.selector);
             assertLane(pos);
         }
         assertFalse(hasPending(pos), "ladder terminates");
