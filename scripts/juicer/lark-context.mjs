@@ -82,8 +82,10 @@ export async function context() {
   async function enact(label,calls) {
     let rec=r.governance.find(g=>g.label===label);
     if(rec?.verified)return;
-    const call=api.tx.utility.batchAll(calls), hash=call.method.hash.toHex(),len=call.method.encodedLength;
-    if(rec)assert.equal(rec.hash,hash,'governance payload changed during resume');
+    const call=api.tx.utility.batchAll(calls);let hash=call.method.hash.toHex(),len=call.method.encodedLength;
+    // once submitted the journal is final: enactment changes what the caller builds next
+    if(rec?.ref!==undefined)({hash,len}=rec);
+    else if(rec)assert.equal(rec.hash,hash,'governance payload changed during resume');
     else{rec={label,hash,len,hex:call.method.toHex()};r.governance.push(rec);save();}
     console.log('GOVERNANCE',label,hash,'calls',calls.length);
     if(rec.ref===undefined){

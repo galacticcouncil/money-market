@@ -29,6 +29,9 @@ try{
  const route=(await api.query.router.routes([43,222])).toJSON();
  expect(JSON.stringify(route)===JSON.stringify([{pool:{stableswap:143},assetIn:43,assetOut:222}]),'stored PRIME/HOLLAR route does not use pool 143');
  expect((await api.query.assetRegistry.assets(SYNTHETIC)).isNone||!!r.addresses.synth,`asset id ${SYNTHETIC} is taken; the synthetic listing needs it`);
+ const head=(await api.rpc.chain.getHeader()).number.toNumber();
+ const stale=(await api.query.referenda.referendumInfoFor.entries()).filter(([,i])=>i.unwrap().isOngoing&&i.unwrap().asOngoing.submitted.toNumber()>head).map(([k])=>k.args[0].toNumber());
+ expect(!stale.length,`mainnet referenda ${stale.join(', ')} hold deciding slots forever; run lark-clear-referenda.mjs --live`);
  const [capacity,level]=await readSig(HOLLAR,'function getFacilitator(address) view returns((uint128,uint128,string))',[GOV]);
  r.chainCheck={at:new Date().toISOString(),runtime:r.runtime,
   ice:ice?Object.fromEntries(['submitIntent','removeIntent','cleanupIntent'].map(name=>[name,Array.from(intent[name].callIndex)])):null,
