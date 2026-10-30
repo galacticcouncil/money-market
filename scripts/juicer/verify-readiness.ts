@@ -19,14 +19,13 @@
 //   JUICER_FEE_CONTROLLER=0x... JUICER_FEE_RECIPIENT=0x... \
 //   JUICER_DISCOUNT_CONTROLLER=0x... JUICER_DISCOUNT_COMMITTEE=0x... \
 //   JUICER_SLIPPAGE_PPM=<approved-ppm> \
+//   JUICER_COMPOUND_LOGIC_CODEHASH=<keccak256 of the reviewed CompoundLogic runtime> \
 //   JUICER_ROUNDING_RESERVES='<per-vault policy JSON; see looper/README.md>' \
 //   npx ts-node --transpile-only --compiler-options '{"module":"commonjs"}' \
 //     scripts/juicer/verify-readiness.ts
 //
 // Optional: JUICER_SWAPPER, JUICER_GUARDIAN, JUICER_LOOPER,
 //           JUICER_SYNTH_ASSET_ID, JUICER_WITHDRAWAL_DELAY (seconds; default 43200), POOL,
-//           JUICER_COMPOUND_LOGIC_CODEHASH (keccak256 of the reviewed CompoundLogic runtime:
-//           the vault implementation binds a separately deployed helper),
 // The launch mix is the default (NEXT in next-governance.ts), so a deployment after the launch
 // proposal passes as is; before it, override with the registration values (fee 500, rates 0):
 //           JUICER_PRIME_POOL_FEE_PPM (default 100), JUICER_PROTOCOL_FEE_BPS (default 6900),
@@ -79,7 +78,11 @@ const NEXT_EXPECTED = {
 };
 const LOOP_CAP = process.env.JUICER_LOOP_DISCOUNT_CAP ? ethers.utils.parseUnits(process.env.JUICER_LOOP_DISCOUNT_CAP, 18) : undefined;
 const LOOP_BPS = envNumber("JUICER_LOOP_DISCOUNT_BPS", NEXT.revenue.loopDiscountBps);
+// the vault implementation binds a separately deployed helper; its code is always pinned
 const HELPER_HASH = process.env.JUICER_COMPOUND_LOGIC_CODEHASH;
+if (HELPER_HASH !== undefined && !/^0x[0-9a-fA-F]{64}$/.test(HELPER_HASH)) {
+  throw new Error("JUICER_COMPOUND_LOGIC_CODEHASH is not a 32-byte hash");
+}
 const POOL_FEE_PPM: number | undefined = envNumber("JUICER_PRIME_POOL_FEE_PPM", NEXT.primePoolFeePpm);
 const PROTOCOL_FEE_BPS = envNumber("JUICER_PROTOCOL_FEE_BPS", NEXT.revenue.protocolFeeBps);
 
@@ -274,10 +277,9 @@ async function main() {
         const size = (code.length - 2) / 2;
         add("O. Main debt settlement", `${target}: deployed size`, size > 0 && size <= 24576, `${size} bytes`);
       }
-      if (HELPER_HASH) {
-        add("O. Main debt settlement", `${vault}: helper is the reviewed CompoundLogic`,
-          eq(ethers.utils.keccak256(await provider.getCode(helper)), HELPER_HASH), helper);
-      }
+      add("O. Main debt settlement", `${vault}: helper is the reviewed CompoundLogic`,
+        !!HELPER_HASH && eq(ethers.utils.keccak256(await provider.getCode(helper)), HELPER_HASH),
+        HELPER_HASH ? helper : "set JUICER_COMPOUND_LOGIC_CODEHASH");
     }
   });
 
