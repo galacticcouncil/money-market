@@ -76,7 +76,7 @@ interface ILooperPosition {
 
     error NotOwner();
     error NotFactory();
-    error AlreadyInitialized();
+    error PositionAlreadyInitialized();
     error SlippageTooHigh();
     error InvalidParams();
     error Busy();

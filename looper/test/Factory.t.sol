@@ -126,11 +126,11 @@ contract FactoryTest is Fixture {
     }
 
     function test_constructor_should_revert_invalid_implementation_when_it_uses_another_pool_or_has_no_code() public {
-        LooperPosition foreign = new LooperPosition(IAavePool(makeAddr("otherPool")));
+        LooperPosition foreign = new LooperPosition(IAavePool(makeAddr("otherPool")), entryPoint);
         vm.expectRevert(ILooperFactory.InvalidImplementation.selector);
-        new LooperFactory(IAavePool(address(pool)), address(foreign), registry);
+        new LooperFactory(IAavePool(address(pool)), address(foreign));
         vm.expectRevert(ILooperFactory.InvalidImplementation.selector);
-        new LooperFactory(IAavePool(address(pool)), makeAddr("noCode"), registry);
+        new LooperFactory(IAavePool(address(pool)), makeAddr("noCode"));
     }
 
     // ── deposit / initialize ──
@@ -159,10 +159,10 @@ contract FactoryTest is Fixture {
         LooperPosition pos = open(alice, DEPOSIT, 3e18);
         ILooperPosition.Params memory p = defaultParams(3e18);
         vm.prank(address(factory));
-        vm.expectRevert(ILooperPosition.AlreadyInitialized.selector);
+        vm.expectRevert(ILooperPosition.PositionAlreadyInitialized.selector);
         pos.initialize(9, p);
         vm.prank(bob);
-        vm.expectRevert(ILooperPosition.AlreadyInitialized.selector);
+        vm.expectRevert(ILooperPosition.PositionAlreadyInitialized.selector);
         pos.initialize(9, p);
     }
 

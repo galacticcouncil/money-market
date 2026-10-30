@@ -3,8 +3,6 @@ pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC6551Registry} from "erc6551/ERC6551Registry.sol";
-import {IERC6551Registry} from "erc6551/interfaces/IERC6551Registry.sol";
 import {IAavePool} from "../../src/interfaces/IAavePool.sol";
 import {IIntentForward} from "../../src/interfaces/IIntentForward.sol";
 import {ILooperPosition} from "../../src/interfaces/ILooperPosition.sol";
@@ -18,7 +16,7 @@ import {MockAssetPrecompile} from "../mocks/MockAssetPrecompile.sol";
 
 /// @notice PRIME (6 dec, $2.50, LTV 75 %, LT 80 %) / HOLLAR (18 dec, $1) on a mock Aave pool, HDX (12 dec)
 /// as the fee asset, the mock pallet etched at 0x0401, asset precompiles etched at `(1 << 32) | id`, a
-/// factory, and drivers for fills and forwards.
+/// factory whose positions trust a stand-in ERC-4337 EntryPoint address, and drivers for fills and forwards.
 abstract contract Fixture is Test {
     address internal constant DISPATCH = 0x0000000000000000000000000000000000000401;
     uint32 internal constant HOLLAR_ID = 222;
@@ -47,13 +45,13 @@ abstract contract Fixture is Test {
     MockAToken internal aDot;
     MockERC20 internal vHollar;
     MockIntentDispatch internal pallet;
-    IERC6551Registry internal registry;
     LooperFactory internal factory;
     LooperPosition internal impl;
 
     address internal alice = makeAddr("alice");
     address internal bob = makeAddr("bob");
     address internal stranger = makeAddr("stranger");
+    address internal entryPoint = makeAddr("entryPoint");
 
     function setUp() public virtual {
         vm.warp(1_760_000_000);
@@ -80,9 +78,8 @@ abstract contract Fixture is Test {
         hollar.mint(makeAddr("hollarHolder"), 1e18);
         giftAToken(prime, aPrime, makeAddr("aPrimeHolder"), 1e6);
 
-        registry = IERC6551Registry(address(new ERC6551Registry()));
-        impl = new LooperPosition(IAavePool(address(pool)));
-        factory = new LooperFactory(IAavePool(address(pool)), address(impl), registry);
+        impl = new LooperPosition(IAavePool(address(pool)), entryPoint);
+        factory = new LooperFactory(IAavePool(address(pool)), address(impl));
 
         for (uint256 i = 0; i < 2; ++i) {
             address u = i == 0 ? alice : bob;

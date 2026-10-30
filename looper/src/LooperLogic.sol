@@ -69,7 +69,7 @@ library LooperLogic {
 
     /// @dev The first caller becomes the factory; the factory clones and initialises in one transaction.
     function initialize(State storage s, IAavePool pool, uint256 id, P.Params calldata p) external {
-        if (s.factory != address(0)) revert P.AlreadyInitialized();
+        if (s.factory != address(0)) revert P.PositionAlreadyInitialized();
         s.factory = msg.sender;
         s.tokenId = SafeCast.toUint64(id);
         s.coll = IERC20(p.collateral);
