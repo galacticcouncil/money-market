@@ -262,8 +262,8 @@ credit still deploys inside the band, only up to the target.
 
 The next-version proposal sets relever 65%, target 75% and delever 83% on both
 vaults (`NEXT.band` in `scripts/juicer/next-governance.ts`, or
-`JUICER_REBALANCE_BAND`): GIGAETH at a 75% max LTV gets 0/1000/800 and tBTC at
-80% gets 500/1000/800. The wider relever side leaves some borrowing capacity idle
+`JUICER_REBALANCE_BAND`): GIGAETH and tBTC, both at an 80% max LTV, get
+500/1000/800. The wider relever side leaves some borrowing capacity idle
 in exchange for fewer loop round trips on ordinary price swings.
 
 ## Validation and rollout
