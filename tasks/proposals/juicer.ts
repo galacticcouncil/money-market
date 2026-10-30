@@ -22,7 +22,7 @@ import {
 import ProposalDecoder from "../../helpers/proposal-decoder";
 import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "../../scripts/juicer/rounding-native";
-import { NEXT, readNextState, nextCalls, reserveCalls, parseBand } from "../../scripts/juicer/next-governance";
+import { NEXT, readNextState, nextCalls, reserveCalls, parseBand, envNumber } from "../../scripts/juicer/next-governance";
 
 // Fixed $1 oracle (reused for the synthetic — it is pegged $1 by design, like HOLLAR).
 const GHO_ORACLE_ADDRESS = "0x6096C9D71F7c06024578a62F4B608a1Bb06834F8";
@@ -59,9 +59,9 @@ const ROUTE_APRIME = Number(process.env.JUICER_APRIME_ID || 1043);
 const ROUTE_POOL = Number(process.env.JUICER_PRIME_POOL_ID || 143);
 // Explicit governance decision after measuring complete exit costs. Never
 // inherit a testnet's permissive slippage limit in a production proposal.
-const ROUTE_SLIPPAGE_PPM = Number(process.env.JUICER_SLIPPAGE_PPM ?? NaN);
+const ROUTE_SLIPPAGE_PPM = envNumber("JUICER_SLIPPAGE_PPM", NaN);
 // the loop's entries, unwinds and the peg arbitrage all trade pool 143
-const ROUTE_POOL_FEE_PPM = Number(process.env.JUICER_PRIME_POOL_FEE_PPM ?? NEXT.primePoolFeePpm);
+const ROUTE_POOL_FEE_PPM = envNumber("JUICER_PRIME_POOL_FEE_PPM", NEXT.primePoolFeePpm);
 
 // Per-poke tranche caps (HOLLAR 18dp in, aPRIME 6dp out).
 const DEPLOY_TRANCHE = process.env.JUICER_DEPLOY_TRANCHE || "5000";
@@ -134,7 +134,7 @@ task(
   `juicer`,
   `Juicer launch — list the synthetic reserve, wire the vaults, hand the guardian to the technical committee`
 ).setAction(async function (_, hre) {
-  const withdrawalDelay = Number(process.env.JUICER_WITHDRAWAL_DELAY ?? "43200");
+  const withdrawalDelay = envNumber("JUICER_WITHDRAWAL_DELAY", 43200);
   if (!Number.isInteger(withdrawalDelay) || withdrawalDelay < 0 || withdrawalDelay > 0xffffffff) {
     throw new Error("JUICER_WITHDRAWAL_DELAY must be uint32 seconds.");
   }
@@ -539,14 +539,14 @@ task(
     const expected = {
       keepers,
       harvestThreshold: process.env.JUICER_HARVEST_THRESHOLD || NEXT.harvestThreshold,
-      intentTtl: Number(process.env.JUICER_INTENT_TTL ?? NEXT.intentTtl),
-      intentDriftBps: Number(process.env.JUICER_INTENT_DRIFT_BPS ?? NEXT.intentDriftBps),
+      intentTtl: envNumber("JUICER_INTENT_TTL", NEXT.intentTtl),
+      intentDriftBps: envNumber("JUICER_INTENT_DRIFT_BPS", NEXT.intentDriftBps),
       band: process.env.JUICER_REBALANCE_BAND ? parseBand(process.env.JUICER_REBALANCE_BAND) : NEXT.band,
-      admissionMaxDeficitBps: Number(process.env.JUICER_ADMISSION_MAX_DEFICIT_BPS ?? NEXT.admissionMaxDeficitBps),
+      admissionMaxDeficitBps: envNumber("JUICER_ADMISSION_MAX_DEFICIT_BPS", NEXT.admissionMaxDeficitBps),
       revenue: discount && fees ? {
-        protocolFeeBps: Number(process.env.JUICER_PROTOCOL_FEE_BPS ?? NEXT.revenue.protocolFeeBps),
-        mainDiscountBps: Number(process.env.JUICER_DISCOUNT_BPS ?? NEXT.revenue.mainDiscountBps),
-        loopDiscountBps: Number(process.env.JUICER_LOOP_DISCOUNT_BPS ?? NEXT.revenue.loopDiscountBps),
+        protocolFeeBps: envNumber("JUICER_PROTOCOL_FEE_BPS", NEXT.revenue.protocolFeeBps),
+        mainDiscountBps: envNumber("JUICER_DISCOUNT_BPS", NEXT.revenue.mainDiscountBps),
+        loopDiscountBps: envNumber("JUICER_LOOP_DISCOUNT_BPS", NEXT.revenue.loopDiscountBps),
       } : undefined,
     };
     if (!expected.revenue) console.log("[4] revenue mix skipped — set JUICER_DISCOUNT_CONTROLLER and JUICER_FEE_CONTROLLER");

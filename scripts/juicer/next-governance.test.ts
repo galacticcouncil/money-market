@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { BigNumber, providers, utils } from "ethers";
 import {
-  NEXT, KEEPER_ROLE, DEPOSIT_GUARDIAN_ROLE, GUARDIAN_ROLE, readNextState, nextCalls, reserveCalls, nextChecks, bandGaps, parseBand,
+  NEXT, envNumber, KEEPER_ROLE, DEPOSIT_GUARDIAN_ROLE, GUARDIAN_ROLE, readNextState, nextCalls, reserveCalls, nextChecks, bandGaps, parseBand,
 } from "./next-governance";
 
 const addr = (n: number) => utils.getAddress(`0x${n.toString(16).padStart(40, "0")}`);
@@ -232,4 +232,14 @@ test("deposit admission rises from the contract's 50 to the launch cap, once", a
   for (const bad of [10001, 1.5, -1]) assert.throws(() => nextCalls(state, { admissionMaxDeficitBps: bad }), /admission deficit cap/);
   const old = await read(nextChain({ admission: null }));
   assert.throws(() => nextCalls(old, { admissionMaxDeficitBps }), /admissionMaxDeficitBps missing on chain/);
+});
+
+test("an empty env var fails loudly instead of becoming zero", () => {
+  assert.equal(envNumber("X", 100, {}), 100);
+  assert.equal(envNumber("X", 100, { X: "0" }), 0);
+  assert.equal(envNumber("X", 100, { X: " 6900 " }), 6900);
+  assert.ok(Number.isNaN(envNumber("X", NaN, {})));
+  assert.throws(() => envNumber("X", 100, { X: "" }), /X is set but empty/);
+  assert.throws(() => envNumber("X", 100, { X: "  " }), /X is set but empty/);
+  assert.throws(() => envNumber("X", 100, { X: "4k" }), /X=4k is not a number/);
 });

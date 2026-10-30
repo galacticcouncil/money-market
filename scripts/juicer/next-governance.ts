@@ -23,6 +23,15 @@ export const NEXT = {
   // discount: Main interest is repaid from every harvest, loop interest only when the loop repays
   revenue: { protocolFeeBps: 6900, mainDiscountBps: 4000, loopDiscountBps: 9000 },
 };
+/// an empty variable is a mistake, not a zero: unset takes the fallback, anything set must be a number
+export function envNumber(name: string, fallback: number, env: Record<string, string | undefined> = process.env): number {
+  const raw = env[name];
+  if (raw === undefined) return fallback;
+  if (raw.trim() === "") throw new Error(`${name} is set but empty`);
+  const value = Number(raw);
+  if (!Number.isFinite(value)) throw new Error(`${name}=${raw} is not a number`);
+  return value;
+}
 export const KEEPER_ROLE = utils.id("KEEPER_ROLE");
 export const DEPOSIT_GUARDIAN_ROLE = utils.id("DEPOSIT_GUARDIAN_ROLE");
 export const GUARDIAN_ROLE = utils.id("GUARDIAN_ROLE");
