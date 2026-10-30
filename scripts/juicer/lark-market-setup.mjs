@@ -50,7 +50,7 @@ try {
  ];
  r.additionalTestFunding=accounts;Object.assign(r.testSigners,Object.fromEntries(accounts.map(a=>[a.name,a.address])));save();
  // the ui pays a bought collateral from its ETH
- const uiBuy=eth.buy?await recordBuy(c,eth,'ui',5n*10n**16n):null;
+ const uiBuy=eth?.buy?await recordBuy(c,eth,'ui',5n*10n**16n):null;
  assert.ok(!uiBuy||BigInt(uiBuy.max)<=10n**17n,`ui: the ${eth.symbol} buy spends more than it is minted`);
  const funding=accounts.flatMap(a=>[api.tx.duster.whitelistAccount(a.who),...a.balances.map(([id,amount])=>api.tx.currencies.updateBalance(a.who,id,amount.toString())),
   ...(uiBuy&&a.name==='ui'?[buyCall(api,a.who,eth,uiBuy.amount,uiBuy.max)]:[])]);

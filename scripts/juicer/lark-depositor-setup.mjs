@@ -6,7 +6,9 @@ import assert from 'node:assert/strict';
 import {context,v,testAccount,live} from './lark-context.mjs';
 import {profile} from './lark-pins.mjs';
 import {buyQuote,buyMax,fundCalls,checkBuys,assertBought} from './lark-collateral.mjs';
-const USERS=8,USD={ETH:45000,TBTC:55000},CAP={ETH:25n*10n**18n,TBTC:10n**18n},ORACLE='0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760';
+// the plan's dollars and caps per vault come from the profile, the two-vault split by default
+const USERS=8,USD=profile.depositor?.usd??{ETH:45000,TBTC:55000},CAP=profile.depositor?.caps??{ETH:25n*10n**18n,TBTC:10n**18n},
+ ORACLE='0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760';
 const c=await context();
 try{
  const {api,r,save,readSig,govEvm,enact,nativeAccount}=c;

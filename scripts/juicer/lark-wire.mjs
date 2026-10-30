@@ -7,7 +7,7 @@ const c=await context();
 try{
  const {r,api,pub,readSig,govEvm,enact,save}=c,a=r.addresses,n=profile.names;
  assert.equal(r.sourceSlippagePpm,undefined,'Initial wiring is complete; do not overwrite later approved execution policy');
- assert.equal(r.vaults?.length,2);
+ assert.equal(r.vaults?.length,Object.keys(profile.collateral).length);
  const provider=await readSig(POOL,'function ADDRESSES_PROVIDER() view returns(address)');
  const configurator=await readSig(provider,'function getPoolConfigurator() view returns(address)');
  const oracle=await readSig(provider,'function getPriceOracle() view returns(address)');
