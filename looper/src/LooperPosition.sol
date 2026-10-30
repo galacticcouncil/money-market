@@ -3,7 +3,9 @@ pragma solidity ^0.8.22;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {ERC6551} from "solady/accounts/ERC6551.sol";
+import {Ownable} from "solady/auth/Ownable.sol";
+import {ERC4337} from "solady/accounts/ERC4337.sol";
+import {ECDSA} from "solady/utils/ECDSA.sol";
 
 import {IAavePool} from "./interfaces/IAavePool.sol";
 import {IIntentForward} from "./interfaces/IIntentForward.sol";
@@ -15,37 +17,38 @@ import {Dispatch} from "./lib/Dispatch.sol";
 /// @notice One leveraged Aave position per clone, owned by the holder of factory NFT `tokenId`. The clone
 /// is the Aave user, the ICE intent owner and the forward receiver, so each fill calls it back as itself
 /// and it runs the next rung. Storage and entry points only; the logic lives in `LooperLogic`.
-/// The clone is also the NFT's ERC-6551 account: the holder can `execute` any EVM call from it, except into
-/// the account itself, the dispatch precompile, the pool and the position's own tokens, and no credit delegation.
-contract LooperPosition is ILooperPosition, IIntentForward, ERC6551 {
+/// The clone is also an ERC-4337 account: the holder, or the EntryPoint with the holder's signature, can
+/// `execute` any EVM call from it, except into the account itself, the dispatch precompile, the pool and the
+/// position's own tokens, and no credit delegation.
+contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
     error TargetNotAllowed(address target);
     error SelectorNotAllowed(bytes4 selector);
+    error NotSupported();
 
     /// @dev Every Aave debt token has it; a delegation would let someone borrow against this position after a sale.
     bytes4 internal constant APPROVE_DELEGATION = bytes4(keccak256("approveDelegation(address,uint256)"));
 
     IAavePool public immutable pool;
+    /// @dev Zero means no EntryPoint: only the holder can execute. Hydration has none today.
+    address internal immutable _entryPoint;
 
     LooperLogic.State internal s;
 
-    modifier onlyOwner() {
+    modifier onlyOwner() override {
         if (msg.sender != owner()) revert NotOwner();
         _;
     }
 
-    constructor(IAavePool pool_) {
+    /// @dev Marks the implementation's own storage as initialised, so nobody can initialise it.
+    constructor(IAavePool pool_, address entryPoint_) {
         pool = pool_;
+        _entryPoint = entryPoint_;
+        s.factory = address(1);
     }
 
     // ── factory ──
 
-    /// @dev The registry lets anyone create this account, so the first initialise must come from the NFT
-    /// contract it is bound to, for its own token id. Later calls fall through to `AlreadyInitialized`.
     function initialize(uint256 id, Params calldata p) external {
-        if (s.factory == address(0)) {
-            (, address tokenContract, uint256 boundId) = token();
-            if (msg.sender != tokenContract || id != boundId) revert NotFactory();
-        }
         LooperLogic.initialize(s, pool, id, p);
     }
 
@@ -103,23 +106,61 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC6551 {
         return LooperLogic.step(s, pool);
     }
 
-    // ── token-bound account (ERC-6551, holder only) ──
+    // ── ERC-4337 account (holder, or the EntryPoint with the holder's signature) ──
 
-    function execute(address target, uint256 value, bytes calldata data, uint8 operation)
+    function entryPoint() public view override returns (address) {
+        return _entryPoint;
+    }
+
+    function execute(address target, uint256 value, bytes calldata data)
         public
         payable
         override
         returns (bytes memory)
     {
         _checkCall(target, data);
-        return super.execute(target, value, data, operation);
+        return super.execute(target, value, data);
     }
 
-    function executeBatch(Call[] calldata calls, uint8 operation) public payable override returns (bytes[] memory) {
+    function executeBatch(Call[] calldata calls) public payable override returns (bytes[] memory) {
         for (uint256 i = 0; i < calls.length; ++i) {
             _checkCall(calls[i].target, calls[i].data);
         }
-        return super.executeBatch(calls, operation);
+        return super.executeBatch(calls);
+    }
+
+    /// @dev A delegatecall or a raw storage write could rewrite the ladder's books.
+    function delegateExecute(address, bytes calldata) public payable override returns (bytes memory) {
+        revert NotSupported();
+    }
+
+    function storageStore(bytes32, bytes32) public payable override {
+        revert NotSupported();
+    }
+
+    /// @dev The owner is whoever holds the NFT, so Solady's stored-owner setters would change nothing.
+    function initialize(address) public payable override {
+        revert NotSupported();
+    }
+
+    function transferOwnership(address) public payable override {
+        revert NotSupported();
+    }
+
+    function renounceOwnership() public payable override {
+        revert NotSupported();
+    }
+
+    function requestOwnershipHandover() public payable override {
+        revert NotSupported();
+    }
+
+    function cancelOwnershipHandover() public payable override {
+        revert NotSupported();
+    }
+
+    function completeOwnershipHandover(address) public payable override {
+        revert NotSupported();
     }
 
     // ── views ──
@@ -132,7 +173,7 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC6551 {
         return s.tokenId;
     }
 
-    function owner() public view override(ILooperPosition, ERC6551) returns (address) {
+    function owner() public view override(ILooperPosition, Ownable) returns (address) {
         return IERC721(s.factory).ownerOf(s.tokenId);
     }
 
@@ -263,9 +304,20 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC6551 {
         return address(uint160((uint256(1) << 32) | assetId));
     }
 
+    /// @dev Owner EOA only: the holder's ECDSA signature over the eth-signed op hash. 1 means a bad signature.
+    function _validateSignature(PackedUserOperation calldata userOp, bytes32 userOpHash)
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        address signer = ECDSA.tryRecoverCalldata(ECDSA.toEthSignedMessageHash(userOpHash), userOp.signature);
+        return signer == owner() ? 0 : 1;
+    }
+
     /// @dev No upgrades: a new implementation still means a new factory.
     function _authorizeUpgrade(address) internal pure override {
-        revert Unauthorized();
+        revert NotSupported();
     }
 
     /// @dev An unknown selector reverts instead of being read as compressed calldata.

@@ -27,6 +27,3 @@
 [submodule "looper/lib/solady"]
 	path = looper/lib/solady
 	url = https://github.com/Vectorized/solady
-[submodule "looper/lib/erc6551"]
-	path = looper/lib/erc6551
-	url = https://github.com/erc6551/reference

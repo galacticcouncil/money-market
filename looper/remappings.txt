@@ -4,4 +4,3 @@ forge-std/=../bil-vault/lib/forge-std/src/
 solmate/=../bil-vault/lib/solmate/
 juicer-vault/=../juicer-vault/src/
 solady/=lib/solady/src/
-erc6551/=lib/erc6551/src/
