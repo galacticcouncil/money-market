@@ -112,7 +112,8 @@ try {
   await ws.send('dev_setBlockBuildMode', ['Instant']);
   // Refresh the mutable implementations and Harvester to the final artifacts
   // before exercising the controller against the funded local campaign.
-  const implementation = await deploy('SubLoop', [], 'sourceImplementation');
+  const sourceLogic = await deploy('SubLoopLogic', [], 'sourceLogic');
+  const implementation = await deploy('SubLoop', [sourceLogic], 'sourceImplementation');
   await send('source.currentImplementation', source, artifact('SubLoop').abi, 'upgradeTo', [implementation]);
   const compoundLogic = await deploy('CompoundLogic', [], 'compoundLogic');
   const vaultImplementation = await deploy('CollateralVault', [compoundLogic], 'vaultImplementation');
