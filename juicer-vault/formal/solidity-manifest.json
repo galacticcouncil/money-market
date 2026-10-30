@@ -6,7 +6,7 @@
   "files": {
     "src/CollateralVault.sol": "9f1792b85bc51509e32509ee086fe067404fbd3070c295e4af8d0491961f5142",
     "src/JuicerYieldAccounting.sol": "fe7fbac094f1e52e374dc3b97036e9fc151940c32407c7a412b65797dcd8184e",
-    "src/SubLoop.sol": "ecd3c94ee76c99a876efdd59d65c759510c6b6390b8c51c10fd772205de30359",
+    "src/SubLoop.sol": "c9ee1d7d971ef1582cd36a7440beab88bb8be913b2d23444051adfc958178419",
     "src/lib/SubLoopLogic.sol": "839a6057831cbf8ecba47cbeaa0672715c00d6f266a7b22d849102c80ce59633",
     "src/lib/CompoundLogic.sol": "c77d8dac01f6d558040aec8ac797b1fd54124ce3f79ddc30393b8eff22100e21",
     "../tasks/proposals/juicer.ts": "4ef3aa82b8c31ba17cf354f441ebf6f2430ce2f203cd5b73a1c80b686e88e521",
@@ -70,7 +70,7 @@
     "formal/check-dispatch.py": "7aa74123bf7c62d212d9d124665f764721bd8d956b764ca25830e0b06efbebf8",
     "formal/check-runtime.py": "e6a8e165c11289b88ede4425d2a89f8aabdf2c6f6f9ec928d5b427e61bc8ea1d",
     "formal/check-bytecode.py": "32ab0923c948c708830aafdecbd726e6b134aa30f0d882daa8ba58f5177c3202",
-    "formal/bytecode-manifest.json": "5f5a38be8abe513e94b4e5990b23bf4596ebd9f10950c4a119a91395a68bb182",
+    "formal/bytecode-manifest.json": "dc5358ffb3e9daaf140328012bd4675522618cf1cbb4aaddeeaecbe73fb13b1e",
     "test/formal/RescaleAmplification.t.sol": "0d3ceab17f24d4280fdbd51334a21cfe6fcc9855ea235c8b40aad8a927e57c5f",
     "test/formal/RescaleEconomics.t.sol": "c72d1e9a1b986c511b00b4e63f6be80a8513e35a3f1b711f3adb1d259711bb3a",
     "test/formal/RescaleFeasibility.t.sol": "8be00e1f0bcaf5014cd68b08887f5b5ea7482c322b656c764cd7cec4017d08d9",
@@ -176,6 +176,6 @@
     "formal/JuicerLean/FixedPoint/LoopConfig.lean": "4069a040e3e5c22b7d68993ab31de0b729b02e5edcfd0ac1268b1a69e45a7c14",
     "formal/JuicerLean/FixedPoint/Discount.lean": "f8e8291b5e7c66db7c5496659326cb9b33e7e566a58051a874807be1ff48b085",
     "formal/ConfigVectors.lean": "55562a36022838264f74b21ad222752b223b48bd680b47ac70c9239d2c604556",
-    "test/formal/LeanConfigParity.t.sol": "0606af1093d73bedc8096f3120809c33b4b516054f0e015efae2bec0056b7c78"
+    "test/formal/LeanConfigParity.t.sol": "3886afe8b7b6f18f2b183014d5fc460585e92045c74cee0675465a0df9afe3cc"
   }
 }

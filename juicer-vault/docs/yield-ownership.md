@@ -253,7 +253,9 @@ under it, delever 3% over it, the earlier constants.
 
 The loop's `ADMIN_ROLE` sets it per vault with `setRebalanceBand(vault, target,
 relever, delever)`; all zeros restores the default. Relever and delever gaps are
-nonzero, the target and relever gaps at most 50%, the delever gap at most 25%.
+nonzero, the target and relever gaps at most 50%, the delever gap at most 25%. A
+non-default band must also delever below the collateral's liquidation threshold
+(target + delever gap < LT, read from the same reserve configuration).
 The band stays relative to the live max LTV, so a governance LTV change moves it;
 absolute bands were removed once because they drifted from governance. Earned
 credit still deploys inside the band, only up to the target.

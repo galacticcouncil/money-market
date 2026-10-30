@@ -15,6 +15,7 @@ import {SubLoopStorage, SubLoopLogic} from "./lib/SubLoopLogic.sol";
 interface ISourceYieldVault {
     function burnYieldShares(uint256 shares) external;
     function yieldAccounting() external view returns (address);
+    function collateral() external view returns (address);
 }
 
 /// @title SubLoop
@@ -490,6 +491,13 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         bool bounded = releverGap != 0 && deleverGap != 0 && targetGap <= 5_000 && releverGap <= 5_000
             && deleverGap <= 2_500;
         if (!hasRole(VAULT_ROLE, vault) || !(reset || bounded)) revert InvalidParameters();
+        if (!reset) {
+            // the delever point stays under the collateral's liquidation threshold
+            uint256 config = pool.getConfiguration(ISourceYieldVault(vault).collateral());
+            uint256 target = config & 0xFFFF;
+            target = target > targetGap ? target - targetGap : 0;
+            if (target + deleverGap >= (config >> 16) & 0xFFFF) revert InvalidParameters();
+        }
         _rebalanceBands[vault] = RebalanceBand(targetGap, releverGap, deleverGap);
         emit RebalanceBandSet(vault, targetGap, releverGap, deleverGap);
     }

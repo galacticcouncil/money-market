@@ -11,6 +11,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPool} from "./mocks/MockPool.sol";
 import {MockDispatch} from "./mocks/MockDispatch.sol";
 import {Artifacts} from "./helpers/Artifacts.t.sol";
+import {CollateralStub} from "./mocks/CollateralStub.sol";
 
 /// @notice keeper ops: rebalance toward the live max ltv, and maintainPeg re-topping
 ///         the synthetic as main debt accrues.
@@ -207,19 +208,20 @@ contract KeeperOpsTest is Test {
             vm.expectRevert(SubLoop.InvalidParameters.selector);
             loop.setRebalanceBand(address(vault), invalid[i][0], invalid[i][1], invalid[i][2]);
         }
-        loop.registerVault(address(0xBEEF));
+        address other = address(new CollateralStub(address(eth)));
+        loop.registerVault(other);
         vm.expectEmit(true, false, false, true, address(loop));
-        emit SubLoop.RebalanceBandSet(address(0xBEEF), 500, 1_000, 800);
-        loop.setRebalanceBand(address(0xBEEF), 500, 1_000, 800);
-        (uint16 target, uint16 relever, uint16 delever) = loop.rebalanceBand(address(0xBEEF));
+        emit SubLoop.RebalanceBandSet(other, 500, 1_000, 800);
+        loop.setRebalanceBand(other, 500, 1_000, 800);
+        (uint16 target, uint16 relever, uint16 delever) = loop.rebalanceBand(other);
         assertEq(target, 500);
         assertEq(relever, 1_000);
         assertEq(delever, 800);
         (, relever,) = loop.rebalanceBand(address(vault));
         assertEq(relever, 500, "other vaults keep theirs");
-        loop.setRebalanceBand(address(0xBEEF), 5_000, 5_000, 2_500);
-        loop.setRebalanceBand(address(0xBEEF), 0, 0, 0);
-        (target, relever, delever) = loop.rebalanceBand(address(0xBEEF));
+        loop.setRebalanceBand(other, 5_000, 5_000, 2_500);
+        loop.setRebalanceBand(other, 0, 0, 0);
+        (target, relever, delever) = loop.rebalanceBand(other);
         assertEq(target, 0);
         assertEq(relever, 500);
         assertEq(delever, 300);
@@ -357,5 +359,19 @@ contract KeeperOpsTest is Test {
         _exitNinetyPercentSettled(false);
         loop.setRebalanceBand(address(vault), 0, 0, 0);
         _thirtyDollarDepositDeploysAtTarget();
+    }
+
+    function test_bandDeleverStaysUnderTheLiquidationThreshold() public {
+        // eth: max ltv 75%, liquidation threshold 85%
+        vm.expectRevert(SubLoop.InvalidParameters.selector);
+        loop.setRebalanceBand(address(vault), 0, 1_000, 1_000);
+        loop.setRebalanceBand(address(vault), 0, 1_000, 999);
+        vm.expectRevert(SubLoop.InvalidParameters.selector);
+        loop.setRebalanceBand(address(vault), 500, 1_000, 1_500);
+        loop.setRebalanceBand(address(vault), 500, 1_000, 1_499);
+        pool.initReserve(address(eth), address(aEth), address(ethDebt), 7_600, 7_500, 18, 3_000e18);
+        vm.expectRevert(SubLoop.InvalidParameters.selector);
+        loop.setRebalanceBand(address(vault), 0, 1_000, 100);
+        loop.setRebalanceBand(address(vault), 0, 0, 0);
     }
 }
