@@ -558,7 +558,7 @@ task(
     clearBatch();
   } else {
     console.log(
-      "[4] skipped — set JUICER_KEEPERS and JUICER_EXECUTION_CONTROLLER (with the loop and vaults) for keeper roles, the harvest threshold, ICE and bands"
+      "[4] skipped — set JUICER_KEEPERS and JUICER_EXECUTION_CONTROLLER (with the loop and vaults) for keeper roles, the harvest threshold, ICE, bands, the admission cap and the revenue mix"
     );
   }
 
