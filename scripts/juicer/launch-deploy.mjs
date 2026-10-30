@@ -73,8 +73,13 @@ try{
   const estimate=BigInt(await pub.request({method:'eth_estimateGas',params:[{from:account.address,data,gas:v.toHex(ceiling),gasPrice:v.toHex(gasPrice)},'latest']}));
   const gas=(estimate*110n+99n)/100n;assert.ok(gas<=maxTransactionGas,`${label}: creation exceeds the native transaction gas cap`);
   const nonce=await pub.getTransactionCount({address:account.address,blockTag:'pending'});
-  const serialized=await wallet.signTransaction({chainId:222222,data,gas,gasPrice,nonce,type:'legacy'});
-  const hash=await pub.sendRawTransaction({serializedTransaction:serialized});
+  let hash;
+  for(let attempt=0;;attempt++){
+   // chopsticks' decoder rejects a signature whose s starts with a zero byte; a wei more re-signs it
+   const serialized=await wallet.signTransaction({chainId:222222,data,gas,gasPrice:gasPrice+BigInt(attempt),nonce,type:'legacy'});
+   try{hash=await pub.sendRawTransaction({serializedTransaction:serialized});break;}
+   catch(e){if(attempt>=3||!String(e?.cause?.message??e).includes('Expected input with 32 bytes'))throw e;}
+  }
   const r=await pub.waitForTransactionReceipt({hash,timeout:240000});
   assert.equal(r.status,'success',`${label} reverted`);
   const code=await pub.getBytecode({address:r.contractAddress});

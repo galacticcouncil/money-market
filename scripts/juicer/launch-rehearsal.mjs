@@ -139,7 +139,11 @@ async function smoke(file){
  // explicit gas: frontier's estimate can false-revert on precompile-heavy calls
  async function call(who,label,address,a,functionName,args=[],gas=6_000_000n){
   const wallet=v.createWalletClient({account:who,chain,transport:v.http(RPC,{timeout:180000})});
-  const hash=await wallet.writeContract({address,abi:a,functionName,args,gas,gasPrice,type:'legacy'});
+  let hash;
+  for(let attempt=0;;attempt++){
+   try{hash=await wallet.writeContract({address,abi:a,functionName,args,gas,gasPrice:gasPrice+BigInt(attempt),type:'legacy'});break;}
+   catch(e){if(attempt>=3||!String(e).includes('Expected input with 32 bytes'))throw e;}
+  }
   const r=await pub.waitForTransactionReceipt({hash,timeout:240000});
   const logs=[];
   for(const l of r.logs)for(const x of [abi,loopAbi,artifact('ExecutionController').abi]){
