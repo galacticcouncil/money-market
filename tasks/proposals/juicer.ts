@@ -151,7 +151,8 @@ task(
   if (process.env.JUICER_MANIFEST) {
     for (const [k, v] of Object.entries(manifestEnv(JSON.parse(readFileSync(process.env.JUICER_MANIFEST, "utf8"))))) process.env[k] ??= v;
   }
-  const withdrawalDelay = envNumber("JUICER_WITHDRAWAL_DELAY", 43200);
+  // 7 days; waiting shares stay invested and earn until their unwind starts
+  const withdrawalDelay = envNumber("JUICER_WITHDRAWAL_DELAY", 604800);
   if (!Number.isInteger(withdrawalDelay) || withdrawalDelay < 0 || withdrawalDelay > 0xffffffff) {
     throw new Error("JUICER_WITHDRAWAL_DELAY must be uint32 seconds.");
   }

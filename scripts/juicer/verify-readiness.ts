@@ -25,7 +25,7 @@
 //     scripts/juicer/verify-readiness.ts
 //
 // Optional: JUICER_SWAPPER, JUICER_GUARDIAN, JUICER_LOOPER,
-//           JUICER_SYNTH_ASSET_ID, JUICER_WITHDRAWAL_DELAY (seconds; default 43200), POOL,
+//           JUICER_SYNTH_ASSET_ID, JUICER_WITHDRAWAL_DELAY (seconds; default 604800, 7 days), POOL,
 // The launch mix is the default (NEXT in next-governance.ts), so a deployment after the launch
 // proposal passes as is; before it, override with the registration values (fee 500, rates 0):
 //           JUICER_PRIME_POOL_FEE_PPM (default 100), JUICER_PROTOCOL_FEE_BPS (default 6900),
@@ -62,7 +62,7 @@ const DISCOUNT = req("JUICER_DISCOUNT_CONTROLLER");
 const COMMITTEE = req("JUICER_DISCOUNT_COMMITTEE");
 const DISCOUNT_BPS = envNumber("JUICER_DISCOUNT_BPS", NEXT.revenue.mainDiscountBps);
 const SLIPPAGE_PPM = Number(req("JUICER_SLIPPAGE_PPM"));
-const WITHDRAWAL_DELAY = Number(process.env.JUICER_WITHDRAWAL_DELAY ?? "43200");
+const WITHDRAWAL_DELAY = Number(process.env.JUICER_WITHDRAWAL_DELAY ?? "604800");
 const SYNTH_ASSET_ID = Number(process.env.JUICER_SYNTH_ASSET_ID || 5550);
 const POOL = process.env.POOL || "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38";
 const GOV = "0xaa7e0000000000000000000000000000000aa7e0";

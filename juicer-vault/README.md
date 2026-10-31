@@ -91,7 +91,9 @@ but does not replace missing HOLLAR.
    Falling collateral value triggers a PRIME-loop unwind whose net HOLLAR
    repays Main. Ordinary resizing does not sell deposited collateral.
 4. **Request withdrawal.** `requestRedeem` escrows shares for the configured
-   delay, initially 12 hours. Those shares remain invested during the wait.
+   delay: 12 hours at initialize, 7 days from the launch proposal. Those shares
+   remain invested and keep earning until the unwind starts; a request cannot be
+   cancelled.
    Governance can set `setWithdrawalDelay(uint32)` to zero for future requests;
    queued requests keep their original eligibility time.
    A request beyond the wallet commits reward units to it;
@@ -121,7 +123,7 @@ compounded user yield are not implemented. See [principal and emergency policy](
 | Loop interest discount | Governance enrolls the loop with a cap on its discounted HOLLAR; governance and the committee set its separate rate, zero until the launch proposal sets 90%. |
 | Protocol fee           | Governance sets a rate per vault, 5% at registration; the launch proposal sets 69%, so about 80% of treasury income arrives in collateral ([revenue mix](docs/protocol-fees.md#revenue-mix)). Yield ownership and its fee vest at checkpoint; collection waits for realization. |
 | Treasury recipient     | Owner-configurable; all unclaimed fees follow the new recipient. Anyone may trigger payment to that recipient.                                        |
-| Withdrawal delay       | Governance-configurable per vault, initially 12 hours before unwinding; existing requests retain their eligibility time.                              |
+| Withdrawal delay       | Governance-configurable per vault: 12 hours at initialize, 7 days at launch; existing requests retain their eligibility time.                              |
 | Headroom exits         | Governance turns them on per vault with a gap under max LTV (`SubLoop.setExitHeadroom`); off in storage, on in the launch proposal. Exits that fit settle without selling the loop ([headroom exits](docs/yield-ownership.md#headroom-exits)). |
 | Emergency freeze       | Guardian can freeze; governance reopens. Local vault freeze and source-wide emergency freeze are distinct from the source route kill switch.          |
 | Share transfers        | Stopped only by a vault's own pause, not by a source-wide freeze. A vault's `pause()` reverts while that freeze is set, so pause vaults first.        |

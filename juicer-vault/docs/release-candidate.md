@@ -45,7 +45,7 @@ identify its seven production contract templates. No release tag is implied.
   automatic widening. Retention is not funded insurance and can delay harvests.
 - Principal rounding protections, preserved unpaid source claims and original
   exit ownership. Deposits block while underfunded; governance funds recovery.
-- Configurable withdrawal delay, initially 12 hours before unwinding, plus
+- Configurable withdrawal delay (12 hours at initialize, 7 days at launch) before unwinding, plus
   emergency controls. Fair all-holder emergency accounting remains a manual
   governance responsibility, not an implemented automatic settlement engine.
 - Keeper/readiness changes, source-upgrade storage/accounting compatibility
