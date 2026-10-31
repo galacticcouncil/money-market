@@ -415,9 +415,10 @@ export function nextChecks(state: NextState, e: Expected): Check[] {
 export const LAUNCH = {
   pacing: 60,
   expiryDays: 90,
-  // HOLLAR 18dp in, aPRIME 6dp out and back: 2,500 a trade, 25,000 deep, 50 a second
-  entry: { capacity: utils.parseUnits("25000", 18), refill: utils.parseUnits("50", 18), minimum: utils.parseUnits("1", 18), maximum: utils.parseUnits("2500", 18) },
-  unwind: { capacity: utils.parseUnits("25000", 6), refill: utils.parseUnits("50", 6), minimum: BigNumber.from(10000), maximum: utils.parseUnits("2500", 6) },
+  // HOLLAR 18dp in, aPRIME 6dp out and back: 2,500 a trade, 25,000 deep, 10 a second
+  // (~$36k/h) so arbitrage can refill pool 143's ~430k PRIME behind the ramp
+  entry: { capacity: utils.parseUnits("25000", 18), refill: utils.parseUnits("10", 18), minimum: utils.parseUnits("1", 18), maximum: utils.parseUnits("2500", 18) },
+  unwind: { capacity: utils.parseUnits("25000", 6), refill: utils.parseUnits("10", 6), minimum: BigNumber.from(10000), maximum: utils.parseUnits("2500", 6) },
   // PRIME 6dp, one budget for every vault's harvest
   harvest: { capacity: utils.parseUnits("1000", 6), refill: utils.parseUnits("1", 6), minimum: BigNumber.from(10000), maximum: utils.parseUnits("50", 6) },
   // collateral sold for Main interest, by asset id: tBTC and GIGAETH (18dp), ~$100 a trade

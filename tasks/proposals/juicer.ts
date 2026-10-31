@@ -55,7 +55,8 @@ const ROUTE_APRIME = Number(process.env.JUICER_APRIME_ID || 1043);
 const ROUTE_POOL = Number(process.env.JUICER_PRIME_POOL_ID || 143);
 // Explicit governance decision after measuring complete exit costs. Never
 // inherit a testnet's permissive slippage limit in a production proposal.
-const ROUTE_SLIPPAGE_PPM = envNumber("JUICER_SLIPPAGE_PPM", NaN);
+// 35 bps: PRIME traded ~30 bps over the oracle in pool 143 on 31 oct
+const ROUTE_SLIPPAGE_PPM = envNumber("JUICER_SLIPPAGE_PPM", 3500);
 // the loop's entries, unwinds and the peg arbitrage all trade pool 143
 const ROUTE_POOL_FEE_PPM = envNumber("JUICER_PRIME_POOL_FEE_PPM", NEXT.primePoolFeePpm);
 
@@ -157,7 +158,7 @@ task(
     throw new Error("JUICER_WITHDRAWAL_DELAY must be uint32 seconds.");
   }
   if (!Number.isInteger(ROUTE_SLIPPAGE_PPM) || ROUTE_SLIPPAGE_PPM < 0 || ROUTE_SLIPPAGE_PPM >= 1_000_000 || ROUTE_SLIPPAGE_PPM % 100 !== 0) {
-    throw new Error("Set an explicitly reviewed JUICER_SLIPPAGE_PPM in whole bps (0..999900); there is no default. It also caps both PRIME lanes.");
+    throw new Error("JUICER_SLIPPAGE_PPM must be whole bps (0..999900); it also caps both PRIME lanes.");
   }
   if (!Number.isInteger(ROUTE_POOL_FEE_PPM) || ROUTE_POOL_FEE_PPM < 0 || ROUTE_POOL_FEE_PPM >= 1_000_000) {
     throw new Error("JUICER_PRIME_POOL_FEE_PPM must be a Permill in 0..999999.");

@@ -13,7 +13,7 @@ export const SYNTH=['Juicer Synthetic HOLLAR','jsHOLLAR'];
 export const LOOP=[1050000000000000000n,1100000000000000000n],QUOTES=[60n,5n];
 // tvl caps in collateral base units; jBTC launches, jETH joins a later deployment with its own referendum
 export const VAULTS={
- TBTC:{assetId:1000765,name:'Juicer BTC',symbol:'jBTC',cap:10n**18n},
+ TBTC:{assetId:1000765,name:'Juicer BTC',symbol:'jBTC',cap:1337n*10n**15n},
  ETH:{assetId:4200,name:'Juicer ETH',symbol:'jETH',cap:10n*10n**18n},
 };
 export const ROLES=['DEFAULT_ADMIN_ROLE','ADMIN_ROLE','UPGRADER_ROLE','GUARDIAN_ROLE','MINTER_ROLE','VAULT_ROLE','KEEPER_ROLE','DEPOSIT_GUARDIAN_ROLE','RATE_ADMIN_ROLE'];
