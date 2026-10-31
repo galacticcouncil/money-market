@@ -1,14 +1,12 @@
-// Deployer-only Juicer launch. Deploys every contract with governance as admin from construction,
-// then makes no call: the wiring is the one launch referendum (tasks/proposals/juicer.ts, which reads
-// JUICER_MANIFEST). Resumes from the manifest; rerun with JUICER_LAUNCH_VAULTS=ETH to add a vault.
-//   JUICER_ARTIFACT_DIR (reviewed london build), JUICER_ADAPTER_ARTIFACT (HydraAugustus),
-//   JUICER_DEPLOY_ARTIFACT_DIR (deploy/ helpers), RPC (eth http), WS (default from RPC)
+// Deployer-only Juicer launch. Deploys every contract with governance as admin from construction; its one
+// call after is handing the adapter (HydraAugustus owns itself to its creator) to governance. The wiring
+// is the one launch referendum (tasks/proposals/juicer.ts, which reads JUICER_MANIFEST). Resumes from the
+// manifest; rerun with JUICER_LAUNCH_VAULTS=ETH to add a vault.
+//   JUICER_ARTIFACT_DIR (reviewed london build), JUICER_ADAPTER_ARTIFACT (HydraAugustus), RPC (eth http), WS (default from RPC)
 //   mainnet: JUICER_DEPLOYER_KEY_FILE; --fork: a public dev key, local endpoints only
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {existsSync,readFileSync,writeFileSync} from 'node:fs';
-import {resolve} from 'node:path';
-import {createHash} from 'node:crypto';
 import {artifact,artifactManifest,maxTransactionGas} from './native-artifacts.mjs';
 import {GOV,COMMITTEE,POOL,HOLLAR,HOLLAR_DEBT,DISPATCH,token,SYNTH,LOOP,QUOTES,ROLES,roundingPolicy,launchVaults} from './launch-manifest.mjs';
 const require=createRequire(import.meta.url);
@@ -23,15 +21,6 @@ if(fork)for(const url of [RPC,WS])assert.match(new URL(url).hostname,/^(127\.0\.
 else assert.ok(process.env.JUICER_DEPLOYER_KEY_FILE,'set JUICER_DEPLOYER_KEY_FILE (a path, never the key), or --fork');
 const account=fork?mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:Number(process.env.JUICER_DEPLOYER_INDEX??21)})
  :privateKeyToAccount(readFileSync(process.env.JUICER_DEPLOYER_KEY_FILE,'utf8').trim());
-const HELPERS=process.env.JUICER_DEPLOY_ARTIFACT_DIR;
-assert.ok(HELPERS,'set JUICER_DEPLOY_ARTIFACT_DIR to the london build of juicer-vault/deploy');
-const helper=name=>{
- const file=resolve(HELPERS,`${name}.sol`,`${name}.json`),bytes=readFileSync(file),a=JSON.parse(bytes);
- const settings=(typeof a.metadata==='string'?JSON.parse(a.metadata):a.metadata).settings;
- assert.equal(settings.evmVersion,'london',`${name}: expected a london build`);
- artifactManifest[name]={file,sha256:createHash('sha256').update(bytes).digest('hex')};
- return a;
-};
 const hex=x=>x.startsWith('0x')?x:`0x${x}`;
 const json=x=>JSON.stringify(x,(_,y)=>typeof y==='bigint'?y.toString():y,2)+'\n';
 const api=await ApiPromise.create({provider:new WsProvider(WS,2500,{},120000),noInitWarn:true});
@@ -43,12 +32,11 @@ try{
  assert.equal(await pub.getChainId(),222222);
  const m=existsSync(FILE)?JSON.parse(readFileSync(FILE,'utf8')):{kind:'juicer-launch',chainId:222222,genesis,rpc:RPC,deployer:account.address,
   governance:GOV,committee:COMMITTEE,startedBlock:(await api.rpc.chain.getHeader()).number.toNumber(),startNonce:await pub.getTransactionCount({address:account.address}),
-  deployments:[],addresses:{},vaults:[],checks:{}};
+  deployments:[],calls:[],addresses:{},vaults:[],checks:{}};
  assert.equal(m.genesis,genesis,'the manifest belongs to another chain');
  assert.equal(m.deployer.toLowerCase(),account.address.toLowerCase(),'the manifest belongs to another deployer');
  const save=()=>{m.artifacts={...m.artifacts,...artifactManifest};writeFileSync(FILE,json(m));};
- assert.ok((await api.query.evmAccounts.contractDeployer(account.address)).isSome,
-  `${account.address} is not a whitelisted contract deployer: evmAccounts.addContractDeployer is a Root/GeneralAdmin decision before this runs`);
+ assert.ok((await api.query.evmAccounts.contractDeployer(account.address)).isSome,`${account.address} is not a whitelisted contract deployer`);
  const readSig=(address,signature,args=[])=>{const abi=v.parseAbi([signature]);return pub.readContract({address,abi,functionName:abi[0].name,args});};
  const reserve=async asset=>pub.readContract({address:POOL,abi:v.parseAbi(['function getReserveData(address) view returns ((uint256 configuration,uint128 liquidityIndex,uint128 liquidityRate,uint128 borrowIndex,uint128 borrowRate,uint128 stableRate,uint40 updatedAt,uint16 id,address aToken,address stableDebt,address variableDebt,address strategy,uint128 accrued,uint128 unbacked,uint128 isolationDebt))']),functionName:'getReserveData',args:[asset]});
  const aPrime=(await reserve(token(43))).aToken,hollarDebt=(await reserve(HOLLAR)).variableDebt;
@@ -64,38 +52,39 @@ try{
   }
   return actual===expected;
  };
- async function deploy(label,a,args=[]){
-  const prev=m.deployments.find(d=>d.label===label);
-  if(prev){assert.equal(v.keccak256(await pub.getBytecode({address:prev.address})),prev.codeHash,`${label}: code changed since recorded`);return prev.address;}
-  const data=v.encodeDeployData({abi:a.abi,bytecode:hex(a.bytecode.object),args});
-  assert.ok((data.length-2)/2<=49152,`${label}: initcode exceeds EIP-3860`);
+ async function send(label,to,data){
   const ceiling=maxTransactionGas*100n/110n;
-  const estimate=BigInt(await pub.request({method:'eth_estimateGas',params:[{from:account.address,data,gas:v.toHex(ceiling),gasPrice:v.toHex(gasPrice)},'latest']}));
-  const gas=(estimate*110n+99n)/100n;assert.ok(gas<=maxTransactionGas,`${label}: creation exceeds the native transaction gas cap`);
+  const estimate=BigInt(await pub.request({method:'eth_estimateGas',params:[{from:account.address,...(to?{to}:{}),data,gas:v.toHex(ceiling),gasPrice:v.toHex(gasPrice)},'latest']}));
+  const gas=(estimate*110n+99n)/100n;assert.ok(gas<=maxTransactionGas,`${label}: exceeds the native transaction gas cap`);
   const nonce=await pub.getTransactionCount({address:account.address,blockTag:'pending'});
   let hash;
   for(let attempt=0;;attempt++){
    // chopsticks' decoder rejects a signature whose s starts with a zero byte; a wei more re-signs it
-   const serialized=await wallet.signTransaction({chainId:222222,data,gas,gasPrice:gasPrice+BigInt(attempt),nonce,type:'legacy'});
+   const serialized=await wallet.signTransaction({chainId:222222,...(to?{to}:{}),data,gas,gasPrice:gasPrice+BigInt(attempt),nonce,type:'legacy'});
    try{hash=await pub.sendRawTransaction({serializedTransaction:serialized});break;}
    catch(e){if(attempt>=3||!String(e?.cause?.message??e).includes('Expected input with 32 bytes'))throw e;}
   }
   const r=await pub.waitForTransactionReceipt({hash,timeout:240000});
   assert.equal(r.status,'success',`${label} reverted`);
+  return {r,hash,nonce,gas};
+ }
+ async function deploy(label,a,args=[]){
+  const prev=m.deployments.find(d=>d.label===label);
+  if(prev){assert.equal(v.keccak256(await pub.getBytecode({address:prev.address})),prev.codeHash,`${label}: code changed since recorded`);return prev.address;}
+  const data=v.encodeDeployData({abi:a.abi,bytecode:hex(a.bytecode.object),args});
+  assert.ok((data.length-2)/2<=49152,`${label}: initcode exceeds EIP-3860`);
+  const {r,hash,nonce,gas}=await send(label,undefined,data);
   const code=await pub.getBytecode({address:r.contractAddress});
   assert.ok(code&&code!=='0x'&&(code.length-2)/2<=24576,`${label}: no code or over EIP-170`);
-  const rec={label,name:a.contractName??label.split('.')[0],address:r.contractAddress,transactionHash:hash,block:Number(r.blockNumber),nonce,gasUsed:r.gasUsed,gasLimit:gas,
+  const rec={label,name:a.contractName,address:r.contractAddress,transactionHash:hash,block:Number(r.blockNumber),nonce,gasUsed:r.gasUsed,gasLimit:gas,
    codeHash:v.keccak256(code),runtimeBytes:(code.length-2)/2,matchesArtifact:sameCode(a,code)};
   assert.ok(rec.matchesArtifact,`${label}: runtime differs from its artifact outside immutables`);
   m.deployments.push(rec);save();console.log('DEPLOYED',label,rec.address,'gas',r.gasUsed.toString());
   return rec.address;
  }
  const A=m.addresses,art=name=>({...artifact(name),contractName:name});
- // HydraAugustus owns itself to its creator; the helper creates it and hands it to governance in one transaction
- const adapterInit=v.encodeDeployData({abi:artifact('HydraAugustus').abi,bytecode:hex(artifact('HydraAugustus').bytecode.object),args:[DISPATCH]});
- A.adapterDeployment??=await deploy('OwnedDeployment.HydraAugustus',{...helper('OwnedDeployment'),contractName:'OwnedDeployment'},[adapterInit,GOV]);save();
- A.adapter??=await readSig(A.adapterDeployment,'function deployed() view returns (address)');save();
- assert.ok(sameCode(artifact('HydraAugustus'),await pub.getBytecode({address:A.adapter})),'adapter runtime differs from its artifact');
+ const adapterAbi=artifact('HydraAugustus').abi,has=name=>adapterAbi.some(x=>x.name===name);
+ A.adapter??=await deploy('HydraAugustus',art('HydraAugustus'),[DISPATCH]);save();
  A.compoundLogic??=await deploy('CompoundLogic',art('CompoundLogic'));save();
  A.vaultImpl??=await deploy('CollateralVault',art('CollateralVault'),[A.compoundLogic]);save();
  A.synth??=await deploy('SyntheticToken',art('SyntheticToken'),[...SYNTH,GOV]);save();
@@ -107,10 +96,21 @@ try{
  A.harvester??=await deploy('Harvester',art('Harvester'),[A.subLoop,token(43),GOV]);save();
  A.fees??=await deploy('JuicerFeeController',art('JuicerFeeController'),[GOV,treasury]);save();
  A.controller??=await deploy('ExecutionController',art('ExecutionController'),[GOV,...QUOTES]);save();
- const discountCode=hex(artifact('JuicerDiscount').bytecode.object);
- A.discountDeployment??=await deploy('DiscountDeployment',{...helper('DiscountDeployment'),contractName:'DiscountDeployment'},[GOV,POOL,HOLLAR_DEBT,A.synth,COMMITTEE,v.keccak256(discountCode)]);save();
- // governance's create() is its first creation, so the discount's address is fixed now
- A.discount=v.getContractAddress({from:A.discountDeployment,nonce:1n});save();
+ // initReserves creates the synthetic's aToken, stable and variable debt proxies from the configurator, in that
+ // order: the aToken is its next creation as long as nothing else lists first. juicer.ts re-checks before it emits
+ const configurator=await readSig(await readSig(POOL,'function ADDRESSES_PROVIDER() view returns (address)'),'function getPoolConfigurator() view returns (address)');
+ const listed=(await reserve(A.synth)).aToken;
+ if(listed===v.zeroAddress){
+  const creatorNonce=await pub.getTransactionCount({address:configurator});
+  const aSynthetic=v.getContractAddress({from:configurator,nonce:BigInt(creatorNonce)});
+  // a stale prediction (another listing enacted since) gets a new discount on the next run
+  if(m.prediction&&m.prediction.nonce!==creatorNonce)console.log('PREDICTION MOVED',m.prediction.nonce,'→',creatorNonce,'redeploying the discount');
+  m.prediction={creator:configurator,nonce:creatorNonce,aSynthetic,block:(await api.rpc.chain.getHeader()).number.toNumber()};save();
+  A.discount=await deploy(`JuicerDiscount@${creatorNonce}`,art('JuicerDiscount'),[HOLLAR_DEBT,A.synth,aSynthetic,GOV,COMMITTEE]);save();
+ }
+ assert.ok(A.discount,'the synthetic is listed but no discount was deployed for it');
+ assert.equal((await readSig(A.discount,'function aSynthetic() view returns (address)')).toLowerCase(),(listed===v.zeroAddress?m.prediction.aSynthetic:listed).toLowerCase(),
+  'the discount is bound to another aToken');
  for(const p of launchVaults(process.env.JUICER_LAUNCH_VAULTS)){
   let row=m.vaults.find(x=>x.key===p.key);
   const asset=token(p.assetId),aToken=(await reserve(asset)).aToken;
@@ -124,21 +124,31 @@ try{
   row.yieldAccounting??=await readSig(row.mainDebt,'function yieldAccounting() view returns (address)');
   row.rounding??=roundingPolicy(row.address,p.assetId,(await api.query.assetRegistry.assets(p.assetId)).unwrap().existentialDeposit.toString());save();
  }
+ // the deployer's one call: the adapter to governance, before anything is proposed. a two-step Ownable leaves
+ // acceptOwnership to the referendum
+ const ownerOf=()=>readSig(A.adapter,'function owner() view returns (address)');
+ if((await ownerOf()).toLowerCase()===account.address.toLowerCase()){
+  const {r,hash}=await send('adapter.transferOwnership',A.adapter,v.encodeFunctionData({abi:adapterAbi,functionName:'transferOwnership',args:[GOV]}));
+  m.calls.push({label:'HydraAugustus.transferOwnership',to:A.adapter,args:[GOV],transactionHash:hash,block:Number(r.blockNumber)});save();
+  console.log('ADAPTER HANDED OVER',hash);
+ }
+ const twoStep=has('acceptOwnership');
+ const handedTo=twoStep?await readSig(A.adapter,'function pendingOwner() view returns (address)'):await ownerOf();
+ assert.equal(handedTo.toLowerCase(),GOV.toLowerCase(),`adapter ${twoStep?'pending owner':'owner'} is not governance`);
+ A.adapterOwnership=twoStep?'pending':'owned';
  // nothing granted to the deployer, everything to governance, no proxy admin, implementations sealed
  const id=name=>name==='DEFAULT_ADMIN_ROLE'?v.zeroHash:v.keccak256(v.toHex(name));
  const roleAbi=v.parseAbi(['function hasRole(bytes32,address) view returns (bool)']);
- const has=(address,role,who)=>pub.readContract({address,abi:roleAbi,functionName:'hasRole',args:[id(role),who]});
+ const hasRole=(address,role,who)=>pub.readContract({address,abi:roleAbi,functionName:'hasRole',args:[id(role),who]});
  const vaults=m.vaults.filter(x=>x.address);
- const controlled=[A.synth,A.subLoop,A.harvester,A.fees,A.controller,...vaults.map(x=>x.address)];
+ const controlled=[A.synth,A.subLoop,A.harvester,A.fees,A.controller,A.discount,...vaults.map(x=>x.address)];
  const held=[];
- for(const address of [...controlled,A.subImpl,A.vaultImpl])for(const role of ROLES)if(await has(address,role,account.address))held.push(`${address}:${role}`);
+ for(const address of [...controlled,A.subImpl,A.vaultImpl])for(const role of ROLES)if(await hasRole(address,role,account.address))held.push(`${address}:${role}`);
  assert.deepEqual(held,[],`the deployer holds roles: ${held.join(', ')}`);
  const admin=[[A.synth,'DEFAULT_ADMIN_ROLE'],[A.subLoop,'ADMIN_ROLE'],[A.subLoop,'UPGRADER_ROLE'],[A.harvester,'DEFAULT_ADMIN_ROLE'],[A.fees,'DEFAULT_ADMIN_ROLE'],[A.controller,'DEFAULT_ADMIN_ROLE'],
-  ...vaults.flatMap(x=>[[x.address,'ADMIN_ROLE'],[x.address,'UPGRADER_ROLE'],[x.address,'GUARDIAN_ROLE']])];
- for(const [address,role]of admin)assert.ok(await has(address,role,GOV),`governance lacks ${role} on ${address}`);
- assert.equal((await readSig(A.adapter,'function owner() view returns (address)')).toLowerCase(),GOV.toLowerCase(),'adapter not owned by governance');
- assert.equal((await readSig(A.discountDeployment,'function governance() view returns (address)')).toLowerCase(),GOV.toLowerCase());
- assert.equal(await readSig(A.discountDeployment,'function discount() view returns (address)'),v.zeroAddress,'the discount exists already');
+  [A.discount,'DEFAULT_ADMIN_ROLE'],[A.discount,'RATE_ADMIN_ROLE'],...vaults.flatMap(x=>[[x.address,'ADMIN_ROLE'],[x.address,'UPGRADER_ROLE'],[x.address,'GUARDIAN_ROLE']])];
+ for(const [address,role]of admin)assert.ok(await hasRole(address,role,GOV),`governance lacks ${role} on ${address}`);
+ assert.ok(await hasRole(A.discount,'RATE_ADMIN_ROLE',COMMITTEE),'the committee lacks the discount rate role');
  const slot=async(address,s)=>BigInt((await api.query.evm.accountStorages(address,s)).toHex());
  const IMPL='0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',ADMIN='0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103';
  for(const [proxy,impl]of [[A.subLoop,A.subImpl],...vaults.map(x=>[x.address,A.vaultImpl])]){
@@ -153,10 +163,11 @@ try{
   assert.equal((await readSig(x.address,'function mainDebt() view returns (address)')),v.zeroAddress,`${x.symbol}: Main ledger bound outside the referendum`);
   assert.equal((await readSig(x.mainDebt,'function vault() view returns (address)')).toLowerCase(),x.address.toLowerCase());
  }
- // every transaction the deployer sent created a contract
- assert.equal(await pub.getTransactionCount({address:account.address}),m.startNonce+m.deployments.length,'the deployer sent something besides its deployments');
- m.checks={deployerHoldsNoRole:true,governanceAdmin:true,adapterOwnedByGovernance:true,proxiesHaveNoAdmin:true,implementationsSealed:true,runtimesMatchArtifacts:m.deployments.every(d=>d.matchesArtifact),
-  onlyCreations:`${m.deployments.length} transactions, nonces ${m.startNonce}..${m.startNonce+m.deployments.length-1}, all contract creations`};
+ // every transaction the deployer sent created a contract, but the adapter's handover
+ assert.equal(await pub.getTransactionCount({address:account.address}),m.startNonce+m.deployments.length+m.calls.length,'the deployer sent something unrecorded');
+ m.checks={deployerHoldsNoRole:true,governanceAdmin:true,adapterToGovernance:A.adapterOwnership,proxiesHaveNoAdmin:true,implementationsSealed:true,
+  runtimesMatchArtifacts:m.deployments.every(d=>d.matchesArtifact),
+  transactions:`${m.deployments.length} creations and ${m.calls.map(c=>c.label).join(', ')||'no call'}, nonces ${m.startNonce}..${m.startNonce+m.deployments.length+m.calls.length-1}`};
  m.finishedBlock=(await api.rpc.chain.getHeader()).number.toNumber();save();
- console.log('LAUNCH DEPLOYED',FILE,JSON.stringify(A));
+ console.log('LAUNCH DEPLOYED',FILE,JSON.stringify({...A,prediction:m.prediction}));
 }finally{await api.disconnect();}
