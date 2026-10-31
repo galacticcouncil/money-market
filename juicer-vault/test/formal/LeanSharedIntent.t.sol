@@ -111,7 +111,7 @@ contract LeanSharedIntentTest is Test {
         harvester.setFeeController(address(new SharedIntentFees()));
         ExecutionController control = new ExecutionController(address(this), 300, 20);
         harvester.setExecutionController(address(control));
-        control.configureBudget(bytes32(uint256(1)), address(prime), 1e30, 0, type(uint64).max);
+        control.configureBudget(bytes32(uint256(1)), address(prime), 1e30, 0);
         for (uint256 i; i < 2; ++i) {
             vaults[i] = new SharedIntentVault(loop, prime);
             loop.registerVault(address(vaults[i]));

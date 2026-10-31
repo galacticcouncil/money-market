@@ -22,3 +22,6 @@ export function artifact(name) {
   artifactManifest[name] = { file, sha256: createHash('sha256').update(bytes).digest('hex') };
   return value;
 }
+// a controller built before policy expiry was removed takes an expiry after the refill; its artifact says which
+export const budgetExpiry = abi => abi.find(x => x.name === 'configureBudget')?.inputs.length === 5;
+export const budgetArgs = (abi, args, expiresAt) => budgetExpiry(abi) ? [...args, BigInt(expiresAt)] : args;

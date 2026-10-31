@@ -14,7 +14,7 @@ try{
   ];
   r.testFunding=targets;save();
   // a bought collateral is paid from that ETH: the bootstrap's seed and the arb's quotes
-  const buys=eth.buy?[await recordBuy(c,eth,'deployer',10n**18n),await recordBuy(c,eth,'arb',10n*10n**18n)]:[];
+  const buys=eth?.buy?[await recordBuy(c,eth,'deployer',10n**18n),await recordBuy(c,eth,'arb',10n*10n**18n)]:[];
   const calls=[];
   if(!(await api.query.evmAccounts.contractDeployer(deployer.address)).isSome)calls.push(api.tx.evmAccounts.addContractDeployer(deployer.address));
   for(const target of targets){

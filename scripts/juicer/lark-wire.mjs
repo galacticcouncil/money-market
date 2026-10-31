@@ -2,12 +2,13 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {context,artifact,v,POOL,HOLLAR,token,deployer,role,live} from './lark-context.mjs';
 import {profile} from './lark-pins.mjs';
+import {budgetExpiry,budgetArgs} from './native-artifacts.mjs';
 const require=createRequire(import.meta.url), poolAbi=require('../../deployments/hydration/Pool-Implementation.json').abi;
 const c=await context();
 try{
  const {r,api,pub,readSig,govEvm,enact,save}=c,a=r.addresses,n=profile.names;
  assert.equal(r.sourceSlippagePpm,undefined,'Initial wiring is complete; do not overwrite later approved execution policy');
- assert.equal(r.vaults?.length,2);
+ assert.equal(r.vaults?.length,Object.keys(profile.collateral).length);
  const provider=await readSig(POOL,'function ADDRESSES_PROVIDER() view returns(address)');
  const configurator=await readSig(provider,'function getPoolConfigurator() view returns(address)');
  const oracle=await readSig(provider,'function getPriceOracle() view returns(address)');
@@ -35,14 +36,16 @@ try{
   }
   const custody=[a.source,a.harvester,a.fees,...r.vaults.flatMap(x=>[x.address,x.mainDebt,x.yieldAccounting])];
   await enact('protect-october-custody',await Promise.all(custody.map(async address=>api.tx.duster.whitelistAccount(await c.nativeAccount(address)))));
-  const expiry=r.executionPolicy?.expiresAt??Number((await pub.getBlock()).timestamp+30n*86400n);
+  // lark 0 and lark 4 run controllers with policy expiry; their journals keep it
+  const controlAbi=artifact('ExecutionController').abi,legacy=budgetExpiry(controlAbi);
+  const expiry=legacy?r.executionPolicy?.expiresAt??Number((await pub.getBlock()).timestamp+30n*86400n):undefined,lapse=legacy?{expiresAt:expiry}:{};
   // in the vault's collateral units: the ETH vault's is worth about an ETH (ETH or GIGAETH)
   const service={ETH:{capacity:10n**18n,refill:10n**15n,min:10n**12n,max:2n*10n**16n},TBTC:{capacity:10n**17n,refill:10n**14n,min:10n**10n,max:10n**15n}};
   const definitions=[['entry',HOLLAR,1000n*10n**18n,10n**18n,60],['unwind',r.market.aPrime,1000n*10n**6n,10n**6n,60],['harvest',token(43),1000n*10n**6n,10n**6n,60],...r.vaults.map(x=>[`service-${x.name}`,x.asset,service[x.name].capacity,service[x.name].refill,60])];
-  r.executionPolicy={maxQuoteAge:60,maxQuoteBlocks:5,expiresAt:expiry,budgets:[],limits:[]};
+  r.executionPolicy={maxQuoteAge:60,maxQuoteBlocks:5,...lapse,budgets:[],limits:[]};
   for(const [name,asset,capacity,refill,interval]of definitions){
    const group=v.keccak256(v.toHex(`lark-october-${name}`));
-   r.executionPolicy.budgets.push({name,group,token:asset,capacity:capacity.toString(),refillPerSecond:refill.toString(),expiresAt:expiry,minIntervalSeconds:interval});
+   r.executionPolicy.budgets.push({name,group,token:asset,capacity:capacity.toString(),refillPerSecond:refill.toString(),...lapse,minIntervalSeconds:interval});
   }
   const policy=r.executionPolicy;
   const lanes=[[a.source,HOLLAR,r.market.aPrime,'entry',10n**18n,50n*10n**18n,false],[a.source,r.market.aPrime,HOLLAR,'unwind',10000n,50n*10n**6n,true]];
@@ -55,7 +58,7 @@ try{
    policy.limits.push({consumer,input,output,lane,group,minimum:minimum.toString(),maximum:maximum.toString(),maxShortfallBps:0,safety});
   }
   save();
-  const budgetCalls=policy.budgets.flatMap(b=>[contract('ExecutionController',a.controller,'configureBudget',[b.group,b.token,BigInt(b.capacity),BigInt(b.refillPerSecond),BigInt(b.expiresAt)]),contract('ExecutionController',a.controller,'configurePacing',[b.group,BigInt(b.minIntervalSeconds)])]);
+  const budgetCalls=policy.budgets.flatMap(b=>[contract('ExecutionController',a.controller,'configureBudget',budgetArgs(controlAbi,[b.group,b.token,BigInt(b.capacity),BigInt(b.refillPerSecond)],b.expiresAt)),contract('ExecutionController',a.controller,'configurePacing',[b.group,BigInt(b.minIntervalSeconds)])]);
   await enact('execution-budgets',budgetCalls);
   for(let i=0;i<policy.limits.length;i+=4){
    const calls=policy.limits.slice(i,i+4).flatMap(l=>[contract('ExecutionController',a.controller,'configureLimit',[l.consumer,l.input,l.output,l.group,BigInt(l.minimum),BigInt(l.maximum)]),contract('ExecutionController',a.controller,'configurePrice',[l.lane,0,l.safety])]);

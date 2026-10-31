@@ -34,7 +34,7 @@ references and method ids for 11 production contracts; the checks fail if either
 | Aave scaled balances | `ScaledDebt`, `rayMulHalf`, `rayDivHalf` | 516 calls against Aave core v3 `VariableDebtToken` 1.19.3; exact scaled/user/total balances and 43 expected reverts |
 | vested source fees | `vestFee`, `settleFee` | junior fee bounds, cost reduction, no early charge; 48 comparisons |
 | protocol reserve | `reserveDraw`, `spendable`, `repaymentLimit` | no active/unfinished draw, amount caps and protected fee cash; existing reserve regressions |
-| controller credit, pacing, expiry and safety lanes | `Policy`, `available`, `policyCharge`, `executionMinimum`, `pacingNextAt` | credit/size bounds, no refill on refresh, quote only tightens oracle floor; 64 availability, 32 executed quote and 32 proportional-pacing comparisons, including uint64 casts |
+| controller credit, pacing and safety lanes (budgets never lapse) | `Policy`, `available`, `policyCharge`, `executionMinimum`, `pacingNextAt` | credit/size bounds, no refill on refresh, quote only tightens oracle floor; 64 availability, 32 executed quote and 32 proportional-pacing comparisons, including uint64 casts |
 | FIFO start and collateral claims | `queueReady`, `startQueue`, `settleRedemption`, `claimRedemption`, `claimAmount` | work/FIFO bounds, full final burn, recipient protection, exact partial claims that keep every bound and leave the request open; 32 queue and 48 claim comparisons |
 | repeated settlement/claim histories | `RedemptionState.valid`, `settleQueue` | cumulative collateral/burn bounds, unpaid-head stop, final payout/burn; 24 three-claim histories; zero-share, debt-free empty requests advance both cursors |
 | stateful vault/Main/harvest/loss-recovery sequences | `PublicCalls.State`, `SolidityDispatch`, `ValidSolidityTrace`, `PublicInvariant` | complete source-checked 33-opcode fixture map; arbitrary finite certified raw-trace preservation; independent replay from fixture genesis with exact outcomes, snapshots and rollback |
@@ -479,6 +479,10 @@ both are compared against the production contracts. a discount only changes how 
 grows, which the public-call machine already takes as an arbitrary observation; the GHO debt token's
 accrual is outside this repository and is not modeled. the stateful fixtures keep one vault and a 7500
 max LTV, so per-vault band isolation rests on the registry proof and its production comparison.
+headroom exits (`SubLoop.setExitHeadroom`, the headroom branch of `CompoundLogic.startExit`) are
+outside the model. the stateful fixtures plug a yield source without `exitHeadroom`, which reads as
+off, so every exit they replay takes the unwind queue; the headroom path is covered by Solidity tests
+(`KeeperOps`).
 
 Aave/token observations must be truthful, oracle prices/configuration valid, and external calls
 successful where their results are model inputs. matching ICE's 99%-minimum arrival heuristic

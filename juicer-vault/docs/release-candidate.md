@@ -25,7 +25,9 @@ initialization, 250 from the launch proposal) plus the keepers' hysteretic
 rather than on every transfer, and funded earnings sit in holders' balances with
 no claims. On `juicer-discount-bands` the loop's HOLLAR can also be discounted, at
 its own capped rate that starts at zero, and each vault's rebalance band is set on
-the loop. The lists below describe RC1; the activation gates still apply.
+the loop. Exits that fit under a vault's max LTV settle without selling the loop
+([headroom exits](yield-ownership.md#headroom-exits)). The lists below describe RC1;
+the activation gates still apply.
 
 The candidate is on `feat/propeller-interest-buffer`; the name is historical.
 Sponsored operating buffers have been replaced. The commit containing this
@@ -43,7 +45,7 @@ identify its seven production contract templates. No release tag is implied.
   automatic widening. Retention is not funded insurance and can delay harvests.
 - Principal rounding protections, preserved unpaid source claims and original
   exit ownership. Deposits block while underfunded; governance funds recovery.
-- Configurable withdrawal delay, initially 12 hours before unwinding, plus
+- Configurable withdrawal delay (12 hours at initialize, 7 days at launch) before unwinding, plus
   emergency controls. Fair all-holder emergency accounting remains a manual
   governance responsibility, not an implemented automatic settlement engine.
 - Keeper/readiness changes, source-upgrade storage/accounting compatibility

@@ -10,7 +10,7 @@ try{
  r.testnetApprovals??=[];
  if(!r.testnetApprovals.some(a=>a.id==='collateral-hundred-bps'))r.testnetApprovals.push({id:'collateral-hundred-bps',scope:`Lark only; ${symbols} harvest and Main interest-sale lanes, vault compound floor`,maxShortfallBps:BPS,userAnswer:'0 price floor is unrealistic; make harvest work'});
  const lanes=r.executionPolicy.limits.filter(l=>l.consumer.toLowerCase()!==r.addresses.source.toLowerCase());
- assert.equal(lanes.length,6);
+ assert.equal(lanes.length,3*r.vaults.length);
  const calls=[...lanes.map(l=>govEvm(r.addresses.controller,artifact('ExecutionController').abi,'configurePrice',[l.lane,BPS,l.safety],500000)),
   ...r.vaults.map(x=>govEvm(x.address,artifact('CollateralVault').abi,'setCompoundSlippageBps',[BPS],500000))];
  await enact('approved-lark-only-collateral-hundred-bps',calls);

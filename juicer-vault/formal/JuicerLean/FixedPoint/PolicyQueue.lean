@@ -7,7 +7,6 @@ structure Policy where
   refill : ℕ
   credit : ℕ
   updated : ℕ
-  expires : ℕ
   minimum : ℕ
   maximum : ℕ
   nextAt : ℕ
@@ -20,8 +19,7 @@ def policyCredit (p : Policy) (now : ℕ) : ℕ := min p.capacity (p.credit + (n
 
 def available (p : Policy) (now block : ℕ) (safety : Bool) : ℕ :=
   let amount := if safety && p.safetyLane then p.maximum else
-    if (p.expires ≤ now && !p.safetyLane) ||
-        (!p.activeGroup && (now < p.nextAt || (p.lastBlock != 0 && p.lastBlock == block))) then 0
+    if !p.activeGroup && (now < p.nextAt || (p.lastBlock != 0 && p.lastBlock == block)) then 0
     else min p.maximum (policyCredit p now)
   if amount < p.minimum then 0 else amount
 
@@ -56,9 +54,17 @@ theorem available_bounded (p : Policy) (now block : ℕ) (safety : Bool) :
   simp only [available]
   split_ifs <;> simp_all
 
-theorem expired_entry_stops (p : Policy) (now block : ℕ)
-    (h : p.expires ≤ now) (hs : p.safetyLane = false) : available p now block false = 0 := by
-  simp [available, hs, h]
+/-- no age closes a lane: with its pacing slot open it offers its credit up to the lane size, however
+long the budget went untouched -/
+theorem budgets_never_lapse (p : Policy) (now block : ℕ)
+    (hpace : p.activeGroup = true ∨ (p.nextAt ≤ now ∧ (p.lastBlock = 0 ∨ p.lastBlock ≠ block)))
+    (hmin : p.minimum ≤ min p.maximum (policyCredit p now)) :
+    available p now block false = min p.maximum (policyCredit p now) := by
+  have hopen : (!p.activeGroup && (decide (now < p.nextAt) || (p.lastBlock != 0 && p.lastBlock == block))) = false := by
+    rcases hpace with h | ⟨h1, h2⟩
+    · simp [h]
+    · rcases h2 with h2 | h2 <;> simp [h2, Nat.not_lt.mpr h1]
+  simp only [available, Bool.false_and, Bool.false_eq_true, ↓reduceIte, hopen, Nat.not_lt.mpr hmin]
 
 theorem flagged_safety_keeps_size_bound (p : Policy) (now block : ℕ)
     (h : p.safetyLane = true) (hs : p.minimum ≤ p.maximum) :

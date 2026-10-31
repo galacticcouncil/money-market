@@ -18,30 +18,31 @@
 //   JUICER_VAULTS=0xETH,0xTBTC \
 //   JUICER_FEE_CONTROLLER=0x... JUICER_FEE_RECIPIENT=0x... \
 //   JUICER_DISCOUNT_CONTROLLER=0x... JUICER_DISCOUNT_COMMITTEE=0x... \
-//   JUICER_DISCOUNT_BPS=0 JUICER_SLIPPAGE_PPM=<approved-ppm> \
+//   JUICER_SLIPPAGE_PPM=<approved-ppm> \
+//   JUICER_COMPOUND_LOGIC_CODEHASH=<keccak256 of the reviewed CompoundLogic runtime> \
 //   JUICER_ROUNDING_RESERVES='<per-vault policy JSON; see looper/README.md>' \
 //   npx ts-node --transpile-only --compiler-options '{"module":"commonjs"}' \
 //     scripts/juicer/verify-readiness.ts
 //
 // Optional: JUICER_SWAPPER, JUICER_GUARDIAN, JUICER_LOOPER,
-//           JUICER_SYNTH_ASSET_ID, JUICER_WITHDRAWAL_DELAY (seconds; default 43200), POOL,
-//           JUICER_COMPOUND_LOGIC_CODEHASH (keccak256 of the reviewed CompoundLogic runtime:
-//           the vault implementation binds a separately deployed helper),
-//           JUICER_PRIME_POOL_FEE_PPM (the approved PRIME pool fee; the launch proposal sets 100),
-//           JUICER_PROTOCOL_FEE_BPS (the approved per-vault fee; default 500, the registration rate).
+//           JUICER_SYNTH_ASSET_ID, JUICER_WITHDRAWAL_DELAY (seconds; default 604800, 7 days), POOL,
+// The launch mix is the default (NEXT in next-governance.ts), so a deployment after the launch
+// proposal passes as is; before it, override with the registration values (fee 500, rates 0):
+//           JUICER_PRIME_POOL_FEE_PPM (default 100), JUICER_PROTOCOL_FEE_BPS (default 6900),
+//           JUICER_DISCOUNT_BPS (Main, default 4000), JUICER_LOOP_DISCOUNT_BPS (default 9000),
+//           JUICER_ADMISSION_MAX_DEFICIT_BPS (default 250), JUICER_REBALANCE_BAND (default 6500,7500,8300),
+//           JUICER_EXIT_HEADROOM (off, on or on,<gap bps>; default on).
 // Next version (each adds its checks only when set): JUICER_KEEPERS (comma list),
 //           JUICER_HARVEST_THRESHOLD (WAD), JUICER_INTENT_TTL (seconds),
 //           JUICER_INTENT_DRIFT_BPS, JUICER_RESERVE_HOLLAR (per vault),
-//           JUICER_REBALANCE_BAND (relever,target,delever LTV bps),
-//           JUICER_ADMISSION_MAX_DEFICIT_BPS (the approved deposit admission cap),
-//           JUICER_LOOP_DISCOUNT_CAP (HOLLAR) with JUICER_LOOP_DISCOUNT_BPS (default 0);
-//           without the cap, SubLoop must not be discounted.
+//           JUICER_LOOP_DISCOUNT_CAP (HOLLAR, the approved cap; otherwise any nonzero cap).
+//           with JUICER_LOOP_DISCOUNT_BPS=0 and no cap, SubLoop must not be discounted.
 
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { ethers } from "ethers";
 import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "./rounding-native";
-import { readNextState, nextChecks, parseBand } from "./next-governance";
+import { NEXT, readNextState, nextChecks, parseBand, envNumber, parseExitHeadroom } from "./next-governance";
 
 const WS = process.env.WS_URL || "wss://hdx.tarn.hydration.cloud";
 const RPC = process.env.RPC_URL || "https://hdx.tarn.hydration.cloud";
@@ -59,9 +60,9 @@ const FEES = req("JUICER_FEE_CONTROLLER");
 const FEE_RECIPIENT = req("JUICER_FEE_RECIPIENT");
 const DISCOUNT = req("JUICER_DISCOUNT_CONTROLLER");
 const COMMITTEE = req("JUICER_DISCOUNT_COMMITTEE");
-const DISCOUNT_BPS = Number(req("JUICER_DISCOUNT_BPS"));
+const DISCOUNT_BPS = envNumber("JUICER_DISCOUNT_BPS", NEXT.revenue.mainDiscountBps);
 const SLIPPAGE_PPM = Number(req("JUICER_SLIPPAGE_PPM"));
-const WITHDRAWAL_DELAY = Number(process.env.JUICER_WITHDRAWAL_DELAY ?? "43200");
+const WITHDRAWAL_DELAY = Number(process.env.JUICER_WITHDRAWAL_DELAY ?? "604800");
 const SYNTH_ASSET_ID = Number(process.env.JUICER_SYNTH_ASSET_ID || 5550);
 const POOL = process.env.POOL || "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38";
 const GOV = "0xaa7e0000000000000000000000000000000aa7e0";
@@ -73,14 +74,19 @@ const NEXT_EXPECTED = {
   ...(process.env.JUICER_INTENT_TTL ? { intentTtl: Number(process.env.JUICER_INTENT_TTL) } : {}),
   ...(process.env.JUICER_INTENT_DRIFT_BPS ? { intentDriftBps: Number(process.env.JUICER_INTENT_DRIFT_BPS) } : {}),
   ...(process.env.JUICER_RESERVE_HOLLAR ? { reserve: ethers.utils.parseUnits(process.env.JUICER_RESERVE_HOLLAR, 18) } : {}),
-  ...(process.env.JUICER_REBALANCE_BAND ? { band: parseBand(process.env.JUICER_REBALANCE_BAND) } : {}),
-  ...(process.env.JUICER_ADMISSION_MAX_DEFICIT_BPS ? { admissionMaxDeficitBps: Number(process.env.JUICER_ADMISSION_MAX_DEFICIT_BPS) } : {}),
+  band: process.env.JUICER_REBALANCE_BAND ? parseBand(process.env.JUICER_REBALANCE_BAND) : NEXT.band,
+  admissionMaxDeficitBps: envNumber("JUICER_ADMISSION_MAX_DEFICIT_BPS", NEXT.admissionMaxDeficitBps),
+  exitHeadroom: process.env.JUICER_EXIT_HEADROOM !== undefined ? parseExitHeadroom(process.env.JUICER_EXIT_HEADROOM) : NEXT.exitHeadroom,
 };
 const LOOP_CAP = process.env.JUICER_LOOP_DISCOUNT_CAP ? ethers.utils.parseUnits(process.env.JUICER_LOOP_DISCOUNT_CAP, 18) : undefined;
-const LOOP_BPS = Number(process.env.JUICER_LOOP_DISCOUNT_BPS ?? "0");
+const LOOP_BPS = envNumber("JUICER_LOOP_DISCOUNT_BPS", NEXT.revenue.loopDiscountBps);
+// the vault implementation binds a separately deployed helper; its code is always pinned
 const HELPER_HASH = process.env.JUICER_COMPOUND_LOGIC_CODEHASH;
-const POOL_FEE_PPM = process.env.JUICER_PRIME_POOL_FEE_PPM ? Number(process.env.JUICER_PRIME_POOL_FEE_PPM) : undefined;
-const PROTOCOL_FEE_BPS = Number(process.env.JUICER_PROTOCOL_FEE_BPS ?? "500");
+if (HELPER_HASH !== undefined && !/^0x[0-9a-fA-F]{64}$/.test(HELPER_HASH)) {
+  throw new Error("JUICER_COMPOUND_LOGIC_CODEHASH is not a 32-byte hash");
+}
+const POOL_FEE_PPM: number | undefined = envNumber("JUICER_PRIME_POOL_FEE_PPM", NEXT.primePoolFeePpm);
+const PROTOCOL_FEE_BPS = envNumber("JUICER_PROTOCOL_FEE_BPS", NEXT.revenue.protocolFeeBps);
 
 for (const address of [SYNTH, SUBLOOP, HARVESTER, EXECUTION, FEES, FEE_RECIPIENT, DISCOUNT, COMMITTEE, POOL, ...VAULTS]) {
   if (!ethers.utils.isAddress(address) || eq(address, ethers.constants.AddressZero)) {
@@ -176,7 +182,7 @@ async function main() {
       "function maxQuoteAge() view returns (uint64)", "function maxQuoteBlocks() view returns (uint64)",
       "function lane(address,address,address) pure returns (bytes32)",
       "function limits(bytes32) view returns (bytes32 group,uint128 minimum,uint128 maximum)",
-      "function budgets(bytes32) view returns (address token,uint128 capacity,uint128 refillPerSecond,uint128 credit,uint64 updatedAt,uint64 expiresAt)",
+      "function budgets(bytes32) view returns (address token,uint128 capacity,uint128 refillPerSecond,uint128 credit,uint64 updatedAt)",
       "function pacing(bytes32) view returns (uint64 interval,uint64 nextAt,uint256 lastBlock)",
       "function maxShortfallBps(bytes32) view returns (uint16)",
       "function safetyLanes(bytes32) view returns (bool)",
@@ -204,7 +210,6 @@ async function main() {
       routes.push([vault, prime, collateral], [await v.mainDebt(), collateral, hollar]);
       requiredActions.push([vault, "rebalance()"]);
     }
-    const now = (await provider.getBlock("latest")).timestamp;
     const harvestGroups = new Set<string>();
     for (const [consumer, input, output] of routes) {
       const lane = await controller.lane(consumer, input, output);
@@ -217,10 +222,9 @@ async function main() {
       add(group, `${lane}: approved size`, !!approved && eq(approved.group, limit.group)
         && limit.minimum.gt(0) && limit.maximum.gte(limit.minimum)
         && limit.minimum.eq(approved.minimum) && limit.maximum.eq(approved.maximum));
-      add(group, `${lane}: approved active budget`, !!policy && eq(budget.token, input)
+      add(group, `${lane}: approved budget`, !!policy && eq(budget.token, input)
         && budget.capacity.gte(limit.maximum) && budget.capacity.eq(policy.capacity)
-        && budget.refillPerSecond.eq(policy.refillPerSecond)
-        && budget.expiresAt.eq(policy.expiresAt) && budget.expiresAt.gt(now));
+        && budget.refillPerSecond.eq(policy.refillPerSecond));
       add(group, `${lane}: approved total MM-oracle shortfall`, !!approved
         && Number.isInteger(approved.maxShortfallBps) && approved.maxShortfallBps >= 0
         && approved.maxShortfallBps < 10000
@@ -273,10 +277,40 @@ async function main() {
         const size = (code.length - 2) / 2;
         add("O. Main debt settlement", `${target}: deployed size`, size > 0 && size <= 24576, `${size} bytes`);
       }
-      if (HELPER_HASH) {
-        add("O. Main debt settlement", `${vault}: helper is the reviewed CompoundLogic`,
-          eq(ethers.utils.keccak256(await provider.getCode(helper)), HELPER_HASH), helper);
-      }
+      add("O. Main debt settlement", `${vault}: helper is the reviewed CompoundLogic`,
+        !!HELPER_HASH && eq(ethers.utils.keccak256(await provider.getCode(helper)), HELPER_HASH),
+        HELPER_HASH ? helper : "set JUICER_COMPOUND_LOGIC_CODEHASH");
+    }
+  });
+
+  // the launch referendum's own parts: share assets, the loop's callback fees, the adapter's map
+  await section("L. Launch wiring", async () => {
+    const g = "L. Launch wiring";
+    const location = (key: string) => ({ parents: 0, interior: { X1: [{ AccountKey20: { network: null, key } }] } });
+    const loop = new ethers.Contract(SUBLOOP, ["function hollar() view returns (address)", "function prime() view returns (address)"], provider);
+    const mapped: [string, number][] = [[await loop.prime(), 43], [await loop.hollar(), 222]];
+    for (const vault of VAULTS) {
+      const v = new ethers.Contract(vault, ["function mainDebt() view returns (address)", "function asset() view returns (address)"], provider);
+      const id: any = await api.query.assetRegistry.locationAssets(location(vault));
+      const detail: any = id.isSome ? ((await api.query.assetRegistry.assets(id.unwrap())) as any).unwrapOr(undefined) : undefined;
+      add(g, `${vault}: share is a sufficient Erc20 asset`, !!detail && detail.assetType.toString() === "Erc20" && detail.isSufficient.isTrue,
+        id.isSome ? `asset ${id.unwrap()}` : "unregistered");
+      const rewards = await new ethers.Contract(await v.mainDebt(), ["function yieldAccounting() view returns (address)"], provider).yieldAccounting();
+      const account = await nativeAccount(api, rewards);
+      add(g, `${rewards}: yield ownership dust protected`, (await api.call.dusterApi.isWhitelisted(account) as any).isTrue, account);
+      const asset = await v.asset();
+      mapped.push([asset, Number(BigInt(asset) & 0xffffffffn)]);
+    }
+    const loopAccount = await nativeAccount(api, SUBLOOP);
+    const currency = (await api.query.multiTransactionPayment.accountCurrencyMap(loopAccount) as any).unwrapOr(null)?.toNumber();
+    add(g, "loop pays its ICE callbacks in WETH", currency === 20, `fee currency ${currency ?? "unset"}`);
+    const weth = BigInt((await api.call.currenciesApi.account(20, loopAccount) as any).free.toString());
+    // half the callback buffer the launch funds, as lark-ice-plan tops it up
+    add(g, "loop holds WETH for its callbacks", weth >= 5_000_000_000_000_000n, `${weth} wei`);
+    if (SWAPPER) {
+      const adapter = new ethers.Contract(SWAPPER, ["function owner() view returns (address)", "function assetId(address) view returns (uint32)"], provider);
+      add(g, "adapter owned by governance", eq(await sread(() => adapter.owner()), GOV));
+      for (const [address, id] of mapped) add(g, `adapter maps ${address} to asset ${id}`, Number(await sread(() => adapter.assetId(address))) === id);
     }
   });
 
@@ -739,6 +773,7 @@ async function main() {
       ...ACCESS_ABI,
       "function debtToken() view returns (address)",
       "function synthetic() view returns (address)",
+      "function aSynthetic() view returns (address)",
       "function discountBps() view returns (uint16)",
       "function isRegistered(address) view returns (bool)",
       "function vaults() view returns (address[])",
@@ -754,6 +789,11 @@ async function main() {
     add(group, "committee has no enrollment authority", (await sread(() => discount.hasRole(ethers.constants.HashZero, COMMITTEE))) === false);
     add(group, "committee has no fee authority", (await sread(() => fees.hasRole(ethers.constants.HashZero, COMMITTEE))) === false);
     add(group, "discount synthetic", eq(await sread(() => discount.synthetic()), SYNTH));
+    // deployed before the listing against a predicted address: the listing has to have made exactly that aToken
+    const listedAToken = await sread(async () => (await new ethers.Contract(POOL, [
+      "function getReserveData(address) view returns ((uint256,uint128,uint128,uint128,uint128,uint128,uint40,uint16,address,address,address,address,uint128,uint128,uint128))",
+    ], provider).getReserveData(SYNTH))[8]);
+    add(group, "discount reads the synthetic's listed aToken", eq(await sread(() => discount.aSynthetic()), listedAToken), listedAToken ?? "unlisted");
     const rate = await sread(() => discount.discountBps());
     add(group, "explicitly approved discount rate", Number.isInteger(DISCOUNT_BPS) && DISCOUNT_BPS >= 0
       && DISCOUNT_BPS <= 10000 && rate !== undefined && Number(rate) === DISCOUNT_BPS);
@@ -761,10 +801,11 @@ async function main() {
     add(group, "exact approved discount participant set", Array.isArray(participants)
       && participants.length === VAULTS.length && VAULTS.every(v => participants.some((p: string) => eq(p, v))));
     const loop = await sread(() => discount.loop());
-    if (LOOP_CAP) {
+    if (LOOP_CAP || LOOP_BPS > 0) {
       add(group, "SubLoop enrolled at its own rate", eq(loop, SUBLOOP));
       const cap = await sread(() => discount.loopCap());
-      add(group, "approved loop discount cap", !!cap && cap.eq(LOOP_CAP), cap ? ethers.utils.formatUnits(cap, 18) : "read failed");
+      add(group, LOOP_CAP ? "approved loop discount cap" : "loop discount cap set",
+        !!cap && (LOOP_CAP ? cap.eq(LOOP_CAP) : cap.gt(0)), cap ? ethers.utils.formatUnits(cap, 18) : "read failed");
       const loopRate = await sread(() => discount.loopDiscountBps());
       add(group, "explicitly approved loop discount rate", loopRate !== undefined && Number(loopRate) === LOOP_BPS, String(loopRate));
     } else {
@@ -799,7 +840,7 @@ async function main() {
   });
 
   if (Object.keys(NEXT_EXPECTED).length) {
-    const group = "N. Next version: keepers, threshold, ICE, bands, admission, reserve";
+    const group = "N. Next version: keepers, threshold, ICE, bands, admission, headroom exits, reserve";
     await section(group, async () => {
       const state = await readNextState(provider, { subLoop: SUBLOOP, vaults: VAULTS, controller: EXECUTION, keepers: KEEPERS });
       for (const check of nextChecks(state, NEXT_EXPECTED)) add(group, check.name, check.ok, check.detail);

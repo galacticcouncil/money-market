@@ -87,6 +87,7 @@ const LEDGER_ABI = parseAbi([
   'function pendingSourceAccounting() view returns (bool)',
   'function sourceFees(uint256) view returns (uint256 yieldRemaining, uint256 feeRemaining)',
   'function surplusOf(uint256 id) view returns (uint256)',
+  'function positions(uint256 key) view returns (uint256 units, uint256 principal, uint256 cash, uint256 sourceRemaining, address owner)',
   'function claimSurplus(uint256 id) returns (uint256)',
 ]);
 
@@ -721,7 +722,10 @@ export class JuicerLooper {
         const still = CONFIG.DELIVER_CLAIMS
           ? (await this.read(VAULT_ABI, vault, 'redemptions', [id]) as readonly unknown[])[8] as boolean
           : active && repaid < debtShare;
-        if (next === undefined && (still || owed)) next = id;
+        // surplus still on its way from the source is delivered once it lands
+        const arriving = !still && !owed
+          && ((await this.read(LEDGER_ABI, ledger, 'positions', [id + 1n]) as readonly unknown[])[3] as bigint) > 0n;
+        if (next === undefined && (still || owed || arriving)) next = id;
       }
       cursors.set(vault, next ?? id);
     } catch (error) {

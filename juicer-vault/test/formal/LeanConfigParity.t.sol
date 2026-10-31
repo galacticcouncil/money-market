@@ -11,6 +11,7 @@ import {
     MockDiscountAToken, MockDiscountDebtToken, MockDiscountLoop, MockDiscountVault
 } from "../mocks/MockDiscount.sol";
 import {Artifacts} from "../helpers/Artifacts.t.sol";
+import {CollateralStub} from "../mocks/CollateralStub.sol";
 
 contract LeanConfigParityTest is Test {
     string internal vectors = vm.readFile("formal/config-vectors.json");
@@ -33,7 +34,11 @@ contract LeanConfigParityTest is Test {
         MockERC20 aPrime = new MockERC20("aPRIME", "aPRIME", 6);
         SubLoop loop = SubLoop(Artifacts.proxy(Artifacts.subLoop(), abi.encodeCall(SubLoop.initialize,
             (address(pool), address(hollar), address(prime), address(aPrime), 1.05e18, 1.10e18, address(this)))));
-        address[3] memory vaults = [address(0xA11), address(0xB22), address(0xC33)];
+        // a reserve at ltv 0 and the widest threshold, so the model's bounds alone decide
+        MockERC20 collateral = new MockERC20("COLL", "COLL", 18);
+        pool.initReserve(address(collateral), address(0xA7), address(0xD7), type(uint16).max, 0, 18, 1e18);
+        address[3] memory vaults = [address(new CollateralStub(address(collateral))),
+            address(new CollateralStub(address(collateral))), address(new CollateralStub(address(collateral)))];
         loop.registerVault(vaults[0]);
         loop.registerVault(vaults[1]);
         uint256 n = _count("band");

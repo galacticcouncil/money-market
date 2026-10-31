@@ -16,7 +16,6 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
         uint128 refillPerSecond;
         uint128 credit;
         uint64 updatedAt;
-        uint64 expiresAt;
     }
     struct Limit { bytes32 group; uint128 minimum; uint128 maximum; }
     struct Quote { bytes32 lane; uint256 amountIn; uint256 minOut; }
@@ -72,16 +71,15 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
         return keccak256(abi.encode(consumer, tokenIn, tokenOut));
     }
 
-    function configureBudget(bytes32 group, address token, uint128 capacity, uint128 refill, uint64 expiresAt)
+    function configureBudget(bytes32 group, address token, uint128 capacity, uint128 refill)
         external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant
     {
-        if (group == bytes32(0) || token == address(0) || capacity == 0 || expiresAt <= block.timestamp)
-            revert InvalidPolicy();
+        if (group == bytes32(0) || token == address(0) || capacity == 0) revert InvalidPolicy();
         Budget storage old = budgets[group];
         if (old.token != address(0) && old.token != token) revert InvalidPolicy();
         // A policy refresh does not refill an exhausted bucket.
         uint128 credit = old.token == address(0) ? capacity : uint128(Math.min(capacity, _credit(old)));
-        budgets[group] = Budget(token, capacity, refill, credit, uint64(block.timestamp), expiresAt);
+        budgets[group] = Budget(token, capacity, refill, credit, uint64(block.timestamp));
         emit BudgetConfigured(group, budgets[group]);
     }
 
@@ -150,9 +148,7 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
             amount = l.maximum;
         } else {
             Pacing storage p = pacing[l.group];
-            // expiry halts new risk, not exits: the flagged unwind lane keeps its credit and pacing
-            if ((b.expiresAt <= block.timestamp && !safetyLanes[key]) || (!activeGroups[l.group]
-                && (block.timestamp < p.nextAt || (p.lastBlock != 0 && p.lastBlock == block.number)))) return 0;
+            if (!activeGroups[l.group] && (block.timestamp < p.nextAt || (p.lastBlock != 0 && p.lastBlock == block.number))) return 0;
             amount = Math.min(l.maximum, _credit(b));
         }
         if (quoted && caller != address(0) && (!simulating || quotes[key].amountIn != 0)) {
@@ -234,7 +230,7 @@ contract ExecutionController is AccessControl, ReentrancyGuard {
     }
 
     /// @dev consumers must restrict their safety lane to an outstanding safety de-lever;
-    /// it bypasses timing/volume expiry, never size, quote or price bounds.
+    /// it bypasses pacing and credit, never size, quote or price bounds.
     function consumeSafety(address tokenIn, address tokenOut, uint256 amount, uint256 fairOut)
         external returns (uint256 minimum)
     {

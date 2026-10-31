@@ -8,7 +8,7 @@ import {LARK4_IDENTITY as L4} from './lark4-identity.mjs';
 const SIGNERS={markets:'//Alice//propeller-20261005-arb',pools:'//Alice//propeller-20261007-pools',replay:'//Alice//propeller-20261007-replay'};
 // the next version's parameters, as the mainnet proposal sets them (next-governance.ts)
 export const NEXT_PARAMS={harvestThreshold:2n*10n**14n,reserve:1000n*10n**18n,
- band:{relever:6500,target:7500,delever:8300},admissionMaxDeficitBps:250,
+ band:{relever:6500,target:7500,delever:8300},admissionMaxDeficitBps:250,exitHeadroom:{enabled:true,gapBps:0},
  revenue:{protocolFeeBps:6900,mainDiscountBps:4000,loopDiscountBps:9000},
  primePoolFeePpm:100};
 // the loop keeps each band relative to the collateral's live max LTV, as bandGaps in next-governance.ts
@@ -90,6 +90,16 @@ export const PROFILES={
 // endpoints and deployment id (LARK_DEPLOYMENT) stay open
 PROFILES.next={...PROFILES.lark0,chainName:null,genesis:null,commit:null,deployment:null,rpc:null,ws:null,
  stack:{keeperEnv:PROFILES.lark0.stack.keeperEnv,bots:PROFILES.lark0.stack.bots}};
+// lark 4 reforked for the release candidate: jBTC first, jETH added to the running deployment later.
+// the refork's genesis and the built commit are pinned once known
+PROFILES.lark4rc={...PROFILES.next,chainName:'Lark 4 Hydration',deployment:'lark4-20261030',
+ genesis:'0x6b320d1e88d14f43170286b3b4b4ed2dedc33e35b21bc6246388fae46f8ea564',commit:'6c6c772eb9eda1ea88b72a6dd66c7985a55cc8a9',
+ rpc:'https://node4.lark.hydration.cloud',ws:'wss://node4.lark.hydration.cloud',
+ gateway:{rpc:'https://4.lark.hydration.cloud',ws:'wss://4.lark.hydration.cloud'},
+ names:{...PROFILES.lark0.names,vaults:{TBTC:PROFILES.lark0.names.vaults.TBTC}},collateral:{TBTC:TOKENS.TBTC},
+ depositor:{...PROFILES.lark0.depositor,usd:{TBTC:100000},caps:{TBTC:15n*10n**17n}},
+ stack:{keeperRpcUrls:['https://node4.lark.hydration.cloud','https://4.lark.hydration.cloud'],
+  keeperEnv:PROFILES.lark0.stack.keeperEnv,bots:PROFILES.lark0.stack.bots}};
 // the least PRIME lane cap (bps) inside a profit-seeking arb's band: the pool rests up to its fee
 // plus the arb's profit off the oracle, the loop pays the fee again, and a bp each goes to its own
 // impact and an unmatched intent's solver haircut
