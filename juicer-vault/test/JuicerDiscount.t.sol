@@ -116,19 +116,23 @@ contract JuicerDiscountTest is Test {
         discount.registerVault(address(vault));
     }
 
-    function test_constructorRejectsWrongMarketAndZeroAuthority() public {
-        MockDiscountAToken wrong = new MockDiscountAToken(address(0x123), address(synth));
+    function test_constructorTakesAPredictedATokenAndRejectsNoMarketOrAuthority() public {
+        address predicted = address(0xA70C3);
+        JuicerDiscount early = new JuicerDiscount(address(debt), address(synth), predicted, address(this), COMMITTEE);
+        assertEq(address(early.aSynthetic()), predicted);
+        MockDiscountDebtToken poolless = new MockDiscountDebtToken(address(0));
         vm.expectRevert(JuicerDiscount.InvalidMarket.selector);
-        new JuicerDiscount(address(debt), address(synth), address(wrong), address(this), COMMITTEE);
+        new JuicerDiscount(address(poolless), address(synth), predicted, address(this), COMMITTEE);
+        vm.expectRevert(JuicerDiscount.ZeroAddress.selector);
+        new JuicerDiscount(address(debt), address(synth), address(0), address(this), COMMITTEE);
         vm.expectRevert(JuicerDiscount.ZeroAddress.selector);
         new JuicerDiscount(address(debt), address(synth), address(aSynth), address(this), address(0));
     }
 
     function test_constructorRejectsWrongSyntheticDecimals() public {
         MockERC20 wrongSynth = new MockERC20("Wrong", "WRONG", 6);
-        MockDiscountAToken wrongReceipt = new MockDiscountAToken(POOL, address(wrongSynth));
         vm.expectRevert(JuicerDiscount.InvalidMarket.selector);
-        new JuicerDiscount(address(debt), address(wrongSynth), address(wrongReceipt), address(this), COMMITTEE);
+        new JuicerDiscount(address(debt), address(wrongSynth), address(aSynth), address(this), COMMITTEE);
     }
 
     function test_rawSyntheticIsNotEligibility() public {
