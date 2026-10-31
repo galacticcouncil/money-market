@@ -24,11 +24,11 @@ contract ParityPolicy is ExecutionController {
     constructor() ExecutionController(msg.sender, 60, 5) {}
     function seed(uint256[] memory r, address consumer, address input, address output) external returns (bytes32 key) {
         bytes32 group = bytes32(uint256(1));
-        budgets[group] = Budget(input, uint128(r[0]), uint128(r[1]), uint128(r[2]), uint64(r[3]), uint64(r[4]));
+        budgets[group] = Budget(input, uint128(r[0]), uint128(r[1]), uint128(r[2]), uint64(r[3]));
         key = lane(consumer, input, output);
-        limits[key] = Limit(group, uint128(r[5]), uint128(r[6]));
-        pacing[group] = Pacing(0, uint64(r[7]), r[8]);
-        safetyLanes[key] = r[9] != 0;
+        limits[key] = Limit(group, uint128(r[4]), uint128(r[5]));
+        pacing[group] = Pacing(0, uint64(r[6]), r[7]);
+        safetyLanes[key] = r[8] != 0;
     }
 }
 
@@ -140,12 +140,12 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
             uint256[] memory r = _row("policy", i);
             ParityPolicy c = ParityPolicy(vm.deployCode("LeanCoverageParity.t.sol:ParityPolicy"));
             c.seed(r, address(this), address(1), address(2));
-            vm.warp(r[10]); vm.roll(r[11]);
-            assertEq(c.available(address(this), address(1), address(2)), r[12]);
-            assertEq(c.availableSafety(address(this), address(1), address(2)), r[13]);
-            c.configureBudget(bytes32(uint256(1)), address(1), 800, uint128(r[1]), uint64(r[10] + 100));
-            (,,,uint128 credit,,) = c.budgets(bytes32(uint256(1)));
-            assertEq(credit, r[15]);
+            vm.warp(r[9]); vm.roll(r[10]);
+            assertEq(c.available(address(this), address(1), address(2)), r[11]);
+            assertEq(c.availableSafety(address(this), address(1), address(2)), r[12]);
+            c.configureBudget(bytes32(uint256(1)), address(1), 800, uint128(r[1]));
+            (,,,uint128 credit,) = c.budgets(bytes32(uint256(1)));
+            assertEq(credit, r[14]);
         }
     }
     function test_leanQuoteTightensOracleFloor() public {
@@ -154,7 +154,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
             ExecutionController c = ExecutionController(Artifacts.executionController(address(this), 60, 5));
             ParityConsumer consumer = new ParityConsumer(c);
             vm.roll(100); vm.setBlockhash(99, keccak256("quote"));
-            c.configureBudget(bytes32(uint256(1)), address(1), 1000, 0, uint64(block.timestamp + 100));
+            c.configureBudget(bytes32(uint256(1)), address(1), 1000, 0);
             c.configureLimit(address(consumer), address(1), address(2), bytes32(uint256(1)), 1, 100);
             bytes32 key = c.lane(address(consumer), address(1), address(2));
             c.configurePrice(key, uint16(r[1]), false); c.configureAction(address(consumer), ParityConsumer.trade.selector, true);
@@ -162,7 +162,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
             quotes[0] = ExecutionController.Quote(key, r[4], r[2]);
             c.execute(address(consumer), abi.encodeCall(ParityConsumer.trade, (r[3], r[0], r[5])),
                 99, keccak256("quote"), block.timestamp + 60, quotes);
-            (,,,uint128 credit,,) = c.budgets(bytes32(uint256(1)));
+            (,,,uint128 credit,) = c.budgets(bytes32(uint256(1)));
             assertEq(credit, 1000 - r[3]);
         }
     }
@@ -173,7 +173,7 @@ contract LeanCoverageParityTest is PluggableYieldSourceTest {
             ParityConsumer consumer = new ParityConsumer(c);
             vm.warp(r[0]); vm.roll(100); vm.setBlockhash(99, keccak256("pacing"));
             bytes32 group = bytes32(uint256(1));
-            c.configureBudget(group, address(1), 1000, 0, type(uint64).max);
+            c.configureBudget(group, address(1), 1000, 0);
             c.configureLimit(address(consumer), address(1), address(2), group, 1, uint128(r[3]));
             c.configurePacing(group, uint64(r[1]));
             bytes32 key = c.lane(address(consumer), address(1), address(2));

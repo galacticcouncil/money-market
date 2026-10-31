@@ -49,10 +49,10 @@ def feeRows : List (List ℕ) := do
 
 def policyRows : List (List ℕ) := do
   let n ← List.range 64
-  let p : Policy := ⟨1000, n % 5, n * 13 % 1001, 100, if n % 3 == 0 then 101 else 1000,
+  let p : Policy := ⟨1000, n % 5, n * 13 % 1001, 100,
     10, 500, if n % 4 == 0 then 1000 else 100, if n % 5 == 0 then 99 else 0, n % 2 == 0, false⟩
   let now := 100 + n
-  pure [p.capacity, p.refill, p.credit, p.updated, p.expires, p.minimum, p.maximum, p.nextAt,
+  pure [p.capacity, p.refill, p.credit, p.updated, p.minimum, p.maximum, p.nextAt,
     p.lastBlock, if p.safetyLane then 1 else 0, now, 99, available p now 99 false,
     available p now 99 true, policyCredit p now, min 800 (policyCredit p now)]
 

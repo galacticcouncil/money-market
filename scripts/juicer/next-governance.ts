@@ -414,7 +414,6 @@ export function nextChecks(state: NextState, e: Expected): Check[] {
 // mainnet sizes, from lark 4's working release candidate without its lark-only price approvals
 export const LAUNCH = {
   pacing: 60,
-  expiryDays: 90,
   // HOLLAR 18dp in, aPRIME 6dp out and back: 2,500 a trade, 25,000 deep, 10 a second
   // (~$36k/h) so arbitrage can refill pool 143's ~430k PRIME behind the ramp
   entry: { capacity: utils.parseUnits("25000", 18), refill: utils.parseUnits("10", 18), minimum: utils.parseUnits("1", 18), maximum: utils.parseUnits("2500", 18) },
@@ -437,11 +436,11 @@ export const LAUNCH = {
   loopCap: utils.parseUnits("5000000", 18),
 };
 export type Size = { capacity: BigNumberish; refill: BigNumberish; minimum: BigNumberish; maximum: BigNumberish };
-export type PolicySpec = { expiresAt: number; pacing: number; primeShortfallBps: number; collateralShortfallBps: number;
+export type PolicySpec = { pacing: number; primeShortfallBps: number; collateralShortfallBps: number;
   entry: Size; unwind: Size; harvest: Size; service: Record<number, Size> };
 export type Policy = {
   maxQuoteAge: number; maxQuoteBlocks: number;
-  budgets: { name: string; group: string; token: string; capacity: string; refillPerSecond: string; expiresAt: number; minIntervalSeconds: number }[];
+  budgets: { name: string; group: string; token: string; capacity: string; refillPerSecond: string; minIntervalSeconds: number }[];
   limits: { name: string; consumer: string; input: string; output: string; lane: string; group: string; minimum: string; maximum: string; maxShortfallBps: number; safety: boolean }[];
   actions: { target: string; signature: string }[];
   bound: string[];
@@ -452,7 +451,7 @@ export const laneId = (consumer: string, input: string, output: string) =>
   utils.keccak256(utils.defaultAbiCoder.encode(["address", "address", "address"], [consumer, input, output]));
 
 const controlAllI = new utils.Interface([
-  "function configureBudget(bytes32,address,uint128,uint128,uint64)", "function configurePacing(bytes32,uint64)",
+  "function configureBudget(bytes32,address,uint128,uint128)", "function configurePacing(bytes32,uint64)",
   "function configureLimit(address,address,address,bytes32,uint128,uint128)", "function configurePrice(bytes32,uint16,bool)",
   "function configureAction(address,bytes4,bool)",
 ]);
@@ -466,7 +465,7 @@ export function executionPolicy(a: { subLoop: string; harvester: string; hollar:
   }
   const budgets: Policy["budgets"] = [], limits: Policy["limits"] = [];
   const budget = (name: string, token: string, s: Size) => budgets.push({ name, group: groupId(name), token,
-    capacity: BigNumber.from(s.capacity).toString(), refillPerSecond: BigNumber.from(s.refill).toString(), expiresAt: spec.expiresAt, minIntervalSeconds: spec.pacing });
+    capacity: BigNumber.from(s.capacity).toString(), refillPerSecond: BigNumber.from(s.refill).toString(), minIntervalSeconds: spec.pacing });
   const limit = (name: string, group: string, consumer: string, input: string, output: string, s: Size, maxShortfallBps: number, safety = false) => {
     if (BigNumber.from(s.minimum).lte(0) || BigNumber.from(s.maximum).lt(s.minimum) || BigNumber.from(s.maximum).gt(s.capacity)) {
       throw new Error(`${name}: lane sizes need 0 < minimum <= maximum <= capacity`);
@@ -495,7 +494,7 @@ export function executionPolicy(a: { subLoop: string; harvester: string; hollar:
 
 export type ExecutionState = {
   controller: string;
-  budgets: Record<string, { token: string; capacity: BigNumber; refill: BigNumber; expiresAt: number; interval: number }>;
+  budgets: Record<string, { token: string; capacity: BigNumber; refill: BigNumber; interval: number }>;
   limits: Record<string, { group: string; minimum: BigNumber; maximum: BigNumber; shortfall: number; safety: boolean }>;
   actions: Record<string, boolean>;
   bound: Record<string, string>;
@@ -505,7 +504,7 @@ const actionKey = (target: string, signature: string) => `${target.toLowerCase()
 
 export async function readExecution(provider: any, controller: string, p: Policy): Promise<ExecutionState> {
   const c = new Contract(controller, [
-    "function budgets(bytes32) view returns (address token,uint128 capacity,uint128 refillPerSecond,uint128 credit,uint64 updatedAt,uint64 expiresAt)",
+    "function budgets(bytes32) view returns (address token,uint128 capacity,uint128 refillPerSecond,uint128 credit,uint64 updatedAt)",
     "function pacing(bytes32) view returns (uint64 interval,uint64 nextAt,uint256 lastBlock)",
     "function limits(bytes32) view returns (bytes32 group,uint128 minimum,uint128 maximum)",
     "function maxShortfallBps(bytes32) view returns (uint16)", "function safetyLanes(bytes32) view returns (bool)",
@@ -514,7 +513,7 @@ export async function readExecution(provider: any, controller: string, p: Policy
   const s: ExecutionState = { controller, budgets: {}, limits: {}, actions: {}, bound: {} };
   for (const b of p.budgets) {
     const x = await c.budgets(b.group);
-    s.budgets[b.group] = { token: x.token, capacity: x.capacity, refill: x.refillPerSecond, expiresAt: Number(x.expiresAt), interval: Number((await c.pacing(b.group)).interval) };
+    s.budgets[b.group] = { token: x.token, capacity: x.capacity, refill: x.refillPerSecond, interval: Number((await c.pacing(b.group)).interval) };
   }
   for (const l of p.limits) {
     const x = await c.limits(l.lane);
@@ -531,9 +530,9 @@ export function executionCalls(s: ExecutionState, p: Policy): Call[] {
   for (const b of p.budgets) {
     const x = s.budgets[b.group];
     if (x.token !== constants.AddressZero && !same(x.token, b.token)) throw new Error(`budget ${b.name} holds ${x.token}, not ${b.token}`);
-    if (!same(x.token, b.token) || !x.capacity.eq(b.capacity) || !x.refill.eq(b.refillPerSecond) || x.expiresAt !== b.expiresAt) {
-      calls.push({ to: s.controller, data: controlAllI.encodeFunctionData("configureBudget", [b.group, b.token, b.capacity, b.refillPerSecond, b.expiresAt]),
-        label: `controller.configureBudget(${b.name}, ${b.capacity} cap, ${b.refillPerSecond}/s, until ${b.expiresAt})` });
+    if (!same(x.token, b.token) || !x.capacity.eq(b.capacity) || !x.refill.eq(b.refillPerSecond)) {
+      calls.push({ to: s.controller, data: controlAllI.encodeFunctionData("configureBudget", [b.group, b.token, b.capacity, b.refillPerSecond]),
+        label: `controller.configureBudget(${b.name}, ${b.capacity} cap, ${b.refillPerSecond}/s)` });
     }
     if (x.interval !== b.minIntervalSeconds) {
       calls.push({ to: s.controller, data: controlAllI.encodeFunctionData("configurePacing", [b.group, b.minIntervalSeconds]), label: `controller.configurePacing(${b.name}, ${b.minIntervalSeconds} s)` });

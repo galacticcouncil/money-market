@@ -272,20 +272,20 @@ test("exit headroom reads off, on, or on with a gap", () => {
 
 // ── the launch referendum's own parts ──
 const HV = addr(0x81), TB = addr(0x82), PR = addr(0x83), SWAP = addr(0x84);
-const spec = { expiresAt: 1_800_000_000, pacing: LAUNCH.pacing, primeShortfallBps: 27, collateralShortfallBps: 100,
+const spec = { pacing: LAUNCH.pacing, primeShortfallBps: 27, collateralShortfallBps: 100,
   entry: LAUNCH.entry, unwind: LAUNCH.unwind, harvest: LAUNCH.harvest, service: LAUNCH.service };
 const launchVault = { address: V2, mainDebt: M2, collateral: TB, assetId: 1000765, key: "BTC" };
 const launchPolicy = () => executionPolicy({ subLoop: LOOP, harvester: HV, hollar: H, prime: PR, aPrime: A, vaults: [launchVault] }, spec);
 function emptyExecution(p: Policy): ExecutionState {
   const zero = BigNumber.from(0);
   return { controller: C,
-    budgets: Object.fromEntries(p.budgets.map(b => [b.group, { token: ZERO, capacity: zero, refill: zero, expiresAt: 0, interval: 0 }])),
+    budgets: Object.fromEntries(p.budgets.map(b => [b.group, { token: ZERO, capacity: zero, refill: zero, interval: 0 }])),
     limits: Object.fromEntries(p.limits.map(l => [l.lane, { group: utils.hexZeroPad("0x", 32), minimum: zero, maximum: zero, shortfall: 0, safety: false }])),
     actions: {}, bound: Object.fromEntries(p.bound.map(t => [t.toLowerCase(), ZERO])) };
 }
 function liveExecution(p: Policy): ExecutionState {
   return { controller: C,
-    budgets: Object.fromEntries(p.budgets.map(b => [b.group, { token: b.token, capacity: BigNumber.from(b.capacity), refill: BigNumber.from(b.refillPerSecond), expiresAt: b.expiresAt, interval: b.minIntervalSeconds }])),
+    budgets: Object.fromEntries(p.budgets.map(b => [b.group, { token: b.token, capacity: BigNumber.from(b.capacity), refill: BigNumber.from(b.refillPerSecond), interval: b.minIntervalSeconds }])),
     limits: Object.fromEntries(p.limits.map(l => [l.lane, { group: l.group, minimum: BigNumber.from(l.minimum), maximum: BigNumber.from(l.maximum), shortfall: l.maxShortfallBps, safety: l.safety }])),
     actions: Object.fromEntries(p.actions.map(a => [`${a.target.toLowerCase()}:${a.signature}`, true])),
     bound: Object.fromEntries(p.bound.map(t => [t.toLowerCase(), C])) };
@@ -313,6 +313,10 @@ test("execution is planned budgets first, lanes, prices, entrypoints, then bindi
     ...Array(5).fill("controller.configurePrice"), ...Array(4).fill("controller.configureAction"), ...Array(3).fill("setExecutionController")]);
   assert.deepEqual(calls.slice(-3).map(c => c.to), [LOOP, HV, V2]);
   assert.deepEqual(executionCalls(liveExecution(p), p), []);
+  const slower = liveExecution(p);
+  slower.budgets[p.budgets[0].group].refill = BigNumber.from(1);
+  assert.deepEqual(executionCalls(slower, p).map(c => c.label), [`controller.configureBudget(entry, ${LAUNCH.entry.capacity} cap, ${LAUNCH.entry.refill}/s)`]);
+  assert.equal(decode("configureBudget(bytes32,address,uint128,uint128)", executionCalls(slower, p)[0].data).length, 4, "no expiry argument");
   const moved = liveExecution(p);
   moved.limits[p.limits[1].lane].shortfall = 6;
   assert.deepEqual(executionCalls(moved, p).map(c => c.label), ["controller.configurePrice(unwind, 27 bps, safety)"]);

@@ -55,8 +55,8 @@ contract ExecutionAsyncTest is Test {
         control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         consumer = new AsyncConsumer(control);
         other = new AsyncConsumer(control);
-        control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18, uint64(block.timestamp + 30 days));
-        control.configureBudget(UNWIND, address(aPrime), 5000e6, 1e6, uint64(block.timestamp + 30 days));
+        control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18);
+        control.configureBudget(UNWIND, address(aPrime), 5000e6, 1e6);
         control.configureLimit(address(consumer), address(hollar), address(aPrime), ENTRY, 10e18, 2500e18);
         control.configureLimit(address(consumer), address(aPrime), address(hollar), UNWIND, 1e6, 2500e6);
         entryLane = control.lane(address(consumer), address(hollar), address(aPrime));
@@ -82,7 +82,7 @@ contract ExecutionAsyncTest is Test {
         assertEq(who, address(consumer));
         assertEq(nonce, 7);
         assertEq(stored, minimum, "minimum kept for the record");
-        (,,, uint128 credit,,) = control.budgets(ENTRY);
+        (,,, uint128 credit,) = control.budgets(ENTRY);
         assertEq(credit, 4000e18, "budget charged at submit");
         (, uint64 nextAt, uint256 lastBlock) = control.pacing(ENTRY);
         assertEq(nextAt, block.timestamp);
@@ -127,7 +127,7 @@ contract ExecutionAsyncTest is Test {
         consumer.recordAsync(entryLane, 9, 0);
         (, uint64 nonce,) = _pending(entryLane);
         assertEq(nonce, 0, "expired or removed intent closes with no fill");
-        (,,, uint128 credit,,) = control.budgets(ENTRY);
+        (,,, uint128 credit,) = control.budgets(ENTRY);
         assertEq(credit, 4900e18, "a refund does not return budget");
     }
 
@@ -146,7 +146,7 @@ contract ExecutionAsyncTest is Test {
         control.configureAsync(entryLane, false);
     }
 
-    function test_asyncKeepsSizePacingAndExpiry() public {
+    function test_asyncKeepsSizeAndPacingAndNeverLapses() public {
         vm.expectRevert(ExecutionController.TradeSize.selector);
         consumer.consumeAsync(address(hollar), address(aPrime), 9e18, 9e6, 1);
         vm.expectRevert(ExecutionController.TradeSize.selector);
@@ -171,13 +171,13 @@ contract ExecutionAsyncTest is Test {
         vm.warp(block.timestamp + 59);
         vm.expectRevert(ExecutionController.TradeSize.selector);
         consumer.consumeAsync(address(hollar), address(aPrime), 100e18, 94e6, 4);
-        vm.warp(block.timestamp + 31 days);
+        vm.warp(block.timestamp + 3 * 365 days);
         vm.roll(block.number + 1);
-        vm.expectRevert(ExecutionController.TradeSize.selector);
-        consumer.consumeAsync(address(hollar), address(aPrime), 100e18, 94e6, 3);
+        consumer.consumeAsync(address(hollar), address(aPrime), 100e18, 94e6, 4);
+        consumer.recordAsync(entryLane, 4, 94e6);
         aPrime.mint(address(consumer), 100e6);
-        (uint256 amount,) = consumer.prepareAsync(address(aPrime), address(hollar), 100e6, 100e18, 4);
-        assertEq(amount, 100e6, "expiry halts new risk, not the flagged exit lane");
+        (uint256 amount,) = consumer.prepareAsync(address(aPrime), address(hollar), 100e6, 100e18, 5);
+        assertEq(amount, 100e6, "years later both lanes still trade within credit and pacing");
     }
 
     function test_prepareAsyncFitsLikePrepare() public {

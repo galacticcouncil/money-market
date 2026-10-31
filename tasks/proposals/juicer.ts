@@ -443,10 +443,8 @@ task(
   // ═════ execution: budgets, lanes and prices, quote entrypoints, then every consumer bound ═════
   step = "execution";
   const quotes = await at(controller, ["function maxQuoteAge() view returns (uint64)", "function maxQuoteBlocks() view returns (uint64)"]);
-  const now = Math.floor(Number((await api.query.timestamp.now()).toString()) / 1000);
-  const expiresAt = envNumber("JUICER_POLICY_EXPIRES_AT", now + LAUNCH.expiryDays * 86400);
   const policy = executionPolicy({ subLoop, harvester, hollar, prime, aPrime, vaults: rows.map((r) => ({ address: r.address, mainDebt: r.mainDebt, collateral: r.asset, assetId: r.assetId, key: r.key })) }, {
-    expiresAt, pacing: LAUNCH.pacing, primeShortfallBps: ROUTE_SLIPPAGE_PPM / 100,
+    pacing: LAUNCH.pacing, primeShortfallBps: ROUTE_SLIPPAGE_PPM / 100,
     collateralShortfallBps: envNumber("JUICER_COLLATERAL_SHORTFALL_BPS", LAUNCH.collateralShortfallBps),
     entry: LAUNCH.entry, unwind: LAUNCH.unwind, harvest: LAUNCH.harvest, service: LAUNCH.service,
   }, { age: Number(await quotes.maxQuoteAge()), blocks: Number(await quotes.maxQuoteBlocks()) });
@@ -568,7 +566,7 @@ the discount reading the wrong token: regenerate (this check refuses) and redepl
   const writePlan = (proposal: any, batches: any[]) => {
     if (!process.env.JUICER_PLAN_OUT) return;
     writeFileSync(process.env.JUICER_PLAN_OUT, JSON.stringify({
-      proposal, batches, policy, expiresAt, discount, keepers, governance: admin,
+      proposal, batches, policy, discount, keepers, governance: admin,
       values: {
         slippagePpm: ROUTE_SLIPPAGE_PPM, primePoolFeePpm: ROUTE_POOL_FEE_PPM, withdrawalDelay, synthAssetId: SYNTH_ASSET_ID,
         harvestThreshold: expected.harvestThreshold.toString(), intentTtl: expected.intentTtl, intentDriftBps: expected.intentDriftBps,
@@ -620,7 +618,6 @@ dispatcher.dispatchAsAaveManager reports EVM reverts as ExecutedFailed EVENTS an
 dispatcher.dispatchAsTreasury its inner result in TreasuryManagerCallDispatched, not as failures,
 so a batch can "succeed" with calls silently reverted. After enactment run
 scripts/juicer/verify-readiness.ts with JUICER_EXECUTION_POLICY from JUICER_PLAN_OUT before announcing.
-The execution policy expires at ${expiresAt} (JUICER_POLICY_EXPIRES_AT pins it across reruns).
 ${prediction}
 `);
 });

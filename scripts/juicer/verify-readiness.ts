@@ -182,7 +182,7 @@ async function main() {
       "function maxQuoteAge() view returns (uint64)", "function maxQuoteBlocks() view returns (uint64)",
       "function lane(address,address,address) pure returns (bytes32)",
       "function limits(bytes32) view returns (bytes32 group,uint128 minimum,uint128 maximum)",
-      "function budgets(bytes32) view returns (address token,uint128 capacity,uint128 refillPerSecond,uint128 credit,uint64 updatedAt,uint64 expiresAt)",
+      "function budgets(bytes32) view returns (address token,uint128 capacity,uint128 refillPerSecond,uint128 credit,uint64 updatedAt)",
       "function pacing(bytes32) view returns (uint64 interval,uint64 nextAt,uint256 lastBlock)",
       "function maxShortfallBps(bytes32) view returns (uint16)",
       "function safetyLanes(bytes32) view returns (bool)",
@@ -210,8 +210,6 @@ async function main() {
       routes.push([vault, prime, collateral], [await v.mainDebt(), collateral, hollar]);
       requiredActions.push([vault, "rebalance()"]);
     }
-    // the chain's own clock: a chopsticks eth rpc reports block timestamps in milliseconds
-    const now = Math.floor(Number((await api.query.timestamp.now()).toString()) / 1000);
     const harvestGroups = new Set<string>();
     for (const [consumer, input, output] of routes) {
       const lane = await controller.lane(consumer, input, output);
@@ -224,10 +222,9 @@ async function main() {
       add(group, `${lane}: approved size`, !!approved && eq(approved.group, limit.group)
         && limit.minimum.gt(0) && limit.maximum.gte(limit.minimum)
         && limit.minimum.eq(approved.minimum) && limit.maximum.eq(approved.maximum));
-      add(group, `${lane}: approved active budget`, !!policy && eq(budget.token, input)
+      add(group, `${lane}: approved budget`, !!policy && eq(budget.token, input)
         && budget.capacity.gte(limit.maximum) && budget.capacity.eq(policy.capacity)
-        && budget.refillPerSecond.eq(policy.refillPerSecond)
-        && budget.expiresAt.eq(policy.expiresAt) && budget.expiresAt.gt(now));
+        && budget.refillPerSecond.eq(policy.refillPerSecond));
       add(group, `${lane}: approved total MM-oracle shortfall`, !!approved
         && Number.isInteger(approved.maxShortfallBps) && approved.maxShortfallBps >= 0
         && approved.maxShortfallBps < 10000
