@@ -155,15 +155,18 @@ async function smoke(file){
   assert.equal(r.status,'success',`${label} reverted`);
   return logs;
  }
- // the discount governance created in the referendum is the reviewed build, where the deploy said it would be
+ // the discount deployed up front is the reviewed build, bound to the aToken the referendum's initReserves made
  const discount=artifact('JuicerDiscount').deployedBytecode;
  let live=(await pub.getBytecode({address:A.discount})).slice(2).toLowerCase(),want=discount.object.replace(/^0x/,'').toLowerCase();
  for(const refs of Object.values(discount.immutableReferences??{}))for(const {start,length}of refs){
   const mask=x=>x.slice(0,start*2)+'0'.repeat(length*2)+x.slice((start+length)*2);live=mask(live);want=mask(want);
  }
  assert.equal(live,want,'the created discount differs from its artifact');
- assert.equal((await read(A.discountDeployment,v.parseAbi(['function discount() view returns (address)']),'discount')).toLowerCase(),A.discount.toLowerCase());
- s.discount={address:A.discount,matchesArtifact:true};
+ const listed=(await read(m.market.pool,v.parseAbi(['function getReserveData(address) view returns ((uint256 configuration,uint128 liquidityIndex,uint128 liquidityRate,uint128 borrowIndex,uint128 borrowRate,uint128 stableRate,uint40 updatedAt,uint16 id,address aToken,address stableDebt,address variableDebt,address strategy,uint128 accrued,uint128 unbacked,uint128 isolationDebt))']),'getReserveData',[A.synth])).aToken;
+ const bound=await read(A.discount,v.parseAbi(['function aSynthetic() view returns (address)']),'aSynthetic');
+ s.discount={address:A.discount,matchesArtifact:true,prediction:m.prediction,listedAToken:listed,boundAToken:bound};save();
+ assert.equal(listed.toLowerCase(),m.prediction.aSynthetic.toLowerCase(),'initReserves made another aToken than predicted');
+ assert.equal(bound.toLowerCase(),listed.toLowerCase(),'the discount reads another aToken');
  const tbtc=vault.asset,amount=10n**16n;
  await call(user,'user approves 0.01 tBTC',tbtc,erc20,'approve',[vault.address,amount],500_000n);
  const before=await read(vault.address,abi,'balanceOf',[user.address]);

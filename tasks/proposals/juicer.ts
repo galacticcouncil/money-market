@@ -133,7 +133,7 @@ function manifestEnv(m: any): Record<string, string> {
   return {
     JUICER_SYNTH: a.synth, JUICER_SUBLOOP: a.subLoop, JUICER_HARVESTER: a.harvester, JUICER_VAULTS: vaults.map((x: any) => x.address).join(","),
     JUICER_MAIN_DEBTS: vaults.map((x: any) => x.mainDebt).join(","), JUICER_SWAPPER: a.adapter, JUICER_FEE_CONTROLLER: a.fees,
-    JUICER_EXECUTION_CONTROLLER: a.controller, JUICER_DISCOUNT_CONTROLLER: a.discount, JUICER_DISCOUNT_DEPLOYMENT: a.discountDeployment,
+    JUICER_EXECUTION_CONTROLLER: a.controller, JUICER_DISCOUNT_CONTROLLER: a.discount,
     JUICER_GUARDIAN: m.committee, JUICER_ROUNDING_RESERVES: JSON.stringify(vaults.map((x: any) => x.rounding)),
   };
 }
@@ -426,8 +426,14 @@ task(
   }
   // the adapter routes by asset id: PRIME and each collateral in, HOLLAR out
   if (swapper) {
-    const adapter = await at(swapper, ["function owner() view returns (address)", "function assetId(address) view returns (uint32)", "function setAssetId(address,uint32)"]);
-    if (!same(await adapter.owner(), admin)) throw new Error(`the adapter ${swapper} is not governance's`);
+    const adapter = await at(swapper, ["function owner() view returns (address)", "function pendingOwner() view returns (address)",
+      "function acceptOwnership()", "function assetId(address) view returns (uint32)", "function setAssetId(address,uint32)"]);
+    // the deployer hands it over before proposing; a two-step owner leaves the acceptance to governance
+    if (!same(await adapter.owner(), admin)) {
+      const pending = await adapter.pendingOwner().catch(() => undefined);
+      if (!same(pending, admin)) throw new Error(`the adapter ${swapper} is neither owned by nor pending to governance: the deployer transfers it before proposing`);
+      evm("adapter.acceptOwnership()", swapper, adapter.interface.encodeFunctionData("acceptOwnership"));
+    }
     for (const [address, id] of [[prime, ROUTE_PRIME], [hollar, ROUTE_HOLLAR], ...rows.map((r) => [r.asset, r.assetId])] as [string, number][]) {
       if (Number(await adapter.assetId(address)) !== id) evm(`adapter.setAssetId(${address}, ${id})`, swapper, adapter.interface.encodeFunctionData("setAssetId", [address, id]));
     }
@@ -448,24 +454,36 @@ task(
   }
   plan(executionCalls(await readExecution(hre.ethers.provider, controller, policy), policy));
 
-  // ═════ discount: created by governance, installed on the HOLLAR debt token, vaults and the loop enrolled ═════
+  // ═════ discount: deployed with the rest against the synthetic's predicted aToken; installed, vaults and the loop enrolled ═════
   step = "discount";
   const reserveData = await at(pool.address, ["function getReserveData(address) view returns ((uint256,uint128,uint128,uint128,uint128,uint128,uint40,uint16,address,address,address,address,uint128,uint128,uint128))"]);
   const debtToken = (await reserveData.getReserveData(hollar))[10];
   const discountState = await readDiscount(hre.ethers.provider, { discount, debtToken, vaults });
-  let creationCode = "0x";
-  if (!discountState.code) {
-    const deployment = need("JUICER_DISCOUNT_DEPLOYMENT", process.env.JUICER_DISCOUNT_DEPLOYMENT);
-    const d = await at(deployment, ["function codeHash() view returns (bytes32)", "function discount() view returns (address)", "function governance() view returns (address)"]);
-    const dir = need("JUICER_ARTIFACT_DIR", process.env.JUICER_ARTIFACT_DIR);
-    const bytecode = JSON.parse(readFileSync(resolvePath(dir, "JuicerDiscount.sol", "JuicerDiscount.json"), "utf8")).bytecode.object;
-    creationCode = bytecode.startsWith("0x") ? bytecode : `0x${bytecode}`;
-    if (utils.keccak256(creationCode) !== (await d.codeHash())) throw new Error("JUICER_ARTIFACT_DIR's JuicerDiscount is not the code the deployment pins");
-    if (!same(await d.governance(), admin)) throw new Error(`${deployment} does not answer to governance`);
-    if (!same(utils.getContractAddress({ from: deployment, nonce: 1 }), discount)) throw new Error(`the discount is ${deployment}'s first creation, not ${discount}`);
+  if (!discountState.code) throw new Error(`no JuicerDiscount at ${discount}: scripts/juicer/launch-deploy.mjs deploys it`);
+  const discountC = await at(discount, ["function aSynthetic() view returns (address)", "function synthetic() view returns (address)",
+    "function debtToken() view returns (address)", "function hasRole(bytes32,address) view returns (bool)"]);
+  if (!same(await discountC.synthetic(), synth) || !same(await discountC.debtToken(), debtToken) || !(await discountC.hasRole(constants.HashZero, admin))) {
+    throw new Error(`${discount} is not this launch's discount`);
+  }
+  const boundAToken = await discountC.aSynthetic();
+  let prediction = "";
+  if (listed) {
+    const aToken = (await reserveData.getReserveData(synth))[8];
+    if (!same(aToken, boundAToken)) throw new Error(`the discount is bound to ${boundAToken}, the synthetic's aToken is ${aToken}`);
+  } else {
+    // initReserves creates the aToken first, from the configurator: its next creation unless another listing goes first
+    const creatorNonce = await hre.ethers.provider.getTransactionCount(poolConfigurator.address);
+    const next = utils.getContractAddress({ from: poolConfigurator.address, nonce: creatorNonce });
+    if (!same(next, boundAToken)) {
+      throw new Error(`the discount is bound to ${boundAToken}, but the synthetic's aToken would now be ${next} (configurator nonce ${creatorNonce}): ` +
+        "a listing moved it since the deploy; rerun scripts/juicer/launch-deploy.mjs for a new discount, then regenerate");
+    }
+    prediction = `The discount is bound to ${next}, the configurator's creation at nonce ${creatorNonce}: the synthetic's aToken as
+long as no other listing is enacted before this referendum's initReserves. One that is moves it and leaves
+the discount reading the wrong token: regenerate (this check refuses) and redeploy the discount first.`;
   }
   const loopCap = utils.parseUnits(process.env.JUICER_LOOP_DISCOUNT_CAP || utils.formatUnits(LAUNCH.loopCap, 18), 18);
-  plan(discountCalls(discountState, { discount, deployment: process.env.JUICER_DISCOUNT_DEPLOYMENT || constants.AddressZero, creationCode, debtToken, subLoop, loopCap }));
+  plan(discountCalls(discountState, { discount, debtToken, subLoop, loopCap }));
 
   // ═════ next: keepers, harvest threshold, ICE, bands, admission, headroom exits, revenue mix ═════
   // Keepers get SubLoop KEEPER_ROLE (quoted pokes) and each vault's DEPOSIT_GUARDIAN_ROLE (setDeficitStop only).
@@ -602,5 +620,6 @@ dispatcher.dispatchAsTreasury its inner result in TreasuryManagerCallDispatched,
 so a batch can "succeed" with calls silently reverted. After enactment run
 scripts/juicer/verify-readiness.ts with JUICER_EXECUTION_POLICY from JUICER_PLAN_OUT before announcing.
 The execution policy expires at ${expiresAt} (JUICER_POLICY_EXPIRES_AT pins it across reruns).
+${prediction}
 `);
 });

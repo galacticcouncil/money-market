@@ -776,6 +776,7 @@ async function main() {
       ...ACCESS_ABI,
       "function debtToken() view returns (address)",
       "function synthetic() view returns (address)",
+      "function aSynthetic() view returns (address)",
       "function discountBps() view returns (uint16)",
       "function isRegistered(address) view returns (bool)",
       "function vaults() view returns (address[])",
@@ -791,6 +792,11 @@ async function main() {
     add(group, "committee has no enrollment authority", (await sread(() => discount.hasRole(ethers.constants.HashZero, COMMITTEE))) === false);
     add(group, "committee has no fee authority", (await sread(() => fees.hasRole(ethers.constants.HashZero, COMMITTEE))) === false);
     add(group, "discount synthetic", eq(await sread(() => discount.synthetic()), SYNTH));
+    // deployed before the listing against a predicted address: the listing has to have made exactly that aToken
+    const listedAToken = await sread(async () => (await new ethers.Contract(POOL, [
+      "function getReserveData(address) view returns ((uint256,uint128,uint128,uint128,uint128,uint128,uint40,uint16,address,address,address,address,uint128,uint128,uint128))",
+    ], provider).getReserveData(SYNTH))[8]);
+    add(group, "discount reads the synthetic's listed aToken", eq(await sread(() => discount.aSynthetic()), listedAToken), listedAToken ?? "unlisted");
     const rate = await sread(() => discount.discountBps());
     add(group, "explicitly approved discount rate", Number.isInteger(DISCOUNT_BPS) && DISCOUNT_BPS >= 0
       && DISCOUNT_BPS <= 10000 && rate !== undefined && Number(rate) === DISCOUNT_BPS);

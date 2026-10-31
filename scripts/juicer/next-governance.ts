@@ -568,7 +568,6 @@ export function executionCalls(s: ExecutionState, p: Policy): Call[] {
 export type DiscountState = { code: boolean; token: string; strategy: string; vaults: { address: string; controller: string; registered: boolean }[]; loop: string; loopCap: BigNumber };
 const debtI = new utils.Interface(["function updateDiscountToken(address)", "function updateDiscountRateStrategy(address)"]);
 const enrollI = new utils.Interface(["function registerVault(address)", "function registerLoop(address,uint256)", "function setLoopCap(uint256)", "function setDiscountController(address)"]);
-const deploymentI = new utils.Interface(["function deploy(bytes)"]);
 
 export async function readDiscount(provider: any, { discount, debtToken, vaults }: { discount: string; debtToken: string; vaults: string[] }): Promise<DiscountState> {
   const code = (await provider.getCode(discount)) !== "0x";
@@ -583,10 +582,10 @@ export async function readDiscount(provider: any, { discount, debtToken, vaults 
   };
 }
 
-/// created, installed on the HOLLAR debt token, the vaults enrolled, then the loop: registerLoop needs a vault it funds
-export function discountCalls(s: DiscountState, p: { discount: string; deployment: string; creationCode: string; debtToken: string; subLoop: string; loopCap: BigNumberish }): Call[] {
+/// installed on the HOLLAR debt token, the vaults enrolled, then the loop: registerLoop needs a vault it funds
+export function discountCalls(s: DiscountState, p: { discount: string; debtToken: string; subLoop: string; loopCap: BigNumberish }): Call[] {
   const calls: Call[] = [], same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-  if (!s.code) calls.push({ to: p.deployment, data: deploymentI.encodeFunctionData("deploy", [p.creationCode]), label: `discountDeployment.deploy(JuicerDiscount) → ${p.discount}`, gas: 4_000_000 });
+  if (!s.code) throw new Error(`no JuicerDiscount at ${p.discount}: the deploy creates it`);
   if (!same(s.token, p.discount)) calls.push({ to: p.debtToken, data: debtI.encodeFunctionData("updateDiscountToken", [p.discount]), label: `hollarDebt.updateDiscountToken(${p.discount})`, gas: 1_000_000 });
   if (!same(s.strategy, p.discount)) calls.push({ to: p.debtToken, data: debtI.encodeFunctionData("updateDiscountRateStrategy", [p.discount]), label: `hollarDebt.updateDiscountRateStrategy(${p.discount})`, gas: 1_000_000 });
   for (const v of s.vaults) {

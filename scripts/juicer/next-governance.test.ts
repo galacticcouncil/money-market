@@ -271,7 +271,7 @@ test("exit headroom reads off, on, or on with a gap", () => {
 });
 
 // ── the launch referendum's own parts ──
-const HV = addr(0x81), TB = addr(0x82), PR = addr(0x83), SWAP = addr(0x84), DEP = addr(0x85);
+const HV = addr(0x81), TB = addr(0x82), PR = addr(0x83), SWAP = addr(0x84);
 const spec = { expiresAt: 1_800_000_000, pacing: LAUNCH.pacing, primeShortfallBps: 27, collateralShortfallBps: 100,
   entry: LAUNCH.entry, unwind: LAUNCH.unwind, harvest: LAUNCH.harvest, service: LAUNCH.service };
 const launchVault = { address: V2, mainDebt: M2, collateral: TB, assetId: 1000765, key: "BTC" };
@@ -321,20 +321,21 @@ test("execution is planned budgets first, lanes, prices, entrypoints, then bindi
   assert.throws(() => executionCalls(other, p), /another controller/);
 });
 
-const discountState = (o: Partial<DiscountState> = {}): DiscountState => ({ code: false, token: ZERO, strategy: ZERO,
+const discountState = (o: Partial<DiscountState> = {}): DiscountState => ({ code: true, token: ZERO, strategy: ZERO,
   vaults: [{ address: V2, controller: ZERO, registered: false }], loop: ZERO, loopCap: BigNumber.from(0), ...o });
-const discountPlan = { discount: DISC, deployment: DEP, creationCode: "0x6080", debtToken: DEBT, subLoop: LOOP, loopCap: LAUNCH.loopCap };
+const discountPlan = { discount: DISC, debtToken: DEBT, subLoop: LOOP, loopCap: LAUNCH.loopCap };
 
-test("governance creates, installs and enrolls the discount, the loop after its vault", () => {
+test("the deployed discount is installed and enrolled, the loop after its vault", () => {
   const calls = discountCalls(discountState(), discountPlan);
-  assert.deepEqual(calls.map(c => c.label.split("(")[0]), ["discountDeployment.deploy", "hollarDebt.updateDiscountToken", "hollarDebt.updateDiscountRateStrategy",
+  assert.deepEqual(calls.map(c => c.label.split("(")[0]), ["hollarDebt.updateDiscountToken", "hollarDebt.updateDiscountRateStrategy",
     `vault ${V2}.setDiscountController`, "discount.registerVault", "discount.registerLoop"]);
-  assert.deepEqual(calls.map(c => c.to), [DEP, DEBT, DEBT, V2, DISC, DISC]);
-  assert.deepEqual(decode("registerLoop(address,uint256)", calls[5].data).map(String), [LOOP, utils.parseUnits("5000000", 18).toString()]);
-  const done = discountState({ code: true, token: DISC, strategy: DISC, vaults: [{ address: V2, controller: DISC, registered: true }], loop: LOOP, loopCap: LAUNCH.loopCap });
+  assert.deepEqual(calls.map(c => c.to), [DEBT, DEBT, V2, DISC, DISC]);
+  assert.deepEqual(decode("registerLoop(address,uint256)", calls[4].data).map(String), [LOOP, utils.parseUnits("5000000", 18).toString()]);
+  const done = discountState({ token: DISC, strategy: DISC, vaults: [{ address: V2, controller: DISC, registered: true }], loop: LOOP, loopCap: LAUNCH.loopCap });
   assert.deepEqual(discountCalls(done, discountPlan), []);
   assert.deepEqual(discountCalls({ ...done, loopCap: BigNumber.from(1) }, discountPlan).map(c => c.label.split("(")[0]), ["discount.setLoopCap"]);
   assert.throws(() => discountCalls({ ...done, loop: addr(0x99) }, discountPlan), /another loop/);
+  assert.throws(() => discountCalls(discountState({ code: false }), discountPlan), /the deploy creates it/);
 });
 
 test("later steps plan against what the earlier ones leave: lanes, the discount, the fee binding, the ledgers", async () => {
