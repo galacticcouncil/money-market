@@ -22,6 +22,11 @@ test('redundant operators rotate optional work and do not depend on a leader hea
   assert.equal(operatorTurn(119n, 60, 2, 0), false);
   assert.equal(operatorTurn(120n, 60, 2, 0), true);
   assert.equal(operatorTurn(180n, 60, 2, 1), true);
+  assert.equal(operatorTurn(134n, 60, 2, 0, 15), false);
+  assert.equal(operatorTurn(135n, 60, 2, 0, 15), true);
+  assert.equal(operatorTurn(165n, 60, 2, 0, 15), false);
+  assert.equal(operatorTurn(164n, 60, 2, 0, 15), true);
+  assert.equal(operatorTurn(5n, 60, 1, 0, 15), true, 'a lone operator has no slot edges');
 });
 
 test('interest-inclusion headroom preserves the unit price and never expands the primary slice', () => {

@@ -58,9 +58,9 @@ read each vault's pause, queue cursors and Main repayment target
   source or vault deficit above DEFICIT_STOP_BPS -> no pokeBorrow; setDeficitStop(true), any operator
   below DEFICIT_RESUME_BPS, flag set, duty slot   -> setDeficitStop(false)
   source safety target                        -> pokeRepay() on the router
-  active unwind                               -> pokeRepay(), or pokeRepayQuoted() with intents
+  active unwind                               -> pokeRepay(), or pokeRepayQuoted() with intents, duty slot
   active vault settlement, Main repayment target
-    or unallocated source proceeds            -> pokeSettle()
+    or unallocated source proceeds            -> pokeSettle(); with intents, duty slot only
   funded active interest, duty slot             -> cash-only pokeSettle(), with minimum and gas budget
   healthy, worthwhile harvest, duty slot      -> quoted bounded harvest()
   pending collateral, eligible vault, duty slot -> quoted bounded rebalance(), also while exits wait
@@ -79,6 +79,8 @@ then, for each vault:
   exit surplus >= CLAIM_MIN_SURPLUS         -> claimSurplus(id)
   PRIME or collateral oracle update since its last sync,
     or SYNC_EVERY elapsed, duty slot        -> sync()
+duty slot = this operator's slot, at least OPERATOR_GUARD_SECONDS from either edge,
+  checked when the cycle starts and again right before each duty write is signed
 independent read loop, including during slow writes/receipt waits:
   effective source HF, synthetic coverage, Main interest, stale RPC, stuck receipts
 ```
@@ -300,6 +302,8 @@ Default scheduling values (operator examples, not approved production policies):
 | `SAFETY_INTERVAL_MS` | `30000` | Independent read-loop interval |
 | `RPC_STALE_SECONDS` | `120` | Alert threshold for an old chain head |
 | `OPERATOR_SLOT_SECONDS` | `60` | Optional-work duty-slot duration |
+| `OPERATOR_GUARD_SECONDS` | `15` | With more than one operator, duty writes start this long after a slot opens and stop this long before it closes, rechecked right before signing |
+| `INTENT_GAS_MARGIN_PCT` | `50` | Gas margin over the estimate for intent submissions (other writes keep 20%) |
 | `DEFICIT_STOP_BPS` | `250` | Above this source or vault deficit, stop the ramp and set the vault's `deficitStop` |
 | `DEFICIT_RESUME_BPS` | `200` | Below this, resume the ramp and clear `deficitStop`; must be below the stop, `0` never clears |
 | `SYNC_EVERY` | `3600` | Seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner |

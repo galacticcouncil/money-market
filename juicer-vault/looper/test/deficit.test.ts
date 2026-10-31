@@ -79,7 +79,7 @@ async function run(c: Chain, k: any, duty = true) {
   const alerts: string[] = [];
   CONFIG.OPERATOR_COUNT = 2;
   CONFIG.OPERATOR_INDEX = k.index;
-  k.blockTimestamp = async () => 60n * BigInt(duty ? k.index : 1 - k.index);
+  k.blockTimestamp = async () => 60n * BigInt(duty ? k.index : 1 - k.index) + 30n;
   c.calls = [];
   console.log = () => {};
   console.error = (...args: unknown[]) => { alerts.push(args.join(' ')); };

@@ -131,7 +131,7 @@ async function run(c: Chain, k: any, duty = true) {
   const alerts: string[] = [];
   CONFIG.OPERATOR_COUNT = 2;
   CONFIG.OPERATOR_INDEX = k.index;
-  k.blockTimestamp = async () => 60n * BigInt(duty ? k.index : 1 - k.index);
+  k.blockTimestamp = async () => 60n * BigInt(duty ? k.index : 1 - k.index) + 30n;
   c.calls = [];
   console.log = () => {};
   console.error = (...args: unknown[]) => { alerts.push(args.join(' ')); };
@@ -334,7 +334,17 @@ test('mid-unwind the duty operator settles before each exit, and the other one k
   assert.deepEqual((await run(c, k0)).calls, ['k0:reconcile', 'k0:pokeSettle', 'k0:pokeRepayQuoted(0)', 'k0:pokeSettle'],
     'the last fill is credited and pulled in the same cycle');
   c.unwind = 0n;
-  assert.deepEqual((await run(c, k1, false)).calls, ['k1:pokeSettle'], 'with nothing left to sell, anyone settles');
+  assert.deepEqual((await run(c, k1, false)).calls, [], 'off duty an exit can still go out for a pending vault');
+  assert.deepEqual((await run(c, k1)).calls, ['k1:pokeSettle', 'k1:pokeRepayQuoted(0)', 'k1:pokeSettle'],
+    'its own slot settles within a minute');
+});
+
+test('without intents in flight the operator off duty still settles', async () => {
+  const c = chain();
+  c.ttl = 0;
+  c.sourcePending = 1n;
+  const k1 = keeper(c, 'k1', 1);
+  assert.ok((await run(c, k1, false)).calls.includes('k1:pokeSettle'));
 });
 
 test('router mode keeps the controller path, and a safety repayment stays on the router in intent mode', async () => {
