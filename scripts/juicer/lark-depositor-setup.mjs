@@ -46,10 +46,12 @@ try{
   const used=(await api.query.tokens.totalIssuance(id)).toBigInt()-state.asUnlocked[1].toBigInt();
   if(amount>limit-used)raises.push(api.tx.assetRegistry.update(id,null,null,null,(used+2n*amount).toString(),null,null,null,null));
  }
- const capAbi=v.parseAbi(['function setTvlCap(uint256)']);
+ const capAbi=v.parseAbi(['function setTvlCap(uint256)']),caps=[];
+ // a cap the deploy already set stays untouched
+ for(const x of r.vaults)if(await readSig(x.address,'function tvlCap() view returns(uint256)')!==CAP[x.name])caps.push(govEvm(x.address,capAbi,'setTvlCap',[CAP[x.name]],500000));
  const calls=[
   ...raises,
-  ...r.vaults.map(x=>govEvm(x.address,capAbi,'setTvlCap',[CAP[x.name]],500000)),
+  ...caps,
   ...users.flatMap((u,i)=>[api.tx.duster.whitelistAccount(u.who),
    api.tx.currencies.updateBalance(u.who,0,(10n*10n**12n).toString()),
    api.tx.currencies.updateBalance(u.who,20,(2n*10n**17n).toString()),
