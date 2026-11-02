@@ -169,6 +169,12 @@ task(
   const poolConfigurator = await getPoolConfiguratorProxy();
   const api = await getApi();
   const hydrationTx = api.tx;
+  // a live node's eth rpc imports each block a moment after the substrate head; plan from one state
+  const head = (await api.rpc.chain.getHeader()).number.toNumber();
+  for (let i = 0; (await hre.ethers.provider.getBlockNumber()) < head; i++) {
+    if (i >= 30) throw new Error(`the eth rpc lags the chain head ${head}`);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
   const at = (address: string, abi: string[]) => hre.ethers.getContractAt(abi, address);
   const same = (a?: string, b?: string) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
