@@ -367,7 +367,9 @@ task(
     await nativeRoundingPolicy(api, policy, r.asset);
     const reserve = BigInt((await r.c.roundingReserve()).toString());
     roundingUnits.set(r.address, policy.target > reserve ? policy.target - reserve : 0n);
-    const seed = BigInt(utils.parseUnits(process.env.JUICER_BOOTSTRAP || LAUNCH.bootstrap, await r.c.decimals()).toString());
+    const units = process.env.JUICER_BOOTSTRAP || LAUNCH.bootstrap[r.assetId];
+    if (!units) throw new Error(`no bootstrap size for collateral ${r.assetId}; set JUICER_BOOTSTRAP`);
+    const seed = BigInt(utils.parseUnits(units, await r.c.decimals()).toString());
     bootstrapUnits.set(r.address, (await r.c.totalSupply()).isZero() ? seed : 0n);
   }
   const reserveHollar = process.env.JUICER_RESERVE_HOLLAR ?? NEXT.reserveHollar;

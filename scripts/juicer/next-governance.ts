@@ -427,8 +427,9 @@ export const LAUNCH = {
   } as Record<number, Size>,
   // the vault's compound floor and its harvest and servicing lanes
   collateralShortfallBps: 100,
-  // the bootstrap deposit governance makes; the first public one would revert without it
-  bootstrap: "0.0001",
+  // the bootstrap deposit governance makes, by asset id; the first public one would revert without it.
+  // ~$10 each: below ~1 HOLLAR of borrowing the loop can't take its first position (0.0001 GIGAETH on lark 0)
+  bootstrap: { 1000765: "0.0001", 4200: "0.005" } as Record<number, string>,
   // the loop's lazy-executor callbacks pay in WETH: ~1.5e12 wei each, HDX keeps the fee currency from moving
   iceWeth: BigNumber.from(10).pow(16),
   iceHdx: BigNumber.from(10).pow(13),
