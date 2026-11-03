@@ -1,6 +1,6 @@
 # External review package
 
-**For independent review | 3 November 2026 | PR #89, code at `585de4a`**
+**For independent review | 3 November 2026 | PR #89, contracts at `585de4a`**
 
 Start here for an independent security review of the Juicer launch candidate.
 This document fixes the scope and the commit, describes the system and its
@@ -16,7 +16,7 @@ review commit, the code is authoritative ([dated material](#dated-material)).
 | --- | --- |
 | Repository | `galacticcouncil/money-market` |
 | Branch | `juicer-headroom-exits`, PR #89 into `propeller` |
-| Review commit | the commit that adds this document. It changes documentation only: contracts and tooling are as at `585de4a` |
+| Review commit | the head of PR #89. The contracts are as at `585de4a`; the commits after it change documentation, launch tooling and CI's production build, not `juicer-vault/src` |
 | Solidity | solc 0.8.22, via-IR, optimizer 200 runs; the deployed build targets London |
 | Dependencies | OpenZeppelin 4.9.6 (`bil-vault/lib` submodules), Aave core-v3 1.19.3 (`node_modules/@aave`) |
 | Launch | one vault, jBTC on tBTC (asset 1000765). A jETH vault on GIGAETH (4200) needs a later referendum of its own |
@@ -92,9 +92,18 @@ All were internal; none is an independent audit.
 
 - **#46, consolidated review at `e3e2c5a`:** 40 findings over 14 runtime files
   (the 12 above and the two oracle contracts). Each was re-checked with
-  proof-of-concept tests: 26 confirmed, 13 partial, 1 invalid. The fixes landed
-  in #79, merged into `propeller` on 21 October; their regressions are
-  `test/AuditPr46*.t.sol` and `test/YieldFundTransfer.t.sol`.
+  proof-of-concept tests: 26 confirmed, 13 partial, 1 invalid. #79, merged into
+  `propeller` on 21 October, fixed 19 of them, including every finding still
+  rated High after the re-check; their regressions are `test/AuditPr46*.t.sol`
+  and `test/YieldFundTransfer.t.sol`. Its commit `633fb39` added policy fixes
+  for gaps the review raised: the on-chain deposit admission bound, per-vault
+  ownership of PRIME gifted to the Harvester, loss carries that restore
+  written-down rewards before new units mint, and no loop deposits, unwind
+  requests or pulls while an intent is in flight
+  (`test/AuditPolicyResolution.t.sol`). The findings list is not in this
+  repository, and neither is the status of the findings these changes do not
+  cover; [section 5](#5-known-issues-and-accepted-risks) records the risks
+  accepted for launch.
 - **#53:** two independent passes over accounting and yield-source configuration.
 - **#82, review at `b1479c8`:** one high finding, fixed in `a4a8895`: a settled
   but unclaimed withdrawal shrank later deposits' deployment credit. The
@@ -400,7 +409,7 @@ are `propext`, `Classical.choice` and `Quot.sound`.
 | Synthetic custody | jsHOLLAR transfers are unrestricted (only vaults mint it). After a Main liquidation the cached `syntheticSupplied` can exceed the live aToken balance | needs the floor to lapse with a ~90% collateral crash, or a frozen synthetic reserve |
 | Loop safety floor | safety sales step only while the loop's HF stays at or above 1.005; below that, Aave's liquidation of the loop is the backstop. Loop losses reach Main backing after unconverted rewards | by design ([principal safety](principal-safety.md#protection-model)) |
 | HOLLAR at $1 | USD8 values and HOLLAR amounts convert by 10¹⁰ throughout | relies on HOLLAR's fixed $1 price |
-| Pinned pallet indices | `DcaDispatch` hardcodes Router 67 and Intent 98; a renumbered runtime breaks every dispatch until an upgrade | readiness checks Router and the retired DCA index, not Intent; the encodings are pinned in `test/DcaDispatch.t.sol` |
+| Pinned pallet indices | `DcaDispatch` hardcodes Router 67 and Intent 98; a renumbered runtime breaks every dispatch until an upgrade | readiness checks the call indices `router.sell` 67/0, `intent.submitIntent` 98/0 and `intent.removeIntent` 98/1, and that `intent.cleanupIntent` exists; the encodings are pinned in `test/DcaDispatch.t.sol` |
 | Discount cache | the debt token caches each borrower's discount between actions; a reverting loop refresh blocks `setDiscountBps`; a re-registered loop resumes its old rate; `balanceOf(loop)` returns `LOOP_TAG \| cap` | [discount](main-borrow-discount.md#cache-and-lifecycle) |
 | Budgets never lapse | trading permissions have no automatic sunset | governance changes budgets by referendum |
 | Collateral liquidity | `pokeSettle` withdraws released collateral from Aave and reverts while the reserve's cash is borrowed out | liveness |
@@ -458,15 +467,14 @@ In order of priority:
    be initialized or upgraded, and the one-time setters.
 8. **Launch referendum correctness.** Step order and idempotent planning,
    weight packing and `scheduleAfter` offsets, treasury funding amounts,
-   bootstrap last, `envNumber` strictness, the aToken re-check and readiness
-   coverage (the Intent pallet index is not checked; the bootstrap is sized with
-   the share token's 18 decimals, which matches both launch collaterals).
+   bootstrap last and its sizing in the collateral's decimals, `envNumber`
+   strictness, the aToken re-check and readiness coverage.
 
 ## 7. Build, test and verify
 
 Run from `juicer-vault` unless noted. CI pins Foundry v1.5.1 and Node 22.
-Results and timings are from one local run at `585de4a` (Foundry 1.5.1, 32
-cores) unless CI is quoted.
+Results and timings are from local runs at the head of PR #89 or at `585de4a`,
+whose contracts it shares (Foundry 1.5.1, 32 cores), unless CI is quoted.
 
 Setup, from the repository root:
 
@@ -478,8 +486,7 @@ npm ci --ignore-scripts
 
 | Check | Command | Expected |
 | --- | --- | --- |
-| Production build, sizes | `forge build --offline --evm-version london --skip test --skip script --sizes --out out-production --cache-path cache-production --build-info` | the [size table](#9-contract-sizes); 50 s cold |
-| Proxy artifact for the launch | `forge build ../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol --offline --evm-version london --out out-production --cache-path cache-production` | adds `ERC1967Proxy`, which `launch-deploy.mjs` needs |
+| Production build, sizes | `forge build src ../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol --offline --evm-version london --skip test --skip script --sizes --out out-production --cache-path cache-production --build-info` | the [size table](#9-contract-sizes), plus the `ERC1967Proxy` that `launch-deploy.mjs` deploys; about 40 s cold. The 11 contracts are byte-identical to a build of `src` alone |
 | Full regression | `forge test --offline --evm-version london --dynamic-test-linking -vv` | 86 suites: 801 passed, 0 failed, 13 skipped (eight opt-in campaign cases, two tuning runs, three fork or Verity setups). 22 minutes, nearly all compilation; the tests run in about a minute |
 | Targeted: bands, headroom exits | `forge test --offline --evm-version london --dynamic-test-linking --match-path test/KeeperOps.t.sol -vv` | 27 passed; about 1 minute |
 | Storage gate (root) | `node --test scripts/juicer/source-storage.test.mjs` and `node scripts/juicer/check-source-storage.mjs --artifact juicer-vault/out-production/SubLoop.sol/SubLoop.json` | 9 passed; `compatibleStoragePrefix: true`, 43 preserved, 9 appended |
@@ -487,7 +494,7 @@ npm ci --ignore-scripts
 | Bytecode pins (`formal`) | `python3 check-bytecode.py` | 11 production contracts and 459 selectors match `bytecode-manifest.json` |
 | Dispatch map (`formal`) | `python3 check-dispatch.py` | 33 opcodes, targets, selectors and action arguments match |
 | Keeper (`looper`) | `npm ci && npm test`; `npx tsc --noEmit -p .` | 113 passed; type-checks |
-| Governance planners (root) | `node --import ./juicer-vault/looper/node_modules/tsx/dist/loader.mjs --test scripts/juicer/next-governance.test.ts` | 21 passed |
+| Governance planners (root) | `node --import ./juicer-vault/looper/node_modules/tsx/dist/loader.mjs --test scripts/juicer/next-governance.test.ts` | 22 passed |
 | Launch manifest (root) | `node --test scripts/juicer/launch-manifest.test.mjs` | 4 passed |
 
 Where the tests are (`test/`):
@@ -556,9 +563,13 @@ non-local endpoints. Run the steps from the repository root.
    claims.
 
 The report goes to `JUICER_REHEARSAL_REPORT`. Recorded at mainnet block
-16,456,269: 73 EVM calls with 0 failures, readiness 156/156, smoke passed.
+16,456,269 with the tooling at `585de4a`: 73 EVM calls with 0 failures,
+readiness 156/156, smoke passed. Readiness has since swapped the retired DCA
+row for three intent rows.
 
 ## 8. Deployment and launch
+
+[`../DEPLOYMENT.md`](../DEPLOYMENT.md) is the operator's runbook for these steps.
 
 1. **Deploy only** (`launch-deploy.mjs`, resumable from its manifest). For a
    jBTC launch it creates, in order: HydraAugustus, CompoundLogic, the vault
@@ -651,20 +662,11 @@ These documents describe earlier revisions in places. Read them for rationale
 and evidence; this document and the code take precedence.
 
 - [`../README.md`](../README.md), [`release-candidate.md`](release-candidate.md),
-  [`README.md`](README.md): September and early-October status; branch names,
-  test counts and parts of the router-era flow are historical.
-- [`../DEPLOYMENT.md`](../DEPLOYMENT.md): the forge-script deployment, superseded
-  by the deploy-only step and one referendum above.
-- [`principal-safety.md`](principal-safety.md) and
-  [`main-debt-servicing.md`](main-debt-servicing.md) quote the 50 bps admission
-  default (launch: 250); the latter also the earlier 50/25 keeper thresholds
-  (now 250/200). [`../looper/README.md`](../looper/README.md) still says
-  underfunding is checked off-chain only and opens with synchronous router
-  entries.
+  [`README.md`](README.md): test counts and parts of the router-era flow are
+  historical; `release-candidate.md` is the September RC1 record.
 - [`execution-controls-implementation.md`](execution-controls-implementation.md)
-  predates intents: with them on, a direct `pokeBorrow` or `pokeRepay` opens an
-  intent at the oracle floor without a controller context.
-- [`main-borrow-discount.md`](main-borrow-discount.md),
-  [`protocol-fees.md`](protocol-fees.md) and [`yield-ownership.md`](yield-ownership.md)
-  still name "batch 4" or `juicer-next` from earlier revisions of the launch plan.
+  is the PR #62 implementation record, updated for intents.
+- [`main-borrow-discount.md`](main-borrow-discount.md) and
+  [`protocol-fees.md`](protocol-fees.md) keep their standalone forge-script
+  deployment steps; the launch uses the process above.
 - [`../AUDIT.md`](../AUDIT.md), [`../x-ray/`](../x-ray/x-ray.md): August snapshots.
