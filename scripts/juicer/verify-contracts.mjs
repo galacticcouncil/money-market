@@ -92,7 +92,8 @@ function fromBroadcast(j,file){
 function fromJournal(j,file){
  const sent=new Map((j.calls??[]).map(c=>[c.label,c.hash])),a=j.addresses??{};
  return j.deployments.map(d=>{
-  const row={name:d.name,label:d.label,address:d.address,tx:sent.get(`deploy.${d.label}`)??null,file};
+  // the launch manifest keeps each creation's hash on its row; lark journals keep it with the calls
+  const row={name:d.name,label:d.label,address:d.address,tx:d.transactionHash??sent.get(`deploy.${d.label}`)??null,file};
   // lark journals record the constructor-created helpers beside their parents
   const vault=(j.vaults??[]).find(v=>same(v.mainDebt,d.address));
   if(d.name==='CollateralVault'&&same(a.vaultImpl,d.address)&&a.compoundLogic)row.helpers=[{name:'CompoundLogic',address:a.compoundLogic}];
