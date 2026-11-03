@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { BigNumber, providers, utils } from "ethers";
 import {
   NEXT, envNumber, parseExitHeadroom, KEEPER_ROLE, DEPOSIT_GUARDIAN_ROLE, GUARDIAN_ROLE, readNextState, nextCalls, reserveCalls, nextChecks, bandGaps, parseBand,
-  LAUNCH, executionPolicy, executionCalls, groupId, laneId, discountCalls, bootstrapCalls, assumePlanned, ExecutionState, Policy, DiscountState,
+  LAUNCH, executionPolicy, executionCalls, groupId, laneId, discountCalls, bootstrapCalls, bootstrapSeed, assumePlanned, ExecutionState, Policy, DiscountState,
 } from "./next-governance";
 
 const addr = (n: number) => utils.getAddress(`0x${n.toString(16).padStart(40, "0")}`);
@@ -366,4 +366,12 @@ test("the bootstrap is governance's locked first deposit, opening deposits only 
   assert.equal(bootstrapCalls({ vault: V2, asset: TB, seed: 10n ** 14n, receiver: SWAP, supply: 0, paused: false }).length, 3);
   assert.deepEqual(bootstrapCalls({ vault: V2, asset: TB, seed: 10n ** 14n, receiver: SWAP, supply: 1, paused: false }), []);
   assert.throws(() => bootstrapCalls({ vault: V2, asset: TB, seed: 1000, receiver: SWAP, supply: 0, paused: false }), /dead shares/);
+});
+
+test("the bootstrap is sized in the collateral's decimals: the launch plans stay as they are, other decimals scale", () => {
+  assert.equal(bootstrapSeed(1000765, 18).toString(), (10n ** 14n).toString());
+  assert.equal(bootstrapSeed(4200, 18).toString(), (5n * 10n ** 15n).toString());
+  assert.equal(bootstrapSeed(1000765, 8).toString(), "10000");
+  assert.equal(bootstrapSeed(7, 6, "10").toString(), "10000000");
+  assert.throws(() => bootstrapSeed(7, 6), /no bootstrap size for collateral 7/);
 });

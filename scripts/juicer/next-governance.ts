@@ -624,6 +624,12 @@ export function assumePlanned(state: NextState, p: { policy?: Policy; discount?:
 
 const vaultI = new utils.Interface(["function unpauseDeposits()", "function deposit(uint256,address)", "function fundRoundingReserve(uint256)"]);
 
+/// the bootstrap in base units of the collateral: the shares always have 18 decimals, the collateral need not
+export function bootstrapSeed(assetId: number, collateralDecimals: number, units: string | undefined = LAUNCH.bootstrap[assetId]): BigNumber {
+  if (!units) throw new Error(`no bootstrap size for collateral ${assetId}; set JUICER_BOOTSTRAP`);
+  return utils.parseUnits(units, collateralDecimals);
+}
+
 /// governance's locked first deposit: deposits stay closed to the public until it lands, so it goes last
 export function bootstrapCalls({ vault, asset, seed, receiver, supply, paused }:
   { vault: string; asset: string; seed: BigNumberish; receiver: string; supply: BigNumberish; paused: boolean }): Call[] {

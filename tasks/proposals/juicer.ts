@@ -14,7 +14,7 @@ import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-po
 import { nativeAccount, nativeRoundingPolicy } from "../../scripts/juicer/rounding-native";
 import {
   NEXT, LAUNCH, readNextState, nextCalls, reserveCalls, parseBand, envNumber, parseExitHeadroom, executionPolicy, readExecution,
-  executionCalls, readDiscount, discountCalls, assumePlanned, bootstrapCalls,
+  executionCalls, readDiscount, discountCalls, assumePlanned, bootstrapCalls, bootstrapSeed,
 } from "../../scripts/juicer/next-governance";
 import { readFileSync, writeFileSync } from "fs";
 import { resolve as resolvePath } from "path";
@@ -367,9 +367,8 @@ task(
     await nativeRoundingPolicy(api, policy, r.asset);
     const reserve = BigInt((await r.c.roundingReserve()).toString());
     roundingUnits.set(r.address, policy.target > reserve ? policy.target - reserve : 0n);
-    const units = process.env.JUICER_BOOTSTRAP || LAUNCH.bootstrap[r.assetId];
-    if (!units) throw new Error(`no bootstrap size for collateral ${r.assetId}; set JUICER_BOOTSTRAP`);
-    const seed = BigInt(utils.parseUnits(units, await r.c.decimals()).toString());
+    const collateral = await at(r.asset, ["function decimals() view returns (uint8)"]);
+    const seed = BigInt(bootstrapSeed(r.assetId, await collateral.decimals(), process.env.JUICER_BOOTSTRAP || undefined).toString());
     bootstrapUnits.set(r.address, (await r.c.totalSupply()).isZero() ? seed : 0n);
   }
   const reserveHollar = process.env.JUICER_RESERVE_HOLLAR ?? NEXT.reserveHollar;
