@@ -38,7 +38,8 @@ has arrived.
 - All HOLLAR→aPRIME buys consume one source lane: Main deployment, upward
   rebalances and source ramps cannot acquire separate budgets by changing users,
   vaults or keepers. Each borrow is capped before creation by both source tranche
-  and admission capacity, and is swapped in the same atomic transaction.
+  and admission capacity, and is swapped, or submitted as an intent, in the same
+  atomic transaction.
 - Upward Main rebalances take the available bounded amount. Unused reinvestment
   credit remains for a subsequent pass, including a slice below the entry lane
   minimum. Existing backing/readiness checks still apply; tranche limits do not
@@ -66,8 +67,17 @@ has arrived.
   budget.
   A routine exit whose remaining need is below the lane minimum sells the minimum,
   capped by the source's aPRIME, so it can complete; the excess stays as source
-  cash. Direct `pokeRepay` can repay existing cash but cannot swap
-  without a controller execution context. Cash settlement needs no swap quote.
+  cash. Without a controller execution context a direct `pokeRepay` can repay
+  existing cash but cannot start a router sale. Cash settlement needs no swap quote.
+- With ICE intents on (`intentTtl != 0`, as at launch), the loop's entries and
+  routine unwind slices are intents, charged to their async lanes at submit
+  (`consumeAsync`, `prepareAsync`) with the same size, budget, pacing and price
+  cap, and they need no controller execution context. Anyone's `pokeBorrow()` or
+  `pokeRepay()`, which call the quoted variants with a zero keeper quote,
+  therefore opens an intent at the larger of the oracle floor (`dcaSlippagePpm`)
+  and the lane's price cap: 35 bps under the oracle at launch. `KEEPER_ROLE`
+  (`pokeBorrowQuoted`, `pokeRepayQuoted`) only allows a tighter floor from a
+  router quote. Safety sales stay on the router.
 
 `configurePrice(lane, maxShortfallBps, safety)` bounds the **total** output
 shortfall against the live MM oracle, including route fees and slippage. Zero
@@ -133,8 +143,9 @@ The controller only forwards governance-registered selectors. Depositors approve
 the **vault**, not the controller. The deposit helper pulls from the controller's
 active original caller and mints to the requested receiver. No signatures,
 quote-publisher role, parked customer assets or standing controller allowances
-are needed. Direct legacy buys/compounds fail once their control is bound; safety
-repayment and cash settlement remain directly callable.
+are needed. Direct router buys and compounds fail once their control is bound;
+intent entries and exits, safety repayment and cash settlement remain directly
+callable.
 
 The UI approves and deposits directly into the vault. It must verify
 `deferredDeployment() == true` before enabling deposits, so an older deployment

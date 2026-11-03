@@ -363,11 +363,11 @@ source fingerprints, all 19 accounting slots and the six private
 Main batch slots also pass. the legacy environment-gated Verity fork suite is outside this formal gate.
 the broader `test/formal/**` acceptance run passes 163 tests with zero failures; its only skip
 is that legacy Verity fork setup, which is unavailable offline.
-the repository-wide offline Forge run passes 783 tests with zero failures and 13 expected
+the repository-wide offline Forge run passes 801 tests with zero failures and 13 expected
 fork/campaign skips.
 the gate includes source-body extraction and 24 rejection/mutation tests for its supported AST
 boundary, plus 24 guard-extractor tests. formal compiler remappings are fixed and relative, with automatic discovery disabled.
-the production Paris build binds 11 contracts and 457 selectors, including the two loss-carry and
+the production Paris build binds 11 contracts and 459 selectors, including the two loss-carry and
 two parked-gift getters. CollateralVault is 24,555 bytes (21 bytes below the deployment limit),
 JuicerYieldAccounting is 13,506 bytes, Harvester is 9,858 bytes and SubLoopLogic is 23,602 bytes.
 this artifact refresh includes the executable PR #79 fixes.

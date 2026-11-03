@@ -5,8 +5,10 @@ Permissionless maintenance of the shared `SubLoop` and its collateral vaults.
 ## Why it exists
 
 The deploy/unwind legs dropped the pallet-DCA dependency — `pokeBorrow()` now
-levers in a tranche **synchronously** (router sell, oracle-fair `minOut`) instead
-of feeding a gradual DCA order. The gradualness that DCA used to provide now comes
+levers in one tranche per call instead of feeding a gradual DCA order: with ICE
+intents on, as at launch, it submits one intent ([below](#ice-intents)); with
+them off it sells through the router **synchronously**. Either way the
+`minOut` is oracle-fair. The gradualness that DCA used to provide now comes
 from calling `pokeBorrow()` repeatedly off-chain. That's this bot.
 
 `pokeBorrow()` is **permissionless**, subject to the following controls:
@@ -180,8 +182,10 @@ The Docker stack requires and forwards this variable as well.
 
 ### Deficit stop
 
-Underfunding is checked by the keeper, not by the contracts. Each cycle it reads
-two deficits, both in bps:
+`CompoundLogic.deposit` rejects a deposit on-chain when the vault deficit below
+exceeds the loop's `admissionMaxDeficitBps` (250 at launch). The keeper adds a
+hysteretic stop and holds the ramp. Each cycle it reads two deficits, both in
+bps:
 
 - source: `negativeCarryBps()`, principal equity against live equity;
 - vault: with backing = `equityOf(vault) − sourceValue()`, the larger of the

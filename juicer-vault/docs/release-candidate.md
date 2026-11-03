@@ -1,6 +1,7 @@
 # Propeller RC1
 
-**Release candidate for review, 2026-09-23. Production activation is blocked.**
+**Release candidate for review, 2026-09-23; the current candidate is PR #89
+(3 November 2026, not deployed). Production activation is blocked.**
 RC1 designates this code/documentation checkpoint, not a production deployment,
 unconditional principal guarantee, audit sign-off or approval of market limits.
 
@@ -18,12 +19,13 @@ a fresh mainnet fork with mainnet-synced markets and records a mined and claimed
 harvest, under test-only policies. Production policy, quote-aware UI integration
 and deployment activation remain open.
 
-**Next version:** `juicer-next` ([plan](next-version-plan.md)) changes some RC1
+**Current candidate:** PR #89 (`juicer-headroom-exits` into `propeller`;
+[review package](external-review.md), [plan](next-version-plan.md)) changes some RC1
 items below. Deposits have an on-chain Main-backing admission ceiling (50 bps at
 initialization, 250 from the launch proposal) plus the keepers' hysteretic
 `deficitStop` (stop 250, resume 200); yield is allocated at events
 rather than on every transfer, and funded earnings sit in holders' balances with
-no claims. On `juicer-discount-bands` the loop's HOLLAR can also be discounted, at
+no claims. Since #82 the loop's HOLLAR can also be discounted, at
 its own capped rate that starts at zero, and each vault's rebalance band is set on
 the loop. Exits that fit under a vault's max LTV settle without selling the loop
 ([headroom exits](yield-ownership.md#headroom-exits)). The lists below describe RC1;

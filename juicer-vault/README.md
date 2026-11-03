@@ -1,6 +1,6 @@
 # Juicer
 
-**RC1 for team review | 23 September 2026 | Production activation blocked**
+**Launch candidate, PR #89 | 3 November 2026 | Not deployed**
 
 External reviewers: start with the [review package](docs/external-review.md)
 for PR #89: scope and commit, trust model, invariants, known issues and how to
@@ -18,14 +18,15 @@ oracle inputs and timely synthetic-collateral maintenance.
 Start with the [team documentation index](docs/README.md) and
 [RC scope, evidence and activation gates](docs/release-candidate.md).
 
-This README describes the next version on `juicer-next`
-([plan](docs/next-version-plan.md)): the keepers check underfunding off-chain
-and stop deposits themselves, yield is allocated at events instead of on every
-transfer, and funded earnings are part of each holder's vault balance, so
-nothing is claimed. ICE intents are replacing the router for entries, harvest
-swaps and normal exits, which become asynchronous; the synchronous router stays
-for the safety de-lever. That work (track B) is still being integrated, and
-these documents describe the router flow until it lands.
+This README describes the launch candidate, PR #89 (`juicer-headroom-exits`
+into `propeller`; [plan](docs/next-version-plan.md)): deposits face an on-chain
+Main-backing admission bound beside the keepers' `deficitStop`, yield is
+allocated at events instead of on every transfer, and funded earnings are part
+of each holder's vault balance, so nothing is claimed. The loop's entries and
+routine exits go out as ICE intents, asynchronously; the synchronous router
+stays for the safety de-lever, and harvests swap through the swap adapter. The
+[review package](docs/external-review.md) describes the current flows; parts of
+this README predate the intents.
 
 ## Architecture
 
@@ -73,8 +74,8 @@ but does not replace missing HOLLAR.
    within the live reserve LTV and supplying synthetic backing atomically.
    Governance funds the locked bootstrap shares and rounding reserve first.
    Deposits revert while governance's `depositsPaused` or the keepers'
-   `deficitStop` is set, or while a Main resize or source allocation is
-   pending; backing itself is checked off-chain by the keepers. Waiting collateral creates no new debt;
+   `deficitStop` is set, while a Main resize or source allocation is
+   pending, or above the on-chain admission bound ([deposit stops](#controls-and-defaults)). Waiting collateral creates no new debt;
    production trade sizes, pacing and price bounds remain activation settings.
 2. **Earn.** Source surplus first retains an earned PRIME allowance for execution
    costs. A harvest swaps the remaining allocation into each vault's collateral,
@@ -131,10 +132,10 @@ compounded user yield are not implemented. See [principal and emergency policy](
 | Headroom exits         | Governance turns them on per vault with a gap under max LTV (`SubLoop.setExitHeadroom`); off in storage, on in the launch proposal. Exits that fit settle without selling the loop ([headroom exits](docs/yield-ownership.md#headroom-exits)). |
 | Emergency freeze       | Guardian can freeze; governance reopens. Local vault freeze and source-wide emergency freeze are distinct from the source route kill switch.          |
 | Share transfers        | Stopped only by a vault's own pause, not by a source-wide freeze. A vault's `pause()` reverts while that freeze is set, so pause vaults first.        |
-| Deposit stops          | An on-chain live-backing check rejects deficits above 50 bps. Guardian `pauseDeposits` and the keepers' hysteretic `deficitStop` (`DEPOSIT_GUARDIAN_ROLE`, set above 50 bps and cleared below 25 bps) are additional stops. |
+| Deposit stops          | An on-chain live-backing check rejects deficits above the loop's `admissionMaxDeficitBps`: 50 bps at initialize, 250 from the launch proposal. Guardian `pauseDeposits` and the keepers' hysteretic `deficitStop` (`DEPOSIT_GUARDIAN_ROLE`, set above 250 bps and cleared below 200 bps by default) are additional stops. |
 | Protocol reserve       | Governance funds HOLLAR per Main ledger (`fundReserve`); drawn only for realized exit shortfalls, never counted as backing. Admin can withdraw.       |
 | Swap limits            | Oracle-relative floors are enforced on-chain; no automatic widening. Production floors, tranches and TVL/ramp budgets still require approval.         |
-| PRIME pool fee         | The launch proposal's Root batch 0 sets stableswap pool 143 (PRIME/HOLLAR) to 1 bp, from 4 (`JUICER_PRIME_POOL_FEE_PPM`, default 100). |
+| PRIME pool fee         | The launch proposal's first step (`chain`) sets stableswap pool 143 (PRIME/HOLLAR) to 1 bp, from 4 (`JUICER_PRIME_POOL_FEE_PPM`, default 100). |
 
 The earned execution allowance, donated collateral rounding reserve, protocol
 reserve and treasury fees are different balances. There is **no mandatory
@@ -143,9 +144,9 @@ explains their funding and the fee/interest/compounding order.
 
 ## Verification and Limits
 
-- The next version's changes carry per-change Forge and keeper tests (see the
-  [plan](docs/next-version-plan.md)); its verification record (plan step 7) is
-  not written yet. The counts below are for earlier revisions.
+- The [review package](docs/external-review.md#7-build-test-and-verify) has the
+  current verification commands and results. The counts below are for earlier
+  revisions.
 - The [4 October deferred-deployment report](docs/deferred-deployment-validation-2026-10-04.md)
   records 367 passing contract tests, 48 keeper tests, current artifact sizes,
   native deposit/withdrawal receipts and the remaining execution/activation gates.
@@ -165,9 +166,8 @@ explains their funding and the fee/interest/compounding order.
   behavior is mocked; full principal assertions rely on explicit recovery where
   needed. They are not a $100m native-liquidity demonstration.
 - Existing [formal work](formal/README.md) has bounded scope and assumptions;
-  it does not prove the revised Main debt ledger or execution-cost accounting.
-  Its next-version models (balances, event allocation, exit fold, ICE in
-  flight) follow the plan; bridge parity with the Solidity is still to run.
+  the [review package](docs/external-review.md#4-invariants-and-formal-coverage)
+  records what it covers and its gaps.
 
 The current release gates are maintained in one place:
 [RC1 activation gates](docs/release-candidate.md#activation-gates).
@@ -222,20 +222,21 @@ themselves. While iterating:
   `--dynamic-test-linking` or `FOUNDRY_LIBS` against the same `out`/`cache`
   recompiles everything; the formal scripts build under `formal/.stateful/`.
 
-Before pushing, run what CI runs; the production build keeps its own tree:
+Before pushing, run what CI runs; the production build keeps its own tree and
+includes the `ERC1967Proxy` the launch deploys:
 
 ```sh
-forge build --offline --evm-version london --skip test --skip script --sizes --out out-production --cache-path cache-production --build-info
+forge build src ../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol --offline --evm-version london --skip test --skip script --sizes --out out-production --cache-path cache-production --build-info
 forge test --offline --evm-version london --dynamic-test-linking
 ```
 
 ## Deployment and Upgrades
 
 Use the [deployment runbook](DEPLOYMENT.md) for fresh deployments only. No
-production migration from funded older accounting is supplied. The ownership
-revision is reviewed in `prop_carry`, stacked on #60/#61/#63; the next version
-is on `juicer-next`, stacked on `prop_carry`, and is a fresh deployment too. The
-older `feat/propeller-interest-buffer` branch name is historical.
+production migration from funded older accounting is supplied. The launch
+candidate, PR #89 (`juicer-headroom-exits` into `propeller`), is a fresh
+deployment too; the earlier `prop_carry`, `juicer-next` and
+`feat/propeller-interest-buffer` branch names are historical.
 
 Future source rotation should preserve the source proxy, storage and claim
 ownership. Compatibility tests and a [deferred rotation plan](docs/source-upgrades.md)

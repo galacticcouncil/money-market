@@ -6,7 +6,7 @@ change: storage compatibility alone does not migrate existing balances into the
 new ownership ledger. Deploy the vault, source, Main ledger, Harvester and fee
 controller together. Do not upgrade a funded older vault into this accounting.
 
-The next version (`juicer-next`, [plan](next-version-plan.md) §1–§3) keeps that
+The launch candidate (PR #89, [plan](next-version-plan.md) §1–§3) keeps that
 ownership model and changes when and where it shows: yield is allocated at
 events rather than on every transfer, a holder's funded earnings are part of
 their vault balance and nobody claims them, and an exit takes its funded
@@ -24,7 +24,8 @@ realization fee needed to service accrued Main interest, and emits `Allocated()`
 Two USD8 quote quanta remain in active source backing to prevent floor rounding
 from creating an unpaid debt tail; this is a bounded rounding residual, not a
 percentage yield holdback. Each deposit checks live Main debt against source
-backing and active Main cash, and rejects a rounded-up deficit above 50 bps.
+backing and active Main cash, and rejects a rounded-up deficit above
+`admissionMaxDeficitBps` (50 bps at initialize, 250 at launch).
 The keepers also operate the vault's hysteretic `deficitStop`
 ([keeper runbook](../looper/README.md#deficit-stop)).
 
