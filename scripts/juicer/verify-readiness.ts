@@ -107,16 +107,17 @@ if (!Number.isInteger(WITHDRAWAL_DELAY) || WITHDRAWAL_DELAY < 0 || WITHDRAWAL_DE
   throw new Error("invalid withdrawal delay; expected uint32 seconds");
 }
 
-// The route the loop is pinned to. DcaDispatch bakes ROUTER_PALLET=67 into
-// bytecode, so a runtime that renumbers pallets breaks every deploy and unwind
-// and can only be fixed by a UUPS upgrade — worth asserting explicitly.
+// The route the loop is pinned to. DcaDispatch bakes router.sell (67/0) and the
+// intent pallet's submit_intent and remove_intent (98/0, 98/1) into bytecode, so a
+// runtime that renumbers them breaks every entry and unwind and can only be fixed
+// by a UUPS upgrade — worth asserting explicitly.
 const EXPECT = {
   hollarId: Number(process.env.JUICER_HOLLAR_ID || 222),
   primeId: Number(process.env.JUICER_PRIME_ID || 43),
   aPrimeId: Number(process.env.JUICER_APRIME_ID || 1043),
   poolId: Number(process.env.JUICER_PRIME_POOL_ID || 143),
   routerPallet: 67,
-  dcaPallet: 66,
+  intentPallet: 98,
   synthLt: 9800,
   synthLtv: 100,
 };
@@ -323,30 +324,25 @@ async function main() {
   });
 
   // ===================================================================
-  // A. Runtime — the pallet indices DcaDispatch pins into bytecode
+  // A. Runtime — the pallet and call indices DcaDispatch pins into bytecode
   // ===================================================================
   const ver = await api.rpc.state.getRuntimeVersion();
   add("A. Runtime", "connected", true, `${ver.specName} v${ver.specVersion}`);
 
-  const meta = await api.rpc.state.getMetadata();
-  const pallets = (meta.asLatest.pallets as any[]).map((p) => ({
-    name: p.name.toString(),
-    index: p.index.toNumber(),
-  }));
-  const router = pallets.find((p) => /^router$/i.test(p.name));
-  const dca = pallets.find((p) => /^dca$/i.test(p.name));
-  add(
-    "A. Runtime",
-    `Router pallet index == ${EXPECT.routerPallet} (pinned in DcaDispatch)`,
-    !!router && router.index === EXPECT.routerPallet,
-    router ? `got ${router.index}` : "pallet not found"
-  );
-  add(
-    "A. Runtime",
-    `DCA pallet index == ${EXPECT.dcaPallet} (pinned in DcaDispatch)`,
-    !!dca && dca.index === EXPECT.dcaPallet,
-    dca ? `got ${dca.index}` : "pallet not found"
-  );
+  // the retired pallet-DCA encoding has no caller in src, so its index is not checked
+  const tx = api.tx as any;
+  const callIndex = (pallet: string, call: string): string | undefined =>
+    tx[pallet]?.[call] ? Array.from(tx[pallet][call].callIndex as Uint8Array).join("/") : undefined;
+  for (const [pallet, call, pinned] of [
+    ["router", "sell", `${EXPECT.routerPallet}/0`],
+    ["intent", "submitIntent", `${EXPECT.intentPallet}/0`],
+    ["intent", "removeIntent", `${EXPECT.intentPallet}/1`],
+  ]) {
+    const got = callIndex(pallet, call);
+    add("A. Runtime", `${pallet}.${call} call index == ${pinned} (pinned in DcaDispatch)`, got === pinned, got ? `got ${got}` : "call not found");
+  }
+  const cleanup = callIndex("intent", "cleanupIntent");
+  add("A. Runtime", "intent.cleanupIntent present (the keepers call it by name)", !!cleanup, cleanup ? `got ${cleanup}` : "call not found");
 
   // ===================================================================
   // B. Substrate — the synthetic must be an Erc20 asset pointing at the token
