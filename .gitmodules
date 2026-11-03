@@ -24,3 +24,6 @@
 	path = bil-vault/lib/openzeppelin-contracts-v5
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
 	branch = release-v5.0
+[submodule "looper/lib/solady"]
+	path = looper/lib/solady
+	url = https://github.com/Vectorized/solady

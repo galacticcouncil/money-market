@@ -4,6 +4,7 @@ pragma solidity ^0.8.22;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -14,9 +15,12 @@ import {ILooperPosition} from "./interfaces/ILooperPosition.sol";
 /// @title LooperFactory
 /// @notice Permissionless, admin-free deployer of one EIP-1167 `LooperPosition` clone per position. Each
 /// position is an NFT: the clone's address depends only on its token id, and whoever holds the token owns
-/// the position. A new implementation means a new factory.
-contract LooperFactory is ILooperFactory, ERC721 {
+/// the position. The NFT is enumerable, so a holder's positions are `tokenOfOwnerByIndex` then `predict`.
+/// A new implementation means a new factory.
+contract LooperFactory is ILooperFactory, ERC721Enumerable {
     using SafeERC20 for IERC20;
+
+    error SelfOwnDetected();
 
     uint256 internal constant WAD = 1e18;
     uint256 internal constant BPS = 10_000;
@@ -64,6 +68,15 @@ contract LooperFactory is ILooperFactory, ERC721 {
 
     function predict(uint256 id) public view returns (address) {
         return Clones.predictDeterministicAddress(implementation, bytes32(id));
+    }
+
+    /// @dev A position holding its own NFT could never be controlled again, so that transfer reverts.
+    function _beforeTokenTransfer(address from, address to, uint256 firstTokenId, uint256 batchSize)
+        internal
+        override
+    {
+        if (to == predict(firstTokenId)) revert SelfOwnDetected();
+        super._beforeTokenTransfer(from, to, firstTokenId, batchSize);
     }
 
     /// @notice Largest leverage (WAD) `minHf` and Aave's LTV allow: `min(minHf / (minHf − LT), 1 / (1 − LTV))`.
