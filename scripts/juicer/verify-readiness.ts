@@ -751,7 +751,9 @@ async function main() {
         `hf=${wad(hf)} — below 1.02 the unwind spiral's sell gate never opens`
       );
       const neg = Number((await sread(() => loopC.negativeCarryBps())) ?? -1);
-      add("H. Loop health", "no negative carry", neg === 0, `negativeCarryBps=${neg}`);
+      // entry costs run as negative carry until the carry repays them; deposits stay open under the cap
+      add("H. Loop health", "negative carry under the deposit admission cap",
+        neg >= 0 && neg < NEXT_EXPECTED.admissionMaxDeficitBps, `negativeCarryBps=${neg}, cap ${NEXT_EXPECTED.admissionMaxDeficitBps}`);
     } else {
       add(
         "H. Loop health",
