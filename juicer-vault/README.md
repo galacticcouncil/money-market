@@ -2,6 +2,10 @@
 
 **RC1 for team review | 23 September 2026 | Production activation blocked**
 
+External reviewers: start with the [review package](docs/external-review.md)
+for PR #89: scope and commit, trust model, invariants, known issues and how to
+reproduce every check.
+
 Juicer deposits user collateral into Hydration's Aave money market, borrows
 HOLLAR against it, and deploys that HOLLAR into a shared leveraged PRIME strategy.
 Eligible yield is converted back into the user's deposited asset.
