@@ -79,11 +79,13 @@ jobs:
           version: v1.5.1
 
       # London matches the native deployment evidence. Separate output trees
-      # keep dynamically linked test artifacts out of the production build.
+      # keep dynamically linked test artifacts out of the production build,
+      # which also carries the ERC1967Proxy the launch deploys.
       - name: Build production contracts and check sizes
         working-directory: juicer-vault
         run: >-
-          forge build --evm-version london --skip test --skip script --sizes
+          forge build src ../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol
+          --evm-version london --skip test --skip script --sizes
           --out out-production --cache-path cache-production --build-info
 
       - name: Run contract regression
