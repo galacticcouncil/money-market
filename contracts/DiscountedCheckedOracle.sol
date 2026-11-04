@@ -53,7 +53,7 @@ contract DiscountedCheckedOracle is CheckedOracle, IDiscountedCheckedOracle {
     /// @notice Discounts `raw` by `coefficient`, then stores it if the result
     /// sits within `maxDiffBps` of the check feed (or unconditionally while no
     /// check feed is set). Callable by the pusher or the owner.
-    function setPrice(int256 raw) external override onlyPriceSetter {
+    function setPrice(int256 raw) external virtual override onlyPriceSetter {
         _setDiscountedPrice(raw, true);
     }
 
@@ -62,8 +62,14 @@ contract DiscountedCheckedOracle is CheckedOracle, IDiscountedCheckedOracle {
     // ---------------------------------------------------------------------
 
     /// @notice `raw` after the discount, as `setPrice` would store it.
-    function discount(int256 raw) external view override returns (int256) {
-        return _discount(raw);
+    /// Reverts on the inputs `setPrice` would reject.
+    function discount(
+        int256 raw
+    ) external view virtual override returns (int256 adjusted) {
+        if (raw <= 0) revert InvalidPrice();
+
+        adjusted = _discount(raw);
+        if (adjusted <= 0) revert InvalidPrice();
     }
 
     /// @notice Whether `setPrice(raw)` would be accepted right now, and by how
@@ -71,7 +77,7 @@ contract DiscountedCheckedOracle is CheckedOracle, IDiscountedCheckedOracle {
     /// passes the raw price here, exactly as it would to `setPrice`.
     function previewSetPrice(
         int256 raw
-    ) external view override returns (bool ok, uint256 deviationBps) {
+    ) external view virtual override returns (bool ok, uint256 deviationBps) {
         if (raw <= 0) return (false, 0);
 
         int256 adjusted = _discount(raw);
