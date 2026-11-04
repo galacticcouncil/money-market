@@ -697,4 +697,6 @@ and evidence; this document and the code take precedence.
 - [`main-borrow-discount.md`](main-borrow-discount.md) and
   [`protocol-fees.md`](protocol-fees.md) keep their standalone forge-script
   deployment steps; the launch uses the process above.
-- [`AUDIT.md`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/AUDIT.md), [`x-ray/`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/x-ray/x-ray.md): August snapshots, now in the [archive](archive.md).
+- The [archive](archive.md) lists what left the tree before the release, with
+  permalinks: dated validations, Lark deployment records, studies and the August
+  [`AUDIT.md`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/AUDIT.md) and [`x-ray/`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/x-ray/x-ray.md) snapshots.
