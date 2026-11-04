@@ -16,7 +16,7 @@ import { LatestLog, newestInChunks, type EvidenceLog } from './log-evidence.js';
 import { SYNC_EVIDENCE, feedUpdate, syncDue, type FeedSeen } from './sync-policy.js';
 import { connectSubstrate, type Substrate } from './substrate.js';
 import {
-  ENTRY, EXIT, FILLED, RETURNED, WAITING, intentRoute, palletIntentId, quoteRate, submittedIntent,
+  ENTRY, EXIT, FILLED, RETURNED, WAITING, intentRoute, palletIntentId, quoteRate, submittedIntent, entryCostBps,
 } from './intent-policy.js';
 
 const hydration: Chain = {
@@ -582,7 +582,7 @@ export class JuicerLooper {
       // no intent to send, but an exit poke may still repay and free what a fill brought back
       if (!submitted) return kind === EXIT && await this.poke(quoted ? ICE_ABI : SUBLOOP_ABI, this.subLoop, fn, label, args, true);
       let rate = 0n;
-      if (quoted) {
+      if (quoted || kind === ENTRY) {
         try {
           rate = await this.routerQuote(sub, submitted.kind, submitted.amountIn);
           this.note('ice:quote');
@@ -593,12 +593,30 @@ export class JuicerLooper {
         }
         console.log(`  ${label}: ${submitted.amountIn} in, quote ${rate} per 1e18`);
       }
+      if (kind === ENTRY) {
+        const cost = await this.entryCost(rate);
+        if (cost > BigInt(CONFIG.ENTRY_MAX_COST_BPS)) {
+          console.log(`  ${label}: waits, it would pay ${cost} bps over the oracle (keeper limit ${CONFIG.ENTRY_MAX_COST_BPS})`);
+          return false;
+        }
+      }
       return await this.poke(ICE_SEND_ABI, this.subLoop, fn, label, quoted ? [rate] : [], true);
     } catch (error) {
       this.note('ice:probe', `[ALERT] ${name} intent probe failed, nothing submitted: ${shortErr(error)}`);
       this.substrate = undefined;
       return false;
     }
+  }
+
+  private async entryCost(rate: bigint): Promise<bigint> {
+    const prices = parseAbi(['function getAssetPrice(address) view returns (uint256)']);
+    const provider = await this.read([view('ADDRESSES_PROVIDER', 'address')], this.pool, 'ADDRESSES_PROVIDER') as Address;
+    const oracle = await this.read([view('getPriceOracle', 'address')], provider, 'getPriceOracle') as Address;
+    const [hollar, prime] = await Promise.all([this.read(ICE_ABI, this.subLoop, 'hollar'),
+      this.read([view('prime', 'address')], this.subLoop, 'prime')]) as [Address, Address];
+    const [pHollar, pPrime] = await Promise.all([this.read(prices, oracle, 'getAssetPrice', [hollar]),
+      this.read(prices, oracle, 'getAssetPrice', [prime])]) as [bigint, bigint];
+    return entryCostBps(rate, pHollar, pPrime);
   }
 
   private async routerQuote(sub: Substrate, kind: number, amountIn: bigint): Promise<bigint> {

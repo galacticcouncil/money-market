@@ -72,6 +72,8 @@ export const CONFIG = {
   OPERATOR_GUARD_SECONDS: guardSeconds,
   // intent submissions can cost more at inclusion than at estimate; two ran out at 20% on lark 4
   INTENT_GAS_MARGIN_PCT: integer('INTENT_GAS_MARGIN_PCT', 50, 0, 400),
+  // entries go out only while the router quote is within this of oracle-fair; the loop's floor is the on-chain backstop
+  ENTRY_MAX_COST_BPS: integer('ENTRY_MAX_COST_BPS', 25, 0, 10_000),
   // operator budget, also capped by the live block gas limit
   MAX_TX_GAS: BigInt(maxTxGas),
   // stop ramping once HF ≤ target·(1+buffer), avoiding borrow-to-floor no-ops

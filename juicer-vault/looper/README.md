@@ -67,7 +67,8 @@ read each vault's pause, queue cursors and Main repayment target
   healthy, worthwhile harvest, duty slot      -> quoted bounded harvest()
   pending collateral, eligible vault, duty slot -> quoted bounded rebalance(), also while exits wait
   healthy, no pending work, duty slot         -> quoted bounded pokeBorrow(), or with intents
-    (also for idle deposit cash) pokeBorrowQuoted(router dry-run rate)
+    (also for idle deposit cash) pokeBorrowQuoted(router dry-run rate),
+    only while that rate is within ENTRY_MAX_COST_BPS of oracle-fair
   intent in flight                            -> nothing new is submitted
     fill or refund landed, duty slot          -> reconcile()
     unfilled ICE_STALL_BLOCKS, or input still away
@@ -308,6 +309,7 @@ Default scheduling values (operator examples, not approved production policies):
 | `OPERATOR_SLOT_SECONDS` | `60` | Optional-work duty-slot duration |
 | `OPERATOR_GUARD_SECONDS` | `15` | With more than one operator, duty writes start this long after a slot opens and stop this long before it closes, rechecked right before signing |
 | `INTENT_GAS_MARGIN_PCT` | `50` | Gas margin over the estimate for intent submissions (other writes keep 20%) |
+| `ENTRY_MAX_COST_BPS` | `25` | Entries are submitted only while the live router quote is within this many bps of oracle-fair; the loop's on-chain floor (launch: 50 bps) stays the backstop. Exits are not gated |
 | `DEFICIT_STOP_BPS` | `250` | Above this source or vault deficit, stop the ramp and set the vault's `deficitStop` |
 | `DEFICIT_RESUME_BPS` | `200` | Below this, resume the ramp and clear `deficitStop`; must be below the stop, `0` never clears |
 | `SYNC_EVERY` | `3600` | Seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner |

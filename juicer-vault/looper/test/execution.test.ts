@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {executionQuotes, worthwhileHarvest, operatorTurn, efficientCandidate} from '../src/execution-policy.js';
+import {entryCostBps} from '../src/intent-policy.js';
 
 test('small harvests batch until costs fit; debt urgency and delay never wait for profitability', () => {
   assert.equal(worthwhileHarvest(100n, 1n, 100n, 10n, false, 0n, 86400n), false);
@@ -65,4 +66,12 @@ test('sizing cannot hide a worse servicing price or omit an active harvest recip
 test('invalid sizing data is rejected before submission', () => {
   assert.throws(() => efficientCandidate([], new Set(), 1n), /invalid/);
   assert.throws(() => efficientCandidate([{fills: [{lane: '0x01', amountIn: 1n, amountOut: 0n}]}], new Set(['0x01']), 1n), /invalid/);
+});
+
+test('entry cost is what the quote falls short of oracle-fair, rounded up', () => {
+  assert.equal(entryCostBps(940_000n, 94_000_000n, 100_000_000n), 0n);
+  assert.equal(entryCostBps(950_000n, 94_000_000n, 100_000_000n), 0n);
+  assert.equal(entryCostBps(937_650n, 94_000_000n, 100_000_000n), 25n);
+  assert.equal(entryCostBps(937_649n, 94_000_000n, 100_000_000n), 26n);
+  assert.throws(() => entryCostBps(1n, 0n, 100_000_000n), /missing oracle price/);
 });
