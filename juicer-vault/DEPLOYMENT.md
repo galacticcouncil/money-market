@@ -1,6 +1,6 @@
 # Juicer Deployment Runbook
 
-**Launch candidate, PR #89 | 3 November 2026 | Not deployed**
+**Launch candidate, PR #89 | 4 November 2026 | Not deployed**
 
 Audience: deployment, governance and operations reviewers. Complete the
 [activation gates](docs/release-candidate.md#activation-gates) before authorizing
@@ -37,13 +37,14 @@ for reads and fork rehearsals.
 | Deployer and gas funding    | A contract-deployer authorization and EVM fee funding on the target chain. `launch-deploy.mjs` refuses an unauthorized deployer. The key is read from `JUICER_DEPLOYER_KEY_FILE`, a path, never the key. |
 | Pool and token addresses    | `scripts/juicer/launch-manifest.mjs` pins the pool, HOLLAR and its debt token. `launch-deploy.mjs` reads aPRIME, the Aave treasury and each collateral's aToken from the pool; it refuses another HOLLAR debt token or a collateral without a reserve. |
 | Governance and committee    | `GOV` (the pool admin's EVM origin, reached through `dispatchAsAaveManager`) and `COMMITTEE` in `launch-manifest.mjs`: execution addresses, not member wallets or keeper keys.                          |
-| Vaults                      | `VAULTS` in `launch-manifest.mjs`: jBTC on tBTC (1000765) with a 1.337 tBTC TVL cap (`JUICER_TVL_CAP_TBTC` overrides it). `JUICER_LAUNCH_VAULTS` selects them (default `TBTC`); jETH on GIGAETH (4200) needs a later referendum. |
+| Vaults                      | `VAULTS` in `launch-manifest.mjs`: jETH on GIGAETH (4200, stableswap pool 4200's aETH/wstETH share) with a 44.4 GIGAETH TVL cap (`JUICER_TVL_CAP_ETH` overrides it). `JUICER_LAUNCH_VAULTS` selects them (default `ETH`); jBTC on tBTC (1000765) needs a later referendum. |
 | Synthetic reserve           | The referendum registers asset 5550 (`JUICER_SYNTH_ASSET_ID`) and lists it with 1% LTV, 98% LT, borrowing off and the $1 source. Main sizing uses real collateral, not synthetic borrowing power.      |
 | Runtime routes and indices  | Regenerate router references with `scripts/juicer/gen-router-reference.mjs`. `DcaDispatch` pins `router.sell` (67/0) and `intent.submitIntent`/`removeIntent` (98/0, 98/1); readiness checks them.    |
 | Swap adapter                | The pinned HydraAugustus build from its own repository (`JUICER_ADAPTER_ARTIFACT`). The deploy hands it to governance; the referendum maps PRIME 43, HOLLAR 222 and each collateral with `setAssetId`. |
 | PRIME pricing and liquidity | Approve source provenance/freshness, Aave and pool-peg wiring, executable inventory and funded replenishment. See [pricing validation](docs/prime-pricing-replenishment.md).                            |
 | Launch values               | `NEXT` and `LAUNCH` in `scripts/juicer/next-governance.ts`, the constants in `tasks/proposals/juicer.ts` and `launch-manifest.mjs`, most with an environment override. See the [launch values](docs/external-review.md#launch-values). |
-| Keepers                     | `JUICER_KEEPERS`: the referendum grants each `KEEPER_ROLE` on the loop and `DEPOSIT_GUARDIAN_ROLE` on each vault, and nothing else.                                                                       |
+| Keepers                     | `LAUNCH.keepers` in `next-governance.ts`, two addresses; `JUICER_KEEPERS` replaces them. The referendum grants each `KEEPER_ROLE` on the loop and `DEPOSIT_GUARDIAN_ROLE` on each vault, and nothing else. |
+| Treasury funding            | The referendum pays the bootstrap, the rounding reserve, the protocol reserve and the loop's callback fees from the treasury. Collateral the treasury lacks it buys first, in the same referendum: `LAUNCH.treasuryBuy`, an exact-out `router.buy` with HOLLAR along the router's stored route, the gap plus 20%, for at most 50% over the runtime's quote at planning (`JUICER_TREASURY_BUY_FROM`, `_ROUTE`, `_MARGIN_BPS`, `_SLIPPAGE_BPS`). |
 
 The forge scripts in `script/` are an earlier deployment path and contain
 testnet defaults; the launch does not use them. Never reuse a historical
@@ -84,11 +85,11 @@ JUICER_ARTIFACT_DIR=juicer-vault/out-production JUICER_ADAPTER_ARTIFACT=<HydraAu
   node scripts/juicer/launch-deploy.mjs <manifest.json>
 ```
 
-`WS` defaults to `RPC` over websockets. For jBTC the script creates, in order:
+`WS` defaults to `RPC` over websockets. For jETH the script creates, in order:
 HydraAugustus, CompoundLogic, the vault implementation, SyntheticToken,
 SubLoopLogic, the SubLoop implementation and proxy, Harvester,
 JuicerFeeController (recipient: the Aave treasury), ExecutionController (60 s,
-5 blocks), JuicerDiscount, the jBTC proxy and its JuicerMainDebt. It then hands
+5 blocks), JuicerDiscount, the jETH proxy and its JuicerMainDebt. It then hands
 HydraAugustus to governance; a two-step adapter leaves `acceptOwnership` to the
 referendum.
 
@@ -146,19 +147,20 @@ but not its metadata; only a rebuild in the deploy checkout matches exactly.
 From the repository root:
 
 ```sh
-JUICER_MANIFEST=<manifest.json> JUICER_KEEPERS=<keeper addresses> JUICER_PLAN_OUT=<plan.json> \
+JUICER_MANIFEST=<manifest.json> JUICER_PLAN_OUT=<plan.json> \
   RPC=<eth rpc> MARKET_NAME=Hydration HARDHAT_NETWORK=hydration npx hardhat juicer
 ```
 
 The [proposal task](../tasks/proposals/juicer.ts) reads the manifest and the
 chain, then plans only what the chain lacks, so a rerun after enactment proposes
-nothing. Its steps, in order:
+nothing. The keepers are the launch's two unless `JUICER_KEEPERS` names others.
+Its steps, in order:
 
 | Step      | Calls                                                                                                                                                                                                                                 |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | chain     | pool 143 fee to 1 bp; the harvest and servicing routes the router lacks; the synthetic registered as ERC20 asset 5550, then `initReserves`, its collateral settings and the $1 source; each share registered as a sufficient ERC20 asset |
 | custody   | duster whitelist for the loop, Harvester, fee controller, each vault, Main ledger and yield accounting, and the adapter                                                                                                                 |
-| funding   | from the treasury to governance's account: collateral for rounding and the bootstrap, HOLLAR for the reserves; the loop's fee currency reset to WETH, with WETH and HDX for its ICE callbacks                                           |
+| funding   | collateral the treasury lacks bought first (exact out, with HOLLAR); from the treasury to governance's account: collateral for rounding and the bootstrap, HOLLAR for the reserves; the loop's fee currency reset to WETH, with WETH and HDX for its ICE callbacks |
 | wire      | loop tranches, route and Harvester; the Harvester's fee controller; per vault `MINTER_ROLE`, `VAULT_ROLE`, `setMainDebt`, fee controller and registration, Harvester, compound slippage, withdrawal delay; the committee's `GUARDIAN_ROLE`; the adapter's asset ids |
 | execution | budgets, pacing, lane limits and price caps, the quote entrypoints, then `setExecutionController` on the loop, Harvester and vaults                                                                                                     |
 | discount  | JuicerDiscount installed on the HOLLAR debt token; each vault's `setDiscountController` and registration; `registerLoop` with its cap                                                                                                  |
@@ -175,6 +177,18 @@ batch, the proposal and its hash; `JUICER_PLAN_OUT` keeps the plan, including
 the execution policy and launch values readiness needs.
 `JUICER_FUNDING_SOURCE=admin` funds from a prefunded governance account instead
 of the treasury.
+
+The treasury buy is planned only while the treasury holds less than the
+transfers need, so a rerun, or a treasury funded beforehand, plans none. Its
+bound comes from the runtime's own price for the same buy, a dry run as the
+treasury when the proposal is generated; no route or a failing dry run stops the
+task. The bound is wide on purpose: the buy executes a week or more later, after
+the vote, and ETH moves in between. On the ~0.006 GIGAETH it buys, the most it can
+overpay is about $7; a buy that fails anyway leaves the transfer, and with it the
+bootstrap, failed as events and the vault closed until another referendum.
+Because the quote moves with every block, publish the bound with the proposal:
+`JUICER_TREASURY_BUY_MAX_IN=<the planned maxAmountIn>` makes a later run plan the
+same call, and so the same preimage, while that bound still covers the quote.
 
 Rehearse the exact proposal on a fork of mainnet before submission
 ([mainnet-fork rehearsal](docs/external-review.md#mainnet-fork-launch-rehearsal)):
@@ -229,7 +243,9 @@ The existing native success used a labeled oracle-update fixture and external
 funding. A fresh unchanged-market acceptance run remains an activation gate.
 
 Start the keeper using the [operations runbook](looper/README.md), with
-`VAULT_ADDRESSES` covering every configured vault. Use one active sender per
+`VAULT_ADDRESSES` covering every configured vault. Its `ENTRY_MAX_COST_BPS`
+(default 25) keeps its entries well inside the loop's 50 bps on-chain floor;
+anyone's `pokeBorrow()` can still enter at the floor. Use one active sender per
 signing key to avoid nonce collisions. Arrange independent monitoring, a funded
 failover process and committee incident coverage. Without `KEEPER_ROLE` a keeper
 sends the permissionless pokes at the oracle floor; without
