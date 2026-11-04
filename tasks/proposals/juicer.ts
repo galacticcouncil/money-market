@@ -14,7 +14,7 @@ import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-po
 import { nativeAccount, nativeRoundingPolicy } from "../../scripts/juicer/rounding-native";
 import {
   NEXT, LAUNCH, readNextState, nextCalls, reserveCalls, parseBand, envNumber, parseExitHeadroom, executionPolicy, readExecution,
-  executionCalls, readDiscount, discountCalls, assumePlanned, bootstrapCalls, bootstrapSeed,
+  executionCalls, readDiscount, discountCalls, assumePlanned, bootstrapCalls, bootstrapSeed, treasuryBuyAmount, treasuryBuyMax, treasuryBuyRoute,
 } from "../../scripts/juicer/next-governance";
 import { readFileSync, writeFileSync } from "fs";
 import { resolve as resolvePath } from "path";
@@ -205,8 +205,8 @@ task(
   const swapper = process.env.JUICER_SWAPPER;
   // Technical committee — receives GUARDIAN_ROLE (fast pause) on every contract.
   const guardian = process.env.JUICER_GUARDIAN || EMERGENCY_ADMIN[networkId];
-  const keepers = list(process.env.JUICER_KEEPERS);
-  if (!keepers.length) throw new Error("set JUICER_KEEPERS: the keepers' KEEPER_ROLE and DEPOSIT_GUARDIAN_ROLE are part of the launch");
+  const keepers = list(process.env.JUICER_KEEPERS ?? LAUNCH.keepers.join(","));
+  if (!keepers.length) throw new Error("JUICER_KEEPERS is set but empty: the keepers' KEEPER_ROLE and DEPOSIT_GUARDIAN_ROLE are part of the launch");
   const rounding = parseRoundingPolicies(process.env.JUICER_ROUNDING_RESERVES || "[]", vaults);
   const fundingSource = process.env.JUICER_FUNDING_SOURCE || "treasury";
   if (!["treasury", "admin"].includes(fundingSource)) throw new Error("JUICER_FUNDING_SOURCE is treasury or admin");
@@ -250,7 +250,7 @@ task(
   console.log(`  discount   : ${discount}`);
   console.log(`  controller : ${controller}`);
   console.log(`  route      : ${ROUTE_HOLLAR}/${ROUTE_PRIME}/${ROUTE_APRIME} via pool ${ROUTE_POOL} @ ${ROUTE_SLIPPAGE_PPM}ppm`);
-  console.log(`  funding    : ${fundingSource}\n`);
+  console.log(`  funding    : ${fundingSource}${fundingSource === "treasury" ? `, buying what it lacks with asset ${process.env.JUICER_TREASURY_BUY_FROM ?? LAUNCH.treasuryBuy.from}` : ""}\n`);
 
   // ── the launch, in order: each step's calls are only what the chain still lacks ──
   type Item = { step: string; label: string; tx?: any; evm?: { to: string; data: string; gas: number } };
@@ -276,6 +276,42 @@ task(
   const treasury = api.registry.createType("AccountId", u8aConcat(stringToU8a("modl"), api.consts.treasury.palletId.toU8a(), new Uint8Array(20))).toString();
   const fromTreasury = (label: string, dest: string, id: number, amount: bigint) =>
     sub(`treasury → ${label}: ${amount} of asset ${id}`, hydrationTx.dispatcher.dispatchAsTreasury(hydrationTx.currencies.transfer(dest, id, amount.toString())));
+  // what earlier funding calls already take from the treasury, by asset
+  const spent = new Map<number, bigint>();
+  const treasuryHas = async (id: number) => (await free(id, treasury)) - (spent.get(id) ?? 0n);
+  const buyFrom = envNumber("JUICER_TREASURY_BUY_FROM", LAUNCH.treasuryBuy.from);
+  const buyMarginBps = envNumber("JUICER_TREASURY_BUY_MARGIN_BPS", LAUNCH.treasuryBuy.marginBps);
+  const buySlippageBps = envNumber("JUICER_TREASURY_BUY_SLIPPAGE_BPS", LAUNCH.treasuryBuy.slippageBps);
+  const treasuryBuys: any[] = [];
+  // an asset the treasury holds too little of, bought as the treasury along an explicit route, exact out; the
+  // bound comes from the runtime's own price for the same buy, a dry run bounded only by the treasury's balance
+  async function treasuryBuy(id: number, short: bigint) {
+    if (id === buyFrom) throw new Error(`the treasury holds less than ${short} of asset ${id}`);
+    const decimals = Number((await api.query.assetRegistry.assets(id)).unwrap().decimals.toString());
+    const amountOut = treasuryBuyAmount({ short, held: await treasuryHas(id), decimals, marginBps: buyMarginBps });
+    const pair = buyFrom < id ? { assetIn: buyFrom, assetOut: id } : { assetIn: id, assetOut: buyFrom };
+    const stored: any = await api.query.router.routes(pair);
+    const route = treasuryBuyRoute(buyFrom, id, stored.isSome ? stored.unwrap().toJSON() : null,
+      process.env.JUICER_TREASURY_BUY_ROUTE ? JSON.parse(process.env.JUICER_TREASURY_BUY_ROUTE) : undefined);
+    const balance = await treasuryHas(buyFrom);
+    const dry: any = await api.call.dryRunApi.dryRunCall({ system: "Root" },
+      hydrationTx.dispatcher.dispatchAsTreasury(hydrationTx.router.buy(buyFrom, id, amountOut.toString(), balance.toString(), route)), 4);
+    const events = dry.isOk && dry.asOk.executionResult.isOk ? dry.asOk.emittedEvents : [];
+    const inner = events.find((e: any) => e.section === "dispatcher" && e.method === "TreasuryManagerCallDispatched")?.data[1];
+    const executed = events.find((e: any) => e.section === "router" && e.method === "Executed");
+    if (!inner?.isOk || !executed) {
+      const why = inner?.isErr ? (inner.asErr.error.isModule ? (({ section, name }) => `${section}.${name}`)(api.registry.findMetaError(inner.asErr.error.asModule)) : inner.asErr.error.toString())
+        : JSON.stringify(dry.toHuman());
+      throw new Error(`the treasury cannot buy ${amountOut} of asset ${id} with asset ${buyFrom} along ${JSON.stringify(route)}: ${why}`);
+    }
+    const quote = BigInt(executed.data[2].toString()), maxIn = treasuryBuyMax(quote, buySlippageBps, process.env.JUICER_TREASURY_BUY_MAX_IN);
+    if (maxIn > balance) throw new Error(`the treasury holds ${balance} of asset ${buyFrom}, the buy may take ${maxIn}`);
+    spent.set(buyFrom, (spent.get(buyFrom) ?? 0n) + maxIn);
+    treasuryBuys.push({ assetIn: buyFrom, assetOut: id, amountOut: amountOut.toString(), quote: quote.toString(), maxAmountIn: maxIn.toString(),
+      slippageBps: buySlippageBps, pinned: process.env.JUICER_TREASURY_BUY_MAX_IN !== undefined, marginBps: buyMarginBps, short: short.toString(), route });
+    sub(`treasury buys ${amountOut} of asset ${id} for at most ${maxIn} of asset ${buyFrom} (quote ${quote}${process.env.JUICER_TREASURY_BUY_MAX_IN === undefined ? ` + ${buySlippageBps} bps` : ", bound pinned"})`,
+      hydrationTx.dispatcher.dispatchAsTreasury(hydrationTx.router.buy(buyFrom, id, amountOut.toString(), maxIn.toString(), route)));
+  }
 
   // ═════ chain: PRIME pool fee, compound routes, the synthetic listed and configured, the share assets ═════
   // Pure substrate (no aave-manager wrapper) — forceInsertRoute and updatePoolFee are Root calls.
@@ -358,7 +394,8 @@ task(
 
   // ═════ funding: governance's collateral and HOLLAR, the loop's callback fees ═════
   // governance's EVM caller pays the rounding donations, the reserve and the bootstrap, from the treasury by
-  // dispatcher.dispatchAsTreasury (Root or Treasurer, signs as the treasury); JUICER_FUNDING_SOURCE=admin: prefunded
+  // dispatcher.dispatchAsTreasury (Root or Treasurer, signs as the treasury), which first buys any collateral it
+  // lacks (treasuryBuy); JUICER_FUNDING_SOURCE=admin: prefunded
   step = "funding";
   const bootstrapUnits = new Map<string, bigint>(), roundingUnits = new Map<string, bigint>();
   for (const r of rows) {
@@ -384,8 +421,9 @@ task(
     planned.set(id, held + short);
     if (short === 0n) continue;
     if (fundingSource === "admin") throw new Error(`Prefund Aave manager ${admin} with ${short} base units of asset ${id}`);
-    if ((await free(id, treasury)) < short) throw new Error(`the treasury holds less than ${short} of asset ${id}`);
+    if ((await treasuryHas(id)) < short) await treasuryBuy(id, short);
     fromTreasury(`governance ${admin}`, govAccount, id, short);
+    spent.set(id, (spent.get(id) ?? 0n) + short);
   }
   // the loop's ICE callbacks pay in WETH: its fee currency reset to WETH, and HDX so a first deposit never moves it
   const loopAccount = await nativeAccount(api, subLoop);
@@ -573,7 +611,7 @@ the discount reading the wrong token: regenerate (this check refuses) and redepl
   const writePlan = (proposal: any, batches: any[]) => {
     if (!process.env.JUICER_PLAN_OUT) return;
     writeFileSync(process.env.JUICER_PLAN_OUT, JSON.stringify({
-      proposal, batches, policy, discount, keepers, governance: admin,
+      proposal, batches, policy, discount, keepers, governance: admin, treasuryBuys,
       values: {
         slippagePpm: ROUTE_SLIPPAGE_PPM, primePoolFeePpm: ROUTE_POOL_FEE_PPM, withdrawalDelay, synthAssetId: SYNTH_ASSET_ID,
         harvestThreshold: expected.harvestThreshold.toString(), intentTtl: expected.intentTtl, intentDriftBps: expected.intentDriftBps,

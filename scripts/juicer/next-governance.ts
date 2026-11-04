@@ -420,7 +420,7 @@ export const LAUNCH = {
   unwind: { capacity: utils.parseUnits("25000", 6), refill: utils.parseUnits("10", 6), minimum: BigNumber.from(10000), maximum: utils.parseUnits("2500", 6) },
   // PRIME 6dp, one budget for every vault's harvest
   harvest: { capacity: utils.parseUnits("1000", 6), refill: utils.parseUnits("1", 6), minimum: BigNumber.from(10000), maximum: utils.parseUnits("50", 6) },
-  // collateral sold for Main interest, by asset id: tBTC and GIGAETH (18dp), ~$100 a trade
+  // collateral sold for Main interest, by asset id: tBTC and GIGAETH (18dp), $50 to $80 a trade
   service: {
     1000765: { capacity: utils.parseUnits("0.1", 18), refill: BigNumber.from(10).pow(14), minimum: BigNumber.from(10).pow(10), maximum: BigNumber.from(10).pow(15) },
     4200: { capacity: utils.parseUnits("1", 18), refill: BigNumber.from(10).pow(15), minimum: BigNumber.from(10).pow(12), maximum: utils.parseUnits("0.02", 18) },
@@ -435,6 +435,11 @@ export const LAUNCH = {
   iceHdx: BigNumber.from(10).pow(13),
   // the discounted HOLLAR notional of the loop's debt
   loopCap: utils.parseUnits("5000000", 18),
+  // KEEPER_ROLE on the loop and DEPOSIT_GUARDIAN_ROLE on each vault; JUICER_KEEPERS replaces them
+  keepers: ["0xAF11238c61D8D3E98b6e5A10c227e77DfD0D9898", "0x8862A05A7d9aF0fdd7A0f8611c067E1f73921E8a"],
+  // collateral the treasury lacks is bought in the referendum: exact out with HOLLAR, the gap plus 20%, at most
+  // 50% over the runtime's quote, wide enough for a week of ETH moves during the vote (~$7 on ~$14)
+  treasuryBuy: { from: 222, marginBps: 2000, slippageBps: 5000 },
 };
 export type Size = { capacity: BigNumberish; refill: BigNumberish; minimum: BigNumberish; maximum: BigNumberish };
 export type PolicySpec = { pacing: number; primeShortfallBps: number; collateralShortfallBps: number;
@@ -620,6 +625,40 @@ export function assumePlanned(state: NextState, p: { policy?: Policy; discount?:
   }
   if (p.feeBps !== undefined) for (const v of next.vaults) v.protocolFeeBps ??= p.feeBps;
   return next;
+}
+
+export type Hop = { pool: any; assetIn: number; assetOut: number };
+
+/// what the treasury buys of an asset before transferring `short` of it: nothing while it holds enough,
+/// else the gap plus the margin, rounded up to a ten-thousandth of a unit
+export function treasuryBuyAmount({ short, held, decimals, marginBps }:
+  { short: bigint; held: bigint; decimals: number; marginBps: number }): bigint {
+  if (!(Number.isInteger(marginBps) && marginBps >= 0 && marginBps <= 10000)) throw new Error(`treasury buy margin ${marginBps} bps out of range`);
+  const gap = short - held;
+  if (gap <= 0n) return 0n;
+  const step = 10n ** BigInt(Math.max(decimals - 4, 0)), padded = (gap * BigInt(10000 + marginBps) + 9999n) / 10000n;
+  return (padded + step - 1n) / step * step;
+}
+
+/// the exact-out buy's input bound over the runtime's quote for the same buy; a pinned bound, which
+/// keeps a regenerated preimage identical while prices move, must still cover the quote
+export function treasuryBuyMax(quote: bigint, slippageBps: number, pinned?: string): bigint {
+  if (quote <= 0n) throw new Error("the treasury buy has no quote");
+  if (!(Number.isInteger(slippageBps) && slippageBps >= 0 && slippageBps <= 10000)) throw new Error(`treasury buy slippage ${slippageBps} bps out of range`);
+  if (pinned === undefined) return (quote * BigInt(10000 + slippageBps) + 9999n) / 10000n;
+  if (!/^\d+$/.test(pinned.trim())) throw new Error(`treasury buy bound "${pinned}": base units of the input asset`);
+  const max = BigInt(pinned.trim());
+  if (max < quote) throw new Error(`the pinned treasury buy bound ${max} no longer covers the runtime's quote ${quote}`);
+  return max;
+}
+
+/// the route for `from` → `to`: an explicit one, else the router's stored route, which it keeps from the lower id
+export function treasuryBuyRoute(from: number, to: number, stored?: Hop[] | null, explicit?: Hop[]): Hop[] {
+  const route = explicit ?? (stored && (from < to ? stored : stored.slice().reverse().map(h => ({ pool: h.pool, assetIn: h.assetOut, assetOut: h.assetIn }))));
+  if (!route?.length) throw new Error(`no route from asset ${from} to ${to}: the router stores none, set JUICER_TREASURY_BUY_ROUTE`);
+  const ok = route[0].assetIn === from && route.at(-1)!.assetOut === to && route.every((h, i) => i === 0 || h.assetIn === route[i - 1].assetOut);
+  if (!ok) throw new Error(`route ${route.map(h => `${h.assetIn}->${h.assetOut}`).join(" ")} does not lead from ${from} to ${to}`);
+  return route;
 }
 
 const vaultI = new utils.Interface(["function unpauseDeposits()", "function deposit(uint256,address)", "function fundRoundingReserve(uint256)"]);

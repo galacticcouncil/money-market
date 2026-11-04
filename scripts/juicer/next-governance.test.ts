@@ -4,6 +4,7 @@ import { BigNumber, providers, utils } from "ethers";
 import {
   NEXT, envNumber, parseExitHeadroom, KEEPER_ROLE, DEPOSIT_GUARDIAN_ROLE, GUARDIAN_ROLE, readNextState, nextCalls, reserveCalls, nextChecks, bandGaps, parseBand,
   LAUNCH, executionPolicy, executionCalls, groupId, laneId, discountCalls, bootstrapCalls, bootstrapSeed, assumePlanned, ExecutionState, Policy, DiscountState,
+  treasuryBuyAmount, treasuryBuyMax, treasuryBuyRoute,
 } from "./next-governance";
 
 const addr = (n: number) => utils.getAddress(`0x${n.toString(16).padStart(40, "0")}`);
@@ -374,4 +375,38 @@ test("the bootstrap is sized in the collateral's decimals: the launch plans stay
   assert.equal(bootstrapSeed(1000765, 8).toString(), "10000");
   assert.equal(bootstrapSeed(7, 6, "10").toString(), "10000000");
   assert.throws(() => bootstrapSeed(7, 6), /no bootstrap size for collateral 7/);
+});
+
+test("the treasury buys only the collateral it lacks, plus the margin, along a route that leads there", () => {
+  // the launch: 0.005 GIGAETH of bootstrap and the rounding reserve, against the treasury's 0.0000367
+  const short = 5n * 10n ** 15n + 1000010000n, held = 36713690504571n, { marginBps, slippageBps } = LAUNCH.treasuryBuy;
+  assert.equal(treasuryBuyAmount({ short, held, decimals: 18, marginBps }), 6n * 10n ** 15n);
+  assert.equal(treasuryBuyAmount({ short, held: short, decimals: 18, marginBps }), 0n, "funded: no buy");
+  assert.equal(treasuryBuyAmount({ short, held: short * 2n, decimals: 18, marginBps }), 0n);
+  assert.equal(treasuryBuyAmount({ short: short - held, held: 0n, decimals: 18, marginBps: 0 }), 5n * 10n ** 15n, "rounded up to 0.0001");
+  assert.equal(treasuryBuyAmount({ short: 1n, held: 0n, decimals: 6, marginBps: 0 }), 100n);
+  assert.throws(() => treasuryBuyAmount({ short, held, decimals: 18, marginBps: -1 }), /margin/);
+  // the runtime's quote for the buy, plus the bound, rounded up
+  assert.equal(treasuryBuyMax(14045662929740613687n, slippageBps), 21068494394610920531n);
+  assert.throws(() => treasuryBuyMax(0n, slippageBps), /no quote/);
+  assert.throws(() => treasuryBuyMax(1n, 10001), /slippage/);
+  // a pinned bound reproduces the preimage at a later block, while it still covers the quote
+  assert.equal(treasuryBuyMax(15n * 10n ** 18n, slippageBps, "21058242844249875744"), 21058242844249875744n);
+  assert.throws(() => treasuryBuyMax(22n * 10n ** 18n, slippageBps, "21058242844249875744"), /no longer covers/);
+  assert.throws(() => treasuryBuyMax(1n, slippageBps, ""), /base units/);
+  assert.throws(() => treasuryBuyMax(1n, slippageBps, "21.5"), /base units/);
+  // the route: explicit, else the router's own, which it keeps from the lower id
+  const stored = [{ pool: { omnipool: null }, assetIn: 222, assetOut: 420 }, { pool: { aave: null }, assetIn: 420, assetOut: 4200 }];
+  assert.deepEqual(treasuryBuyRoute(222, 4200, stored), stored);
+  assert.deepEqual(treasuryBuyRoute(4200, 222, stored).map(h => [h.assetIn, h.assetOut]), [[4200, 420], [420, 222]]);
+  assert.throws(() => treasuryBuyRoute(0, 4200, null), /stores none/);
+  assert.throws(() => treasuryBuyRoute(0, 4200, stored), /does not lead/);
+  const explicit = [{ pool: "Omnipool", assetIn: 0, assetOut: 420 }, { pool: "Aave", assetIn: 420, assetOut: 4200 }];
+  assert.deepEqual(treasuryBuyRoute(0, 4200, null, explicit), explicit);
+  assert.throws(() => treasuryBuyRoute(0, 4200, null, [explicit[1]]), /does not lead/);
+});
+
+test("the launch keepers are two checksummed addresses", () => {
+  assert.equal(new Set(LAUNCH.keepers).size, 2);
+  assert.deepEqual(LAUNCH.keepers.map(k => utils.getAddress(k)), LAUNCH.keepers);
 });
