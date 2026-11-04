@@ -616,7 +616,7 @@ preimage.
    | --- | --- |
    | chain | pool 143 fee to 1 bp; the harvest and servicing routes the router lacks; the synthetic registered as ERC20 asset 5550; `initReserves` for it, then LTV 1%, LT 98%, 1% bonus, borrowing off, no supply cap, the $1 source; each share registered as a sufficient ERC20 asset |
    | custody | duster whitelist for the loop, Harvester, fee controller, each vault, Main ledger and yield accounting, and the adapter |
-   | funding | collateral the treasury lacks bought first: an exact-out `router.buy` as the treasury, with HOLLAR along the router's stored route, the gap plus 20%, for at most 50% over the runtime's quote at planning (`LAUNCH.treasuryBuy`); from the treasury to the governance account: collateral for rounding and the bootstrap, HOLLAR for the reserves; the loop's fee currency reset to WETH, with 0.01 WETH and 10 HDX for ICE callbacks |
+   | funding | collateral the treasury lacks bought first: an exact-out `router.buy` as the treasury, with HOLLAR along the router's stored route, the gap plus 20%, for at most 50% over the runtime's quote at planning (`LAUNCH.treasuryBuy`); from the treasury to the governance account: collateral for rounding and the bootstrap, HOLLAR for the reserves; the loop's fee currency reset to WETH, with 0.002 WETH and 10 HDX for ICE callbacks |
    | wire | loop tranches, route (`configureDca(222, 43, 1043, 143, 5000)`) and harvester; the Harvester's fee controller; per vault `MINTER_ROLE`, `VAULT_ROLE`, `setMainDebt`, the fee controller and registration, the Harvester, 100 bps compound slippage, the withdrawal delay; `GUARDIAN_ROLE` for the committee on the loop and vaults; the adapter's asset ids |
    | execution | budgets, pacing, lane limits, price caps (50 bps PRIME lanes, the unwind lane flagged safety; 100 bps collateral lanes), the four quote entrypoints, then `setExecutionController` on the loop, Harvester and vaults |
    | discount | JuicerDiscount installed as the HOLLAR debt token's discount token and rate strategy; per vault `setDiscountController` and `registerVault`; `registerLoop` with its cap |
@@ -655,6 +655,7 @@ All checked against the launch tooling at the head of PR #89 (contracts as at `5
 | Band | 65/75/83%: gaps 500/1000/800 at GIGAETH's 80% max LTV (85% LT) | gaps 0/500/300 | `NEXT.band` |
 | Harvest threshold | 0.02% of principal | 0.1% | `NEXT.harvestThreshold` |
 | ICE | 300 s intents, 2 bps drift, both loop lanes async | 0: the router | `NEXT.intentTtl`, `NEXT.intentDriftBps` |
+| ICE callback float | 0.002 WETH and 10 HDX from the treasury to the loop's account, unless it holds half already; ~1,660 callbacks at the Lark 4 rate | — | `LAUNCH.iceWeth`, `LAUNCH.iceHdx` |
 | Compound slippage | 100 bps | 0: fails closed | `juicer.ts` |
 | Loop health factor | target 1.05, deploy floor 1.05, de-lever trigger 1.10 | initializer | `launch-manifest.mjs` |
 | Pool 143 fee | 1 bp, from 4 | — | `NEXT.primePoolFeePpm` |

@@ -45,7 +45,7 @@ Defaults live in `scripts/juicer/next-governance.ts` (`LAUNCH`, `NEXT`), `script
 - [ ] External review report received and its findings resolved or accepted.
 - [ ] Pool 143 within the keepers' entry limit (PRIME ≲ 25 bps over the oracle; ~39 bps on 4 November). Above it entries simply wait.
 - [ ] No other money-market listing will be enacted between the deploy and this referendum's enactment: the synthetic's aToken address is predicted from the pool configurator's nonce. `juicer.ts` refuses to emit if it moved; then redeploy JuicerDiscount and regenerate.
-- [ ] Treasury holds ≥ ~1,050 HOLLAR, ≥ 0.01 WETH and 10 HDX (it buys its own GIGAETH inside the referendum).
+- [ ] Treasury holds ≥ ~1,050 HOLLAR, ≥ 0.002 WETH and 10 HDX (it buys its own GIGAETH inside the referendum).
 - [ ] Deployer is a whitelisted contract deployer (it is) and funded for 13 creations.
 - [ ] A clean checkout at the release commit, the production build (CI's `forge build src …/ERC1967Proxy.sol --evm-version london …`), and the gitignored `typechain`/`artifacts` the hardhat tasks import.
 
