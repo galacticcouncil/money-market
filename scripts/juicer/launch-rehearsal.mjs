@@ -1,9 +1,11 @@
 // The launch, end to end on a local chopsticks fork of mainnet. Test fixtures (storage writes, public dev
 // keys) are confined here and to local endpoints; the deploy and the proposal run unchanged.
-//   prepare             whitelist and fund the dev deployer, keeper and user; instant blocks for the deploy
-//   enact <hex file>    note, submit, pass and enact the ONE Root referendum, then every scheduled batch
-//   smoke <manifest>    a tBTC deposit, a keeper rebalance and intent, a headroom exit and exact claims
-// WS (default ws://127.0.0.1:18098), JUICER_REHEARSAL_REPORT (default /tmp/juicer-launch-rehearsal.json)
+//   prepare               whitelist and fund the dev deployer, keeper and user; instant blocks for the deploy
+//   enact <hex file>      note, submit, pass and enact the ONE Root referendum, then every scheduled batch
+//   rebalance <manifest>  the first keeper rebalance: governance's bootstrap into the loop, before readiness
+//   smoke <manifest>      a collateral deposit, a keeper rebalance and intent, a headroom exit and exact claims
+// WS (default ws://127.0.0.1:18098), JUICER_REHEARSAL_REPORT (default /tmp/juicer-launch-rehearsal.json),
+// JUICER_LAUNCH_VAULTS (the user is funded with each launch collateral)
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {existsSync,readFileSync,writeFileSync} from 'node:fs';
@@ -13,6 +15,7 @@ const {blake2AsHex,cryptoWaitReady}=require('@polkadot/util-crypto');
 const {compactToU8a,hexToU8a,u8aToHex,u8aConcat}=require('@polkadot/util');
 const v=require('viem');
 const {mnemonicToAccount}=require('viem/accounts');
+const {launchVaults}=await import('./launch-manifest.mjs');
 const [cmd,arg]=process.argv.slice(2);
 const WS=process.env.WS||'ws://127.0.0.1:18098',RPC=WS.replace(/^ws/,'http');
 assert.match(new URL(WS).hostname,/^(127\.0\.0\.1|localhost)$/,'the rehearsal writes storage: local forks only');
@@ -21,7 +24,9 @@ const report=existsSync(REPORT)?JSON.parse(readFileSync(REPORT,'utf8')):{};
 const save=()=>writeFileSync(REPORT,JSON.stringify(report,(_,x)=>typeof x==='bigint'?x.toString():x,2)+'\n');
 const dev=i=>mnemonicToAccount('test test test test test test test test test test test junk',{addressIndex:i});
 const deployer=dev(Number(process.env.JUICER_DEPLOYER_INDEX??21)),keeper=dev(22),user=dev(23);
-const TBTC=1000765,WETH=20,GOV='0xAa7e0000000000000000000000000000000Aa7e0';
+const WETH=20,GOV='0xAa7e0000000000000000000000000000000Aa7e0';
+// the smoke's deposit by collateral, about $1,000: 0.5 GIGAETH, 0.01 tBTC
+const SMOKE={4200:{amount:5n*10n**17n,symbol:'GIGAETH'},1000765:{amount:10n**16n,symbol:'tBTC'}};
 const provider=new WsProvider(WS,2500,{},600000);
 const api=await ApiPromise.create({provider,noInitWarn:true});
 const send=(method,params)=>provider.send(method,params);
@@ -37,6 +42,17 @@ async function fund(address,balances,native){
  }
  await send('dev_setStorage',[items]);
  return who;
+}
+
+// a dev key's EVM call with explicit gas: frontier's estimate can false-revert on precompile-heavy calls
+async function transact(who,address,a,functionName,args=[],gas=6_000_000n){
+ const wallet=v.createWalletClient({account:who,chain,transport:v.http(RPC,{timeout:180000})}),gasPrice=await pub.getGasPrice()*2n;
+ let hash;
+ for(let attempt=0;;attempt++){
+  try{hash=await wallet.writeContract({address,abi:a,functionName,args,gas,gasPrice:gasPrice+BigInt(attempt),type:'legacy'});break;}
+  catch(e){if(attempt>=3||!String(e).includes('Expected input with 32 bytes'))throw e;}
+ }
+ return {hash,r:await pub.waitForTransactionReceipt({hash,timeout:240000})};
 }
 
 // events that mean a call inside the referendum did not do its job
@@ -115,15 +131,38 @@ async function enact(file){
   const row={block:n,batch:n-enactAt,events:events.length,evmExecuted:count('evm.Executed'),executedFailed:count('evm.ExecutedFailed'),
    dispatched:events.filter(e=>e.section==='scheduler'&&e.method==='Dispatched').map(e=>e.data.toJSON()),
    treasury:count('dispatcher.TreasuryManagerCallDispatched'),failures:events.filter(failed).map(e=>`${e.section}.${e.method} ${JSON.stringify(e.data.toJSON())}`),
+   // the treasury's buys: asset in, asset out, amount in, amount out
+   routerExecuted:events.filter(e=>e.section==='router'&&e.method==='Executed').map(e=>e.data.slice(0,4).map(x=>x.toString())),
    mandatoryWeight:mandatory,schedulerShare:`${(Number(BigInt(mandatory.refTime))/Number(maxW.refTime.toBigInt())*100).toFixed(1)}% ref, ${(Number(BigInt(mandatory.proofSize))/Number(maxW.proofSize.toBigInt())*100).toFixed(1)}% proof`};
   r.blocks.push(row);save();
-  console.log('BLOCK',n,'batch',row.batch,'evm',row.evmExecuted,'failed',row.executedFailed,'failures',row.failures.length,'weight',row.schedulerShare);
+  console.log('BLOCK',n,'batch',row.batch,'evm',row.evmExecuted,'failed',row.executedFailed,'treasury',row.treasury,'failures',row.failures.length,'weight',row.schedulerShare,
+   ...row.routerExecuted.map(x=>`buy ${x[3]} of ${x[1]} for ${x[2]} of ${x[0]}`));
  }
  // every batch serviced in its own block, none postponed or left behind
  const left=[];
  for(let n=enactAt;n<=enactAt+scheduled-1;n++)if((await api.query.scheduler.agenda(n)).some(t=>t.isSome))left.push(n);
  r.unserviced=left;r.clean=r.blocks.every(b=>!b.failures.length)&&!left.length;save();
  console.log('ENACTED',r.clean?'clean':'WITH FAILURES',JSON.stringify(r.blocks.map(b=>[b.block,b.failures])));
+}
+// what a keeper does first after enactment: rebalance each vault, so governance's bootstrap borrows into the
+// loop. permissionless; readiness wants the loop equity it leaves
+async function firstRebalance(file){
+ const {artifact}=await import('./native-artifacts.mjs');
+ const m=JSON.parse(readFileSync(file,'utf8')),abi=artifact('CollateralVault').abi;
+ const erc20=v.parseAbi(['function balanceOf(address) view returns (uint256)']);
+ const read=(address,a,functionName,args=[])=>pub.readContract({address,abi:a,functionName,args});
+ await send('dev_setBlockBuildMode',['Instant']);
+ report.firstRebalance=[];save();
+ for(const vault of m.vaults.filter(x=>x.address)){
+  const {hash,r}=await transact(keeper,vault.address,abi,'rebalance');
+  assert.equal(r.status,'success',`${vault.symbol}: the first rebalance reverted`);
+  const row={vault:vault.address,symbol:vault.symbol,block:Number(r.blockNumber),tx:hash,gasUsed:r.gasUsed,
+   mainDebt:await read(m.market.hollarDebt,erc20,'balanceOf',[vault.address]),loopShares:await read(vault.address,abi,'loopShares'),
+   totalAssets:await read(vault.address,abi,'totalAssets')};
+  assert.ok(row.mainDebt>0n&&row.loopShares>0n,`${vault.symbol}: the bootstrap borrowed nothing into the loop`);
+  report.firstRebalance.push(row);save();
+  console.log('FIRST REBALANCE',vault.symbol,'block',row.block,'Main debt',row.mainDebt.toString(),'loop shares',row.loopShares.toString());
+ }
 }
 // a user, the keeper and the queue on the enacted launch
 async function smoke(file){
@@ -135,16 +174,8 @@ async function smoke(file){
  const loopAbi=[...artifact('SubLoop').abi,...artifact('SubLoopLogic').abi.filter(x=>x.type==='event')];
  const erc20=v.parseAbi(['function approve(address,uint256) returns (bool)','function balanceOf(address) view returns (uint256)']);
  const read=(address,a,functionName,args=[])=>pub.readContract({address,abi:a,functionName,args});
- const gasPrice=await pub.getGasPrice()*2n;
- // explicit gas: frontier's estimate can false-revert on precompile-heavy calls
  async function call(who,label,address,a,functionName,args=[],gas=6_000_000n){
-  const wallet=v.createWalletClient({account:who,chain,transport:v.http(RPC,{timeout:180000})});
-  let hash;
-  for(let attempt=0;;attempt++){
-   try{hash=await wallet.writeContract({address,abi:a,functionName,args,gas,gasPrice:gasPrice+BigInt(attempt),type:'legacy'});break;}
-   catch(e){if(attempt>=3||!String(e).includes('Expected input with 32 bytes'))throw e;}
-  }
-  const r=await pub.waitForTransactionReceipt({hash,timeout:240000});
+  const {hash,r}=await transact(who,address,a,functionName,args,gas);
   const logs=[];
   for(const l of r.logs)for(const x of [abi,loopAbi,artifact('ExecutionController').abi]){
    try{const e=v.decodeEventLog({abi:x,data:l.data,topics:l.topics});logs.push({address:l.address,event:e.eventName,args:e.args});break;}catch{}
@@ -167,22 +198,31 @@ async function smoke(file){
  s.discount={address:A.discount,matchesArtifact:true,prediction:m.prediction,listedAToken:listed,boundAToken:bound};save();
  assert.equal(listed.toLowerCase(),m.prediction.aSynthetic.toLowerCase(),'initReserves made another aToken than predicted');
  assert.equal(bound.toLowerCase(),listed.toLowerCase(),'the discount reads another aToken');
- const tbtc=vault.asset,amount=10n**16n;
- await call(user,'user approves 0.01 tBTC',tbtc,erc20,'approve',[vault.address,amount],500_000n);
+ const c=SMOKE[vault.assetId];
+ assert.ok(c,`no smoke deposit size for collateral ${vault.assetId}`);
+ const collateral=vault.asset,amount=c.amount,units=`${v.formatUnits(amount,18)} ${c.symbol}`;
+ const govCall=(to,data,label)=>rootCall(api.tx.dispatcher.dispatchAsAaveManager(api.tx.evm.call(GOV,to,data,0,500000,'600000000',null,null,[],[])),label);
+ const asGov=(data,label)=>govCall(vault.address,data,label);
+ await call(user,`user approves ${units}`,collateral,erc20,'approve',[vault.address,amount],500_000n);
  const before=await read(vault.address,abi,'balanceOf',[user.address]);
- await call(user,'user deposits 0.01 tBTC into jBTC',vault.address,abi,'deposit',[amount,user.address]);
+ await call(user,`user deposits ${units} into ${vault.symbol}`,vault.address,abi,'deposit',[amount,user.address]);
  const shares=await read(vault.address,abi,'balanceOf',[user.address])-before;
  assert.ok(shares>0n,'no shares minted');s.shares=shares;
- await call(keeper,'keeper rebalances jBTC (Main borrow into the loop)',vault.address,abi,'rebalance',[]);
+ const debtBefore=await read(m.market.hollarDebt,erc20,'balanceOf',[vault.address]);
+ await call(keeper,`keeper rebalances ${vault.symbol} (Main borrow into the loop)`,vault.address,abi,'rebalance',[]);
  const debt=await read(m.market.hollarDebt,erc20,'balanceOf',[vault.address]);
- assert.ok(debt>0n,'the rebalance borrowed nothing');s.mainDebt=debt;s.loopShares=await read(vault.address,abi,'loopShares');
+ assert.ok(debt>debtBefore,'the rebalance borrowed nothing');s.mainDebt=debt;s.loopShares=await read(vault.address,abi,'loopShares');
+ // fork only: the referendum names the launch keepers, whose keys a fork lacks; the smoke's dev keeper gets
+ // the same loop role for the quoted poke, revoked after
  const keeperRole=await read(A.subLoop,loopAbi,'KEEPER_ROLE');
+ const lent=!(await read(A.subLoop,loopAbi,'hasRole',[keeperRole,keeper.address]));
+ const roleData=fn=>v.encodeFunctionData({abi:loopAbi,functionName:fn,args:[keeperRole,keeper.address]});
+ if(lent)await govCall(A.subLoop,roleData('grantRole'),'fork only: KEEPER_ROLE for the smoke keeper');
  assert.ok(await read(A.subLoop,loopAbi,'hasRole',[keeperRole,keeper.address]),'the keeper lacks KEEPER_ROLE');
  const intent=await call(keeper,'keeper pokeBorrowQuoted: the entry intent goes to ICE',A.subLoop,loopAbi,'pokeBorrowQuoted',[0n]);
  s.intent=intent.map(e=>e.event);
  // fork only: aura rejects a 12 h timestamp jump, so this request skips the withdrawal delay, restored after
  const delay=Number(await read(vault.address,abi,'withdrawalDelay'));
- const asGov=(data,label)=>rootCall(api.tx.dispatcher.dispatchAsAaveManager(api.tx.evm.call(GOV,vault.address,data,0,500000,'600000000',null,null,[],[])),label);
  const delayData=d=>v.encodeFunctionData({abi,functionName:'setWithdrawalDelay',args:[d]});
  await asGov(delayData(0),'fork only: withdrawal delay 0');
  const exitShares=shares*3n/100n;
@@ -216,15 +256,20 @@ async function smoke(file){
  s.redemption={collateralOwed:r[2],debtShare:r[3],repaid:r[5],collateralSettled:r[6]};
  const pending=r[6];
  assert.ok(pending>0n,'nothing settled');
- const half=pending/2n,b0=await read(tbtc,erc20,'balanceOf',[user.address]);
+ const half=pending/2n,b0=await read(collateral,erc20,'balanceOf',[user.address]);
  await call(user,`user claims exactly ${half}`,vault.address,abi,'claim',[id,user.address,half]);
- const b1=await read(tbtc,erc20,'balanceOf',[user.address]);
+ const b1=await read(collateral,erc20,'balanceOf',[user.address]);
  assert.equal(b1-b0,half,'the exact claim paid a different amount');
  await call(user,`user claims the remaining ${pending-half}`,vault.address,abi,'claim',[id,user.address,pending-half]);
- assert.equal(await read(tbtc,erc20,'balanceOf',[user.address])-b1,pending-half);
+ assert.equal(await read(collateral,erc20,'balanceOf',[user.address])-b1,pending-half);
  await asGov(delayData(delay),`fork only: withdrawal delay back to ${delay}`);
  assert.equal(Number(await read(vault.address,abi,'withdrawalDelay')),delay);
- s.claimed=pending;s.delayOverride=`0 for request ${id}, restored to ${delay}`;s.passed=true;save();
+ if(lent){
+  await govCall(A.subLoop,roleData('revokeRole'),'fork only: the smoke keeper\'s KEEPER_ROLE revoked');
+  assert.ok(!(await read(A.subLoop,loopAbi,'hasRole',[keeperRole,keeper.address])),'the smoke keeper kept its role');
+ }
+ s.claimed=pending;s.delayOverride=`0 for request ${id}, restored to ${delay}`;
+ s.keeperRole=lent?`fork only: lent to ${keeper.address} for the quoted poke, revoked after`:'held from the referendum';s.passed=true;save();
  console.log('SMOKE PASSED',JSON.stringify(s,(_,x)=>typeof x==='bigint'?x.toString():x).slice(0,600));
 }
 
@@ -236,11 +281,12 @@ try{
   await send('dev_setStorage',[[[api.query.evmAccounts.contractDeployer.key(deployer.address),'0x']]]);
   await fund(deployer.address,[[0,1000n*10n**12n],[WETH,10n**18n]]);
   await fund(keeper.address,[[0,1000n*10n**12n],[WETH,10n**18n]]);
-  await fund(user.address,[[0,1000n*10n**12n],[WETH,10n**18n],[TBTC,5n*10n**16n]]);
+  await fund(user.address,[[0,1000n*10n**12n],[WETH,10n**18n],...launchVaults(process.env.JUICER_LAUNCH_VAULTS).map(p=>[p.assetId,SMOKE[p.assetId].amount*5n])]);
   report.fork={block:await head(),hash:(await api.rpc.chain.getBlockHash()).toHex(),runtime:(await api.rpc.state.getRuntimeVersion()).specVersion.toNumber()};
   report.fixtures={deployer:deployer.address,keeper:keeper.address,user:user.address,note:'storage-funded public dev keys; deployer whitelisted as on mainnet'};save();
   console.log('PREPARED',JSON.stringify(report.fixtures),'fork',JSON.stringify(report.fork));
  }else if(cmd==='enact')await enact(arg);
+ else if(cmd==='rebalance')await firstRebalance(arg);
  else if(cmd==='smoke')await smoke(arg);
  else throw Error(`unknown command ${cmd}`);
 }finally{await api.disconnect();}
