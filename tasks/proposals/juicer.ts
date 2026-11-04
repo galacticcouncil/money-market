@@ -55,8 +55,8 @@ const ROUTE_APRIME = Number(process.env.JUICER_APRIME_ID || 1043);
 const ROUTE_POOL = Number(process.env.JUICER_PRIME_POOL_ID || 143);
 // Explicit governance decision after measuring complete exit costs. Never
 // inherit a testnet's permissive slippage limit in a production proposal.
-// 35 bps: PRIME traded ~30 bps over the oracle in pool 143 on 31 oct
-const ROUTE_SLIPPAGE_PPM = envNumber("JUICER_SLIPPAGE_PPM", 3500);
+// 50 bps, wide on purpose: the on-chain floor; the keepers submit entries only when their live quote is cheaper
+const ROUTE_SLIPPAGE_PPM = envNumber("JUICER_SLIPPAGE_PPM", 5000);
 // the loop's entries, unwinds and the peg arbitrage all trade pool 143
 const ROUTE_POOL_FEE_PPM = envNumber("JUICER_PRIME_POOL_FEE_PPM", NEXT.primePoolFeePpm);
 

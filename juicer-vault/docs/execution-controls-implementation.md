@@ -75,7 +75,7 @@ has arrived.
   cap, and they need no controller execution context. Anyone's `pokeBorrow()` or
   `pokeRepay()`, which call the quoted variants with a zero keeper quote,
   therefore opens an intent at the larger of the oracle floor (`dcaSlippagePpm`)
-  and the lane's price cap: 35 bps under the oracle at launch. `KEEPER_ROLE`
+  and the lane's price cap: 50 bps under the oracle at launch. `KEEPER_ROLE`
   (`pokeBorrowQuoted`, `pokeRepayQuoted`) only allows a tighter floor from a
   router quote. Safety sales stay on the router.
 
