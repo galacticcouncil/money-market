@@ -111,7 +111,7 @@ All were internal; none is an independent audit.
   but unclaimed withdrawal shrank later deposits' deployment credit. The
   follow-ups (band liquidation-threshold bound, band fallback, strict launch
   environment) are in #89.
-- [`AUDIT.md`](../AUDIT.md) and [`x-ray/`](../x-ray/x-ray.md) are August
+- [`AUDIT.md`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/AUDIT.md) and [`x-ray/`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/x-ray/x-ray.md) are August
   snapshots of an earlier revision.
 
 ## 2. System overview
@@ -697,4 +697,4 @@ and evidence; this document and the code take precedence.
 - [`main-borrow-discount.md`](main-borrow-discount.md) and
   [`protocol-fees.md`](protocol-fees.md) keep their standalone forge-script
   deployment steps; the launch uses the process above.
-- [`../AUDIT.md`](../AUDIT.md), [`../x-ray/`](../x-ray/x-ray.md): August snapshots.
+- [`AUDIT.md`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/AUDIT.md), [`x-ray/`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/x-ray/x-ray.md): August snapshots, now in the [archive](archive.md).

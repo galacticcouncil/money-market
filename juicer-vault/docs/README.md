@@ -95,7 +95,7 @@ proof of self-financing.
 - [PR #60](https://github.com/galacticcouncil/money-market/pull/60): Main-servicing work; earlier buffer terminology is superseded by the current specification.
 - [PR #57](https://github.com/galacticcouncil/money-market/pull/57) and [PR #53](https://github.com/galacticcouncil/money-market/pull/53): discount/fee and accounting/yield-source review history.
 - [Governance task](../../tasks/proposals/juicer.ts), [readiness checker](../../scripts/juicer/verify-readiness.ts), [deployment scripts](../script/).
-- [lark-4 record](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/deployments/lark-4.md) and [PR #53 audit](../audit/propeller-audit-ys-propeller-fixes-20260731.md): historical context, not production addresses or RC approval.
+- [lark-4 record](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/deployments/lark-4.md) and [PR #53 audit](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/audit/propeller-audit-ys-propeller-fixes-20260731.md): historical context, not production addresses or RC approval.
 
 Branch names and links identify the work; confirm live PR state and the exact
 reviewed commit before merge or deployment.

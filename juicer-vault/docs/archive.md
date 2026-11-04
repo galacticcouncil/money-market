@@ -43,3 +43,11 @@ the file at `8519575`, the last commit that carried it.
 - [`next-version-plan.md`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/next-version-plan.md): the 8–9 October plan for the version after PR #62, which became the launch candidate.
 - [`rename-juicer.md`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/rename-juicer.md): the Propeller to Juicer rename map and its exclusions.
 - [`FUTURE_IMPROVEMENTS.md`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/FUTURE_IMPROVEMENTS.md): backlog of the June audit remedies, Lark 2 follow-ups and ideas parked in October.
+
+## Audit snapshots
+
+Reviews of later revisions are listed under [earlier reviews](external-review.md#earlier-reviews) in the review package.
+
+- [`AUDIT.md`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/AUDIT.md): the finding ledger as of 7 August (`ys-propeller-fixes` at `0e7f9a4`), before PRs #53 and #57.
+- [`audit/`](https://github.com/galacticcouncil/money-market/tree/8519575/juicer-vault/audit): the 31 July security review of `ys-propeller-fixes`, which the ledger superseded.
+- [`x-ray/`](https://github.com/galacticcouncil/money-market/tree/8519575/juicer-vault/x-ray): the 7 August x-ray of the same revision: architecture, entry points and git signals.
