@@ -7,8 +7,9 @@ const LABEL='fund-isolated-test-accounts',{ETH:eth,TBTC:btc}=profile.collateral;
 const c=await context();
 try{
   const {api,r,save,arb,nativeAccount}=c;
+  // a launch deployer was funded before its deploy (lark-launch-deployer.mjs)
   const targets=[
-    {name:'deployer',who:await nativeAccount(deployer.address),address:deployer.address,balances:[[0,1000n*10n**12n],[20,10n**18n],[34,20n*10n**18n],...(btc?[[btc.assetId,10n**18n]]:[])]},
+    ...(r.checks.launchDeployer?[]:[{name:'deployer',who:await nativeAccount(deployer.address),address:deployer.address,balances:[[0,1000n*10n**12n],[20,10n**18n],[34,20n*10n**18n],...(btc?[[btc.assetId,10n**18n]]:[])]}]),
     {name:'keeper',who:await nativeAccount(keeper.address),address:keeper.address,balances:[[0,100n*10n**12n],[20,10n**18n]]},
     {name:'arb',who:arb.address,balances:[[0,1000n*10n**12n],[43,100000n*10n**6n],[34,100n*10n**18n],...(btc?[[btc.assetId,5n*10n**18n]]:[])]},
   ];

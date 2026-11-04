@@ -49,6 +49,10 @@ try{
  const capAbi=v.parseAbi(['function setTvlCap(uint256)']),caps=[];
  // a cap the deploy already set stays untouched
  for(const x of r.vaults)if(await readSig(x.address,'function tvlCap() view returns(uint256)')!==CAP[x.name])caps.push(govEvm(x.address,capAbi,'setTvlCap',[CAP[x.name]],500000));
+ if(!r.governance.find(g=>g.label==='depositor-setup')?.verified)for(const p of plan){
+  const held=await readSig(p.vault,'function totalAssets() view returns(uint256)');
+  assert.ok(held+BigInt(p.total)<=CAP[p.name],`${p.name}: the plan's ${p.total} on top of ${held} exceeds the ${CAP[p.name]} cap`);
+ }
  const calls=[
   ...raises,
   ...caps,

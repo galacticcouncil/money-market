@@ -1,18 +1,15 @@
-// Lark only, before the launch referendum: what a fork needs and mainnet already has, and nothing the
-// referendum does itself. the mirror signer, second keeper and ui funded, the PRIME mirror in the market
-// oracle and pool 143's peg, the markets arb bound with test HOLLAR, and the treasury holding the
-// collateral the referendum's bootstrap takes from it (mainnet's holds too little GIGAETH).
+// Lark only: what a fork needs and mainnet already has, and nothing the referendum does itself. the mirror
+// signer, second keeper and ui funded, the PRIME mirror in the market oracle and pool 143's peg, the markets
+// arb bound with test HOLLAR. the referendum buys the treasury's missing collateral itself.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createRequire} from 'node:module';
 import {context,v,testAccount,live} from './lark-context.mjs';
 import {profile,PRICES_FILE} from './lark-pins.mjs';
 import {recordBuy,buyCall,checkBuys,assertBought} from './lark-collateral.mjs';
-const {u8aConcat,stringToU8a}=createRequire(import.meta.url)('@polkadot/util');
 assert.ok(profile.launch,`${profile.name} is not a launch-process profile`);
 const ORACLE='0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760',COMMITTEE='0x146a5e57fa0b8b1e13c53bcf1d05183b1c02b51b';
 const UI={address:'0x3088c164994890ea0e444bf53623ccac3b307217',who:'5DALnDnFwQpdMTeL8bcRMNCbkpXpG9DJb2uBfvdosLvuC523'};
-const [[name,collateral]]=Object.entries(profile.collateral);
+const [[,collateral]]=Object.entries(profile.collateral);
 const prices=JSON.parse(readFileSync(PRICES_FILE,'utf8'));
 const c=await context();
 try{
@@ -46,22 +43,11 @@ try{
  if((await api.query.evmAccounts.accountExtension(arbEvm)).isNone)await c.sign(api.tx.evmAccounts.bindEvmAddress(),'arb.bind-evm',c.arb);
  await c.mintTestHollar('arb.mint-test-hollar',arbEvm,60000n*10n**18n);
  r.testSigners.arb=arbEvm;save();
- // the referendum pays rounding and bootstrap collateral from the treasury, as it would on mainnet
- if(collateral.buy){
-  const treasury=api.registry.createType('AccountId',u8aConcat(stringToU8a('modl'),api.consts.treasury.palletId.toU8a(),new Uint8Array(20))).toString();
-  const held=(await api.call.currenciesApi.account(collateral.assetId,treasury)).free.toBigInt();
-  r.treasuryTopUp??={asset:collateral.assetId,before:held.toString()};save();
-  const buy=await recordBuy(c,collateral,'treasury',10n**15n);
-  const calls=[buyCall(api,treasury,collateral,buy.amount,buy.max)];
-  await checkBuys(c,`treasury-${name.toLowerCase()}-for-the-bootstrap`,calls,1,{collateral,amount:buy.amount});
-  await enact(`treasury-${name.toLowerCase()}-for-the-bootstrap`,calls);
-  if(live)assertBought(r,`treasury-${name.toLowerCase()}-for-the-bootstrap`);
- }
  if(live){
   for(const o of mirrors)assert.equal((await readSig(ORACLE,'function getSourceOfAsset(address) view returns(address)',[o.asset])).toLowerCase(),o.address.toLowerCase());
   assert.ok(await readSig('0x531a654d1696ED52e7275A8cede955E82620f99a','function balanceOf(address) view returns(uint256)',[arbEvm])>=60000n*10n**18n);
   if(uiBuy)assertBought(r,'fund-bots-and-ui');
-  r.checks.launchMarket=true;r.status='lark-scaffold-ready-for-the-launch-deploy';save();
-  console.log('LARK MARKET READY',JSON.stringify({mirrors:mirrors.map(o=>o.name),arb:arbEvm,treasury:r.treasuryTopUp}));
+  r.checks.launchMarket=true;if(!r.launchReferendum)r.status='lark-scaffold-ready-for-the-launch-deploy';save();
+  console.log('LARK MARKET READY',JSON.stringify({mirrors:mirrors.map(o=>o.name),arb:arbEvm}));
  }
 }finally{await c.api.disconnect();}
