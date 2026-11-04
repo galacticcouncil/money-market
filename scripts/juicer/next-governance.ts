@@ -485,7 +485,7 @@ export function executionPolicy(a: { subLoop: string; harvester: string; hollar:
   budget("unwind", a.aPrime, spec.unwind);
   budget("harvest", a.prime, spec.harvest);
   limit("entry", "entry", a.subLoop, a.hollar, a.aPrime, spec.entry, spec.primeShortfallBps);
-  // only the source's repayment may bypass expiry and pacing
+  // only the source's repayment may bypass pacing and the budget
   limit("unwind", "unwind", a.subLoop, a.aPrime, a.hollar, spec.unwind, spec.primeShortfallBps, true);
   for (const v of a.vaults) {
     const service = spec.service[v.assetId];
