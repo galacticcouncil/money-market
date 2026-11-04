@@ -29,3 +29,10 @@ export function failedEvent(section,method,data){
  if(/^(scheduler\.Dispatched|dispatcher\.TreasuryManagerCallDispatched|utility\.DispatchedAs|dispatcher\.AaveManagerCallDispatched)$/.test(k))return /"err"/i.test(text);
  return /DispatchError/.test(text);
 }
+// the planned treasury buys among the enacted blocks' router.Executed rows: asset in, asset out, amount in, amount out
+export function executedBuys(rows,buys=[]){
+ return buys.map(b=>{
+  const hit=rows.flatMap(x=>x.routerExecuted.map(e=>[x.block,...e])).find(([,i,o,,out])=>i===String(b.assetIn)&&o===String(b.assetOut)&&out===String(b.amountOut));
+  return {...b,block:hit?.[0],amountIn:hit?.[3],withinBound:!!hit&&BigInt(hit[3])<=BigInt(b.maxAmountIn)};
+ });
+}

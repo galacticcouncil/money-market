@@ -113,6 +113,15 @@ PROFILES.lark0eth={...PROFILES.next,chainName:'Lark 0 Hydration',deployment:'lar
  depositor:{...PROFILES.lark0.depositor,usd:{ETH:100000},caps:{ETH:100n*10n**18n}},
  stack:{keeperRpcUrls:['https://node0.lark.hydration.cloud','https://0.lark.hydration.cloud'],
   keeperEnv:PROFILES.lark0.stack.keeperEnv,bots:PROFILES.lark0.stack.bots}};
+// lark 4 reforked 4 nov from mainnet #16,589,287 to rehearse the launch on mainnet's exact payload: only the
+// deployer's whitelist and gas before it, the lark-only steps after readiness, the deploy's TVL cap kept
+PROFILES.lark4main={...PROFILES.lark0eth,chainName:'Lark 4 Hydration',deployment:'lark4-20261104',
+ genesis:'0xdaf700942d599e55480ab44ea14c007ffb4120e873940983f7efa446589c079c',
+ rpc:'https://node4.lark.hydration.cloud',ws:'wss://node4.lark.hydration.cloud',
+ gateway:{rpc:'https://4.lark.hydration.cloud',ws:'wss://4.lark.hydration.cloud'},
+ depositor:{...PROFILES.lark0eth.depositor,caps:{ETH:444n*10n**17n}},
+ stack:{keeperRpcUrls:['https://node4.lark.hydration.cloud','https://4.lark.hydration.cloud'],
+  keeperEnv:PROFILES.lark0.stack.keeperEnv,bots:PROFILES.lark0.stack.bots}};
 // the least PRIME lane cap (bps) inside a profit-seeking arb's band: the pool rests up to its fee
 // plus the arb's profit off the oracle, the loop pays the fee again, and a bp each goes to its own
 // impact and an unmatched intent's solver haircut
