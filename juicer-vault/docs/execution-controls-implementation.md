@@ -98,10 +98,10 @@ This revision is a fresh-deployment candidate. The controller's consumer ABI
 now includes the oracle-valued output, and Main debt/compound helpers are
 immutable deployment components. Do not upgrade an earlier controlled stack
 piecemeal: its one-time controller binding cannot be replaced through the normal
-setter. Existing deployment migration needs its own reviewed plan. The older
-`native-execution-controls.mjs` rehearsal describes the pre-deferred revision;
-use fresh `native-deploy.mjs`, `native-discount.mjs` and
-`native-deferred-deposit.mjs` for this revision's native deposit checks.
+setter. Existing deployment migration needs its own reviewed plan. Native
+deposit checks run through the
+[mainnet-fork launch rehearsal](external-review.md#mainnet-fork-launch-rehearsal);
+the earlier `native-*.mjs` fork scripts are in the [archive](archive.md#scripts-and-raw-outputs).
 
 ## Quotes and callers
 

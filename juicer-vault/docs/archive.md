@@ -51,3 +51,8 @@ Reviews of later revisions are listed under [earlier reviews](external-review.md
 - [`AUDIT.md`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/AUDIT.md): the finding ledger as of 7 August (`ys-propeller-fixes` at `0e7f9a4`), before PRs #53 and #57.
 - [`audit/`](https://github.com/galacticcouncil/money-market/tree/8519575/juicer-vault/audit): the 31 July security review of `ys-propeller-fixes`, which the ledger superseded.
 - [`x-ray/`](https://github.com/galacticcouncil/money-market/tree/8519575/juicer-vault/x-ray): the 7 August x-ray of the same revision: architecture, entry points and git signals.
+
+## Scripts and raw outputs
+
+- [`scripts/juicer/`](https://github.com/galacticcouncil/money-market/tree/8519575/scripts/juicer): the scripts behind the studies and validations above: the pressure, peg, interest-policy and historical APY models, tuning and route calibration runs, the PRIME and Neckwork collectors, the `report-*` evidence generators, the `native-*` fork deployments and gas probes that preceded the one-referendum launch, and the October ICE spike.
+- [`scripts/`](https://github.com/galacticcouncil/money-market/tree/8519575/scripts): one-off Lark 2 wiring, deposit and fork scripts, the Verity bytecode smoke tests, two HDCL vault deploy helpers and the rename tool.
