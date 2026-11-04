@@ -263,7 +263,7 @@ startUnwinds(n): eligible requests, FIFO
 | Holder | Roles | Can | Cannot |
 | --- | --- | --- | --- |
 | Governance: the money market's pool admin, EVM origin `0xAa7e…Aa7e0`, reached from a Root referendum through `dispatcher.dispatchAsAaveManager` | `DEFAULT_ADMIN_ROLE`, `ADMIN_ROLE`, `UPGRADER_ROLE` and `GUARDIAN_ROLE` on vaults and the loop; `DEFAULT_ADMIN_ROLE` on the synthetic, Harvester, fee controller, execution controller and discount; `RATE_ADMIN_ROLE` on the discount; owner of HydraAugustus | upgrade vaults and the loop; set every parameter and policy; grant roles; withdraw a protocol reserve (`withdrawReserve`); unpause; rewire. As pool admin it also controls the Aave reserves Juicer uses: fully trusted | move vault or loop assets without an upgrade: there is no sweep |
-| Technical committee: `0x146a…b51b` in `launch-manifest.mjs` | `GUARDIAN_ROLE` on vaults and the loop; `RATE_ADMIN_ROLE` on JuicerDiscount | pause a vault; freeze the loop (`pauseEmergency`); stop and restart the loop's routes; pause and resume deposits; set the Main and loop discounts, 0–100% | unpause a vault or lift the emergency freeze; change fees or enrolment; upgrade; move funds |
+| Technical committee: EVM origin `0xAA7e…AA7E1`, reached by a TC majority motion through `dispatcher.dispatchAsEmergencyAdmin` (`COMMITTEE` in `launch-manifest.mjs`) | `GUARDIAN_ROLE` on vaults and the loop; `RATE_ADMIN_ROLE` on JuicerDiscount | pause a vault; freeze the loop (`pauseEmergency`); stop and restart the loop's routes; pause and resume deposits; set the Main and loop discounts, 0–100% | unpause a vault or lift the emergency freeze; change fees or enrolment; upgrade; move funds |
 | Keepers: `0xAF11…9898` and `0x8862…1E8a` (`LAUNCH.keepers`; `JUICER_KEEPERS` replaces them) | `KEEPER_ROLE` on the loop; `DEPOSIT_GUARDIAN_ROLE` on each vault | pass a router quote with `pokeBorrowQuoted` and `pokeRepayQuoted`, which can only raise the floor; set or clear `deficitStop` | anything else that anyone cannot |
 | Deployer | none after the deploy, which is checked | one call after deploying: `HydraAugustus.transferOwnership(governance)` | — |
 | Vaults | `VAULT_ROLE` on the loop; `MINTER_ROLE` on the synthetic | loop deposits, unwind requests and pulls; mint and burn the synthetic | — |
@@ -583,14 +583,20 @@ non-local endpoints. Run the steps from the repository root.
    claims. The referendum's keepers have no keys on a fork, so the smoke's dev
    keeper gets the loop's `KEEPER_ROLE` through a fork-only governance call and
    loses it afterwards.
+9. `node scripts/juicer/launch-rehearsal.mjs committee <manifest.json>`: a TC
+   majority motion, as the scheduler carries it, dispatches as the emergency
+   admin to pause the vault, freeze the loop and set the Main discount to 0 and
+   back; a one-short minority is refused; governance lifts the pause and the
+   freeze.
 
 The report goes to `JUICER_REHEARSAL_REPORT`. Recorded at mainnet block
-16,588,006 (4 November) with the tooling at the head of PR #89: 75 EVM calls
+16,609,850 (4 November) with the tooling of PR #90: 75 EVM calls
 with 0 failures and the treasury's GIGAETH buy executed; readiness 158/159
-before the first rebalance (loop equity) and 161/161 after it; smoke passed.
+before the first rebalance (loop equity) and 161/161 after it; smoke passed;
+the committee step passed (4/7 acted, 3/7 refused).
 After the smoke's headroom exit drew a fraction of a cent from the protocol
 reserve, readiness flags the reserve below 1,000 HOLLAR, as designed. On a fork
-of block 16,588,875 the same deploy with the bound pinned regenerated the same
+of block 16,610,804 the same deploy with the bound pinned regenerated the same
 preimage.
 
 ## 8. Deployment and launch

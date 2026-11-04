@@ -22,7 +22,7 @@
 | Reserves | 1,000 HOLLAR protocol reserve; rounding reserve from GIGAETH's existential deposit; 0.005 GIGAETH bootstrap by governance |
 | Pool 143 | fee 4 → 1 bp |
 | Keepers | `0xAF11238c61D8D3E98b6e5A10c227e77DfD0D9898`, `0x8862A05A7d9aF0fdd7A0f8611c067E1f73921E8a` |
-| Committee | `0x146a…b51b`, the money market's emergency admin: pause (`GUARDIAN_ROLE`) and discount rates |
+| Committee | `0xAA7e…AA7E1`, the Technical Committee's emergency-admin origin (a TC majority motion through `dispatchAsEmergencyAdmin`, as on the GIGAHDX market): pause (`GUARDIAN_ROLE`) and discount rates |
 
 Defaults live in `scripts/juicer/next-governance.ts` (`LAUNCH`, `NEXT`), `scripts/juicer/launch-manifest.mjs` and
 `tasks/proposals/juicer.ts`; the review package's launch-values table maps each to its contract default.
@@ -47,6 +47,7 @@ Defaults live in `scripts/juicer/next-governance.ts` (`LAUNCH`, `NEXT`), `script
 - [ ] No other money-market listing will be enacted between the deploy and this referendum's enactment: the synthetic's aToken address is predicted from the pool configurator's nonce. `juicer.ts` refuses to emit if it moved; then redeploy JuicerDiscount and regenerate.
 - [ ] Treasury holds ≥ ~1,050 HOLLAR, ≥ 0.002 WETH and 10 HDX (it buys its own GIGAETH inside the referendum).
 - [ ] Deployer is a whitelisted contract deployer (it is) and funded for 13 creations.
+- [ ] The committee's account `0xAA7e…AA7E1` holds WETH for EVM gas (0.016 on 4 November).
 - [ ] A clean checkout at the release commit, the production build (CI's `forge build src …/ERC1967Proxy.sol --evm-version london …`), and the gitignored `typechain`/`artifacts` the hardhat tasks import.
 
 **1. Deploy** — `scripts/juicer/launch-deploy.mjs <manifest.json>` with `JUICER_DEPLOYER_KEY_FILE` (a path, never the key).
@@ -81,7 +82,7 @@ anything is announced; "positive loop equity" turns green after the keepers' fir
 
 | Where | What | Result |
 | --- | --- | --- |
-| Mainnet forks (chopsticks), latest 4 Nov | deploy → one referendum → readiness → smoke (deposit, rebalance, ICE intent, headroom exit, exact claims) | 0 failures; readiness passes after the first rebalance |
+| Mainnet forks (chopsticks, from hdx.tarn), latest 4 Nov (#16,609,850) | deploy → one referendum → readiness → smoke (deposit, rebalance, ICE intent, headroom exit, exact claims) → committee (TC motions) | 0 failures; readiness passes after the first rebalance; a 4/7 TC motion paused, froze and set the discount, 3/7 was refused |
 | Lark 0, 2 Nov | GIGAETH-only through the launch process on a live chain | referendum 458 clean; readiness 159/159; keepers ~730 txs in 12 h with no alerts |
 | Lark 4, 4 Nov (reforked from mainnet #16,589,287) | the exact mainnet payload, defaults only | referendum 448: 75 EVM calls, 0 failed; treasury buy executed; preimage byte-identical to the mainnet-fork dry run with addresses swapped |
 | Lark 4, 30 Oct (jBTC) | $100k ramp, testers' withdrawals | headroom exits and partial exact claims on real requests |
@@ -96,6 +97,7 @@ anything is announced; "positive loop equity" turns green after the keepers' fir
 | 3 Nov | Keepers and committee as above; the aToken prediction and the permissionless pokes stay as they are |
 | 4 Nov | PRIME cap 50 bps on chain, keepers enter within 25 bps |
 | 4 Nov | ETH/USD stays on DIA (one EOA writes the price and owns the adapter), as the money market already does |
+| 4 Nov | Committee is the TC's emergency-admin origin `0xAA7e…AA7E1`, not the main market's emergency admin `0x146a…b51b` (a 4-of-6 multisig behind a proxy) |
 
 ## Open before mainnet
 
@@ -120,7 +122,7 @@ The full table with bounds is in the review package, section 5. The ones operato
 
 - **Watch:** loop HF and leverage, negative carry vs the 250 cap, unfilled or expiring intents, the PRIME premium in pool 143 and arbitrage refill, the reserve balance, keeper `[ALERT]` lines and gas.
 - **Change parameters:** caps, lanes, fees and bands by referendum; the EconomicParameters track can act as the money market's admin (`dispatchAsAaveManager`) and is the fast path. TVL cap raises the same way.
-- **Incidents:** the committee pauses a vault or freezes the loop (`GUARDIAN_ROLE`, `pauseEmergency`); keepers set the deficit stop. Upgrades only by governance.
+- **Incidents:** a TC majority motion (`technicalCommittee.propose` → `dispatcher.dispatchAsEmergencyAdmin` → `evm.call`) pauses a vault or freezes the loop (`GUARDIAN_ROLE`, `pauseEmergency`); governance lifts both. Keepers set the deficit stop. Upgrades only by governance.
 - **Keepers:** rotate or add by governance (`KEEPER_ROLE`, `DEPOSIT_GUARDIAN_ROLE`); one key must never run on two hosts.
 
 ## Lessons that still apply

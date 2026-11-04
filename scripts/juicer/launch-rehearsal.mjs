@@ -4,6 +4,7 @@
 //   enact <hex file>      note, submit, pass and enact the ONE Root referendum, then every scheduled batch
 //   rebalance <manifest>  the first keeper rebalance: governance's bootstrap into the loop, before readiness
 //   smoke <manifest>      a collateral deposit, a keeper rebalance and intent, a headroom exit and exact claims
+//   committee <manifest>  the committee's pause and rate powers through a TC motion; governance lifts them after
 // WS (default ws://127.0.0.1:18098), JUICER_REHEARSAL_REPORT (default /tmp/juicer-launch-rehearsal.json),
 // JUICER_LAUNCH_VAULTS (the user is funded with each launch collateral)
 import assert from 'node:assert/strict';
@@ -60,20 +61,24 @@ const failed=e=>{
  const k=`${e.section}.${e.method}`;
  if(/^(evm\.ExecutedFailed|utility\.BatchInterrupted|utility\.ItemFailed|system\.ExtrinsicFailed|scheduler\.(CallUnavailable|PermanentlyOverweight|RetryFailed))$/.test(k))return true;
  const data=JSON.stringify(e.data.toJSON());
- if(/^(scheduler\.Dispatched|dispatcher\.TreasuryManagerCallDispatched|utility\.DispatchedAs|dispatcher\.AaveManagerCallDispatched)$/.test(k))return /"err"/i.test(data);
+ if(/^(scheduler\.Dispatched|dispatcher\.TreasuryManagerCallDispatched|utility\.DispatchedAs|dispatcher\.(AaveManager|EmergencyAdmin)CallDispatched)$/.test(k))return /"err"/i.test(data);
  return /DispatchError/.test(data);
 };
 const eventsAt=async n=>(await (await api.at(await api.rpc.chain.getBlockHash(n))).query.system.events()).map(({event})=>event);
 const newBlocks=async(count=1)=>{await send('dev_newBlock',[{count}]);return head();};
-// a Root call through the scheduler, as the referenda alarm would make it
-async function rootCall(call,label){
+// a call through the scheduler with the origin a referendum alarm or a motion would give it
+async function scheduled(call,origin){
  const hex=call.method.toHex(),hash=blake2AsHex(hex),len=(hex.length-2)/2,body=hexToU8a(hex);
  await send('dev_setStorage',[[[api.query.preimage.preimageFor.key([hash,len]),u8aToHex(u8aConcat(compactToU8a(body.length),body))]]]);
  await send('dev_setStorage',[{Preimage:{RequestStatusFor:[[[hash],{Requested:{maybeTicket:null,count:1,maybeLen:len}}]]}}]);
  const t=(await head())+1;
- await send('dev_setStorage',[{Scheduler:{Agenda:[[[t],[{maybeId:null,priority:0,call:{Lookup:{hash_:hash,len}},maybePeriodic:null,origin:{system:'Root'}}]]]}}]);
+ await send('dev_setStorage',[{Scheduler:{Agenda:[[[t],[{maybeId:null,priority:0,call:{Lookup:{hash_:hash,len}},maybePeriodic:null,origin}]]]}}]);
  await newBlocks();
- const bad=(await eventsAt(t)).filter(failed);
+ return {t,events:await eventsAt(t)};
+}
+async function rootCall(call,label){
+ const {t,events}=await scheduled(call,{system:'Root'});
+ const bad=events.filter(failed);
  assert.equal(bad.length,0,`${label}: ${bad.map(e=>`${e.section}.${e.method} ${JSON.stringify(e.data.toJSON())}`).join('; ')}`);
  return t;
 }
@@ -273,6 +278,47 @@ async function smoke(file){
  console.log('SMOKE PASSED',JSON.stringify(s,(_,x)=>typeof x==='bigint'?x.toString():x).slice(0,600));
 }
 
+// the committee acts as the emergency admin through a TC majority motion; a minority is refused
+async function committee(file){
+ const {artifact}=await import('./native-artifacts.mjs');
+ const {COMMITTEE}=await import('./launch-manifest.mjs');
+ const m=JSON.parse(readFileSync(file,'utf8')),vault=m.vaults.find(x=>x.address),A=m.addresses;
+ assert.equal(m.committee.toLowerCase(),COMMITTEE.toLowerCase(),'the manifest names another committee');
+ await send('dev_setBlockBuildMode',['Manual']);
+ const members=(await api.query.technicalCommittee.members()).length,majority=Math.ceil(members/2);
+ const c=report.committee={address:COMMITTEE,members,majority,steps:[]};save();
+ const vaultAbi=artifact('CollateralVault').abi,loopAbi=artifact('SubLoop').abi,discountAbi=artifact('JuicerDiscount').abi;
+ const read=(address,a,functionName,args=[])=>pub.readContract({address,abi:a,functionName,args});
+ const data=(a,functionName,args=[])=>v.encodeFunctionData({abi:a,functionName,args});
+ const evm=(from,to,input)=>api.tx.evm.call(from,to,input,0,500000,'600000000',null,null,[],[]);
+ async function motion(yes,to,input,label){
+  const {t,events}=await scheduled(api.tx.dispatcher.dispatchAsEmergencyAdmin(evm(COMMITTEE,to,input)),{technicalCommittee:{members:[yes,members]}});
+  const bad=events.filter(failed).map(e=>`${e.section}.${e.method} ${JSON.stringify(e.data.toJSON())}`);
+  c.steps.push({label,origin:`TC ${yes}/${members}`,block:t,failures:bad});save();
+  console.log('COMMITTEE',label,`TC ${yes}/${members}`,'block',t,bad.length?`refused ${bad.join('; ')}`:'ok');
+  return bad;
+ }
+ const gov=(to,input,label)=>rootCall(api.tx.dispatcher.dispatchAsAaveManager(evm(GOV,to,input)),label);
+ assert.ok((await motion(majority-1,vault.address,data(vaultAbi,'pause'),'a minority pauses the vault')).some(x=>/badorigin/i.test(x)),'a minority motion went through');
+ assert.equal(await read(vault.address,vaultAbi,'paused'),false);
+ assert.equal((await motion(majority,vault.address,data(vaultAbi,'pause'),'the majority pauses the vault')).length,0);
+ assert.equal(await read(vault.address,vaultAbi,'paused'),true);
+ assert.equal((await motion(majority,A.subLoop,data(loopAbi,'pauseEmergency'),'the majority freezes the loop')).length,0);
+ assert.equal(await read(A.subLoop,loopAbi,'emergencyPaused'),true);
+ const rate=await read(A.discount,discountAbi,'discountBps');
+ assert.equal((await motion(majority,A.discount,data(discountAbi,'setDiscountBps',[0]),'the majority sets the Main discount to 0')).length,0);
+ assert.equal(await read(A.discount,discountAbi,'discountBps'),0);
+ assert.equal((await motion(majority,A.discount,data(discountAbi,'setDiscountBps',[rate]),`the majority restores it to ${rate}`)).length,0);
+ assert.equal(await read(A.discount,discountAbi,'discountBps'),rate);
+ // only governance lifts a pause or the freeze
+ await gov(vault.address,data(vaultAbi,'unpause'),'governance unpauses the vault');
+ await gov(A.subLoop,data(loopAbi,'unpauseEmergency'),'governance lifts the freeze');
+ assert.equal(await read(vault.address,vaultAbi,'paused'),false);
+ assert.equal(await read(A.subLoop,loopAbi,'emergencyPaused'),false);
+ c.passed=true;save();
+ console.log('COMMITTEE PASSED',COMMITTEE,`majority ${majority}/${members}`);
+}
+
 try{
  assert.equal(Number(await send('eth_chainId',[])),222222);
  if(cmd==='prepare'){
@@ -288,5 +334,6 @@ try{
  }else if(cmd==='enact')await enact(arg);
  else if(cmd==='rebalance')await firstRebalance(arg);
  else if(cmd==='smoke')await smoke(arg);
+ else if(cmd==='committee')await committee(arg);
  else throw Error(`unknown command ${cmd}`);
 }finally{await api.disconnect();}
