@@ -11,10 +11,11 @@ export const token=id=>`0x${(0x100000000n+BigInt(id)).toString(16).padStart(40,'
 export const SYNTH=['Juicer Synthetic HOLLAR','jsHOLLAR'];
 // targetHf, deLeverTrigger; maxQuoteAge s, maxQuoteBlocks
 export const LOOP=[1050000000000000000n,1100000000000000000n],QUOTES=[60n,5n];
-// tvl caps in collateral base units; jBTC launches, jETH joins a later deployment with its own referendum
+// tvl caps in collateral base units; jETH launches on GIGAETH (pool 4200's share), jBTC can join a later
+// deployment with its own referendum
 export const VAULTS={
+ ETH:{assetId:4200,name:'Juicer ETH',symbol:'jETH',cap:444n*10n**17n},
  TBTC:{assetId:1000765,name:'Juicer BTC',symbol:'jBTC',cap:1337n*10n**15n},
- ETH:{assetId:4200,name:'Juicer ETH',symbol:'jETH',cap:10n*10n**18n},
 };
 export const ROLES=['DEFAULT_ADMIN_ROLE','ADMIN_ROLE','UPGRADER_ROLE','GUARDIAN_ROLE','MINTER_ROLE','VAULT_ROLE','KEEPER_ROLE','DEPOSIT_GUARDIAN_ROLE','RATE_ADMIN_ROLE'];
 // the vault's ED-relative rounding reserve, as the lark deployments size it
@@ -22,7 +23,7 @@ export function roundingPolicy(vault,assetId,ed){
  ed=BigInt(ed);
  return {vault,assetId,minimum:(ed*2n+1000n).toString(),target:(ed*10n+1000000000n).toString()};
 }
-export function launchVaults(text='TBTC'){
+export function launchVaults(text='ETH'){
  const names=text.split(',').map(s=>s.trim()).filter(Boolean);
  if(!names.length||new Set(names).size!==names.length)throw Error(`vaults "${text}": a comma list of ${Object.keys(VAULTS).join(', ')}`);
  return names.map(name=>{const p=VAULTS[name];if(!p)throw Error(`unknown vault ${name}`);return {key:name,...p};});

@@ -8,16 +8,18 @@ import {fileURLToPath} from 'node:url';
 import {VAULTS,ROLES,launchVaults,roundingPolicy,readinessEnv,token} from './launch-manifest.mjs';
 const here=fileURLToPath(new URL('.',import.meta.url));
 
-test('jBTC launches alone, jETH joins later by name, nothing else', () => {
- assert.deepEqual(launchVaults().map(v=>[v.key,v.assetId,v.symbol]),[['TBTC',1000765,'jBTC']]);
- assert.deepEqual(launchVaults('ETH').map(v=>v.symbol),['jETH']);
- assert.throws(()=>launchVaults('TBTC,TBTC'),/comma list/);
+test('jETH launches alone on GIGAETH, capped at 44.4, jBTC joins later by name, nothing else', () => {
+ assert.deepEqual(launchVaults().map(v=>[v.key,v.assetId,v.symbol,v.cap]),[['ETH',4200,'jETH',44_400_000_000_000_000_000n]]);
+ assert.deepEqual(launchVaults('TBTC').map(v=>v.symbol),['jBTC']);
+ assert.throws(()=>launchVaults('ETH,ETH'),/comma list/);
  assert.throws(()=>launchVaults('DOT'),/unknown vault DOT/);
+ assert.equal(token(VAULTS.ETH.assetId),'0x0000000000000000000000000000000100001068');
  assert.equal(token(VAULTS.TBTC.assetId),'0x00000000000000000000000000000001000f453d');
  assert.ok(ROLES.includes('DEFAULT_ADMIN_ROLE')&&ROLES.includes('UPGRADER_ROLE')&&ROLES.includes('MINTER_ROLE'));
 });
 
 test('the rounding reserve is sized off the collateral existential deposit, as on lark', () => {
+ assert.deepEqual(roundingPolicy('0x01',4200,'1000'),{vault:'0x01',assetId:4200,minimum:'3000',target:'1000010000'});
  assert.deepEqual(roundingPolicy('0x01',1000765,'106803374987'),{vault:'0x01',assetId:1000765,minimum:'213606750974',target:'1069033749870'});
 });
 

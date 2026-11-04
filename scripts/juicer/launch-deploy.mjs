@@ -1,7 +1,7 @@
 // Deployer-only Juicer launch. Deploys every contract with governance as admin from construction; its one
 // call after is handing the adapter (HydraAugustus owns itself to its creator) to governance. The wiring
 // is the one launch referendum (tasks/proposals/juicer.ts, which reads JUICER_MANIFEST). Resumes from the
-// manifest; rerun with JUICER_LAUNCH_VAULTS=ETH to add a vault.
+// manifest; rerun with JUICER_LAUNCH_VAULTS=TBTC to add a vault.
 //   JUICER_ARTIFACT_DIR (reviewed london build), JUICER_ADAPTER_ARTIFACT (HydraAugustus), RPC (eth http), WS (default from RPC)
 //   mainnet: JUICER_DEPLOYER_KEY_FILE; --fork: a public dev key, local endpoints only
 import assert from 'node:assert/strict';
