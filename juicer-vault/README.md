@@ -19,7 +19,7 @@ Start with the [team documentation index](docs/README.md) and
 [RC scope, evidence and activation gates](docs/release-candidate.md).
 
 This README describes the launch candidate, PR #89 (`juicer-headroom-exits`
-into `propeller`; [plan](docs/next-version-plan.md)): deposits face an on-chain
+into `propeller`; [plan](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/next-version-plan.md)): deposits face an on-chain
 Main-backing admission bound beside the keepers' `deficitStop`, yield is
 allocated at events instead of on every transfer, and funded earnings are part
 of each holder's vault balance, so nothing is claimed. The loop's entries and
@@ -147,13 +147,13 @@ explains their funding and the fee/interest/compounding order.
 - The [review package](docs/external-review.md#7-build-test-and-verify) has the
   current verification commands and results. The counts below are for earlier
   revisions.
-- The [4 October deferred-deployment report](docs/deferred-deployment-validation-2026-10-04.md)
+- The [4 October deferred-deployment report](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/deferred-deployment-validation-2026-10-04.md)
   records 367 passing contract tests, 48 keeper tests, current artifact sizes,
   native deposit/withdrawal receipts and the remaining execution/activation gates.
-- The [#62 implementation record](docs/pr62-completion-2026-10-02.md) covers
+- The [#62 implementation record](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/pr62-completion-2026-10-02.md) covers
   separate yield ownership, claimable earnings and prompt reinvestment. Use its
   final regression and artifact sizes for the current ownership revision.
-- The [2 October #60/#61/#63 integration](docs/pr-integration-2026-10-02.md)
+- The [2 October #60/#61/#63 integration](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/pr-integration-2026-10-02.md)
   passed **297 Solidity tests**, with zero failures and 11 optional skips, plus
   19 keeper tests and its build. That earlier CollateralVault had 138 bytes of runtime headroom.
 - September Solidity regression: **287 passed, zero failed, 11 optional tests or
@@ -190,8 +190,8 @@ forge test --offline --evm-version london
 ```
 
 Optional fork suites require their explicit RPC variables; a plain test run is
-not native route coverage. See [verification commands](docs/main-debt-verification.md#reproduce),
-[route evidence](docs/route-execution-calibration.md) and the
+not native route coverage. See [verification commands](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/main-debt-verification.md#reproduce),
+[route evidence](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/route-execution-calibration.md) and the
 [keeper runbook](looper/README.md).
 
 ### Faster loops

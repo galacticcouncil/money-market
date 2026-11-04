@@ -6,7 +6,7 @@ trades only for profit ([below](#gigaeth-behind-jeth),
 [below](#prime-arb-at-mainnets-thresholds)), pool 143 at the launch fee and the
 launch economics. The `next` profile keeps that plan for a later chain. Both
 need a runtime with ICE (447 or later).
-[Lark 4](lark-deployment-2026-10-07.md) keeps running from the same scripts. Every Lark script and bot takes its chain from a
+[Lark 4](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/lark-deployment-2026-10-07.md) keeps running from the same scripts. Every Lark script and bot takes its chain from a
 profile in `scripts/juicer/lark-pins.mjs`. **This is a testnet procedure: no
 step targets mainnet, and nothing here has been run with `--live` yet.**
 
@@ -34,7 +34,7 @@ step targets mainnet, and nothing here has been run with `--live` yet.**
   (1000765). The synthetic is "Juicer Synthetic HOLLAR" `jsHOLLAR` with reserve
   tokens `aJSYNTH`, `vdJSYNTH` and `sdJSYNTH`.
 - `JUICER_ARTIFACT_DIR` must point at the London build of the merged next
-  version ([build commands](deferred-deployment-validation-2026-10-04.md#reproduce)),
+  version ([build commands](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/deferred-deployment-validation-2026-10-04.md#reproduce)),
   `JUICER_ADAPTER_ARTIFACT` at the pinned HydraAugustus build.
 - The bots read the chain name and signers from the manifest (a manifest without
   them means Lark 4) and their endpoints from `LARK_RPC`/`LARK_WS`, which the
@@ -203,7 +203,7 @@ pool: ETH/USD times the pool's 10-minute share rate. The tooling never mints it.
   tokens to their setup levels) at most every 6 hours, within 90% of the deposit
   fuse or facilitator room. It never raises a fuse. It is a dry run unless
   `--live`; a refill interrupted after submission resumes on the next run.
-- Verification on the new Lark follows the [plan](next-version-plan.md#7-verification).
+- Verification on the new Lark follows the [plan](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/next-version-plan.md#7-verification).
 
 ## Lark 4 operators
 

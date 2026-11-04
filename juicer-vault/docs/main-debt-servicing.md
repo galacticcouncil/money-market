@@ -81,7 +81,7 @@ recovery are still required. An inaccurate oracle reference is not repaired by
 quietly weakening the floor.
 
 The unchanged native market failed small entries at the tested 1% floor. The
-later [production-adapter rehearsal](route-execution-calibration.md) retained
+later [production-adapter rehearsal](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/route-execution-calibration.md) retained
 that floor but changed the oracle reference as an explicit fork fixture.
 Neither that conditional success nor an older relaxed-floor fixture establishes
 production execution or authorizes widening the loss ceiling.

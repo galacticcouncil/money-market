@@ -9,7 +9,7 @@ shortfall. Governance supplies recovery capital when required.
 
 This document describes the policy, implemented controls and remaining limits.
 The [RC checklist](release-candidate.md) governs production activation; the
-[historical record](principal-safety-history.md) preserves earlier discussions
+[historical record](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/principal-safety-history.md) preserves earlier discussions
 and dated test results.
 
 ## Protection Model
@@ -158,7 +158,7 @@ partial settlement, pauses, offline holders, source loss and staged funding.
 The recovery model restores full backing before reopening. It does not verify
 an unimplemented manual partial-payout mechanism or native liquidation engine.
 
-[Native and long-duration evidence](route-execution-calibration.md) includes
+[Native and long-duration evidence](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/route-execution-calibration.md) includes
 explicit oracle/funding fixtures and must be read with those limitations.
 See [RC verification](release-candidate.md#verification) for current test counts.
 

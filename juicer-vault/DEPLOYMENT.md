@@ -7,7 +7,7 @@ Audience: deployment, governance and operations reviewers. Complete the
 production transactions. This runbook supports a reviewed fresh deployment;
 it does not approve production settings or upgrade a live old-buffer deployment.
 
-The [#62 ownership implementation](docs/pr62-completion-2026-10-02.md) requires
+The [#62 ownership implementation](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/pr62-completion-2026-10-02.md) requires
 a fresh, matching vault/source/Main/ownership/fee/Harvester stack. Its new source
 cost bases and reward ownership cannot be initialized by preserving old storage
 slots alone. Do not apply this runbook as an upgrade of funded older vaults.

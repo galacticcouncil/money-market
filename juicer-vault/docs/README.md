@@ -5,15 +5,11 @@
 Juicer's current design uses harvest-time Main interest servicing,
 source-funded resizing and an earned PRIME execution allowance. It does not
 require sponsored HOLLAR operating capital. The candidate is PR #89; its
-[review package](external-review.md) is the current reference. The
-[4 October validation](deferred-deployment-validation-2026-10-04.md)
-covers deferred deposits, shared swap controls, oracle price bounds and keeper
-size selection. The [Lark deployment record](lark-deployment-2026-10-07.md)
-covers the fresh-fork contracts, UI, hosted keepers, a mined and claimed
-harvest, and the bots that keep Lark's oracles, pool prices and trade flow in
-step with mainnet. Earlier reports retain their original artifact scope.
+[review package](external-review.md) is the current reference. Dated
+validations, Lark deployment records and model studies are listed in the
+[archive](archive.md); they retain their original artifact scope.
 
-The current version ([plan](next-version-plan.md)) enforces an on-chain
+The current version ([plan](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/next-version-plan.md)) enforces an on-chain
 Main-backing admission ceiling (50 bps at initialize, 250 at launch) and retains
 the keepers' hysteretic `deficitStop`, allocates yield at events instead of on
 every transfer, and puts funded earnings in each holder's vault balance, so
@@ -71,30 +67,19 @@ launch decisions. Defaults and experimental limits are not deployment approvals.
 
 ## Verification and Research
 
-The [2 October PR integration checkpoint](pr-integration-2026-10-02.md) records
-the combined #60/#61/#63 regression and updated runtime sizes. PR #62 implements separate yield
-ownership; see [its specification](yield-ownership.md) and
-[implementation validation](pr62-completion-2026-10-02.md).
-The later [execution-controls implementation](execution-controls-implementation.md)
+PR #62 implements separate yield ownership; see [its specification](yield-ownership.md).
+The [execution-controls implementation](execution-controls-implementation.md)
 adds size/rate controls; production policy configuration remains an activation gate.
+The PR completion records, dated validations, Lark deployment records and model
+studies behind these documents are in the [archive](archive.md).
 
-[September 25 PR completion](pr60-completion.md) resolves the target-branch
-documentation conflicts and the model replay failures recorded in RC1. It
-includes a reproducible, fixture-selected verification command and hashed logs.
-
-| Evidence                                                                                                                                   | Scope                                                                                                        |
-| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| [RC verification](release-candidate.md#verification)                                                                                       | Current candidate summary; use this before historical test counts.                                           |
-| [Lark deployment, 7 October](lark-deployment-2026-10-07.md) | Fresh-fork contracts, hosted keepers, a mined and claimed harvest, and mainnet-synced oracles, pool prices and trade flow. Test policies and subsidies only. |
-| [Production adapter and execution calibration](route-execution-calibration.md)                                                             | Conditional native lifecycle, real-route quotes, Main resizing and 2,220 retention/cost scenario executions. |
-| [PRIME validation](prime-pricing-replenishment.md)                                                                                         | Dated production reads, replacement feed checks, mint/bridge state and observed replenishment.               |
-| [Swap costs with operator-funded gas](sponsored-gas-swap-costs-2026-10-03.md) | Re-ranked existing APY cases; fees and price impact separated from external operator expenses. |
-| [PRIME recovery history and perfect arbitrage](prime-recovery-history-2026-10-03.md) | Exact Neckwork reserves, finite Treasury DCA, competing flow and conditional replenishment timing. |
-| [Four rounds of historical APY modeling](historical-apy-four-rounds-2026-10-03.md) | 90 days of exact oracle/index/pool inputs, observed versus perfect arbitrage, actual bull/pullback/saw regimes and held-out controls. |
-| [Main debt verification](main-debt-verification.md)                                                                                        | Earlier 370-case contract campaign and native entry rejection; retained as dated evidence.                   |
-| [Source compatibility](source-upgrades.md#checks-added-now)                                                                                | Storage and accounting tests, not a migration implementation.                                                |
-| [Lean](../formal/README.md) and [Verity](../formal/bridge/README.md)                                                                       | Formal artifacts with separate scope and assumptions.                                                        |
-| [90-day market study](market-stress-90d.md), [HOLLAR peg study](hollar-peg-liquidity.md), [coupled model](coupled-liquidity-checkpoint.md) | Historical models and calibration; not current launch budgets or provider commitments.                       |
+| Evidence | Scope |
+| --- | --- |
+| [RC verification](release-candidate.md#verification) | Current candidate summary; use this before historical test counts. |
+| [PRIME validation](prime-pricing-replenishment.md) | Dated production reads, replacement feed checks, mint/bridge state and observed replenishment. |
+| [Source compatibility](source-upgrades.md#checks-added-now) | Storage and accounting tests, not a migration implementation. |
+| [Lean](../formal/README.md) and [Verity](../formal/bridge/README.md) | Formal artifacts with separate scope and assumptions. |
+| [Archive](archive.md) | Dated validations, Lark deployments, campaigns and historical models; not current launch budgets or provider commitments. |
 
 Raw outputs are checked in under [evidence](evidence/). Reports distinguish
 mocked market behavior, native fork fixtures, live read-only observations and
@@ -110,19 +95,17 @@ proof of self-financing.
 - [PR #60](https://github.com/galacticcouncil/money-market/pull/60): Main-servicing work; earlier buffer terminology is superseded by the current specification.
 - [PR #57](https://github.com/galacticcouncil/money-market/pull/57) and [PR #53](https://github.com/galacticcouncil/money-market/pull/53): discount/fee and accounting/yield-source review history.
 - [Governance task](../../tasks/proposals/juicer.ts), [readiness checker](../../scripts/juicer/verify-readiness.ts), [deployment scripts](../script/).
-- [lark-4 record](../deployments/lark-4.md) and [PR #53 audit](../audit/propeller-audit-ys-propeller-fixes-20260731.md): historical context, not production addresses or RC approval.
+- [lark-4 record](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/deployments/lark-4.md) and [PR #53 audit](../audit/propeller-audit-ys-propeller-fixes-20260731.md): historical context, not production addresses or RC approval.
 
 Branch names and links identify the work; confirm live PR state and the exact
 reviewed commit before merge or deployment.
 
 ## Superseded Material
 
-These documents explain earlier decisions and retain evidence, but are not the
-current implementation specification:
-
-- [Sponsored operating-buffer proposal](operating-buffer.md) and [its verification](operating-buffer-verification.md).
-- [Interest-policy comparison](interest-policy-comparison.md).
-- [Principal-safety history](principal-safety-history.md), including dated test counts and original recovery discussions.
+The sponsored operating-buffer proposal and its verification, the
+interest-policy comparison and the principal-safety history explain earlier
+decisions but are not the current implementation specification. They are in
+the [archive](archive.md).
 
 The current specifications and RC checklist take precedence over historical
 narrative. No production deployment, governance action or launch approval is
