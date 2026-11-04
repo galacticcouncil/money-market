@@ -33,7 +33,7 @@ the activation gates still apply.
 
 The candidate is on `feat/propeller-interest-buffer`; the name is historical.
 Sponsored operating buffers have been replaced. The commit containing this
-document identifies the candidate; [runtime hashes](evidence/route-execution-2026-09-23/summary.json)
+document identifies the candidate; [runtime hashes](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/evidence/route-execution-2026-09-23/summary.json)
 identify its seven production contract templates. No release tag is implied.
 
 ## Included
@@ -55,7 +55,7 @@ identify its seven production contract templates. No release tag is implied.
 
 ## Verification
 
-[Final regression logs and runtime hashes](evidence/rc1-2026-09-23/summary.json)
+[Final regression logs and runtime hashes](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/evidence/rc1-2026-09-23/summary.json)
 are archived with the candidate. Native and campaign evidence retains its
 separate fixture and funding assumptions.
 

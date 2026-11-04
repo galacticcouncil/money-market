@@ -319,7 +319,7 @@ The earlier exact-rational study and dated evidence below are historical design
 artifacts, not proof of this implementation:
 
 - `scripts/juicer/yield-ownership-study.mjs`
-- `docs/evidence/yield-ownership-2026-10-02/`
+- [`docs/evidence/yield-ownership-2026-10-02/`](https://github.com/galacticcouncil/money-market/tree/8519575/juicer-vault/docs/evidence/yield-ownership-2026-10-02)
 
 Review the final PR validation record for the tested commit, runtime sizes and
 remaining native-chain activation gates. No merge, deployment or production

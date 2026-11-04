@@ -81,7 +81,7 @@ studies behind these documents are in the [archive](archive.md).
 | [Lean](../formal/README.md) and [Verity](../formal/bridge/README.md) | Formal artifacts with separate scope and assumptions. |
 | [Archive](archive.md) | Dated validations, Lark deployments, campaigns and historical models; not current launch budgets or provider commitments. |
 
-Raw outputs are checked in under [evidence](evidence/). Reports distinguish
+The raw outputs behind these reports [remain at `8519575`](https://github.com/galacticcouncil/money-market/tree/8519575/juicer-vault/docs/evidence). Reports distinguish
 mocked market behavior, native fork fixtures, live read-only observations and
 funded recovery. Turnover is not committed replenishment; funded exits are not
 proof of self-financing.

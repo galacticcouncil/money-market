@@ -9,7 +9,7 @@ import { parseArgs } from "node:util";
 import { utils } from "ethers";
 
 const root = fileURLToPath(new URL("../../juicer-vault/", import.meta.url));
-export const baselinePath = join(root, "docs/evidence/source-upgrades-2026-09-23/subloop-storage.json");
+export const baselinePath = fileURLToPath(new URL("./subloop-storage.json", import.meta.url));
 
 // the logic split replaced two compiler-generated getters with identical manual getters. the
 // backing fields kept their slots and types; only their source labels gained an underscore.

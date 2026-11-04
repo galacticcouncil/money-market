@@ -54,6 +54,7 @@ Reviews of later revisions are listed under [earlier reviews](external-review.md
 
 ## Scripts and raw outputs
 
+- [`docs/evidence/`](https://github.com/galacticcouncil/money-market/tree/8519575/juicer-vault/docs/evidence): the raw logs, JSON and hashes behind the reports above. The SubLoop storage baseline the CI gate reads moved to [`scripts/juicer/subloop-storage.json`](../../scripts/juicer/subloop-storage.json).
 - [`scripts/juicer/`](https://github.com/galacticcouncil/money-market/tree/8519575/scripts/juicer): the scripts behind the studies and validations above: the pressure, peg, interest-policy and historical APY models, tuning and route calibration runs, the PRIME and Neckwork collectors, the `report-*` evidence generators, the `native-*` fork deployments and gas probes that preceded the one-referendum launch, and the October ICE spike.
 - [`scripts/`](https://github.com/galacticcouncil/money-market/tree/8519575/scripts): one-off Lark 2 wiring, deposit and fork scripts, the Verity bytecode smoke tests, two HDCL vault deploy helpers and the rename tool.
 - [`juicer-rebalancer/`](https://github.com/galacticcouncil/money-market/tree/8519575/juicer-rebalancer) and [`deploy-PRIMEoracle-arb.ts`](https://github.com/galacticcouncil/money-market/blob/8519575/tasks/misc/deploy-PRIMEoracle-arb.ts): the Lark 2 pool 143 peg bot and its PRIME oracle task, replaced by the [Lark bots](../lark-bots/README.md).
