@@ -105,8 +105,6 @@ PROFILES.lark4rc={...PROFILES.next,chainName:'Lark 4 Hydration',deployment:'lark
 PROFILES.lark0eth={...PROFILES.next,chainName:'Lark 0 Hydration',deployment:'lark0-20261102',launch:true,
  genesis:'0xa637c6bb6f61286b935b883bf5c6f9dbb00aa34054d0558952f9e7284e580a2a',commit:'d91480c91a00b24b71c26396c0412a7a3af5815c',
  rpc:'https://node0.lark.hydration.cloud',ws:'wss://node0.lark.hydration.cloud',
- artifactDir:'/home/mrq/git/juicer-wt/artifacts/juicer-london-d91480c',
- adapterArtifact:'/home/mrq/git/juicer-wt/artifacts/hydra-augustus-london/HydraAugustus.sol/HydraAugustus.json',
  names:{...PROFILES.lark0.names,vaults:{ETH:PROFILES.lark0.names.vaults.ETH}},collateral:{ETH:GIGAETH},
  // the launch referendum sets pool 143's fee; no lark step may apply it first
  primePool:{...PROFILES.lark0.primePool,feePpm:null},
