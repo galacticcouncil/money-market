@@ -34,7 +34,7 @@ step targets mainnet, and nothing here has been run with `--live` yet.**
   (1000765). The synthetic is "Juicer Synthetic HOLLAR" `jsHOLLAR` with reserve
   tokens `aJSYNTH`, `vdJSYNTH` and `sdJSYNTH`.
 - `JUICER_ARTIFACT_DIR` must point at the London build of the merged next
-  version ([build commands](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/deferred-deployment-validation-2026-10-04.md#reproduce)),
+  version ([build commands](../README.md#build-and-test)),
   `JUICER_ADAPTER_ARTIFACT` at the pinned HydraAugustus build.
 - The bots read the chain name and signers from the manifest (a manifest without
   them means Lark 4) and their endpoints from `LARK_RPC`/`LARK_WS`, which the
