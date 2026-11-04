@@ -29,11 +29,10 @@ contract AuditPr46PacingTest is HarvestTest {
         control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         vm.roll(100);
         vm.setBlockhash(99, QUOTED_HASH);
-        uint64 expiry = uint64(vm.getBlockTimestamp() + 30 days);
-        control.configureBudget(ENTRY, address(hollar), 1000e18, 1e18, expiry);
-        control.configureBudget(HARVEST, address(prime), 1000e6, 1e6, expiry);
-        control.configureBudget(SERVICE, address(eth), 1e18, 1e15, expiry);
-        control.configureBudget(UNWIND, address(aPrime), 1000e6, 1e6, expiry);
+        control.configureBudget(ENTRY, address(hollar), 1000e18, 1e18);
+        control.configureBudget(HARVEST, address(prime), 1000e6, 1e6);
+        control.configureBudget(SERVICE, address(eth), 1e18, 1e15);
+        control.configureBudget(UNWIND, address(aPrime), 1000e6, 1e6);
         control.configureLimit(address(loop), address(hollar), address(aPrime), ENTRY, 1e18, 50e18);
         control.configureLimit(address(vault), address(prime), address(eth), HARVEST, 10_000, 50e6);
         control.configureLimit(address(vault.mainDebt()), address(eth), address(hollar), SERVICE, 1, 1e18);

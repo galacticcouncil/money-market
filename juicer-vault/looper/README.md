@@ -5,8 +5,10 @@ Permissionless maintenance of the shared `SubLoop` and its collateral vaults.
 ## Why it exists
 
 The deploy/unwind legs dropped the pallet-DCA dependency — `pokeBorrow()` now
-levers in a tranche **synchronously** (router sell, oracle-fair `minOut`) instead
-of feeding a gradual DCA order. The gradualness that DCA used to provide now comes
+levers in one tranche per call instead of feeding a gradual DCA order: with ICE
+intents on, as at launch, it submits one intent ([below](#ice-intents)); with
+them off it sells through the router **synchronously**. Either way the
+`minOut` is oracle-fair. The gradualness that DCA used to provide now comes
 from calling `pokeBorrow()` repeatedly off-chain. That's this bot.
 
 `pokeBorrow()` is **permissionless**, subject to the following controls:
@@ -58,14 +60,15 @@ read each vault's pause, queue cursors and Main repayment target
   source or vault deficit above DEFICIT_STOP_BPS -> no pokeBorrow; setDeficitStop(true), any operator
   below DEFICIT_RESUME_BPS, flag set, duty slot   -> setDeficitStop(false)
   source safety target                        -> pokeRepay() on the router
-  active unwind                               -> pokeRepay(), or pokeRepayQuoted() with intents
+  active unwind                               -> pokeRepay(), or pokeRepayQuoted() with intents, duty slot
   active vault settlement, Main repayment target
-    or unallocated source proceeds            -> pokeSettle()
+    or unallocated source proceeds            -> pokeSettle(); with intents, duty slot only
   funded active interest, duty slot             -> cash-only pokeSettle(), with minimum and gas budget
   healthy, worthwhile harvest, duty slot      -> quoted bounded harvest()
   pending collateral, eligible vault, duty slot -> quoted bounded rebalance(), also while exits wait
   healthy, no pending work, duty slot         -> quoted bounded pokeBorrow(), or with intents
-    (also for idle deposit cash) pokeBorrowQuoted(router dry-run rate)
+    (also for idle deposit cash) pokeBorrowQuoted(router dry-run rate),
+    only while that rate is within ENTRY_MAX_COST_BPS of oracle-fair
   intent in flight                            -> nothing new is submitted
     fill or refund landed, duty slot          -> reconcile()
     unfilled ICE_STALL_BLOCKS, or input still away
@@ -79,6 +82,8 @@ then, for each vault:
   exit surplus >= CLAIM_MIN_SURPLUS         -> claimSurplus(id)
   PRIME or collateral oracle update since its last sync,
     or SYNC_EVERY elapsed, duty slot        -> sync()
+duty slot = this operator's slot, at least OPERATOR_GUARD_SECONDS from either edge,
+  checked when the cycle starts and again right before each duty write is signed
 independent read loop, including during slow writes/receipt waits:
   effective source HF, synthetic coverage, Main interest, stale RPC, stuck receipts
 ```
@@ -178,8 +183,10 @@ The Docker stack requires and forwards this variable as well.
 
 ### Deficit stop
 
-Underfunding is checked by the keeper, not by the contracts. Each cycle it reads
-two deficits, both in bps:
+`CompoundLogic.deposit` rejects a deposit on-chain when the vault deficit below
+exceeds the loop's `admissionMaxDeficitBps` (250 at launch). The keeper adds a
+hysteretic stop and holds the ramp. Each cycle it reads two deficits, both in
+bps:
 
 - source: `negativeCarryBps()`, principal equity against live equity;
 - vault: with backing = `equityOf(vault) − sourceValue()`, the larger of the
@@ -300,6 +307,9 @@ Default scheduling values (operator examples, not approved production policies):
 | `SAFETY_INTERVAL_MS` | `30000` | Independent read-loop interval |
 | `RPC_STALE_SECONDS` | `120` | Alert threshold for an old chain head |
 | `OPERATOR_SLOT_SECONDS` | `60` | Optional-work duty-slot duration |
+| `OPERATOR_GUARD_SECONDS` | `15` | With more than one operator, duty writes start this long after a slot opens and stop this long before it closes, rechecked right before signing |
+| `INTENT_GAS_MARGIN_PCT` | `50` | Gas margin over the estimate for intent submissions (other writes keep 20%) |
+| `ENTRY_MAX_COST_BPS` | `25` | Entries are submitted only while the live router quote is within this many bps of oracle-fair; the loop's on-chain floor (launch: 50 bps) stays the backstop. Exits are not gated |
 | `DEFICIT_STOP_BPS` | `250` | Above this source or vault deficit, stop the ramp and set the vault's `deficitStop` |
 | `DEFICIT_RESUME_BPS` | `200` | Below this, resume the ramp and clear `deficitStop`; must be below the stop, `0` never clears |
 | `SYNC_EVERY` | `3600` | Seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner |

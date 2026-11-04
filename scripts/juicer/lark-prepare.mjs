@@ -8,13 +8,14 @@ const c=await context();
 try{
   const {api,r,save,arb,nativeAccount}=c;
   const targets=[
-    {name:'deployer',who:await nativeAccount(deployer.address),address:deployer.address,balances:[[0,1000n*10n**12n],[20,10n**18n],[34,20n*10n**18n],[btc.assetId,10n**18n]]},
+    {name:'deployer',who:await nativeAccount(deployer.address),address:deployer.address,balances:[[0,1000n*10n**12n],[20,10n**18n],[34,20n*10n**18n],...(btc?[[btc.assetId,10n**18n]]:[])]},
     {name:'keeper',who:await nativeAccount(keeper.address),address:keeper.address,balances:[[0,100n*10n**12n],[20,10n**18n]]},
-    {name:'arb',who:arb.address,balances:[[0,1000n*10n**12n],[43,100000n*10n**6n],[34,100n*10n**18n],[btc.assetId,5n*10n**18n]]},
+    {name:'arb',who:arb.address,balances:[[0,1000n*10n**12n],[43,100000n*10n**6n],[34,100n*10n**18n],...(btc?[[btc.assetId,5n*10n**18n]]:[])]},
   ];
   r.testFunding=targets;save();
-  // a bought collateral is paid from that ETH: the bootstrap's seed and the arb's quotes
-  const buys=eth.buy?[await recordBuy(c,eth,'deployer',10n**18n),await recordBuy(c,eth,'arb',10n*10n**18n)]:[];
+  // a bought collateral is paid from that ETH: the bootstrap's seed and the arb's quotes. under the launch
+  // process governance pays the bootstrap, so the deployer buys nothing
+  const buys=eth?.buy?[...(profile.launch?[]:[await recordBuy(c,eth,'deployer',10n**18n)]),await recordBuy(c,eth,'arb',10n*10n**18n)]:[];
   const calls=[];
   if(!(await api.query.evmAccounts.contractDeployer(deployer.address)).isSome)calls.push(api.tx.evmAccounts.addContractDeployer(deployer.address));
   for(const target of targets){

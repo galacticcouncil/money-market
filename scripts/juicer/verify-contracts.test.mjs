@@ -4,7 +4,7 @@ import {cpSync,mkdirSync,mkdtempSync,readFileSync,readdirSync,rmSync,writeFileSy
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {LIMITS,compareInit,main} from './verify-contracts.mjs';
+import {LIMITS,compareInit,loadRecords,main} from './verify-contracts.mjs';
 
 const here=fileURLToPath(new URL('.',import.meta.url)),fx=join(here,'fixtures/verify');
 const OUT=join(fx,'production'),RUNS=join(fx,'runs'),RUN=join(RUNS,'DeployMain.s.sol/222222/run-1791000000.json');
@@ -190,6 +190,13 @@ test('--check only probes and needs no build', async () => {
  assert.equal(api.posts().length,0);
  assert.match(r.row('CollateralVault'),/verified exact_match$/);
  assert.match(r.row('ERC1967Proxy'),/unverified$/);
+});
+
+test('a launch manifest keeps each creation hash on its own row', () => {
+ const manifest=join(temp(),'launch.json');
+ writeFileSync(manifest,JSON.stringify({deployments:[{name:'SyntheticToken',label:'SyntheticToken',address:A.synth,transactionHash:TX[0]}],
+  calls:[{label:'HydraAugustus.transferOwnership',transactionHash:TX[1]}],addresses:{}}));
+ assert.equal(loadRecords([manifest])[0].tx,TX[0]);
 });
 
 test('lark journals and hardhat-deploy records', async () => {

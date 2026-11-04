@@ -14,7 +14,7 @@ The fee is a fraction of harvested collateral yield, not of principal or TVL.
 ## Policy
 
 - Every registered collateral vault starts at **5% (500 bps)**.
-- The next-version launch proposal (batch 4, `NEXT.revenue`) sets **69%** with a
+- The launch proposal (its `next` step, `NEXT.revenue`) sets **69%** with a
   40% Main and 90% loop HOLLAR discount. The treasury then takes about 80% of its
   income in collateral instead of HOLLAR interest, at roughly the same total and
   user APY ([revenue mix](#revenue-mix)).
@@ -139,6 +139,10 @@ realization. Funded reward shares show in holders' balances; estimated
 unconverted yield stays separate.
 
 ## Fresh deployment
+
+The launch deploys the fee controller in its deploy-only step and wires and
+registers it in the launch referendum ([deployment runbook](../DEPLOYMENT.md)).
+The steps below are the standalone path.
 
 1. Deploy hook-enabled vault implementations/proxies, the SubLoop and the new
    Harvester. Configure reserves, roles, swapper, slippage and source/Harvester

@@ -24,10 +24,10 @@ contract ExecutionControlsTest is HarvestTest {
         control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         vm.roll(100);
         vm.setBlockhash(99, QUOTED_HASH);
-        control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18, uint64(block.timestamp + 30 days));
-        control.configureBudget(HARVEST, address(prime), 150e6, 1e6, uint64(block.timestamp + 30 days));
-        control.configureBudget(SERVICE, address(eth), 1e18, 1e15, uint64(block.timestamp + 30 days));
-        control.configureBudget(UNWIND, address(aPrime), 5000e6, 1e6, uint64(block.timestamp + 30 days));
+        control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18);
+        control.configureBudget(HARVEST, address(prime), 150e6, 1e6);
+        control.configureBudget(SERVICE, address(eth), 1e18, 1e15);
+        control.configureBudget(UNWIND, address(aPrime), 5000e6, 1e6);
         control.configureLimit(address(loop), address(hollar), address(aPrime), ENTRY, 10e18, 2500e18);
         control.configureLimit(address(vault), address(prime), address(eth), HARVEST, 1e6, 100e6);
         control.configureLimit(address(vault.mainDebt()), address(eth), address(hollar), SERVICE, 1, 1e18);
@@ -184,11 +184,12 @@ contract ExecutionControlsTest is HarvestTest {
         assertGt(vault.yieldAccounting().earnedAssets(address(this)), 0.1e18);
     }
 
-    function test_controlsExpiredPolicyNeverBlocksSafetyRepayment() public {
+    function test_controlsBudgetsNeverLapseAndSafetyRepays() public {
         _depositAndRamp();
         _enable();
-        vm.warp(block.timestamp + 31 days);
-        assertEq(loop.admissionCapacity(), 0);
+        vm.warp(block.timestamp + 3 * 365 days);
+        vm.roll(block.number + 1);
+        assertGt(loop.admissionCapacity(), 0, "no policy lapses: entry still fits its credit");
         pool.setPrice(address(prime), 0.99e18);
         loop.deLever();
         uint256 debt = hollarDebt.balanceOf(address(loop));
@@ -271,7 +272,7 @@ contract ExecutionControlsTest is HarvestTest {
         control.configurePacing(ENTRY, 60);
         _execute(address(vault), abi.encodeCall(CollateralVault.rebalance, ()));
         assertEq(loop.admissionCapacity(), 0);
-        control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18, uint64(block.timestamp + 60 days));
+        control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18);
         assertEq(loop.admissionCapacity(), 0, "refresh does not reset the cooldown");
         vm.roll(block.number + 1);
         vm.warp(block.timestamp + 59);

@@ -68,11 +68,8 @@ contract JuicerDiscount is AccessControl, ReentrancyGuard, IJuicerDiscount {
         synthetic = synthetic_;
         aSynthetic = ISyntheticAToken(aSynthetic_);
         pool = debtToken.POOL();
-        if (
-            pool == address(0) || aSynthetic.POOL() != pool || aSynthetic.UNDERLYING_ASSET_ADDRESS() != synthetic_
-                || IERC20Metadata(synthetic_).decimals() != 18 || IERC20Metadata(aSynthetic_).decimals() != 18
-                || IERC20Metadata(debtToken_).decimals() != 18
-        ) {
+        // the aToken is read only once a vault is enrolled: it can be predicted before its reserve is listed
+        if (pool == address(0) || IERC20Metadata(synthetic_).decimals() != 18 || IERC20Metadata(debtToken_).decimals() != 18) {
             revert InvalidMarket();
         }
 

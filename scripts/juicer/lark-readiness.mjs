@@ -2,6 +2,9 @@ import {readFileSync} from 'node:fs';
 import {spawn} from 'node:child_process';
 import {profile,NEXT_PARAMS,CORE_FILE as FILE} from './lark-pins.mjs';
 import {ICE} from './lark-ice-plan.mjs';
+import {artifact} from './native-artifacts.mjs';
+import {createRequire} from 'node:module';
+const {keccak256}=createRequire(import.meta.url)('viem');
 const r=JSON.parse(readFileSync(FILE,'utf8'));
 Object.assign(process.env,{WS_URL:profile.gateway.ws,RPC_URL:r.rpc,
  JUICER_SYNTH:r.addresses.synth,JUICER_SUBLOOP:r.addresses.source,JUICER_HARVESTER:r.addresses.harvester,
@@ -20,6 +23,7 @@ if(!profile.legacy){
   JUICER_RESERVE_HOLLAR:String(NEXT_PARAMS.reserve/10n**18n),JUICER_REBALANCE_BAND:[band.relever,band.target,band.delever].join(','),
   JUICER_DISCOUNT_BPS:String(revenue.mainDiscountBps),JUICER_LOOP_DISCOUNT_BPS:String(revenue.loopDiscountBps),
   JUICER_LOOP_DISCOUNT_CAP:String(profile.hollarBucket/10n**18n),JUICER_PROTOCOL_FEE_BPS:String(revenue.protocolFeeBps),
+  JUICER_COMPOUND_LOGIC_CODEHASH:keccak256(artifact('CompoundLogic').deployedBytecode.object),
   ...(profile.primePool.feePpm===null?{}:{JUICER_PRIME_POOL_FEE_PPM:String(profile.primePool.feePpm)})});
 }
 const child=spawn(process.execPath,['--import','./juicer-vault/looper/node_modules/tsx/dist/loader.mjs','scripts/juicer/verify-readiness.ts'],{stdio:'inherit',env:process.env});

@@ -141,6 +141,48 @@ test('large settlement uses estimated gas and the live fee quote', async () => {
   assert.equal(sends[0].gas, 8_847_054n);
   assert.equal(sends[0].gasPrice, 5_536_120n);
 });
+test('a duty write is signed only while its slot is still clear of the end guard', async () => {
+  const {keeper, sends} = await poke(100000n);
+  const [count, index, slot, guard] = [CONFIG.OPERATOR_COUNT, CONFIG.OPERATOR_INDEX, CONFIG.OPERATOR_SLOT_SECONDS, CONFIG.OPERATOR_GUARD_SECONDS];
+  Object.assign(CONFIG, {OPERATOR_COUNT: 2, OPERATOR_INDEX: 0, OPERATOR_SLOT_SECONDS: 60, OPERATOR_GUARD_SECONDS: 15});
+  let now = 170n;
+  keeper.publicClient.getBlock = async () => ({gasLimit: 45_000_000n, timestamp: now});
+  try {
+    assert.equal(await keeper.onTurn(() => keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle')), false);
+    assert.equal(sends.length, 1, 'past the guard the settle waits for the next turn');
+    now = 150n;
+    assert.equal(await keeper.onTurn(() => keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle')), true);
+    assert.equal(sends.length, 2);
+    now = 170n;
+    assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle'), true, 'work every operator does is not slot-bound');
+  } finally {
+    Object.assign(CONFIG, {OPERATOR_COUNT: count, OPERATOR_INDEX: index, OPERATOR_SLOT_SECONDS: slot, OPERATOR_GUARD_SECONDS: guard});
+  }
+});
+
+test('intent submissions reserve the wider intent margin, everything else keeps 20%', async () => {
+  const sends: any[] = [];
+  const keeper = Object.create(JuicerLooper.prototype) as any;
+  keeper.account = signer(sends);
+  const caps: string[] = [];
+  keeper.publicClient = {
+    getBlock: async () => ({gasLimit: 45_000_000n}),
+    getGasPrice: async () => 1n,
+    getTransactionCount: async () => sends.length,
+    simulateContract: async (request: any) => ({request, result: undefined}),
+    request: async (r: any) => { caps.push(r.params[0].gas); return toHex(100_000n); },
+    sendRawTransaction: async () => undefined,
+    waitForTransactionReceipt: async () => ({status: 'success'}),
+  };
+  const intent = parseAbi(['function pokeBorrowQuoted(uint256)']);
+  assert.equal(await keeper.poke(intent, VAULT, 'pokeBorrowQuoted', 'entry', [1n], true), true);
+  assert.equal(sends[0].gas, 100_000n * BigInt(100 + CONFIG.INTENT_GAS_MARGIN_PCT) / 100n);
+  assert.equal(await keeper.poke(SETTLE_ABI, VAULT, 'pokeSettle', 'settle', [], true), true);
+  assert.equal(sends[1].gas, 120_000n);
+  const budget = 16777216n;
+  assert.deepEqual(caps, [toHex(budget * 100n / BigInt(100 + CONFIG.INTENT_GAS_MARGIN_PCT)), toHex(budget * 100n / 120n)]);
+});
+
 test('small operations only reserve their estimated gas plus margin', async () => {
   assert.equal((await poke(100_001n)).sends[0].gas, 120_002n);
 });

@@ -7,7 +7,7 @@ const VAULT = '0x0000000000000000000000000000000000000002';
 const LEDGER = '0x0000000000000000000000000000000000000003';
 const OWNER = '0x00000000000000000000000000000000000000aa';
 
-type Request = { active: boolean; settled: bigint; surplus: bigint; debtShare?: bigint; repaid?: bigint };
+type Request = { active: boolean; settled: bigint; surplus: bigint; debtShare?: bigint; repaid?: bigint; arriving?: bigint };
 
 function keeper(requests: Request[]) {
   const calls: Array<[string, string, unknown[]]> = [];
@@ -18,6 +18,7 @@ function keeper(requests: Request[]) {
     const r = requests[Number(args[0])];
     if (fn === 'redemptions') return [OWNER, 0n, 0n, r.debtShare ?? 0n, 0n, r.repaid ?? 0n, r.settled, 0n, r.active];
     if (fn === 'surplusOf') return r.surplus;
+    if (fn === 'positions') return [0n, 0n, 0n, requests[Number(args[0]) - 1].arriving ?? 0n, OWNER];
     throw new Error(`unexpected read ${fn} on ${address}`);
   };
   k.poke = async (_abi: unknown, address: string, fn: string, _label: string, args: unknown[]) => {
@@ -82,4 +83,20 @@ test('without delivery the scan waits on a debt slice still being repaid', async
   await k.deliver(VAULT);
   assert.deepEqual(calls, []);
   assert.equal(k.claimCursor.get(VAULT), 1n);
+});
+
+test('surplus still arriving from the source holds the scan until it lands', async () => {
+  const requests = [
+    { active: false, settled: 0n, surplus: 0n, debtShare: 0n, repaid: 0n, arriving: 5n },
+    { active: true, settled: 7n, surplus: 0n, debtShare: 9n, repaid: 9n },
+  ];
+  const { k, calls } = keeper(requests);
+  await k.deliver(VAULT);
+  assert.deepEqual(calls, []);
+  assert.equal(k.claimCursor.get(VAULT), 0n, 'the headroom exit waits for its surplus');
+  requests[0].arriving = 0n;
+  requests[0].surplus = 10n ** 17n;
+  await k.deliver(VAULT);
+  assert.deepEqual(calls, [[LEDGER, 'claimSurplus', [0n]]]);
+  assert.equal(k.claimCursor.get(VAULT), 2n);
 });

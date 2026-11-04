@@ -65,10 +65,12 @@ own enrollment and rate:
   deployment. It refreshes only the loop; `setDiscountBps` and `refreshAll()`
   refresh it as well.
 
-The next-version launch proposal sets the Main rate to 40% and the loop's to 90%
-in batch 4, with a 69% protocol fee ([revenue mix](protocol-fees.md#revenue-mix)).
-That batch refuses to emit them until the discount is installed and the loop
-enrolled, since the calls would otherwise revert unseen inside the dispatch.
+The launch proposal sets the Main rate to 40% and the loop's to 90% in its
+`next` step, with a 69% protocol fee ([revenue mix](protocol-fees.md#revenue-mix)).
+That step follows `discount`, which installs the discount and enrolls the loop;
+the planner refuses to emit the rates unless both are on chain or planned
+earlier in the same referendum, since the calls would otherwise revert unseen
+inside the dispatch.
 
 The rate at a refresh is `loopDiscountBps * min(cap, debt) / debt`. The GHO
 strategy call does not see the borrower, so `balanceOf(loop)` returns the cap
@@ -114,6 +116,11 @@ and money-market limits still apply. Operational monitoring should track actual
 debt and foregone interest, not assume a fixed expense from the percentage alone.
 
 ## Fresh Deployment
+
+The launch deploys `JuicerDiscount` in its deploy-only step, against the
+synthetic's predicted aToken, and installs it in the launch referendum's
+`discount` step ([deployment runbook](../DEPLOYMENT.md)). The steps below are
+the standalone path.
 
 1. Verify the deployed Main HOLLAR debt-token implementation, existing discount
    policy/cache, pool-admin authority, synthetic reserve and aToken addresses.

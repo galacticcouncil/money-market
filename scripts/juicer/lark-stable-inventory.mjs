@@ -24,15 +24,18 @@ try{
  const decimals=topUp?(await api.query.assetRegistry.assets(Number(topUp[0]))).unwrap().decimals.toString():0;
  const MINTS=topUp?[[Number(topUp[0]),u(Number(topUp[1]),Number(decimals))]]:BASE,WRAPS=topUp?[]:BASE_WRAPS;
  const label=topUp?`pools-stable-topup-${topUp[0]}-${topUp[1]}`:'pools-stable-inventory';
+ // a fresh fork's window can be fuller than the mint allows: lark raises that fuse first, as depositor-setup does
+ const raises=[];
  if(!r.governance.find(g=>g.label===label)?.verified)for(const [id,amount] of MINTS){
   const limit=(await api.query.assetRegistry.assets(id)).unwrap().xcmRateLimit.unwrapOr(null)?.toBigInt();
   const state=(await api.query.circuitBreaker.assetLockdownState(id)).unwrapOr(null);
   if(limit===undefined||!state)continue;
   assert.ok(state.isUnlocked,`${id} is in lockdown`);
   const used=(await api.query.tokens.totalIssuance(id)).toBigInt()-state.asUnlocked[1].toBigInt();
-  assert.ok(amount<=limit-used,`${id}: mint would trip the deposit fuse`);
+  if(amount>limit-used)raises.push(api.tx.assetRegistry.update(id,null,null,null,(used+2n*amount).toString(),null,null,null,null));
  }
  const calls=[
+  ...raises,
   ...MINTS.map(([id,amount])=>api.tx.currencies.updateBalance(pools.address,id,amount.toString())),
   ...WRAPS.map(([from,to,amount])=>api.tx.utility.dispatchAs({system:{Signed:pools.address}},
    api.tx.router.sell(from,to,amount.toString(),(amount*99n/100n).toString(),[{pool:'Aave',assetIn:from,assetOut:to}]))),

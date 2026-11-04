@@ -18,7 +18,8 @@ in the [3 October verification report](execution-controls-validation-2026-10-03.
 ## Trade controls
 
 `ExecutionController` holds continuously replenishing token-volume budgets.
-A group specifies an input token, burst capacity, refill per second and expiry.
+A group specifies an input token, burst capacity and refill per second. Budgets
+never lapse; governance changes them by referendum.
 Each `(consumer, input, output)` lane specifies a positive minimum and maximum
 trade, an explicit MM-oracle shortfall bound and a safety flag. Each group also
 has a minimum interval between transactions; another transaction in the same
@@ -37,7 +38,8 @@ has arrived.
 - All HOLLAR→aPRIME buys consume one source lane: Main deployment, upward
   rebalances and source ramps cannot acquire separate budgets by changing users,
   vaults or keepers. Each borrow is capped before creation by both source tranche
-  and admission capacity, and is swapped in the same atomic transaction.
+  and admission capacity, and is swapped, or submitted as an intent, in the same
+  atomic transaction.
 - Upward Main rebalances take the available bounded amount. Unused reinvestment
   credit remains for a subsequent pass, including a slice below the entry lane
   minimum. Existing backing/readiness checks still apply; tranche limits do not
@@ -54,20 +56,28 @@ has arrived.
   and budget. The complete harvest preview includes this second trade. A need
   below the lane minimum sells the minimum when the fresh collateral covers it;
   the surplus HOLLAR stays as active Main cash for later interest. A vault whose
-  due interest sale cannot trade now (expired, paced or exhausted lane, or no
+  due interest sale cannot trade now (paced, exhausted or unconfigured lane, or no
   quote) sits the harvest out, parked donations included, while other vaults
   proceed. A sale above the lane's available size still rolls back the batch,
   and the keeper retries smaller batches.
 - Source aPRIME→HOLLAR unwinds have a separate quoted lane. An explicitly enabled
-  safety lane may bypass expiry, volume credit and pacing while a safety repayment
+  safety lane may bypass volume credit and pacing while a safety repayment
   is outstanding; it still requires a fresh quote, bounded size and the same
   oracle price floor. A safety repayment on an unflagged lane uses its normal
-  budget. Expiry stops new entry and harvest trades, not exits: the flagged
-  unwind lane keeps its credit, pacing and price bounds after its policy lapses.
+  budget.
   A routine exit whose remaining need is below the lane minimum sells the minimum,
   capped by the source's aPRIME, so it can complete; the excess stays as source
-  cash. Direct `pokeRepay` can repay existing cash but cannot swap
-  without a controller execution context. Cash settlement needs no swap quote.
+  cash. Without a controller execution context a direct `pokeRepay` can repay
+  existing cash but cannot start a router sale. Cash settlement needs no swap quote.
+- With ICE intents on (`intentTtl != 0`, as at launch), the loop's entries and
+  routine unwind slices are intents, charged to their async lanes at submit
+  (`consumeAsync`, `prepareAsync`) with the same size, budget, pacing and price
+  cap, and they need no controller execution context. Anyone's `pokeBorrow()` or
+  `pokeRepay()`, which call the quoted variants with a zero keeper quote,
+  therefore opens an intent at the larger of the oracle floor (`dcaSlippagePpm`)
+  and the lane's price cap: 50 bps under the oracle at launch. `KEEPER_ROLE`
+  (`pokeBorrowQuoted`, `pokeRepayQuoted`) only allows a tighter floor from a
+  router quote. Safety sales stay on the router.
 
 `configurePrice(lane, maxShortfallBps, safety)` bounds the **total** output
 shortfall against the live MM oracle, including route fees and slippage. Zero
@@ -133,8 +143,9 @@ The controller only forwards governance-registered selectors. Depositors approve
 the **vault**, not the controller. The deposit helper pulls from the controller's
 active original caller and mints to the requested receiver. No signatures,
 quote-publisher role, parked customer assets or standing controller allowances
-are needed. Direct legacy buys/compounds fail once their control is bound; safety
-repayment and cash settlement remain directly callable.
+are needed. Direct router buys and compounds fail once their control is bound;
+intent entries and exits, safety repayment and cash settlement remain directly
+callable.
 
 The UI approves and deposits directly into the vault. It must verify
 `deferredDeployment() == true` before enabling deposits, so an older deployment
@@ -159,7 +170,7 @@ wait after the previous successful harvest, or $10-equivalent outstanding Main
 interest, bypasses the economic delay when a safe harvest is available. The
 interest threshold values HOLLAR at par, matching the strategy's existing debt
 convention. These operator settings cannot bypass on-chain minimums, budgets,
-expiry, source harvestability or swap floors. They do not promise a harvest when
+source harvestability or swap floors. They do not promise a harvest when
 the strategy lacks safely realizable yield.
 
 Every controlled swap uses the controller's pinned preview and quotes with
@@ -205,7 +216,7 @@ alone does not provide fair scheduling under sustained saturation.
 Before unpausing public deposits:
 
 1. Deploy the controller with approved quote-age limits. Configure nonzero finite
-   lane sizes, shared directional budgets, pacing, refill rates, policy expiry,
+   lane sizes, shared directional budgets, pacing, refill rates,
    total MM shortfall bounds and an explicit source-unwind safety policy.
 2. Register `rebalance()` on each vault, `pokeBorrow()` and `pokeRepay()` on the
    source, and `harvest(uint256[])` on the Harvester. Bind
@@ -216,15 +227,14 @@ Before unpausing public deposits:
    independent infrastructure across operators. Approve batching/urgency settings.
 4. Supply `JUICER_EXECUTION_CONTROLLER` and `JUICER_EXECUTION_POLICY` to
    `verify-readiness.ts`. The latter JSON has `maxQuoteAge`, `maxQuoteBlocks`,
-   `budgets: [{group, capacity, refillPerSecond, expiresAt, minIntervalSeconds}]`
+   `budgets: [{group, capacity, refillPerSecond, minIntervalSeconds}]`
    and `limits: [{lane, group, minimum, maximum, maxShortfallBps, safety}]`.
-   Amounts/timestamps use integer strings; `maxShortfallBps` is an integer and
+   Amounts use integer strings; `maxShortfallBps` is an integer and
    `safety` is a boolean. Only the source unwind lane may enable safety.
    Obtain lane IDs from `controller.lane(consumer,input,output)` and compare the
    actual wiring against the approved governance payload.
 5. Complete a direct UI deposit followed by several quoted deployment slices,
-   a withdrawal before deployment, partial harvest with Main servicing,
-   expired-policy rejection of entry/harvest while exits continue, keeper
+   a withdrawal before deployment, partial harvest with Main servicing, keeper
    handover and safety/exit rehearsal on the
    exact deployment. Public activation still needs approved liquidity/refill
    limits, recovery funding and independent review.

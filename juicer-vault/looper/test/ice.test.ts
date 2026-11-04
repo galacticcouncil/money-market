@@ -42,6 +42,8 @@ function chain() {
     // what the loop's next poke would submit, per direction
     next: {[ENTRY]: undefined as bigint | undefined, [EXIT]: undefined as bigint | undefined},
     keeperRole: true,
+    // the router's 94% entry quote sits exactly at oracle-fair
+    hollarPrice: 94_000_000n,
     probeFails: false, outage: false,
     routerOut: (kind: number, amountIn: bigint): bigint => kind === ENTRY ? amountIn * 94n / 100n / 10n ** 12n : amountIn * 106n * 10n ** 10n,
     routerFails: false,
@@ -97,6 +99,8 @@ function keeper(c: Chain, name: 'k0' | 'k1', index: number) {
       reconcile: () => p ? c.outcome : 0,
       hasRole: () => { assert.equal(args[1], KEEPER); return c.keeperRole; },
       hollar: () => '0x00000000000000000000000000000000000000dd', reservedFreed: () => 0n, balanceOf: () => c.idle,
+      prime: () => '0x00000000000000000000000000000000000000ee', ADDRESSES_PROVIDER: () => VAULT, getPriceOracle: () => VAULT,
+      getAssetPrice: () => args[0] === '0x00000000000000000000000000000000000000dd' ? c.hollarPrice : 100_000_000n,
       hollarAssetId: () => IDS.hollar, primeAssetId: () => IDS.prime, aPrimeAssetId: () => IDS.aPrime, primePoolId: () => IDS.pool,
       queueHead: () => 0n, queueTail: () => 0n, queueUnwind: () => 0n, deleverTarget: () => 0n, reinvestAssets: () => 0n,
       mainDebt: () => VAULT, pendingSourceAccounting: () => false, deficitStop: () => false, yieldAccounting: () => VAULT,
@@ -131,7 +135,7 @@ async function run(c: Chain, k: any, duty = true) {
   const alerts: string[] = [];
   CONFIG.OPERATOR_COUNT = 2;
   CONFIG.OPERATOR_INDEX = k.index;
-  k.blockTimestamp = async () => 60n * BigInt(duty ? k.index : 1 - k.index);
+  k.blockTimestamp = async () => 60n * BigInt(duty ? k.index : 1 - k.index) + 30n;
   c.calls = [];
   console.log = () => {};
   console.error = (...args: unknown[]) => { alerts.push(args.join(' ')); };
@@ -269,7 +273,7 @@ test('without KEEPER_ROLE the keeper falls back to the permissionless pokes, sen
   const first = await run(c, k);
   assert.deepEqual(first.calls, ['k0:pokeBorrow']);
   assert.deepEqual(c.probes, ['pokeBorrow()']);
-  assert.deepEqual(c.sells, [], 'no quote to compute');
+  assert.equal(c.sells.length, 1, 'priced against the entry limit, then sent without the quote');
   assert.ok(first.alerts.includes('[ALERT] keeper lacks KEEPER_ROLE: intents carry only the oracle floor'));
   c.pending = undefined;
   assert.deepEqual((await run(c, k)).alerts, []);
@@ -334,7 +338,17 @@ test('mid-unwind the duty operator settles before each exit, and the other one k
   assert.deepEqual((await run(c, k0)).calls, ['k0:reconcile', 'k0:pokeSettle', 'k0:pokeRepayQuoted(0)', 'k0:pokeSettle'],
     'the last fill is credited and pulled in the same cycle');
   c.unwind = 0n;
-  assert.deepEqual((await run(c, k1, false)).calls, ['k1:pokeSettle'], 'with nothing left to sell, anyone settles');
+  assert.deepEqual((await run(c, k1, false)).calls, [], 'off duty an exit can still go out for a pending vault');
+  assert.deepEqual((await run(c, k1)).calls, ['k1:pokeSettle', 'k1:pokeRepayQuoted(0)', 'k1:pokeSettle'],
+    'its own slot settles within a minute');
+});
+
+test('without intents in flight the operator off duty still settles', async () => {
+  const c = chain();
+  c.ttl = 0;
+  c.sourcePending = 1n;
+  const k1 = keeper(c, 'k1', 1);
+  assert.ok((await run(c, k1, false)).calls.includes('k1:pokeSettle'));
 });
 
 test('router mode keeps the controller path, and a safety repayment stays on the router in intent mode', async () => {
@@ -347,4 +361,30 @@ test('router mode keeps the controller path, and a safety repayment stays on the
   c.safetyDebt = 1n;
   c.unwind = 1n;
   assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, ['k0:pokeRepay via controller']);
+});
+
+test('an entry waits while the router would charge more than the keeper limit over oracle-fair', async () => {
+  const limit = CONFIG.ENTRY_MAX_COST_BPS;
+  CONFIG.ENTRY_MAX_COST_BPS = 25;
+  try {
+    const c = chain();
+    c.next[ENTRY] = E18;
+    c.hollarPrice = 94_300_000n;
+    const k1 = keeper(c, 'k1', 1);
+    assert.deepEqual((await run(c, k1)).calls, [], 'about 32 bps over fair waits');
+    c.hollarPrice = 94_200_000n;
+    assert.deepEqual((await run(c, k1)).calls, ['k1:pokeBorrowQuoted(940000)'], 'about 21 bps goes out');
+  } finally { CONFIG.ENTRY_MAX_COST_BPS = limit; }
+});
+
+test('exits are not held back by the entry limit', async () => {
+  const limit = CONFIG.ENTRY_MAX_COST_BPS;
+  CONFIG.ENTRY_MAX_COST_BPS = 0;
+  try {
+    const c = chain();
+    c.unwind = 1n;
+    c.next[EXIT] = 500_000_000n;
+    const k0 = keeper(c, 'k0', 0);
+    assert.ok((await run(c, k0)).calls.some(x => x.startsWith('k0:pokeRepayQuoted')));
+  } finally { CONFIG.ENTRY_MAX_COST_BPS = limit; }
 });

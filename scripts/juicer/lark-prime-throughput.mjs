@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict';
 import {context,artifact,live} from './lark-context.mjs';
 import {profile} from './lark-pins.mjs';
+import {budgetArgs} from './native-artifacts.mjs';
 const {trade,capacity,refill,pegPrime,approval}=profile.primeLanes,n=x=>x.toLocaleString('en-US');
 const c=await context();
 try{
@@ -27,7 +28,7 @@ try{
  }
  const calls=[];
  // a limit maximum may not exceed its budget capacity, so budgets go first
- for(const x of lanes)calls.push(govEvm(r.addresses.controller,abi,'configureBudget',[x.b.group,x.b.token,x.capacity,x.refill,BigInt(x.b.expiresAt)],500000));
+ for(const x of lanes)calls.push(govEvm(r.addresses.controller,abi,'configureBudget',budgetArgs(abi,[x.b.group,x.b.token,x.capacity,x.refill],x.b.expiresAt),500000));
  for(const x of lanes)calls.push(govEvm(r.addresses.controller,abi,'configureLimit',[x.l.consumer,x.l.input,x.l.output,x.l.group,BigInt(x.l.minimum),x.maximum],500000));
  if(prime>0n)calls.push(api.tx.currencies.updateBalance(c.arb.address,43,prime.toString()));
  await enact(label,calls);

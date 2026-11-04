@@ -19,6 +19,14 @@ export function quoteRate(amountIn: bigint, amountOut: bigint): bigint {
   return amountOut * 10n ** 18n / amountIn;
 }
 
+// what an entry pays over oracle-fair, in bps rounded up: fair aPRIME (6dp) per 1e18 HOLLAR as the loop prices it
+export function entryCostBps(rate: bigint, hollarPrice: bigint, primePrice: bigint): bigint {
+  if (hollarPrice <= 0n || primePrice <= 0n) throw new Error('missing oracle price');
+  const fair = 10n ** 18n * hollarPrice / primePrice / 10n ** 12n;
+  if (fair === 0n) throw new Error('oracle rate rounds to zero');
+  return rate >= fair ? 0n : ((fair - rate) * 10_000n + fair - 1n) / fair;
+}
+
 // the intent a dry run of the loop's call would submit
 export function submittedIntent(logs: readonly EvmLog[], loop: Address): Submitted | undefined {
   for (const log of logs) {

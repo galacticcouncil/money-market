@@ -10,6 +10,9 @@ function integer(name: string, fallback: number, min = 1, max = Number.MAX_SAFE_
   return value;
 }
 const operatorCount = integer('OPERATOR_COUNT', 1);
+const slotSeconds = integer('OPERATOR_SLOT_SECONDS', 60);
+const guardSeconds = integer('OPERATOR_GUARD_SECONDS', 15, 0);
+if (operatorCount > 1 && guardSeconds * 2 >= slotSeconds) throw new Error('OPERATOR_GUARD_SECONDS must leave part of each slot');
 const deficitStop = integer('DEFICIT_STOP_BPS', 250, 1, 10_000);
 const cleanupSuri = process.env.ICE_CLEANUP_SURI || undefined;
 // dev-phrase derivations only (//Name), so a real seed can't end up in a keeper's environment
@@ -64,7 +67,13 @@ export const CONFIG = {
   MAIN_SERVICE_RETRY_SECONDS: BigInt(integer('MAIN_SERVICE_RETRY_SECONDS', 300)),
   OPERATOR_COUNT: operatorCount,
   OPERATOR_INDEX: integer('OPERATOR_INDEX', 0, 0, operatorCount - 1),
-  OPERATOR_SLOT_SECONDS: integer('OPERATOR_SLOT_SECONDS', 60),
+  OPERATOR_SLOT_SECONDS: slotSeconds,
+  // a rotating operator writes only between the guards: the other's last write has landed and its own lands in time
+  OPERATOR_GUARD_SECONDS: guardSeconds,
+  // intent submissions can cost more at inclusion than at estimate; two ran out at 20% on lark 4
+  INTENT_GAS_MARGIN_PCT: integer('INTENT_GAS_MARGIN_PCT', 50, 0, 400),
+  // entries go out only while the router quote is within this of oracle-fair; the loop's floor is the on-chain backstop
+  ENTRY_MAX_COST_BPS: integer('ENTRY_MAX_COST_BPS', 25, 0, 10_000),
   // operator budget, also capped by the live block gas limit
   MAX_TX_GAS: BigInt(maxTxGas),
   // stop ramping once HF ≤ target·(1+buffer), avoiding borrow-to-floor no-ops

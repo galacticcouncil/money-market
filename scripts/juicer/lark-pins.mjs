@@ -8,7 +8,7 @@ import {LARK4_IDENTITY as L4} from './lark4-identity.mjs';
 const SIGNERS={markets:'//Alice//propeller-20261005-arb',pools:'//Alice//propeller-20261007-pools',replay:'//Alice//propeller-20261007-replay'};
 // the next version's parameters, as the mainnet proposal sets them (next-governance.ts)
 export const NEXT_PARAMS={harvestThreshold:2n*10n**14n,reserve:1000n*10n**18n,
- band:{relever:6500,target:7500,delever:8300},admissionMaxDeficitBps:250,
+ band:{relever:6500,target:7500,delever:8300},admissionMaxDeficitBps:250,exitHeadroom:{enabled:true,gapBps:0},
  revenue:{protocolFeeBps:6900,mainDiscountBps:4000,loopDiscountBps:9000},
  primePoolFeePpm:100};
 // the loop keeps each band relative to the collateral's live max LTV, as bandGaps in next-governance.ts
@@ -90,6 +90,29 @@ export const PROFILES={
 // endpoints and deployment id (LARK_DEPLOYMENT) stay open
 PROFILES.next={...PROFILES.lark0,chainName:null,genesis:null,commit:null,deployment:null,rpc:null,ws:null,
  stack:{keeperEnv:PROFILES.lark0.stack.keeperEnv,bots:PROFILES.lark0.stack.bots}};
+// lark 4 reforked for the release candidate: jBTC first, jETH added to the running deployment later.
+// the refork's genesis and the built commit are pinned once known
+PROFILES.lark4rc={...PROFILES.next,chainName:'Lark 4 Hydration',deployment:'lark4-20261030',
+ genesis:'0x6b320d1e88d14f43170286b3b4b4ed2dedc33e35b21bc6246388fae46f8ea564',commit:'6c6c772eb9eda1ea88b72a6dd66c7985a55cc8a9',
+ rpc:'https://node4.lark.hydration.cloud',ws:'wss://node4.lark.hydration.cloud',
+ gateway:{rpc:'https://4.lark.hydration.cloud',ws:'wss://4.lark.hydration.cloud'},
+ names:{...PROFILES.lark0.names,vaults:{TBTC:PROFILES.lark0.names.vaults.TBTC}},collateral:{TBTC:TOKENS.TBTC},
+ depositor:{...PROFILES.lark0.depositor,usd:{TBTC:100000},caps:{TBTC:15n*10n**17n}},
+ stack:{keeperRpcUrls:['https://node4.lark.hydration.cloud','https://4.lark.hydration.cloud'],
+  keeperEnv:PROFILES.lark0.stack.keeperEnv,bots:PROFILES.lark0.stack.bots}};
+// lark 0 reforked 2 nov from mainnet #16,544,945 to run the mainnet launch itself: launch-deploy.mjs, the
+// one launch referendum and readiness, with only lark-only steps around them. jETH on GIGAETH alone
+PROFILES.lark0eth={...PROFILES.next,chainName:'Lark 0 Hydration',deployment:'lark0-20261102',launch:true,
+ genesis:'0xa637c6bb6f61286b935b883bf5c6f9dbb00aa34054d0558952f9e7284e580a2a',commit:'d91480c91a00b24b71c26396c0412a7a3af5815c',
+ rpc:'https://node0.lark.hydration.cloud',ws:'wss://node0.lark.hydration.cloud',
+ artifactDir:'/home/mrq/git/juicer-wt/artifacts/juicer-london-d91480c',
+ adapterArtifact:'/home/mrq/git/juicer-wt/artifacts/hydra-augustus-london/HydraAugustus.sol/HydraAugustus.json',
+ names:{...PROFILES.lark0.names,vaults:{ETH:PROFILES.lark0.names.vaults.ETH}},collateral:{ETH:GIGAETH},
+ // the launch referendum sets pool 143's fee; no lark step may apply it first
+ primePool:{...PROFILES.lark0.primePool,feePpm:null},
+ depositor:{...PROFILES.lark0.depositor,usd:{ETH:100000},caps:{ETH:100n*10n**18n}},
+ stack:{keeperRpcUrls:['https://node0.lark.hydration.cloud','https://0.lark.hydration.cloud'],
+  keeperEnv:PROFILES.lark0.stack.keeperEnv,bots:PROFILES.lark0.stack.bots}};
 // the least PRIME lane cap (bps) inside a profit-seeking arb's band: the pool rests up to its fee
 // plus the arb's profit off the oracle, the loop pays the fee again, and a bp each goes to its own
 // impact and an unmatched intent's solver haircut
@@ -119,7 +142,7 @@ export function resolveProfile(name='lark4',env={}){
  // lark 4's state files predate the rename and keep their names
  const prefix=p.statePrefix??'juicer';
  return Object.freeze({
-  name,legacy:!!p.legacy,chainName,genesis:open(p.genesis,'LARK_GENESIS'),deployment:d,commit:open(p.commit,'LARK_COMMIT'),
+  name,legacy:!!p.legacy,launch:!!p.launch,chainName,genesis:open(p.genesis,'LARK_GENESIS'),deployment:d,commit:open(p.commit,'LARK_COMMIT'),
   rpc,ws,gateway,
   journal:join(dir,`${prefix}-lark-${d}.json`),prices:join(dir,`${prefix}-lark-prices-${d}.json`),
   manifest:join(dir,`${prefix}-lark-manifest-${d}.json`),bringUp:join(dir,`${prefix}-lark-bringup-${d}.json`),

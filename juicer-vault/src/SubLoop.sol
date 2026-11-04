@@ -15,6 +15,7 @@ import {SubLoopStorage, SubLoopLogic} from "./lib/SubLoopLogic.sol";
 interface ISourceYieldVault {
     function burnYieldShares(uint256 shares) external;
     function yieldAccounting() external view returns (address);
+    function collateral() external view returns (address);
 }
 
 /// @title SubLoop
@@ -54,6 +55,7 @@ contract SubLoop is ISubLoop, SubLoopStorage {
     event FreedPulled(address indexed vault, uint256 hollar);
     event Harvested(uint256 surplus);
     event RebalanceBandSet(address indexed vault, uint16 targetGapBps, uint16 releverGapBps, uint16 deleverGapBps);
+    event ExitHeadroomSet(address indexed vault, bool enabled, uint16 gapBps);
 
     error ZeroAmount();
     error ZeroAddress();
@@ -490,8 +492,28 @@ contract SubLoop is ISubLoop, SubLoopStorage {
         bool bounded = releverGap != 0 && deleverGap != 0 && targetGap <= 5_000 && releverGap <= 5_000
             && deleverGap <= 2_500;
         if (!hasRole(VAULT_ROLE, vault) || !(reset || bounded)) revert InvalidParameters();
+        if (!reset) {
+            // the delever point stays under the collateral's liquidation threshold
+            uint256 config = pool.getConfiguration(ISourceYieldVault(vault).collateral());
+            uint256 target = config & 0xFFFF;
+            target = target > targetGap ? target - targetGap : 0;
+            if (target + deleverGap >= (config >> 16) & 0xFFFF) revert InvalidParameters();
+        }
         _rebalanceBands[vault] = RebalanceBand(targetGap, releverGap, deleverGap);
         emit RebalanceBandSet(vault, targetGap, releverGap, deleverGap);
+    }
+
+    /// @notice a vault's exits settle from its LTV headroom, without selling the loop, while its LTV
+    /// after the exit stays at or under the collateral's max LTV less `gapBps`
+    function setExitHeadroom(address vault, bool enabled, uint16 gapBps) external onlyRole(ADMIN_ROLE) {
+        if (!hasRole(VAULT_ROLE, vault) || gapBps > 10_000) revert InvalidParameters();
+        _exitHeadroom[vault] = ExitHeadroom(enabled, gapBps);
+        emit ExitHeadroomSet(vault, enabled, gapBps);
+    }
+
+    function exitHeadroom(address vault) external view returns (bool enabled, uint16 gapBps) {
+        ExitHeadroom memory headroom = _exitHeadroom[vault];
+        return (headroom.enabled, headroom.gapBps);
     }
 
     /// @notice set the carry recipient; can't be zeroed, which would silently stop harvests.

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {readFileSync, writeFileSync, existsSync} from 'node:fs';
-import {artifact, artifactDir, artifactManifest, maxTransactionGas} from './native-artifacts.mjs';
+import {artifact, artifactDir, artifactManifest, maxTransactionGas, budgetArgs} from './native-artifacts.mjs';
 const require = createRequire(import.meta.url);
 const {ApiPromise, WsProvider} = require('@polkadot/api');
 const {createPublicClient, createWalletClient, http, parseAbi, encodeFunctionData, encodeDeployData, keccak256, stringToHex} = require('viem');
@@ -112,7 +112,8 @@ try {
   await ws.send('dev_setBlockBuildMode', ['Instant']);
   // Refresh the mutable implementations and Harvester to the final artifacts
   // before exercising the controller against the funded local campaign.
-  const implementation = await deploy('SubLoop', [], 'sourceImplementation');
+  const sourceLogic = await deploy('SubLoopLogic', [], 'sourceLogic');
+  const implementation = await deploy('SubLoop', [sourceLogic], 'sourceImplementation');
   await send('source.currentImplementation', source, artifact('SubLoop').abi, 'upgradeTo', [implementation]);
   const compoundLogic = await deploy('CompoundLogic', [], 'compoundLogic');
   const vaultImplementation = await deploy('CollateralVault', [compoundLogic], 'vaultImplementation');
@@ -131,8 +132,8 @@ try {
   const expiry = previousExpiry && previousExpiry < 1_000_000_000_000n ? previousExpiry
     : (await pub.getBlock()).timestamp + 30n * 86400n;
   result.expiry = expiry.toString(); save();
-  await send(`entryBudget.${expiry}`, result.controller, ctl, 'configureBudget', [entry, hollar, 5000n * 10n ** 18n, 0n, expiry]);
-  await send(`harvestBudget.${expiry}`, result.controller, ctl, 'configureBudget', [harvest, prime, 100n * 10n ** 6n, 0n, expiry]);
+  await send(`entryBudget.${expiry}`, result.controller, ctl, 'configureBudget', budgetArgs(ctl, [entry, hollar, 5000n * 10n ** 18n, 0n], expiry));
+  await send(`harvestBudget.${expiry}`, result.controller, ctl, 'configureBudget', budgetArgs(ctl, [harvest, prime, 100n * 10n ** 6n, 0n], expiry));
   await send('entryLimit', result.controller, ctl, 'configureLimit', [source, hollar, aPrime, entry, 10n * 10n ** 18n, 1000n * 10n ** 18n]);
   const actions = [[source, 'SubLoop', 'pokeBorrow', []], [harvester, 'Harvester', 'harvest', [[]]]];
   for (const v of [vault, tbtcVault]) {
@@ -140,7 +141,7 @@ try {
     const decimals = await read(asset, parseAbi(['function decimals() view returns(uint8)']), 'decimals');
     const unit = 10n ** BigInt(decimals);
     const group = keccak256(stringToHex(`service:${v}`));
-    await send(`serviceBudget.${v}.${expiry}`, result.controller, ctl, 'configureBudget', [group, asset, unit, 0n, expiry]);
+    await send(`serviceBudget.${v}.${expiry}`, result.controller, ctl, 'configureBudget', budgetArgs(ctl, [group, asset, unit, 0n], expiry));
     await send(`serviceLimit.${v}`, result.controller, ctl, 'configureLimit', [ledger, asset, hollar, group, 1n, unit]);
     await send(`harvestLimit.${v}`, result.controller, ctl, 'configureLimit', [v, prime, asset, harvest, 1n * 10n ** 6n, 50n * 10n ** 6n]);
     actions.push([v, 'CollateralVault', 'deposit', [1n, account.address]], [v, 'CollateralVault', 'rebalance', []]);
@@ -228,7 +229,7 @@ try {
     // Test a reviewed local 200-PRIME batch, preserving the keeper cost rule,
     // oracle floors and quote tolerances. This is not a production size choice.
     const batched = keccak256(stringToHex('harvest-batched'));
-    await send('batchedHarvestBudget', result.controller, ctl, 'configureBudget', [batched, prime, 200n * 10n ** 6n, 0n, expiry]);
+    await send('batchedHarvestBudget', result.controller, ctl, 'configureBudget', budgetArgs(ctl, [batched, prime, 200n * 10n ** 6n, 0n], expiry));
     for (const v of [vault, tbtcVault]) {
       await send(`batchedHarvestLimit.${v}`, result.controller, ctl, 'configureLimit',
         [v, prime, await vr(v, 'asset'), batched, 1n * 10n ** 6n, 100n * 10n ** 6n]);

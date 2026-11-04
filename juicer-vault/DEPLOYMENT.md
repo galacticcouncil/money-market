@@ -1,6 +1,6 @@
 # Juicer Deployment Runbook
 
-**RC1 | 23 September 2026 | Production activation blocked**
+**Launch candidate, PR #89 | 4 November 2026 | Not deployed**
 
 Audience: deployment, governance and operations reviewers. Complete the
 [activation gates](docs/release-candidate.md#activation-gates) before authorizing
@@ -11,136 +11,130 @@ The [#62 ownership implementation](docs/pr62-completion-2026-10-02.md) requires
 a fresh, matching vault/source/Main/ownership/fee/Harvester stack. Its new source
 cost bases and reward ownership cannot be initialized by preserving old storage
 slots alone. Do not apply this runbook as an upgrade of funded older vaults.
-The next version (`juicer-next`) is fresh-deploy only as well: its yield
-accounting drops claims and changes storage.
+The current version is fresh-deploy only as well: its yield accounting drops
+claims and changes storage.
+
+The launch is three steps, in order: a deploy-only step that creates every
+contract with governance as admin, one Root referendum that lists, wires, funds
+and opens it, and a read-only readiness check before anything is announced.
+The deployer's only call after its creations hands the swap adapter to
+governance. The [review package](docs/external-review.md#8-deployment-and-launch)
+describes the same process for reviewers.
 
 **Check individual EVM outcomes.** `dispatcher.dispatchAsAaveManager` can report
 reverts as `ExecutedFailed` events while the enclosing extrinsic succeeds.
 Inspect every dispatched result and run the read-only readiness checker;
 referendum enactment alone is not wiring verification.
 
-## 1. Prepare the Deployment Manifest
+## 1. Prepare the Inputs
 
 Record the exact commit, compiler settings, dependency pins, runtime version,
-chain block/hash and all reviewed addresses and parameters. Use `hdx.tarn`
-for Hydration reads and fresh Chopsticks rehearsals.
+chain block/hash and all reviewed addresses and parameters. Use an archive node
+for reads and fork rehearsals.
 
-| Required input              | Verification                                                                                                                                                                                                      |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Deployer and gas funding    | Contract-deployer authorization and actual EVM fee funding on the target chain. Do not assume historical testnet whitelist behavior.                                                                              |
-| Pool and token addresses    | Read live reserve data for collateral, collateral aTokens, HOLLAR debt, PRIME and aPRIME. Override script defaults explicitly.                                                                                    |
-| Governance and committee    | Actual dispatch/execution addresses, not member wallets or keeper keys. Record all admin, upgrader and guardian assignments.                                                                                      |
-| Synthetic reserve           | Available asset ID, registration, $1 oracle, approved LTV/LT, disabled borrowing and correct receipt token. The proposal uses 1% LTV and 98% LT; Main sizing uses real collateral, not synthetic borrowing power. |
-| Runtime routes              | Regenerate router references with `scripts/juicer/gen-router-reference.mjs`; confirm pallet indices and SCALE encoding.                                                                                        |
-| Swap adapter                | Deploy and review the production HydraAugustus implementation and required sell routes; map PRIME 43, HOLLAR 222, GIGAETH 4200 and tBTC 1000765 with `setAssetId` before handing it to governance. No governance-address placeholder in an activated vault.                                                                  |
-| PRIME pricing and liquidity | Approve source provenance/freshness, Aave and pool-peg wiring, executable inventory and funded replenishment. See [pricing validation](docs/prime-pricing-replenishment.md).                                      |
-| Execution and admission     | Approve floors, nonzero tranches, deposit/ramp limits and harvest sizing. `deployTranche` does not cap initial/upward source deposits.                                                                            |
-| Rounding and bootstrap      | Fund locked initial shares and per-vault collateral reserves; verify native minimum balances and custody dust protection.                                                                                         |
-| Fees and discounts          | Configure fee controller/recipient, per-vault rates, discount controller/committee and explicit approved discount. Defaults are not policy approval.                                                              |
+| Required input              | Where it is set and how it is checked                                                                                                                                                                    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deployer and gas funding    | A contract-deployer authorization and EVM fee funding on the target chain. `launch-deploy.mjs` refuses an unauthorized deployer. The key is read from `JUICER_DEPLOYER_KEY_FILE`, a path, never the key. |
+| Pool and token addresses    | `scripts/juicer/launch-manifest.mjs` pins the pool, HOLLAR and its debt token. `launch-deploy.mjs` reads aPRIME, the Aave treasury and each collateral's aToken from the pool; it refuses another HOLLAR debt token or a collateral without a reserve. |
+| Governance and committee    | `GOV` (the pool admin's EVM origin, reached through `dispatchAsAaveManager`) and `COMMITTEE` in `launch-manifest.mjs`: execution addresses, not member wallets or keeper keys.                          |
+| Vaults                      | `VAULTS` in `launch-manifest.mjs`: jETH on GIGAETH (4200, stableswap pool 4200's aETH/wstETH share) with a 44.4 GIGAETH TVL cap (`JUICER_TVL_CAP_ETH` overrides it). `JUICER_LAUNCH_VAULTS` selects them (default `ETH`); jBTC on tBTC (1000765) needs a later referendum. |
+| Synthetic reserve           | The referendum registers asset 5550 (`JUICER_SYNTH_ASSET_ID`) and lists it with 1% LTV, 98% LT, borrowing off and the $1 source. Main sizing uses real collateral, not synthetic borrowing power.      |
+| Runtime routes and indices  | Regenerate router references with `scripts/juicer/gen-router-reference.mjs`. `DcaDispatch` pins `router.sell` (67/0) and `intent.submitIntent`/`removeIntent` (98/0, 98/1); readiness checks them.    |
+| Swap adapter                | The pinned HydraAugustus build from its own repository (`JUICER_ADAPTER_ARTIFACT`). The deploy hands it to governance; the referendum maps PRIME 43, HOLLAR 222 and each collateral with `setAssetId`. |
+| PRIME pricing and liquidity | Approve source provenance/freshness, Aave and pool-peg wiring, executable inventory and funded replenishment. See [pricing validation](docs/prime-pricing-replenishment.md).                            |
+| Launch values               | `NEXT` and `LAUNCH` in `scripts/juicer/next-governance.ts`, the constants in `tasks/proposals/juicer.ts` and `launch-manifest.mjs`, most with an environment override. See the [launch values](docs/external-review.md#launch-values). |
+| Keepers                     | `LAUNCH.keepers` in `next-governance.ts`, two addresses; `JUICER_KEEPERS` replaces them. The referendum grants each `KEEPER_ROLE` on the loop and `DEPOSIT_GUARDIAN_ROLE` on each vault, and nothing else. |
+| Treasury funding            | The referendum pays the bootstrap, the rounding reserve, the protocol reserve and the loop's callback fees from the treasury. Collateral the treasury lacks it buys first, in the same referendum: `LAUNCH.treasuryBuy`, an exact-out `router.buy` with HOLLAR along the router's stored route, the gap plus 20%, for at most 50% over the runtime's quote at planning (`JUICER_TREASURY_BUY_FROM`, `_ROUTE`, `_MARGIN_BPS`, `_SLIPPAGE_BPS`). |
 
-Legacy deployment scripts contain testnet defaults. Never reuse a historical
+The forge scripts in `script/` are an earlier deployment path and contain
+testnet defaults; the launch does not use them. Never reuse a historical
 `.env`, address registry or placeholder as an approved production manifest.
 Keep signing secrets outside tracked files and archived evidence.
 
-## 2. Deploy and Bind
+## 2. Build
 
-Initialize the pinned `bil-vault/lib` dependencies and build with the
-[documented settings](README.md#build-and-test). Run serially against the same
-artifact directory. Recheck EIP-170 against the exact final artifacts; the
-[current validation record](docs/pr62-completion-2026-10-02.md) supersedes earlier
-runtime sizes. Deploy from the checkout you will [verify](#verify-on-neckwork)
-from, and keep its `broadcast/` run files: they are the deployment record.
-
-From `juicer-vault`, the core deployment order is:
+From `juicer-vault`, after initializing the pinned `bil-vault/lib` submodules
+([build and test](README.md#build-and-test)):
 
 ```sh
-forge script script/DeploySynth.s.sol:DeploySynth --rpc-url "$RPC" --evm-version london
-forge script script/DeployMain.s.sol:DeployMain --rpc-url "$RPC" --evm-version london
-forge script script/DeployVaultTBTC.s.sol:DeployVaultTBTC --rpc-url "$RPC" --evm-version london
+forge build src ../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol \
+  --offline --evm-version london --skip test --skip script --sizes \
+  --out out-production --cache-path cache-production --build-info
 ```
 
-These are simulation commands, not a single automatic deployment sequence.
-Each script requires its documented environment; later scripts consume addresses
-from the earlier actual deployment. Only an approved deployment adds
-`--broadcast --legacy --slow`, after reviewing each transaction's native gas
-estimate and signed gas allowance. Do not copy a fixed multiplier: native storage
-growth charging can exceed Forge's EVM estimate, while runtime 447 enforces a
-16,777,216 gas cap per transaction. Even a 20% margin on the native vault creation
-estimate can exceed that cap. The local native harness uses `eth_estimateGas`
-with a 10% creation margin and checks the cap before submission.
-`DeployMain` deploys jETH ("Juicer ETH") on GIGAETH, asset 4200 (pool 4200's
-share), with aToken aGETH; `GIGAETH` and `AGETH` override them. The tBTC script
-deploys jBTC ("Juicer BTC") on tBTC and reuses the recorded CollateralVault
-implementation.
+This is the production build CI runs. Besides `src` it compiles the
+OpenZeppelin `ERC1967Proxy` that `launch-deploy.mjs` deploys for the loop and
+each vault; a build of `src` alone does not emit it. Recheck EIP-170 in the size
+table against these exact artifacts.
 
-Continue in dependency order:
+`foundry.toml` supplies Solc 0.8.22, via IR and optimizer 200; the London
+override is required, and the deploy refuses an artifact built for another EVM
+version. Forge auto-detects remappings for `../bil-vault/lib` as absolute paths
+and every contract's metadata hash covers them, so only the deploy checkout's
+path and submodule layout reproduce the deployed bytecode exactly. Neckwork
+publishes those paths with the source: deploy from a neutral path that names no
+person.
 
-1. Deploy one [Main debt ledger](script/DeployMainDebt.s.sol) per fresh vault
-   using `MAIN_DEBT_VAULT`. Execute the printed governance `setMainDebt` call.
-   The ledger constructor also creates that vault's immutable yield-ownership
-   module; `setMainDebt` binds it to the vault. Verify all three addresses agree.
-   The ledger requires no sponsored HOLLAR funding.
-2. Deploy and bind the [fee controller](script/DeployFees.s.sol) after the ledger
-   binding. Register every vault and verify the recipient and 5% initial rate.
-3. Deploy and install the [Main discount controller](script/DeployDiscount.s.sol)
-   through its separate governance batch. See [discount installation](docs/main-borrow-discount.md).
-4. Complete source/harvester roles, native custody protection, routes and reserve
-   wiring before the controlled bootstrap.
+## 3. Deploy Only
 
-Record implementation and proxy addresses, the constructor-created
-`CompoundLogic` helper, each Main ledger and its ownership module, adapter, controllers and
-harvester. Compare deployed bytecode and proxy slots to the final artifacts;
-deployment success alone is insufficient.
+From the repository root:
 
-Missing roles or ledger/reserve bindings can make deposits revert. Other unset
-parameters are unsafe rather than inert: zero tranche values disable caps, and
-zero compound slippage means exact oracle-relative execution, not a universal
-revert. Verify all settings explicitly.
+```sh
+JUICER_ARTIFACT_DIR=juicer-vault/out-production JUICER_ADAPTER_ARTIFACT=<HydraAugustus.json> \
+  JUICER_DEPLOYER_KEY_FILE=<key file> RPC=<eth rpc> \
+  node scripts/juicer/launch-deploy.mjs <manifest.json>
+```
+
+`WS` defaults to `RPC` over websockets. For jETH the script creates, in order:
+HydraAugustus, CompoundLogic, the vault implementation, SyntheticToken,
+SubLoopLogic, the SubLoop implementation and proxy, Harvester,
+JuicerFeeController (recipient: the Aave treasury), ExecutionController (60 s,
+5 blocks), JuicerDiscount, the jETH proxy and its JuicerMainDebt. It then hands
+HydraAugustus to governance; a two-step adapter leaves `acceptOwnership` to the
+referendum.
+
+Each creation is estimated with a 10% margin and checked against the 2²⁴ gas a
+Hydration transaction carries, initcode against EIP-3860 and the runtime against
+EIP-170 and its artifact outside immutables. The manifest records every
+creation and call, so a rerun resumes where the last one stopped and refuses
+code that changed since. At the end it checks that the deployer holds none of
+the nine roles anywhere, governance holds every admin role and the committee the
+discount's rate role, the proxies point at their implementations with no proxy
+admin, the implementations refuse `initialize`, the Main ledgers are not bound
+yet, and the deployer sent nothing unrecorded.
+
+JuicerDiscount binds the synthetic's aToken before the reserve exists, at the
+pool configurator's next creation. Any listing enacted before the referendum's
+`initReserves` moves that address. If it lands before the proposal is generated,
+`juicer.ts` refuses to emit and a rerun of the deploy creates a new discount for
+the new prediction; if it lands later, readiness fails the aToken binding
+([recovery](docs/external-review.md#5-known-issues-and-accepted-risks)).
+`--fork` deploys with a public dev key to local endpoints only, for rehearsals.
 
 ### Verify on Neckwork
 
-Before submitting the governance proposal, verify every deployed contract on the
+Before submitting the referendum, verify every deployed contract on the
 [Neckwork explorer](https://hydration-explorer.neckwork.net), which indexes
 Hydration mainnet (chain 222222) only. In the deploy checkout, at the deploy
-commit (`commit` in each broadcast run file), rebuild the production artifacts
-with build-info, then the proxy into the same directory:
+commit and with the build from step 2, review the dry run, submit, then confirm:
 
 ```sh
-forge build --offline --evm-version london --skip test --skip script --sizes \
-  --out out-production --cache-path cache-production --build-info
-forge build ../bil-vault/lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol \
-  --offline --evm-version london --out out-production --cache-path cache-production --build-info
+node scripts/juicer/verify-contracts.mjs <manifest.json> --out juicer-vault/out-production --out <adapter build>
+node scripts/juicer/verify-contracts.mjs <manifest.json> --out juicer-vault/out-production --out <adapter build> --live
+node scripts/juicer/verify-contracts.mjs <manifest.json> --check
 ```
 
-`foundry.toml` supplies Solc 0.8.22, via IR and optimizer 200; the London
-override is required. From the same checkout these builds are byte-identical to
-what `forge script` deploys. Forge auto-detects remappings for `../bil-vault/lib`
-as absolute paths and every contract's metadata hash covers them, so only the
-deploy checkout's path and submodule layout reproduce the deployed bytecode
-exactly. Neckwork publishes those paths with the source: deploy from a neutral
-path that names no person.
+The script reads the manifest's creations and the helpers it records. The
+manifest keeps no init code, so each contract is matched by name against the
+build-info (`unchecked`) and submitted without its creation transaction:
+Neckwork matches the runtime code. HydraAugustus needs its own repository's
+build with build-info as a second `--out`. `--live` skips verified addresses,
+stays within Neckwork's ten submissions a minute, polls every job and resumes
+when rerun. It exits nonzero until every contract verifies.
 
-From the repository root, review the dry run, submit, then confirm:
-
-```sh
-node scripts/juicer/verify-contracts.mjs juicer-vault/broadcast
-node scripts/juicer/verify-contracts.mjs juicer-vault/broadcast --live
-node scripts/juicer/verify-contracts.mjs juicer-vault/broadcast --check
-```
-
-The script reads every chain-222222 run file and the contracts their constructors
-created (Forge records them; `--rpc` reads the getters otherwise). It compares each
-creation input with `out-production` (`exact`, `partial` when only the metadata
-hash differs, or `mismatch`) and submits the contract's own source closure,
-compiler version and creation transaction. `--live` skips verified addresses,
-stays within Neckwork's ten submissions a minute, polls every job and resumes when
-rerun. It exits nonzero until every contract verifies.
-
-Proxies and implementations are verified separately: each `ERC1967Proxy` against
-the proxy build, each implementation against the production build. The vault
-implementation's `CompoundLogic` and each Main ledger's `JuicerYieldAccounting`
-are created in constructors. Neckwork rejects the parent's creation transaction
-for them, so they match on runtime code alone.
+Each `ERC1967Proxy` verifies against the proxy in the same build, and each Main
+ledger's constructor-created `JuicerYieldAccounting` from its address in the
+manifest.
 
 On `mismatch` or a failed job, stop before the proposal. Rebuild from the deploy
 commit into clean `out-production` and `cache-production`; check the EVM version,
@@ -148,98 +142,86 @@ via IR, optimizer runs and Solc version against the manifest; check
 `git submodule status` and the checkout path. A `partial` result verifies the code
 but not its metadata; only a rebuild in the deploy checkout matches exactly.
 
-## 3. Generate and Rehearse Governance Wiring
+## 4. One Root Referendum
 
-The [proposal task](../tasks/proposals/juicer.ts) generates preimages, not an
-automatic approved deployment. Its ordered groups are:
-
-| Group                | Purpose                                                                                                                             |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 0: compound routes   | PRIME-to-collateral and collateral-to-HOLLAR routes. Empty route bytes resolve through runtime route storage. Mainnet stores no PRIME↔ETH or PRIME↔tBTC route and PRIME is not in the Omnipool: store routes composed from the HOLLAR legs and the PRIME pool, or harvests cannot route. |
-| 1: list reserve      | Register the synthetic native asset before initializing its Aave reserve.                                                           |
-| 2: configure reserve | Apply approved synthetic collateral settings, disable borrowing and install the $1 source.                                          |
-| 3: wire              | Source/vault/harvester roles, tranches, route IDs, swapper, compound floor, withdrawal delay, guardians and funded rounding policy. |
-| 4: next version      | `JUICER_KEEPERS` get SubLoop `KEEPER_ROLE` (quoted pokes) and each vault's `DEPOSIT_GUARDIAN_ROLE` (`setDeficitStop` only; pause stays with governance and the committee); `setParams` with `JUICER_HARVEST_THRESHOLD` (default 2e14) keeping the other three; `configureIntents` (`JUICER_INTENT_TTL` seconds, default 300; `JUICER_INTENT_DRIFT_BPS`, default 2) and `configureAsync` on the loop's entry and unwind lanes of `JUICER_EXECUTION_CONTROLLER`, which must already carry their limits. |
-| 5: protocol reserve  | Optional: `fundReserve` of `JUICER_RESERVE_HOLLAR` on each Main ledger, from the governance caller's own HOLLAR (`JUICER_RESERVE_SOURCE=admin`, prefunded) or minted from its facilitator bucket (`mint`). |
-
-Mainnet stores no PRIME↔GIGAETH route either. Group 0's defaults compose PRIME →
-GIGAETH from pool 143 and the stored HOLLAR → aGETH (420) → GIGAETH route; the
-collateral-to-HOLLAR defaults reverse stored routes, so the batch skips them.
-
-Groups 4 and 5 read the deployed contracts and emit only missing calls; they
-refuse contracts without the next version's surface. Main-ledger binding, fee
-installation, discount installation and the execution controller's budgets and
-lanes must also be verified; do not assume these groups include every external
-prerequisite.
-Splitting the batches avoids the historically observed scheduler weight limit,
-but each final batch still needs current weight and execution checks.
-
-The next version needs three more governance calls outside those groups
-([plan §6](docs/next-version-plan.md#6-deployment-and-parameters)):
-
-- grant `DEPOSIT_GUARDIAN_ROLE` on every vault to each keeper signer, and
-  nothing else; the role only sets `deficitStop`;
-- fund each Main ledger's protocol reserve with `fundReserve` (1,000 HOLLAR per
-  vault in the plan); it covers realized exit shortfalls only;
-- set the source's `harvestThreshold` through `setParams` (2e14, about 0.02%, in
-  the plan; `initialize` leaves 1e15). `setParams` rewrites all four
-  parameters, so pass the other three at their live values.
-
-Neither the proposal task nor the readiness checker covers them yet; verify them
-by reading state. The plan also sizes the mainnet PRIME lanes from pool 143's
-depth at deploy.
-
-Provide `JUICER_SYNTH`, `JUICER_SUBLOOP`, `JUICER_HARVESTER`,
-`JUICER_VAULTS`, `JUICER_SWAPPER`, `JUICER_GUARDIAN`,
-`JUICER_FEE_CONTROLLER`, explicitly approved `JUICER_SLIPPAGE_PPM`,
-tranche/compound settings and `JUICER_ROUNDING_RESERVES`.
-The rounding policy requires one funded entry per vault; see the
-[keeper policy format](looper/README.md). Review optional route overrides and
-the per-vault withdrawal delay before generating:
+From the repository root:
 
 ```sh
-npx hardhat juicer --network hydration
+JUICER_MANIFEST=<manifest.json> JUICER_PLAN_OUT=<plan.json> \
+  RPC=<eth rpc> MARKET_NAME=Hydration HARDHAT_NETWORK=hydration npx hardhat juicer
 ```
 
-Rehearse the exact governance calls on a fresh local fork before submission.
-Inspect every EVM event and permission change, including removal of unintended
-deployer authority.
+The [proposal task](../tasks/proposals/juicer.ts) reads the manifest and the
+chain, then plans only what the chain lacks, so a rerun after enactment proposes
+nothing. The keepers are the launch's two unless `JUICER_KEEPERS` names others.
+Its steps, in order:
 
-## 4. Bootstrap and Verify Readiness
+| Step      | Calls                                                                                                                                                                                                                                 |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| chain     | pool 143 fee to 1 bp; the harvest and servicing routes the router lacks; the synthetic registered as ERC20 asset 5550, then `initReserves`, its collateral settings and the $1 source; each share registered as a sufficient ERC20 asset |
+| custody   | duster whitelist for the loop, Harvester, fee controller, each vault, Main ledger and yield accounting, and the adapter                                                                                                                 |
+| funding   | collateral the treasury lacks bought first (exact out, with HOLLAR); from the treasury to governance's account: collateral for rounding and the bootstrap, HOLLAR for the reserves; the loop's fee currency reset to WETH, with WETH and HDX for its ICE callbacks |
+| wire      | loop tranches, route and Harvester; the Harvester's fee controller; per vault `MINTER_ROLE`, `VAULT_ROLE`, `setMainDebt`, fee controller and registration, Harvester, compound slippage, withdrawal delay; the committee's `GUARDIAN_ROLE`; the adapter's asset ids |
+| execution | budgets, pacing, lane limits and price caps, the quote entrypoints, then `setExecutionController` on the loop, Harvester and vaults                                                                                                     |
+| discount  | JuicerDiscount installed on the HOLLAR debt token; each vault's `setDiscountController` and registration; `registerLoop` with its cap                                                                                                  |
+| next      | the keepers' roles, harvest threshold, ICE and async lanes, bands, admission, headroom exits, the revenue mix                                                                                                                         |
+| reserve   | `fundReserve` on each Main ledger                                                                                                                                                                                                     |
+| rounding  | each vault's rounding reserve, sized from the collateral's existential deposit                                                                                                                                                         |
+| open      | governance's bootstrap deposit, last, sized in the collateral's decimals                                                                                                                                                               |
 
-Keep public deposits closed throughout rehearsal and bootstrap.
+The calls pack into batches of at most 40% of the scheduler's maximum block
+weight (`JUICER_BATCH_WEIGHT_PCT`), by measured weight. Batch 0 runs at
+enactment and schedules each later batch with `scheduler.scheduleAfter`, one
+block each. A failed batch does not stop the next one. The task prints each
+batch, the proposal and its hash; `JUICER_PLAN_OUT` keeps the plan, including
+the execution policy and launch values readiness needs.
+`JUICER_FUNDING_SOURCE=admin` funds from a prefunded governance account instead
+of the treasury.
 
-1. Verify pre-bootstrap wiring, routes, role assignments, oracle inputs,
-   custody protection and the funded rounding reserve.
-2. Governance makes the first approved deposit, funding the locked bootstrap
-   shares. Public users must not bear that cost.
-3. Confirm PRIME is enabled as source collateral and loop equity is recognized.
-   Funding now enables collateral directly; ramping is **not** a prerequisite
-   for an unlevered unwind.
-4. Ramp only within approved native execution and liquidity budgets.
-5. Run the full readiness checker after bootstrap. Its positive-equity and
-   initial-share checks intentionally fail on an unseeded deployment.
+The treasury buy is planned only while the treasury holds less than the
+transfers need, so a rerun, or a treasury funded beforehand, plans none. Its
+bound comes from the runtime's own price for the same buy, a dry run as the
+treasury when the proposal is generated; no route or a failing dry run stops the
+task. The bound is wide on purpose: the buy executes a week or more later, after
+the vote, and ETH moves in between. On the ~0.006 GIGAETH it buys, the most it can
+overpay is about $7; a buy that fails anyway leaves the transfer, and with it the
+bootstrap, failed as events and the vault closed until another referendum.
+Because the quote moves with every block, publish the bound with the proposal:
+`JUICER_TREASURY_BUY_MAX_IN=<the planned maxAmountIn>` makes a later run plan the
+same call, and so the same preimage, while that bound still covers the quote.
 
-Use the complete environment documented at the top of
-[verify-readiness.ts](../scripts/juicer/verify-readiness.ts). It includes fee
-and discount controllers/recipient/committee, explicit discount/slippage values
-and the rounding policy, not just vault addresses. The group 4 and 5 inputs
-(`JUICER_KEEPERS`, `JUICER_HARVEST_THRESHOLD`, `JUICER_INTENT_TTL`,
-`JUICER_INTENT_DRIFT_BPS`, `JUICER_RESERVE_HOLLAR`) add their checks,
-including that no keeper can pause or administer a vault.
+Rehearse the exact proposal on a fork of mainnet before submission
+([mainnet-fork rehearsal](docs/external-review.md#mainnet-fork-launch-rehearsal)):
+`scripts/juicer/launch-rehearsal.mjs` enacts it, mines every scheduled batch and
+reports each block's EVM calls and failure events. Inspect every permission
+change, including the absence of deployer authority. Submit the proposal as one
+Root referendum.
+
+## 5. Verify Readiness
+
+After every scheduled batch has executed, from the repository root, with `WS`
+and `RPC` set:
 
 ```sh
+eval "$(node scripts/juicer/launch-manifest.mjs <manifest.json> <plan.json>)"
 npx ts-node --transpile-only --compiler-options '{"module":"commonjs"}' scripts/juicer/verify-readiness.ts
 ```
 
-The checker is read-only and exits nonzero on failure. Resolve every failed row;
-passing it does not replace independent review or prove sufficient market depth.
+The manifest supplies the addresses and the CompoundLogic code hash, the plan
+the approved execution policy and launch values. The checker is read-only and
+exits nonzero on failure: the runtime's pinned call indices, the synthetic's
+registration and reserve, bytecode, roles and wiring, execution limits, each
+vault's configuration, rounding and custody, the fee and discount bindings
+including the synthetic's aToken, the keepers, admission, bands and headroom
+exits, and the launch wiring. Loop equity passes after the first rebalance.
+Resolve every failed row before anything is announced; passing it does not
+replace independent review or prove sufficient market depth.
 
-## 5. Rehearse the Lifecycle and Operations
+## 6. Rehearse the Lifecycle and Operations
 
 Use the exact adapter, registry, policy and artifacts intended for deployment.
 
-- Both collateral vaults and multiple holders: deposit, ramp, harvest, fee claim,
+- Each launched vault and multiple holders: deposit, ramp, harvest, fee claim,
   Main interest service and source-funded Main resizing.
 - Withdrawal: request, wait until chain-time eligibility, `startUnwinds`,
   source repayment, `pokeSettle`, partial/final collateral claims and late
@@ -261,11 +243,14 @@ The existing native success used a labeled oracle-update fixture and external
 funding. A fresh unchanged-market acceptance run remains an activation gate.
 
 Start the keeper using the [operations runbook](looper/README.md), with
-`VAULT_ADDRESSES` covering every configured vault. Use one active sender per
+`VAULT_ADDRESSES` covering every configured vault. Its `ENTRY_MAX_COST_BPS`
+(default 25) keeps its entries well inside the loop's 50 bps on-chain floor;
+anyone's `pokeBorrow()` can still enter at the floor. Use one active sender per
 signing key to avoid nonce collisions. Arrange independent monitoring, a funded
-failover process and committee incident coverage. The keeper's only role is
-`DEPOSIT_GUARDIAN_ROLE`; without it a keeper still holds its ramp on a deficit
-and alerts, but cannot stop deposits.
+failover process and committee incident coverage. Without `KEEPER_ROLE` a keeper
+sends the permissionless pokes at the oracle floor; without
+`DEPOSIT_GUARDIAN_ROLE` it still holds its ramp on a deficit and alerts, but
+cannot stop deposits.
 
 ## Incident and Abort Checks
 

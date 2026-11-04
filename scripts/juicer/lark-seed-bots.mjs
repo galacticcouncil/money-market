@@ -21,6 +21,8 @@ const RAISES={'20261008-b':[[43,5000000]]};
 // a new lark starts with everything the lark 4 bots reported missing
 // a fresh fork's ENA window has used more of its fuse than lark 4's had
 PLANS.baseline=[...PLANS['20261008-a'],...PLANS['20261008-b']];RAISES.baseline=[...RAISES['20261008-b'],[38,100000]];
+// the loop buys ~4.2x its TVL in PRIME and lark 4's 500k float ran dry: the arb holds over 1M from the start
+PLANS.lark0eth=[...PLANS['20261008-a'].filter(([bot])=>bot!=='markets'),['markets',43,1000000]];RAISES.lark0eth=RAISES.baseline;
 const plan=PLANS[round];
 assert.ok(plan,`unknown round ${round}`);
 const c=await context();

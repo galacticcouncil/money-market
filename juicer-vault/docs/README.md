@@ -1,33 +1,33 @@
 # Juicer Team Documentation
 
-**9 October 2026 | Next version on `juicer-next`, PR #62 on Lark 4 | Production activation blocked**
+**3 November 2026 | Launch candidate: PR #89, `juicer-headroom-exits` into `propeller` | Production activation blocked**
 
 Juicer's current design uses harvest-time Main interest servicing,
 source-funded resizing and an earned PRIME execution allowance. It does not
-require sponsored HOLLAR operating capital. The candidate is on
-`prop_carry`. The [latest validation](deferred-deployment-validation-2026-10-04.md)
+require sponsored HOLLAR operating capital. The candidate is PR #89; its
+[review package](external-review.md) is the current reference. The
+[4 October validation](deferred-deployment-validation-2026-10-04.md)
 covers deferred deposits, shared swap controls, oracle price bounds and keeper
 size selection. The [Lark deployment record](lark-deployment-2026-10-07.md)
 covers the fresh-fork contracts, UI, hosted keepers, a mined and claimed
 harvest, and the bots that keep Lark's oracles, pool prices and trade flow in
 step with mainnet. Earlier reports retain their original artifact scope.
 
-The next version on `juicer-next` ([plan](next-version-plan.md)) enforces a
-50 bps Main-backing admission ceiling on-chain and retains the keepers'
-hysteretic `deficitStop`, allocates yield at events instead of on every transfer, and puts funded
-earnings in each holder's vault balance, so nothing is claimed. The
-specifications below describe it. ICE intents are replacing the router for
-entries, harvest swaps and normal exits, which become asynchronous, with the
-router kept for the safety de-lever; that work (track B) is still being
-integrated and not yet documented. The [new-Lark runbook](lark-next-runbook.md)
-brings the next version up on Lark 0.
+The current version ([plan](next-version-plan.md)) enforces an on-chain
+Main-backing admission ceiling (50 bps at initialize, 250 at launch) and retains
+the keepers' hysteretic `deficitStop`, allocates yield at events instead of on
+every transfer, and puts funded earnings in each holder's vault balance, so
+nothing is claimed. The specifications below describe it. The loop's entries
+and routine exits go out as ICE intents, asynchronously, with the router kept
+for the safety de-lever. The [new-Lark runbook](lark-next-runbook.md) brings it
+up on Lark 0.
 
 ## Start Here
 
 | Reader                      | Start with                                                                                                   | Outcome                                                                   |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
 | Everyone                    | [Architecture and user lifecycle](../README.md)                                                              | Understand the two debt positions, funding flows and user protections.    |
-| Release reviewers           | [RC1 scope and activation gates](release-candidate.md)                                                       | Separate verified behavior from work required before production.          |
+| Release reviewers           | [Review package](external-review.md), [RC1 scope and activation gates](release-candidate.md)                 | Separate verified behavior from work required before production.          |
 | Risk and governance         | [Principal and emergency policy](principal-safety.md), [Main servicing](main-debt-servicing.md)              | Review loss allocation, recovery funding and operating responsibilities.  |
 | Liquidity and oracle owners | [PRIME pricing and replenishment](prime-pricing-replenishment.md)                                            | Assess reference wiring, executable spreads and launch inventory.         |
 | Deployment and operations   | [Deployment runbook](../DEPLOYMENT.md), [keeper runbook](../looper/README.md)                                | Prepare exact artifacts, permissions, reserves, monitoring and rehearsal. |
@@ -37,16 +37,16 @@ brings the next version up on Lark 0.
 
 - Protect original principal in the deposited token, not its dollar value.
   Preserve unpaid claims and stop deposits while underfunded: every deposit
-  checks the live deficit and rejects it above 50 bps; keepers retain an earlier
-  hysteretic stop. Governance funds
+  checks the live deficit and rejects it above the admission bound (50 bps at
+  initialize, 250 at launch); keepers retain a hysteretic stop. Governance funds
   residual recovery; recording a claim does not make repayment liquid.
 - Yield, including previously compounded yield, may contribute to an emergency
   recovery. That requires explicit per-holder reconciliation and a reviewed
   execution path, not an unrestricted treasury withdrawal.
-- Withdrawals wait 12 hours by default before unwinding. Emergency freezes also
+- Withdrawals wait 12 hours by default (7 days at launch) before unwinding. Emergency freezes also
   block already-settled claims. Ordinary FIFO settlement is not all-holder
   emergency recovery.
-- Governance and the Technical Committee control the Main-only interest discount.
+- Governance and the Technical Committee control the Main and loop interest discounts.
   Governance sets per-vault harvest fees, initially 5%. Fees accrue in collateral
   and are permissionlessly payable to the configured treasury recipient.
 - Fresh after-fee harvests service Main interest. PRIME-loop unwind proceeds
@@ -103,8 +103,9 @@ proof of self-financing.
 
 ## Integration References
 
-- Integration branch: `propeller`; current RC work: `feat/propeller-interest-buffer`;
-  next version: `juicer-next`, stacked on `prop_carry`.
+- Integration branch: `propeller`; launch candidate: PR #89, `juicer-headroom-exits`.
+  The earlier `feat/propeller-interest-buffer`, `prop_carry` and `juicer-next`
+  branches are historical.
 - [PR #46](https://github.com/galacticcouncil/money-market/pull/46): umbrella integration; the agreed target is `hydration`.
 - [PR #60](https://github.com/galacticcouncil/money-market/pull/60): Main-servicing work; earlier buffer terminology is superseded by the current specification.
 - [PR #57](https://github.com/galacticcouncil/money-market/pull/57) and [PR #53](https://github.com/galacticcouncil/money-market/pull/53): discount/fee and accounting/yield-source review history.

@@ -51,6 +51,10 @@ abstract contract SubLoopStorage is
         uint128 outBase; // output balance after the loop's last transaction
     }
 
+    struct ExitHeadroom {
+        bool enabled;
+        uint16 gapBps;
+    }
     struct RebalanceBand {
         uint16 targetGapBps;
         uint16 releverGapBps;
@@ -113,6 +117,8 @@ abstract contract SubLoopStorage is
     PendingIntent public pendingIntent;
     uint16 internal _admissionMaxDeficitBps;
     mapping(address => RebalanceBand) internal _rebalanceBands;
+    // exits settled from a vault's LTV headroom instead of selling the loop; off until set
+    mapping(address => ExitHeadroom) internal _exitHeadroom;
 
     event Borrowed(uint256 amount, uint256 hfAfter);
     event Repaid(uint256 amount, uint256 hfAfter);

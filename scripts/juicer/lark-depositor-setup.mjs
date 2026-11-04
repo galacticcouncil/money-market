@@ -6,7 +6,9 @@ import assert from 'node:assert/strict';
 import {context,v,testAccount,live} from './lark-context.mjs';
 import {profile} from './lark-pins.mjs';
 import {buyQuote,buyMax,fundCalls,checkBuys,assertBought} from './lark-collateral.mjs';
-const USERS=8,USD={ETH:45000,TBTC:55000},CAP={ETH:25n*10n**18n,TBTC:10n**18n},ORACLE='0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760';
+// the plan's dollars and caps per vault come from the profile, the two-vault split by default
+const USERS=8,USD=profile.depositor?.usd??{ETH:45000,TBTC:55000},CAP=profile.depositor?.caps??{ETH:25n*10n**18n,TBTC:10n**18n},
+ ORACLE='0xAD33C0F0C42C5A0EAA65b5895D2BdB20cb6E8760';
 const c=await context();
 try{
  const {api,r,save,readSig,govEvm,enact,nativeAccount}=c;
@@ -44,10 +46,12 @@ try{
   const used=(await api.query.tokens.totalIssuance(id)).toBigInt()-state.asUnlocked[1].toBigInt();
   if(amount>limit-used)raises.push(api.tx.assetRegistry.update(id,null,null,null,(used+2n*amount).toString(),null,null,null,null));
  }
- const capAbi=v.parseAbi(['function setTvlCap(uint256)']);
+ const capAbi=v.parseAbi(['function setTvlCap(uint256)']),caps=[];
+ // a cap the deploy already set stays untouched
+ for(const x of r.vaults)if(await readSig(x.address,'function tvlCap() view returns(uint256)')!==CAP[x.name])caps.push(govEvm(x.address,capAbi,'setTvlCap',[CAP[x.name]],500000));
  const calls=[
   ...raises,
-  ...r.vaults.map(x=>govEvm(x.address,capAbi,'setTvlCap',[CAP[x.name]],500000)),
+  ...caps,
   ...users.flatMap((u,i)=>[api.tx.duster.whitelistAccount(u.who),
    api.tx.currencies.updateBalance(u.who,0,(10n*10n**12n).toString()),
    api.tx.currencies.updateBalance(u.who,20,(2n*10n**17n).toString()),

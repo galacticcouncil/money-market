@@ -16,7 +16,7 @@ import { LatestLog, newestInChunks, type EvidenceLog } from './log-evidence.js';
 import { SYNC_EVIDENCE, feedUpdate, syncDue, type FeedSeen } from './sync-policy.js';
 import { connectSubstrate, type Substrate } from './substrate.js';
 import {
-  ENTRY, EXIT, FILLED, RETURNED, WAITING, intentRoute, palletIntentId, quoteRate, submittedIntent,
+  ENTRY, EXIT, FILLED, RETURNED, WAITING, intentRoute, palletIntentId, quoteRate, submittedIntent, entryCostBps,
 } from './intent-policy.js';
 
 const hydration: Chain = {
@@ -87,6 +87,7 @@ const LEDGER_ABI = parseAbi([
   'function pendingSourceAccounting() view returns (bool)',
   'function sourceFees(uint256) view returns (uint256 yieldRemaining, uint256 feeRemaining)',
   'function surplusOf(uint256 id) view returns (uint256)',
+  'function positions(uint256 key) view returns (uint256 units, uint256 principal, uint256 cash, uint256 sourceRemaining, address owner)',
   'function claimSurplus(uint256 id) returns (uint256)',
 ]);
 
@@ -166,8 +167,10 @@ function nonpayable(name: string) {
 
 const WAD = 10n ** 18n;
 const MAX_NATIVE_TX_GAS = 1n << 24n; // EIP-7825; block gas can be higher.
+const INTENT_POKES = new Set(['pokeBorrowQuoted', 'pokeRepayQuoted', 'pokeBorrow', 'pokeRepay']);
 
-// safety, peg and settlement work run on every operator; optional quoted work rotates by operator slot
+// safety and peg work run on every operator, settlement too while no intent can be in flight; quoted work,
+// harvests, intent-mode settlement and syncs rotate by operator slot, rechecked right before each signature
 export class JuicerLooper {
   private publicClient: PublicClient;
   private account: ReturnType<typeof privateKeyToAccount>;
@@ -194,6 +197,7 @@ export class JuicerLooper {
   private synced?: Map<Address, bigint>;
   private rampHeld?: boolean;
   private mainServiceAttempt?: Map<Address, bigint>;
+  private duty = false;
 
   // drains a submitted transaction but never starts another write
   stop(): void { this.stopping = true; }
@@ -231,7 +235,8 @@ export class JuicerLooper {
     if (safetyAttempted) await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeRepay', 'pokeRepay (safety debt)');
     for (const vault of this.vaults) await this.poke(VAULT_ABI, vault, 'maintainPeg', `maintainPeg ${short(vault)}`);
     const time = await this.blockTimestamp();
-    const turn = operatorTurn(time, CONFIG.OPERATOR_SLOT_SECONDS, CONFIG.OPERATOR_COUNT, CONFIG.OPERATOR_INDEX);
+    const turn = operatorTurn(time, CONFIG.OPERATOR_SLOT_SECONDS, CONFIG.OPERATOR_COUNT, CONFIG.OPERATOR_INDEX,
+      CONFIG.OPERATOR_GUARD_SECONDS);
     const leverage = await this.readLeverage();
     console.log(
       `  HF ${fmtHf(hf)} → target ${fmtHf(target)}` +
@@ -310,7 +315,7 @@ export class JuicerLooper {
     if (turn && this.harvester && !paused && !emergency && frozen.size === 0) {
       try {
         if (await this.read(HARVESTER_ABI, this.harvester, 'harvestable')) {
-          harvested = await this.poke(HARVESTER_ABI, this.harvester, 'harvest', 'harvest (skim+distribute)', [[]]);
+          harvested = await this.onTurn(() => this.poke(HARVESTER_ABI, this.harvester, 'harvest', 'harvest (skim+distribute)', [[]]));
         }
       } catch (error) {
         console.error(`[ALERT] harvest preview failed: ${shortErr(error)}`);
@@ -326,7 +331,7 @@ export class JuicerLooper {
           && turn && !paused && !emergency && !frozen.has(vault)) {
         // in intent mode the borrow waits in the loop as cash and no trade is quoted: through
         // controller.execute an unquoted entry lane fits nothing, so rebalance goes direct
-        const changed = await this.poke(VAULT_ABI, vault, 'rebalance', `deploy/rebalance ${short(vault)}`, [], ttl !== 0);
+        const changed = await this.onTurn(() => this.poke(VAULT_ABI, vault, 'rebalance', `deploy/rebalance ${short(vault)}`, [], ttl !== 0));
         rebalanced ||= changed;
       }
     }
@@ -336,32 +341,45 @@ export class JuicerLooper {
         && frozen.size === 0 && !servicing;
       const headroom = hf > (target * BigInt(Math.floor((1 + CONFIG.RAMP_HF_BUFFER) * 1e6))) / 1_000_000n;
       if (ttl === 0) {
-        if (ramp && headroom) await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeBorrow', 'pokeBorrow (ramp)');
+        if (ramp && headroom) await this.onTurn(() => this.poke(SUBLOOP_ABI, this.subLoop, 'pokeBorrow', 'pokeBorrow (ramp)'));
       } else if (ramp && !busy && (headroom || await this.idleHollar() > 0n)) {
         // deposits wait in the loop as cash until an entry carries them
-        await this.submitIntent(ENTRY);
+        await this.onTurn(() => this.submitIntent(ENTRY));
       }
       if (!safetyAttempted && !emergency && (unwind > 0n || pending.length > 0 || started)) {
         if (ttl === 0) await this.poke(SUBLOOP_ABI, this.subLoop, 'pokeRepay', 'pokeRepay (unwind/safety debt)');
-        else if (turn && !busy) {
+        else if (turn && !busy) await this.onTurn(async () => {
           // pullFreed rejects while an intent waits: pull the credited slices before the next one goes out
           await this.settle(pending);
           await this.submitIntent(EXIT);
-        }
+        });
       }
     }
     // Applying already freed funds is safe even while source swaps are paused.
-    // off duty mid-unwind, a settle lands behind the duty operator's next exit and reverts
-    if (turn || ttl === 0 || paused || emergency || unwind === 0n) await this.settle(pending);
-    if (turn) for (const vault of this.vaults) {
-      if (!pending.includes(vault) && !frozen.has(vault) && !unsettled.has(vault)) {
-        await this.serviceMainInterest(vault, time);
+    // off duty in intent mode a settle can land behind the duty operator's next exit and revert
+    if (turn) await this.onTurn(() => this.settle(pending));
+    else if (ttl === 0 || paused || emergency) await this.settle(pending);
+    if (turn) await this.onTurn(async () => {
+      for (const vault of this.vaults) {
+        if (!pending.includes(vault) && !frozen.has(vault) && !unsettled.has(vault)) {
+          await this.serviceMainInterest(vault, time);
+        }
       }
-    }
+    });
     // users only send withdraw: settled collateral and exit surplus are pushed to their owners
     for (const vault of this.vaults) await this.deliver(vault);
     // frozen vaults can't sync and unallocated ones wouldn't allocate
-    if (turn) await this.syncVaults(new Set([...frozen, ...unsettled]), time);
+    if (turn) await this.onTurn(() => this.syncVaults(new Set([...frozen, ...unsettled]), time));
+  }
+
+  private async onTurn<T>(work: () => Promise<T>): Promise<T> {
+    this.duty = true;
+    try { return await work(); } finally { this.duty = false; }
+  }
+
+  private async stillOnTurn(): Promise<boolean> {
+    return operatorTurn(await this.blockTimestamp(), CONFIG.OPERATOR_SLOT_SECONDS, CONFIG.OPERATOR_COUNT,
+      CONFIG.OPERATOR_INDEX, CONFIG.OPERATOR_GUARD_SECONDS);
   }
 
   private async settle(vaults: Address[]): Promise<void> {
@@ -564,7 +582,7 @@ export class JuicerLooper {
       // no intent to send, but an exit poke may still repay and free what a fill brought back
       if (!submitted) return kind === EXIT && await this.poke(quoted ? ICE_ABI : SUBLOOP_ABI, this.subLoop, fn, label, args, true);
       let rate = 0n;
-      if (quoted) {
+      if (quoted || kind === ENTRY) {
         try {
           rate = await this.routerQuote(sub, submitted.kind, submitted.amountIn);
           this.note('ice:quote');
@@ -575,12 +593,30 @@ export class JuicerLooper {
         }
         console.log(`  ${label}: ${submitted.amountIn} in, quote ${rate} per 1e18`);
       }
+      if (kind === ENTRY) {
+        const cost = await this.entryCost(rate);
+        if (cost > BigInt(CONFIG.ENTRY_MAX_COST_BPS)) {
+          console.log(`  ${label}: waits, it would pay ${cost} bps over the oracle (keeper limit ${CONFIG.ENTRY_MAX_COST_BPS})`);
+          return false;
+        }
+      }
       return await this.poke(ICE_SEND_ABI, this.subLoop, fn, label, quoted ? [rate] : [], true);
     } catch (error) {
       this.note('ice:probe', `[ALERT] ${name} intent probe failed, nothing submitted: ${shortErr(error)}`);
       this.substrate = undefined;
       return false;
     }
+  }
+
+  private async entryCost(rate: bigint): Promise<bigint> {
+    const prices = parseAbi(['function getAssetPrice(address) view returns (uint256)']);
+    const provider = await this.read([view('ADDRESSES_PROVIDER', 'address')], this.pool, 'ADDRESSES_PROVIDER') as Address;
+    const oracle = await this.read([view('getPriceOracle', 'address')], provider, 'getPriceOracle') as Address;
+    const [hollar, prime] = await Promise.all([this.read(ICE_ABI, this.subLoop, 'hollar'),
+      this.read([view('prime', 'address')], this.subLoop, 'prime')]) as [Address, Address];
+    const [pHollar, pPrime] = await Promise.all([this.read(prices, oracle, 'getAssetPrice', [hollar]),
+      this.read(prices, oracle, 'getAssetPrice', [prime])]) as [bigint, bigint];
+    return entryCostBps(rate, pHollar, pPrime);
   }
 
   private async routerQuote(sub: Substrate, kind: number, amountIn: bigint): Promise<bigint> {
@@ -721,7 +757,10 @@ export class JuicerLooper {
         const still = CONFIG.DELIVER_CLAIMS
           ? (await this.read(VAULT_ABI, vault, 'redemptions', [id]) as readonly unknown[])[8] as boolean
           : active && repaid < debtShare;
-        if (next === undefined && (still || owed)) next = id;
+        // surplus still on its way from the source is delivered once it lands
+        const arriving = !still && !owed
+          && ((await this.read(LEDGER_ABI, ledger, 'positions', [id + 1n]) as readonly unknown[])[3] as bigint) > 0n;
+        if (next === undefined && (still || owed || arriving)) next = id;
       }
       cursors.set(vault, next ?? id);
     } catch (error) {
@@ -953,15 +992,16 @@ export class JuicerLooper {
         console.log(`  ${label}: no useful work`);
         return false;
       }
-      // raw eth_estimateGas since viem drops the gas cap; the cap leaves room for the 20% margin
+      const margin = direct && INTENT_POKES.has(functionName) ? 100n + BigInt(CONFIG.INTENT_GAS_MARGIN_PCT) : 120n;
+      // raw eth_estimateGas since viem drops the gas cap; the cap leaves room for the margin
       const estimate = BigInt(await this.publicClient.request({method: 'eth_estimateGas', params: [{
         from: this.account.address, to: options.address,
         data: encodeFunctionData({abi: options.abi, functionName: options.functionName, args: options.args}),
-        gas: toHex(budget * 100n / 120n), gasPrice: toHex(gasPrice),
+        gas: toHex(budget * 100n / margin), gasPrice: toHex(gasPrice),
       }, 'latest']}));
-      const gas = (estimate * 120n + 99n) / 100n;
+      const gas = (estimate * margin + 99n) / 100n;
       if (gas > budget) {
-        console.error(`[ALERT] ${label}: gas estimate ${estimate} plus 20% margin exceeds budget ${budget}`);
+        console.error(`[ALERT] ${label}: gas estimate ${estimate} plus ${margin - 100n}% margin exceeds budget ${budget}`);
         return false;
       }
       if (functionName === 'harvest') {
@@ -990,6 +1030,11 @@ export class JuicerLooper {
       if (!hasWork((await this.publicClient.simulateContract({...options, gas})).result)) return false;
       if (fundedService && !await this.mainServiceWorthwhile(address, gas * gasPrice)) {
         console.log(`  ${label}: funded interest below minimum or gas budget`);
+        return false;
+      }
+      // the slot moves on during the awaits above; a duty write must still land inside it
+      if (this.duty && !await this.stillOnTurn()) {
+        console.log(`  ${label}: slot ending, left for the next turn`);
         return false;
       }
       // some gateways serve a stale pending nonce; keep ours monotonic

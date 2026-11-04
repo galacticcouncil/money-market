@@ -203,3 +203,16 @@ test('the next manifest marks GIGAETH\'s forked source, the one oracle the bots 
  assert.ok(m.oracles.slice(1).every(o=>!('mirror' in o)),'mirror rows keep their shape');
  assert.deepEqual([m.chainName,m.vaults.map(v=>v.assetId)],['Lark 9 Hydration',[4200,1000765]]);
 });
+
+test('lark4rc is the release candidate on node4, jBTC alone, its pins open until the refork', () => {
+ const p=resolveProfile('lark4rc',{LARK_DEPLOYMENT:'lark4-20261030'}),next=resolveProfile('next',{LARK_DEPLOYMENT:'x'});
+ assert.equal(p.legacy,false);
+ assert.deepEqual(p.collateral,{TBTC:{assetId:1000765,symbol:'tBTC'}});
+ assert.deepEqual([p.chainName,p.rpc,p.gateway.ws],['Lark 4 Hydration','https://node4.lark.hydration.cloud','wss://4.lark.hydration.cloud']);
+ assert.deepEqual(p.stack.keeperRpcUrls,['https://node4.lark.hydration.cloud','https://4.lark.hydration.cloud']);
+ assert.deepEqual([p.depositor.usd,p.depositor.caps],[{TBTC:100000},{TBTC:15n*10n**17n}]);
+ for(const k of ['peg','primeCap','primePool','primeLanes','hollarBucket'])assert.deepEqual(p[k],next[k],k);
+ assert.deepEqual(p.names.vaults,{TBTC:['Juicer BTC','jBTC']});
+ assert.deepEqual(p.names.synth,next.names.synth);
+ assert.deepEqual(p.stack.keeperEnv,next.stack.keeperEnv);
+});

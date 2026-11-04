@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {readFileSync, writeFileSync} from 'node:fs';
-import {artifact, artifactManifest, maxTransactionGas} from './native-artifacts.mjs';
+import {artifact, artifactManifest, maxTransactionGas, budgetArgs} from './native-artifacts.mjs';
 const require = createRequire(new URL('../../package.json', import.meta.url));
 const {ApiPromise, WsProvider} = require('@polkadot/api');
 const {blake2AsHex} = require('@polkadot/util-crypto');
@@ -112,7 +112,7 @@ try {
   }
   const c = d.controller, group = keccak256(toHex('native-deferred-entry'));
   const expiry = (await pub.getBlock()).timestamp + 30n * 86400n;
-  await call('entry-budget', 'ExecutionController', c, 'configureBudget', [group, hollar, 100n * 10n ** 18n, 10n ** 18n, expiry]);
+  await call('entry-budget', 'ExecutionController', c, 'configureBudget', budgetArgs(artifact('ExecutionController').abi, [group, hollar, 100n * 10n ** 18n, 10n ** 18n], expiry));
   await call('entry-limit', 'ExecutionController', c, 'configureLimit', [source, hollar, aPrime, group, 10n ** 18n, 50n * 10n ** 18n]);
   await call('entry-pacing', 'ExecutionController', c, 'configurePacing', [group, 60n]);
   const lane = await read('ExecutionController', c, 'lane', [source, hollar, aPrime]);

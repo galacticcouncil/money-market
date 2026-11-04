@@ -164,10 +164,9 @@ contract ParkedGiftOwnershipTest is MultiVaultFlowTest {
         control = new ExecutionController(address(this), 60, 5);
         vm.roll(100);
         vm.setBlockhash(99, QUOTED_HASH);
-        uint64 expiry = uint64(vm.getBlockTimestamp() + 30 days);
-        control.configureBudget(HARVEST, address(prime), 5_000e6, 1e6, expiry);
-        control.configureBudget(SERVICE_ETH, address(eth), 1e18, 1e15, expiry);
-        control.configureBudget(SERVICE_BTC, address(tbtc), 1e17, 1e14, expiry);
+        control.configureBudget(HARVEST, address(prime), 5_000e6, 1e6);
+        control.configureBudget(SERVICE_ETH, address(eth), 1e18, 1e15);
+        control.configureBudget(SERVICE_BTC, address(tbtc), 1e17, 1e14);
         control.configureLimit(address(ethVault), address(prime), address(eth), HARVEST, 10_000, 1_000e6);
         control.configureLimit(address(tbtcVault), address(prime), address(tbtc), HARVEST, 10_000, 1_000e6);
         control.configureLimit(address(ethVault.mainDebt()), address(eth), address(hollar), SERVICE_ETH, 1e12, 2e16);

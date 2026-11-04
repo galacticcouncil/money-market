@@ -346,7 +346,7 @@ contract IceIntentsTest is Test {
     function test_controllerAsyncLaneOpensAndCloses() public {
         ExecutionController control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         bytes32 entryGroup = keccak256("entry");
-        control.configureBudget(entryGroup, address(hollar), 5_000e18, 1e18, uint64(block.timestamp + 30 days));
+        control.configureBudget(entryGroup, address(hollar), 5_000e18, 1e18);
         control.configureLimit(address(loop), address(hollar), address(aPrime), entryGroup, 10e18, 2_500e18);
         bytes32 lane = control.lane(address(loop), address(hollar), address(aPrime));
         control.configurePrice(lane, 10, false);
@@ -364,7 +364,7 @@ contract IceIntentsTest is Test {
         assertEq(minimum, 999e6, "10 bp price cap");
         (,,,, uint256 minOut) = _pending();
         assertGe(minOut, minimum);
-        (,,, uint128 credit,,) = control.budgets(entryGroup);
+        (,,, uint128 credit,) = control.budgets(entryGroup);
         assertEq(credit, 4_000e18, "charged at submit");
 
         _resolve();
@@ -556,7 +556,7 @@ contract IceIntentsTest is Test {
         _rampToTarget();
         ExecutionController control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         bytes32 group = keccak256("unwind");
-        control.configureBudget(group, address(aPrime), 5_000e6, 1e6, uint64(block.timestamp + 30 days));
+        control.configureBudget(group, address(aPrime), 5_000e6, 1e6);
         control.configureLimit(address(loop), address(aPrime), address(hollar), group, 1e6, 100e6);
         bytes32 lane = control.lane(address(loop), address(aPrime), address(hollar));
         control.configurePrice(lane, 10, true);

@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { BigNumber, providers, utils } from "ethers";
 import {
-  NEXT, KEEPER_ROLE, DEPOSIT_GUARDIAN_ROLE, GUARDIAN_ROLE, readNextState, nextCalls, reserveCalls, nextChecks, bandGaps, parseBand,
+  NEXT, envNumber, parseExitHeadroom, KEEPER_ROLE, DEPOSIT_GUARDIAN_ROLE, GUARDIAN_ROLE, readNextState, nextCalls, reserveCalls, nextChecks, bandGaps, parseBand,
+  LAUNCH, executionPolicy, executionCalls, groupId, laneId, discountCalls, bootstrapCalls, bootstrapSeed, assumePlanned, ExecutionState, Policy, DiscountState,
+  treasuryBuyAmount, treasuryBuyMax, treasuryBuyRoute,
 } from "./next-governance";
 
 const addr = (n: number) => utils.getAddress(`0x${n.toString(16).padStart(40, "0")}`);
@@ -32,7 +34,8 @@ class Chain extends providers.StaticJsonRpcProvider {
 const v = (type: string, value: any) => () => [[type], [value]] as [string[], any[]];
 function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = false, threshold = "1000000000000000", reserve = "0", old = false,
   gaps = {} as Record<string, number[]>, ltv = { [ETH]: 7500, [BTC]: 8000 } as Record<string, number>,
-  installed = true, enrolled = true, main = 0, loopRate = 0 as number | null, fee = 500 as number | null, admission = 50 as number | null } = {}) {
+  installed = true, enrolled = true, main = 0, loopRate = 0 as number | null, fee = 500 as number | null, admission = 50 as number | null,
+  headroom = [false, 0] as [boolean, number] | null } = {}) {
   const has = (role: string, who: string) => granted.has(`${role}:${who}`);
   const roles = (extra: Record<string, any>) => ({ "hasRole(bytes32,address)": (a: utils.Result) => [["bool"], [has(a[0], a[1])]] as [string[], any[]], ...extra });
   return new Chain({
@@ -44,6 +47,7 @@ function nextChain({ granted = new Set<string>(), ttl = 0, drift = 0, async = fa
         "intentTtl()": v("uint32", ttl), "intentDriftBps()": v("uint16", drift), "KEEPER_ROLE()": v("bytes32", KEEPER_ROLE),
         "rebalanceBand(address)": (a: utils.Result) => [["uint16", "uint16", "uint16"], gaps[a[0]] ?? [0, 500, 300]],
         ...(admission === null ? {} : { "admissionMaxDeficitBps()": v("uint16", admission) }),
+        ...(headroom === null ? {} : { "exitHeadroom(address)": () => [["bool", "uint16"], headroom] as [string[], any[]] }),
       }),
     }),
     ...Object.fromEntries([[V1, M1, ETH], [V2, M2, BTC]].map(([vault, ledger, collateral]) => [vault, roles({
@@ -146,8 +150,8 @@ test("mainnet and lark agree on the next-version parameters", async () => {
   assert.deepEqual([ICE.ttl, ICE.driftBps], [NEXT.intentTtl, NEXT.intentDriftBps]);
   assert.equal(NEXT_PARAMS.harvestThreshold.toString(), NEXT.harvestThreshold.toString());
   assert.equal(NEXT_PARAMS.reserve.toString(), utils.parseUnits(NEXT.reserveHollar, 18).toString());
-  assert.deepEqual([NEXT_PARAMS.band, NEXT_PARAMS.revenue, NEXT_PARAMS.primePoolFeePpm, NEXT_PARAMS.admissionMaxDeficitBps],
-    [NEXT.band, NEXT.revenue, NEXT.primePoolFeePpm, NEXT.admissionMaxDeficitBps]);
+  assert.deepEqual([NEXT_PARAMS.band, NEXT_PARAMS.revenue, NEXT_PARAMS.primePoolFeePpm, NEXT_PARAMS.admissionMaxDeficitBps, NEXT_PARAMS.exitHeadroom],
+    [NEXT.band, NEXT.revenue, NEXT.primePoolFeePpm, NEXT.admissionMaxDeficitBps, NEXT.exitHeadroom]);
   for (const maxLtv of [7500, 8000, 8250]) assert.deepEqual(larkGaps(maxLtv, NEXT.band), bandGaps(maxLtv, NEXT.band));
   for (const maxLtv of [7000, 12600]) assert.throws(() => larkGaps(maxLtv, NEXT.band), /within 50% under/);
 });
@@ -232,4 +236,177 @@ test("deposit admission rises from the contract's 50 to the launch cap, once", a
   for (const bad of [10001, 1.5, -1]) assert.throws(() => nextCalls(state, { admissionMaxDeficitBps: bad }), /admission deficit cap/);
   const old = await read(nextChain({ admission: null }));
   assert.throws(() => nextCalls(old, { admissionMaxDeficitBps }), /admissionMaxDeficitBps missing on chain/);
+});
+
+test("an empty env var fails loudly instead of becoming zero", () => {
+  assert.equal(envNumber("X", 100, {}), 100);
+  assert.equal(envNumber("X", 100, { X: "0" }), 0);
+  assert.equal(envNumber("X", 100, { X: " 6900 " }), 6900);
+  assert.ok(Number.isNaN(envNumber("X", NaN, {})));
+  assert.throws(() => envNumber("X", 100, { X: "" }), /X is set but empty/);
+  assert.throws(() => envNumber("X", 100, { X: "  " }), /X is set but empty/);
+  assert.throws(() => envNumber("X", 100, { X: "4k" }), /X=4k is not a number/);
+});
+
+test("headroom exits switch on per vault, once, and readiness reads them back", async () => {
+  const exitHeadroom = NEXT.exitHeadroom;
+  const state = await read(nextChain());
+  const calls = nextCalls(state, { exitHeadroom });
+  assert.deepEqual(calls.map(c => [c.to, c.label.split("(")[0]]), [[LOOP, "subLoop.setExitHeadroom"], [LOOP, "subLoop.setExitHeadroom"]]);
+  assert.deepEqual(decode("setExitHeadroom(address,bool,uint16)", calls[1].data).map(String), [V2, "true", "0"]);
+  assert.deepEqual(nextChecks(state, { exitHeadroom }).map(c => [c.ok, c.detail]), [[false, "off"], [false, "off"]]);
+  const on = await read(nextChain({ headroom: [true, 0] }));
+  assert.deepEqual(nextCalls(on, { exitHeadroom }), []);
+  assert.deepEqual(nextChecks(on, { exitHeadroom }).map(c => c.ok), [true, true]);
+  assert.equal(nextCalls(on, { exitHeadroom: { enabled: true, gapBps: 500 } }).length, 2, "a new gap is a change");
+  assert.throws(() => nextCalls(state, { exitHeadroom: { enabled: true, gapBps: 10001 } }), /exit headroom gap/);
+  const old = await read(nextChain({ headroom: null }));
+  assert.throws(() => nextCalls(old, { exitHeadroom }), /exitHeadroom missing on chain/);
+});
+
+test("exit headroom reads off, on, or on with a gap", () => {
+  assert.deepEqual(parseExitHeadroom("off"), { enabled: false, gapBps: 0 });
+  assert.deepEqual(parseExitHeadroom("on"), { enabled: true, gapBps: 0 });
+  assert.deepEqual(parseExitHeadroom(" on , 500 "), { enabled: true, gapBps: 500 });
+  for (const bad of ["", "yes", "off,10", "on,10001", "on,1.5", "on,1,2"]) assert.throws(() => parseExitHeadroom(bad), /exit headroom/);
+});
+
+// ── the launch referendum's own parts ──
+const HV = addr(0x81), TB = addr(0x82), PR = addr(0x83), SWAP = addr(0x84);
+const spec = { pacing: LAUNCH.pacing, primeShortfallBps: 27, collateralShortfallBps: 100,
+  entry: LAUNCH.entry, unwind: LAUNCH.unwind, harvest: LAUNCH.harvest, service: LAUNCH.service };
+const launchVault = { address: V2, mainDebt: M2, collateral: TB, assetId: 1000765, key: "BTC" };
+const launchPolicy = () => executionPolicy({ subLoop: LOOP, harvester: HV, hollar: H, prime: PR, aPrime: A, vaults: [launchVault] }, spec);
+function emptyExecution(p: Policy): ExecutionState {
+  const zero = BigNumber.from(0);
+  return { controller: C,
+    budgets: Object.fromEntries(p.budgets.map(b => [b.group, { token: ZERO, capacity: zero, refill: zero, interval: 0 }])),
+    limits: Object.fromEntries(p.limits.map(l => [l.lane, { group: utils.hexZeroPad("0x", 32), minimum: zero, maximum: zero, shortfall: 0, safety: false }])),
+    actions: {}, bound: Object.fromEntries(p.bound.map(t => [t.toLowerCase(), ZERO])) };
+}
+function liveExecution(p: Policy): ExecutionState {
+  return { controller: C,
+    budgets: Object.fromEntries(p.budgets.map(b => [b.group, { token: b.token, capacity: BigNumber.from(b.capacity), refill: BigNumber.from(b.refillPerSecond), interval: b.minIntervalSeconds }])),
+    limits: Object.fromEntries(p.limits.map(l => [l.lane, { group: l.group, minimum: BigNumber.from(l.minimum), maximum: BigNumber.from(l.maximum), shortfall: l.maxShortfallBps, safety: l.safety }])),
+    actions: Object.fromEntries(p.actions.map(a => [`${a.target.toLowerCase()}:${a.signature}`, true])),
+    bound: Object.fromEntries(p.bound.map(t => [t.toLowerCase(), C])) };
+}
+
+test("the execution policy has one budget per direction, one harvest budget and servicing per vault", () => {
+  const p = launchPolicy();
+  assert.deepEqual(p.budgets.map(b => b.name), ["entry", "unwind", "harvest", "service-BTC"]);
+  assert.deepEqual(p.limits.map(l => [l.name, l.maxShortfallBps, l.safety]), [
+    ["entry", 27, false], ["unwind", 27, true], ["harvest-BTC", 100, false], ["service-BTC", 100, false], ["service-ledger-BTC", 100, false]]);
+  assert.equal(p.limits[0].lane, lane(LOOP, H, A));
+  assert.equal(p.limits[4].lane, laneId(M2, TB, H));
+  assert.equal(p.limits[2].group, groupId("harvest"), "every vault's harvest shares the PRIME budget");
+  assert.deepEqual(p.actions.map(a => a.signature), ["pokeBorrow()", "pokeRepay()", "harvest(uint256[])", "rebalance()"]);
+  assert.deepEqual(p.bound, [LOOP, HV, V2]);
+  assert.throws(() => executionPolicy({ subLoop: LOOP, harvester: HV, hollar: H, prime: PR, aPrime: A, vaults: [{ ...launchVault, assetId: 5 }] }, spec), /collateral 5/);
+  assert.throws(() => executionPolicy({ subLoop: LOOP, harvester: HV, hollar: H, prime: PR, aPrime: A, vaults: [] }, { ...spec, entry: { ...spec.entry, maximum: utils.parseUnits("30000", 18) } }), /maximum <= capacity/);
+});
+
+test("execution is planned budgets first, lanes, prices, entrypoints, then bindings, and only once", () => {
+  const p = launchPolicy();
+  const calls = executionCalls(emptyExecution(p), p);
+  const kinds = calls.map(c => c.label.split("(")[0].replace(/^0x[0-9a-fA-F]+\./, ""));
+  assert.deepEqual(kinds, [...Array(4).fill(["controller.configureBudget", "controller.configurePacing"]).flat(), ...Array(5).fill("controller.configureLimit"),
+    ...Array(5).fill("controller.configurePrice"), ...Array(4).fill("controller.configureAction"), ...Array(3).fill("setExecutionController")]);
+  assert.deepEqual(calls.slice(-3).map(c => c.to), [LOOP, HV, V2]);
+  assert.deepEqual(executionCalls(liveExecution(p), p), []);
+  const slower = liveExecution(p);
+  slower.budgets[p.budgets[0].group].refill = BigNumber.from(1);
+  assert.deepEqual(executionCalls(slower, p).map(c => c.label), [`controller.configureBudget(entry, ${LAUNCH.entry.capacity} cap, ${LAUNCH.entry.refill}/s)`]);
+  assert.equal(decode("configureBudget(bytes32,address,uint128,uint128)", executionCalls(slower, p)[0].data).length, 4, "no expiry argument");
+  const moved = liveExecution(p);
+  moved.limits[p.limits[1].lane].shortfall = 6;
+  assert.deepEqual(executionCalls(moved, p).map(c => c.label), ["controller.configurePrice(unwind, 27 bps, safety)"]);
+  const other = liveExecution(p);
+  other.bound[V2.toLowerCase()] = addr(0x99);
+  assert.throws(() => executionCalls(other, p), /another controller/);
+});
+
+const discountState = (o: Partial<DiscountState> = {}): DiscountState => ({ code: true, token: ZERO, strategy: ZERO,
+  vaults: [{ address: V2, controller: ZERO, registered: false }], loop: ZERO, loopCap: BigNumber.from(0), ...o });
+const discountPlan = { discount: DISC, debtToken: DEBT, subLoop: LOOP, loopCap: LAUNCH.loopCap };
+
+test("the deployed discount is installed and enrolled, the loop after its vault", () => {
+  const calls = discountCalls(discountState(), discountPlan);
+  assert.deepEqual(calls.map(c => c.label.split("(")[0]), ["hollarDebt.updateDiscountToken", "hollarDebt.updateDiscountRateStrategy",
+    `vault ${V2}.setDiscountController`, "discount.registerVault", "discount.registerLoop"]);
+  assert.deepEqual(calls.map(c => c.to), [DEBT, DEBT, V2, DISC, DISC]);
+  assert.deepEqual(decode("registerLoop(address,uint256)", calls[4].data).map(String), [LOOP, utils.parseUnits("5000000", 18).toString()]);
+  const done = discountState({ token: DISC, strategy: DISC, vaults: [{ address: V2, controller: DISC, registered: true }], loop: LOOP, loopCap: LAUNCH.loopCap });
+  assert.deepEqual(discountCalls(done, discountPlan), []);
+  assert.deepEqual(discountCalls({ ...done, loopCap: BigNumber.from(1) }, discountPlan).map(c => c.label.split("(")[0]), ["discount.setLoopCap"]);
+  assert.throws(() => discountCalls({ ...done, loop: addr(0x99) }, discountPlan), /another loop/);
+  assert.throws(() => discountCalls(discountState({ code: false }), discountPlan), /the deploy creates it/);
+});
+
+test("later steps plan against what the earlier ones leave: lanes, the discount, the fee binding, the ledgers", async () => {
+  const chain = nextChain({ installed: false, enrolled: false, fee: null });
+  const unbound = new Chain({ ...(chain as any).fns, [V1]: { ...(chain as any).fns[V1], "mainDebt()": v("address", ZERO) } });
+  const state = await readNextState(unbound, { subLoop: LOOP, vaults: [V1, V2], controller: C, keepers: [K1, K2], fees: FEES, mainDebts: { [V1.toLowerCase()]: M1 } });
+  assert.equal(state.vaults[0].mainDebt, M1, "an unbound vault plans with its manifest ledger");
+  state.controller!.lanes.forEach(l => (l.maximum = BigNumber.from(0)));
+  const policy = { limits: state.controller!.lanes.map(l => ({ lane: l.lane, maximum: "5" })) } as any;
+  const planned = assumePlanned(state, { policy, discount: { address: DISC, loop: LOOP }, feeBps: 500 });
+  assert.ok(planned.controller!.lanes.every(l => l.maximum.eq(5)));
+  assert.ok(state.controller!.lanes.every(l => l.maximum.isZero()), "the read state is left alone");
+  assert.deepEqual([planned.discount!.installed, planned.discount!.loop, planned.vaults[0].protocolFeeBps], [true, LOOP, 500]);
+  const calls = nextCalls(planned, { revenue: NEXT.revenue, intentTtl: 300 });
+  assert.ok(calls.some(c => c.label === "discount.setLoopDiscountBps(9000)"));
+  assert.ok(calls.some(c => c.label === `fees.setProtocolFeeBps(${V1}, 6900)`));
+});
+
+test("the bootstrap is governance's locked first deposit, opening deposits only if paused, never twice", () => {
+  const calls = bootstrapCalls({ vault: V2, asset: TB, seed: 10n ** 14n, receiver: SWAP, supply: 0, paused: true });
+  assert.deepEqual(calls.map(c => c.label.split("(")[0]), [`vault ${V2}.unpauseDeposits`, "collateral.approve", `vault ${V2}.deposit`, "collateral.approve"]);
+  assert.deepEqual(decode("deposit(uint256,address)", calls[2].data).map(String), [(10n ** 14n).toString(), SWAP]);
+  assert.equal(String(decode("approve(address,uint256)", calls[3].data)[1]), "0");
+  assert.equal(bootstrapCalls({ vault: V2, asset: TB, seed: 10n ** 14n, receiver: SWAP, supply: 0, paused: false }).length, 3);
+  assert.deepEqual(bootstrapCalls({ vault: V2, asset: TB, seed: 10n ** 14n, receiver: SWAP, supply: 1, paused: false }), []);
+  assert.throws(() => bootstrapCalls({ vault: V2, asset: TB, seed: 1000, receiver: SWAP, supply: 0, paused: false }), /dead shares/);
+});
+
+test("the bootstrap is sized in the collateral's decimals: the launch plans stay as they are, other decimals scale", () => {
+  assert.equal(bootstrapSeed(1000765, 18).toString(), (10n ** 14n).toString());
+  assert.equal(bootstrapSeed(4200, 18).toString(), (5n * 10n ** 15n).toString());
+  assert.equal(bootstrapSeed(1000765, 8).toString(), "10000");
+  assert.equal(bootstrapSeed(7, 6, "10").toString(), "10000000");
+  assert.throws(() => bootstrapSeed(7, 6), /no bootstrap size for collateral 7/);
+});
+
+test("the treasury buys only the collateral it lacks, plus the margin, along a route that leads there", () => {
+  // the launch: 0.005 GIGAETH of bootstrap and the rounding reserve, against the treasury's 0.0000367
+  const short = 5n * 10n ** 15n + 1000010000n, held = 36713690504571n, { marginBps, slippageBps } = LAUNCH.treasuryBuy;
+  assert.equal(treasuryBuyAmount({ short, held, decimals: 18, marginBps }), 6n * 10n ** 15n);
+  assert.equal(treasuryBuyAmount({ short, held: short, decimals: 18, marginBps }), 0n, "funded: no buy");
+  assert.equal(treasuryBuyAmount({ short, held: short * 2n, decimals: 18, marginBps }), 0n);
+  assert.equal(treasuryBuyAmount({ short: short - held, held: 0n, decimals: 18, marginBps: 0 }), 5n * 10n ** 15n, "rounded up to 0.0001");
+  assert.equal(treasuryBuyAmount({ short: 1n, held: 0n, decimals: 6, marginBps: 0 }), 100n);
+  assert.throws(() => treasuryBuyAmount({ short, held, decimals: 18, marginBps: -1 }), /margin/);
+  // the runtime's quote for the buy, plus the bound, rounded up
+  assert.equal(treasuryBuyMax(14045662929740613687n, slippageBps), 21068494394610920531n);
+  assert.throws(() => treasuryBuyMax(0n, slippageBps), /no quote/);
+  assert.throws(() => treasuryBuyMax(1n, 10001), /slippage/);
+  // a pinned bound reproduces the preimage at a later block, while it still covers the quote
+  assert.equal(treasuryBuyMax(15n * 10n ** 18n, slippageBps, "21058242844249875744"), 21058242844249875744n);
+  assert.throws(() => treasuryBuyMax(22n * 10n ** 18n, slippageBps, "21058242844249875744"), /no longer covers/);
+  assert.throws(() => treasuryBuyMax(1n, slippageBps, ""), /base units/);
+  assert.throws(() => treasuryBuyMax(1n, slippageBps, "21.5"), /base units/);
+  // the route: explicit, else the router's own, which it keeps from the lower id
+  const stored = [{ pool: { omnipool: null }, assetIn: 222, assetOut: 420 }, { pool: { aave: null }, assetIn: 420, assetOut: 4200 }];
+  assert.deepEqual(treasuryBuyRoute(222, 4200, stored), stored);
+  assert.deepEqual(treasuryBuyRoute(4200, 222, stored).map(h => [h.assetIn, h.assetOut]), [[4200, 420], [420, 222]]);
+  assert.throws(() => treasuryBuyRoute(0, 4200, null), /stores none/);
+  assert.throws(() => treasuryBuyRoute(0, 4200, stored), /does not lead/);
+  const explicit = [{ pool: "Omnipool", assetIn: 0, assetOut: 420 }, { pool: "Aave", assetIn: 420, assetOut: 4200 }];
+  assert.deepEqual(treasuryBuyRoute(0, 4200, null, explicit), explicit);
+  assert.throws(() => treasuryBuyRoute(0, 4200, null, [explicit[1]]), /does not lead/);
+});
+
+test("the launch keepers are two checksummed addresses", () => {
+  assert.equal(new Set(LAUNCH.keepers).size, 2);
+  assert.deepEqual(LAUNCH.keepers.map(k => utils.getAddress(k)), LAUNCH.keepers);
 });

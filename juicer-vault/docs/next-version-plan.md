@@ -1,10 +1,14 @@
 # Next version: implementation plan
 
-Branch `juicer-next`, stacked on #62 (`prop_carry`). Decisions are recorded in
-the garden note (Propeller status, "next-version change list", 8–9 Oct). Nothing
+> Historical: the 8–9 October plan for the version after #62, kept for context. The current
+> release and its status are in [release-candidate.md](release-candidate.md) and
+> [external-review.md](external-review.md).
+
+Branch `juicer-next`, stacked on #62 (`prop_carry`). Decisions were recorded in
+the team's internal notes ("next-version change list", 8–9 Oct). Nothing
 deploys until review. The rename (Juicer, jETH/jtBTC, wjETH) is a separate PR
 stacked on this one and lands before the Lark rollout (step 8 below). The UI
-moves to a new PR on top of Jakub's rebrand branch (track G). The rollout target
+moves to a new PR on top of the UI rebrand branch (track G). The rollout target
 is Lark 0, reforked from mainnet on the latest runtime with ICE (step 9).
 
 ## Scope
@@ -248,7 +252,7 @@ Tests:
   mirror) plus two keepers.
 - **Deposits:** the 100k depositor plan runs inside a 12-hour window. A loop
   checks progress and fixes what blocks it; anything it can't fix goes into the
-  garden note.
+  internal status notes.
 - **Lark 4 keeps running for a while** alongside, on its digest-pinned images,
   so new builds don't touch it.
 - **Parameters:**
@@ -317,7 +321,7 @@ now
 │   └─ parity tests ── once A and B are merged
 ├─ F rename prep (step 8): name mapping, rename script, dry run
 │   └─ applied once 7 is done
-├─ G UI: a new PR on Jakub's rebrand branch, against the planned ABI
+├─ G UI: a new PR on the UI rebrand branch, against the planned ABI
 │   └─ final ABIs ── after the rename
 └─ H Lark 0 runbook: how to refork and upgrade it, researched in advance
     └─ executed after 8

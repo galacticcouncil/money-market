@@ -6,9 +6,9 @@ Fresh deployments only. The old buffer evidence is historical, not verification
 of these revised contracts. No production slippage setting is approved here.
 
 The #62 [ownership ledger](yield-ownership.md) separates earlier earnings from
-new collateral deposits. The next version rejects deposits above a 50 bps live
-Main-backing deficit on-chain; keepers also maintain the earlier hysteretic
-`deficitStop`.
+new collateral deposits. Deposits are rejected on-chain above a live
+Main-backing deficit of `admissionMaxDeficitBps` (50 bps at initialize, 250 at
+launch); keepers also maintain the hysteretic `deficitStop`.
 Active resize receivables remain Main backing while in flight;
 transfers cannot reassign previously earned rewards during a resize. Fees on
 source unwinds remain reserved until the corresponding claim closes, so late
@@ -35,8 +35,9 @@ well as execution costs and debt repaid. User collateral promises remain fixed.
 - Unpaid interest remains debt. Earned source equity can back it between
   harvests. The keepers stop new deposits and the source ramp when the source's
   negative carry, or the share of active Main debt not covered by
-  `equityOf − sourceValue + activeFunds`, exceeds 50 bps, and resume below
-  25 bps ([keeper runbook](../looper/README.md#deficit-stop)). Smaller deficits
+  `equityOf − sourceValue + activeFunds`, exceeds `DEFICIT_STOP_BPS` (250 by
+  default), and resume below `DEFICIT_RESUME_BPS` (200)
+  ([keeper runbook](../looper/README.md#deficit-stop)). Smaller deficits
   do not block entry. Synthetic maintenance remains necessary independently of
   repayment liquidity.
 - Entry costs arise before income. Early exits, negative carry, delayed fills
@@ -142,12 +143,12 @@ entry; a repay/harvest transaction group does not implement time-weighted reward
 
 ## Deployment
 
-Deploy the fresh vault/source implementations and proxies, then run
-`script/DeployMainDebt.s.sol` with `MAIN_DEBT_VAULT`. The script deploys the ledger
-and prints its governance binding call; it has no HOLLAR funding inputs. Bind it
-before fee registration and protect its native custody account from dust removal.
-Keep the PRIME-to-collateral and collateral-to-HOLLAR routes, rounding reserves,
-discount/fee bindings, governance handover and readiness checks.
+The launch's deploy-only step creates one ledger per vault. The launch
+referendum binds it before fee registration, protects its native custody account
+from dust removal and funds its protocol reserve, beside the routes, rounding
+reserves and discount and fee bindings; readiness checks the result
+([deployment runbook](../DEPLOYMENT.md)). `script/DeployMainDebt.s.sol` with
+`MAIN_DEBT_VAULT` deploys a ledger on its own and prints its binding call.
 
 Do not upgrade a live old-buffer deployment into this storage/API revision.
 Juicer is not deployed, so migration is intentionally out of scope.

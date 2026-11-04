@@ -79,6 +79,8 @@ export function worthwhileHarvest(value: bigint, gasCost: bigint, minimum: bigin
   return value >= minimum && gasCost * 10_000n <= value * maxGasBps;
 }
 
-export function operatorTurn(timestamp: bigint, slotSeconds: number, count: number, index: number): boolean {
-  return Number(timestamp / BigInt(slotSeconds) % BigInt(count)) === index;
+export function operatorTurn(timestamp: bigint, slotSeconds: number, count: number, index: number, guardSeconds = 0): boolean {
+  if (count === 1) return true;
+  const slot = BigInt(slotSeconds), into = timestamp % slot, guard = BigInt(guardSeconds);
+  return Number(timestamp / slot % BigInt(count)) === index && into >= guard && slot - into > guard;
 }

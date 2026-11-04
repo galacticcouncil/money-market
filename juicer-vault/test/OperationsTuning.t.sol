@@ -257,18 +257,17 @@ contract OperationsTuningTest is HarvestTest {
 
     function _controls(Config memory c) private {
         control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
-        uint64 expiry = uint64(block.timestamp + (c.days_ + 1) * 1 days);
         control.configureBudget(ENTRY, address(hollar), uint128(c.entryBurst * 1e18),
-            uint128(c.entryDaily * 1e18 / 1 days), expiry);
+            uint128(c.entryDaily * 1e18 / 1 days));
         control.configureLimit(address(loop), address(hollar), address(aPrime), ENTRY, 10e18, uint128(c.tranche * 1e18));
         uint256 maximum = c.harvestMaximum * 1e24 / c.primePrice;
         control.configureBudget(CARRY, address(prime), uint128(maximum),
-            uint128(c.harvestDaily * 1e24 / c.primePrice / 1 days), expiry);
+            uint128(c.harvestDaily * 1e24 / c.primePrice / 1 days));
         control.configureLimit(address(vault), address(prime), address(eth), CARRY,
             uint128(1e24 / c.primePrice), uint128(maximum));
         uint256 service = c.harvestMaximum * 1e36 / c.assetPrice;
         control.configureBudget(SERVICE, address(eth), uint128(service),
-            uint128(c.harvestDaily * 1e36 / c.assetPrice / 1 days), expiry);
+            uint128(c.harvestDaily * 1e36 / c.assetPrice / 1 days));
         control.configureLimit(address(vault.mainDebt()), address(eth), address(hollar), SERVICE, 1, uint128(service));
         control.configureAction(address(vault), CollateralVault.deposit.selector, true);
         control.configureAction(address(vault), CollateralVault.rebalance.selector, true);

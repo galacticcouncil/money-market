@@ -26,10 +26,10 @@ contract ReviewFindingsTest is HarvestTest {
         control = ExecutionController(Artifacts.executionController(address(this), 60, 5));
         vm.roll(100);
         vm.setBlockhash(99, QUOTED_HASH);
-        control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18, uint64(block.timestamp + 30 days));
-        control.configureBudget(HARVEST, address(prime), 150e6, 1e6, uint64(block.timestamp + 30 days));
-        control.configureBudget(SERVICE, address(eth), 1e18, 1e15, uint64(block.timestamp + 30 days));
-        control.configureBudget(UNWIND, address(aPrime), 5000e6, 1e6, uint64(block.timestamp + 30 days));
+        control.configureBudget(ENTRY, address(hollar), 5000e18, 1e18);
+        control.configureBudget(HARVEST, address(prime), 150e6, 1e6);
+        control.configureBudget(SERVICE, address(eth), 1e18, 1e15);
+        control.configureBudget(UNWIND, address(aPrime), 5000e6, 1e6);
         control.configureLimit(address(loop), address(hollar), address(aPrime), ENTRY, 10e18, 2500e18);
         control.configureLimit(address(vault), address(prime), address(eth), HARVEST, 1e6, 100e6);
         control.configureLimit(address(vault.mainDebt()), address(eth), address(hollar), SERVICE, 1, 1e18);
@@ -86,8 +86,8 @@ contract ReviewFindingsTest is HarvestTest {
     }
 
     /// two ramped vaults with carry and accrued main interest; the second
-    /// vault's servicing policy lapses before the harvest
-    function _twoVaultsWithLapsedService() private returns (CollateralVault second) {
+    /// vault's servicing lane is not configured
+    function _twoVaultsWithoutService() private returns (CollateralVault second) {
         second = _secondVault();
         _deposit(vault, 1e18);
         _deposit(second, 1e18);
@@ -101,10 +101,6 @@ contract ReviewFindingsTest is HarvestTest {
         second.setExecutionController(address(control));
         control.configureLimit(address(second), address(prime), address(eth), HARVEST, 1e6, 100e6);
         control.configurePrice(control.lane(address(second), address(prime), address(eth)), 10, false);
-        bytes32 lapsing = keccak256("service2");
-        control.configureBudget(lapsing, address(eth), 1e18, 1e15, uint64(block.timestamp + 1 hours));
-        control.configureLimit(address(second.mainDebt()), address(eth), address(hollar), lapsing, 1, 1e18);
-        control.configurePrice(control.lane(address(second.mainDebt()), address(eth), address(hollar)), 10, false);
         vm.warp(block.timestamp + 2 hours);
     }
 
@@ -125,8 +121,8 @@ contract ReviewFindingsTest is HarvestTest {
     }
 
     // one vault's closed service lane must not roll back every vault's harvest
-    function test_reviewLapsedServiceLaneSkipsOnlyThatVault() public {
-        CollateralVault second = _twoVaultsWithLapsedService();
+    function test_reviewMissingServiceLaneSkipsOnlyThatVault() public {
+        CollateralVault second = _twoVaultsWithoutService();
         uint256 sourceShares = loop.sharesOf(address(second));
         _execute(address(harvester), abi.encodeCall(Harvester.harvest, (new uint256[](2))));
         assertEq(_ledger(vault).interestOf(0), 0, "the healthy vault is harvested and serviced");
@@ -136,7 +132,7 @@ contract ReviewFindingsTest is HarvestTest {
 
     // a parked donation cannot route around the skipped vault's lane either
     function test_reviewDonationCannotForceABlockedServiceSale() public {
-        CollateralVault second = _twoVaultsWithLapsedService();
+        CollateralVault second = _twoVaultsWithoutService();
         prime.mint(address(harvester), 20e6);
         _execute(address(harvester), abi.encodeCall(Harvester.harvest, (new uint256[](2))));
         assertEq(_ledger(second).interestOf(0), 1e18);
@@ -173,17 +169,18 @@ contract ReviewFindingsTest is HarvestTest {
         assertGt(hollarDebt.balanceOf(address(vault)), debt, "deployment continues");
     }
 
-    // an expired policy stops new risk, not user exits
-    function test_reviewExpiredBudgetDoesNotFreezeExits() public {
+    // budgets never lapse: years on, exits still sell and new risk still fits its credit
+    function test_reviewBudgetsNeverLapse() public {
         uint256 shares = _depositAndRamp();
         _enable();
         vault.requestRedeem(shares / 2, address(this));
-        vm.warp(block.timestamp + 31 days);
+        vm.warp(block.timestamp + 3 * 365 days);
         vault.startUnwinds(1);
         uint256 target = loop.unwindTargetEquity();
         assertGt(target, 0);
         _execute(address(loop), abi.encodeCall(SubLoop.pokeRepay, ()));
-        assertLt(loop.unwindTargetEquity(), target, "the exit keeps selling after expiry");
+        assertLt(loop.unwindTargetEquity(), target, "the exit keeps selling");
+        assertGt(control.available(address(loop), address(hollar), address(aPrime)), 0, "entry is still open");
     }
 
     // a delever on an unflagged lane falls back to the normal budget
