@@ -20,6 +20,7 @@ import { POOL_ADMIN } from "../../helpers/constants";
  *   0x000001 | 04 | 8 zero bytes (routed) | assetA | assetB
  */
 const WH_RECEIVER_ETHEREUM = "0x6913770466fed4dbc24337cd7f1ae92af4321083";
+const WH_RECEIVER_ETHEREUM_APYUSD = "0x75f0bc5d807d13073e3f555f0aaf83b538d2b432"
 const WH_RECEIVER_SOLANA = "0x582e2fac5af62dc024396b5e7f549c72273a69c3";
 const WH_RECEIVER_ROBINHOOD = "0x3b6e3469d8e64e306f235838e0fdf7b4d60a39ce";
 
@@ -43,15 +44,15 @@ export const CHECKED_ORACLES: CheckedOracleSpec[] = [
     pusher: WH_RECEIVER_ETHEREUM,
   },
   {
-    // Replaces APYUSD above. Fair value sits ~197 bps above
-    // the pool EMA, outside the band. Discounted it lands ~45 bps away.
+    // Replaces APYUSD above. Fair value sits ~220 bps above
+    // the pool EMA, outside the band. Discounted it lands ~66 bps away.
     name: "APYUSD-DISCOUNT",
     description: "apyUSD/USD",
-    price: "145283729",
+    price: "145332509",
     check: "0x000001040000000000000000000000de0000002e", // HOLLAR(222) -> apyUSD(46)
     coefficient: "98500000", // -1.5%; set to 1e8 if the basis ever closes
     maxDiffBps: 100,
-    pusher: WH_RECEIVER_ETHEREUM,
+    pusher: WH_RECEIVER_ETHEREUM_APYUSD,
   },
   {
     name: "PRIME",
