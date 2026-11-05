@@ -32,6 +32,7 @@ import {
   strategyHYPE,
   strategyZEC,
   strategySPY,
+  strategyNEAR,
   strategyEURC,
   strategyHEURC,
   strategySTHDX,
@@ -88,6 +89,7 @@ export const HydrationConfig: IAaveConfiguration = {
     HYPE: strategyHYPE,
     ZEC: strategyZEC,
     SPY: strategySPY,
+    NEAR: strategyNEAR,
     EURC: strategyEURC,
     "2-POOL-HEURC": strategyHEURC,
     STHDX: strategySTHDX,
@@ -118,6 +120,7 @@ export const HydrationConfig: IAaveConfiguration = {
       HYPE: tokenAddress(1001355),
       ZEC: tokenAddress(1001357),
       SPY: tokenAddress(1001356),
+      NEAR: tokenAddress(1001358),
       EURC: tokenAddress(44),
       "2-POOL-HEURC": tokenAddress(10044),
       STHDX: tokenAddress(670),
@@ -239,6 +242,7 @@ export const HydrationConfig: IAaveConfiguration = {
       HYPE: "0xa2F5bb6B23F7Cdf1a04f50103796D1b305ec17a7", // DIA HYPE/USD oracle
       ZEC: "0xd76f6e296e34ad163439d16731800c3e2c081c6e", // DIA ZEC/USD oracle
       SPY: "0x802893C9CDD5AaC833E52783DF39e572fe8f8538", // SPY/USD CheckedOracle (Robinhood Chainlink via Wormhole)
+      NEAR: "0x645ba3e65038A7785b1b7D0A67cb90fe8211843E", // DIA NEAR/USD oracle
       // HEURC oracles
       EURC: "0xaa47a5662269270D3DF33Ae08F806e383611575c", // DIA EUR/USD oracle
       "2-POOL-HEURC": "0x71691b7EE575a2842b242cE8E0AEcdB0e031B725",
