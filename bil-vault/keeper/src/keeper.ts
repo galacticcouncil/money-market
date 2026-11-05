@@ -189,6 +189,23 @@ const POSITION_POOL_ABI = [
     inputs: [{ name: 'positionIndex', type: 'uint256' }],
     outputs: [{ name: '', type: 'address' }],
   },
+  {
+    name: 'asset',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'address' }],
+  },
+] as const;
+
+const ERC20_BALANCE_ABI = [
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
 ] as const;
 
 const DECENTRAL_ABI = [
@@ -227,6 +244,7 @@ export class BILKeeper {
   private account: ReturnType<typeof privateKeyToAccount>;
   private vaultAddress: Address;
   private hadClaimRole: boolean | undefined;
+  private hollarAddress: Address | undefined;
 
   constructor() {
     this.account = privateKeyToAccount(CONFIG.PRIVATE_KEY);
@@ -280,28 +298,8 @@ export class BILKeeper {
       }
     }
 
-    // 3. Re-read state after position processing (it may have changed)
-    const [idleHollarAfter, totalQueuedBilAfter, totalSettledBilAfter] = await Promise.all([
-      this.readContract('idleHollar'),
-      this.readContract('totalQueuedBil'),
-      this.readContract('totalSettledBil'),
-    ]);
-
-    const idle = idleHollarAfter as bigint;
-    // totalQueuedBil still counts settled-but-unclaimed shares; only the unsettled part needs funds
-    const queued = (totalQueuedBilAfter as bigint) - (totalSettledBilAfter as bigint);
-    const minReinvest = minReinvestAmount as bigint;
-
-    // 4. pokeQueue handles both queue processing and reinvestment
-    if ((idle >= CONFIG.MIN_QUEUE_HOLLAR && queued > 0n) || (idle >= minReinvest && queued === 0n)) {
-      try {
-        console.log(`  Calling pokeQueue() (idle=${formatEther(idle)}, queued=${formatEther(queued)})...`);
-        await this.writeContract('pokeQueue');
-        console.log('  pokeQueue() succeeded');
-      } catch (err) {
-        console.error('  pokeQueue() failed:', err);
-      }
-    }
+    // 3-4. pokeQueue handles both queue processing and reinvestment
+    await this.maybePokeQueue();
 
     // 5. Auto-claim on behalf of opted-in controllers. Optional: only runs if
     //    this keeper holds CLAIM_OPERATOR_ROLE. Without it users claim themselves
@@ -309,6 +307,29 @@ export class BILKeeper {
     if (await this.hasClaimRole()) await this.autoClaimSettled();
 
     console.log('  Cycle complete.');
+  }
+
+  /// Settle the queue and reinvest idle HOLLAR when either can make progress. Called after
+  /// every Decentral payout as well as at the end of the cycle, so returned principal is back
+  /// in the pool before the next capped piece needs paying.
+  private async maybePokeQueue(): Promise<void> {
+    const [idleHollar, totalQueuedBil, totalSettledBil, minReinvestAmount] = await Promise.all([
+      this.readContract('idleHollar'),
+      this.readContract('totalQueuedBil'),
+      this.readContract('totalSettledBil'),
+      this.readContract('minReinvestAmount'),
+    ]);
+    const idle = idleHollar as bigint;
+    // totalQueuedBil still counts settled-but-unclaimed shares; only the unsettled part needs funds
+    const queued = (totalQueuedBil as bigint) - (totalSettledBil as bigint);
+    if (!((idle >= CONFIG.MIN_QUEUE_HOLLAR && queued > 0n) || (idle >= (minReinvestAmount as bigint) && queued === 0n))) return;
+    try {
+      console.log(`  Calling pokeQueue() (idle=${formatEther(idle)}, queued=${formatEther(queued)})...`);
+      await this.writeContract('pokeQueue');
+      console.log('  pokeQueue() succeeded');
+    } catch (err) {
+      console.error('  pokeQueue() failed:', err);
+    }
   }
 
   private async syncMaturitiesIfDue(): Promise<void> {
@@ -449,7 +470,11 @@ export class BILKeeper {
         console.log(
           `  Position ${index} (token ${tokenId}): state=${stateNames[state]}, calling processPosition()...`
         );
-        await this.tryProcessPosition(index);
+        // principal came back: recycle it into the pool before the next piece needs paying
+        const ok = await this.tryProcessPosition(index);
+        if (ok && state === NFTState.PrincipalWithdrawalRequested && (await this.positionState(index)) === NFTState.Redeemed) {
+          await this.maybePokeQueue();
+        }
       }
 
       // Off-chain monitoring (see comment above on the Active branch).
@@ -482,16 +507,17 @@ export class BILKeeper {
       args: [BigInt(index)],
     })) as Address;
     if (state === NFTState.YieldWithdrawalRequested) {
-      const [, , exists, approved] = (await this.publicClient.readContract({
+      const [amount, , exists, approved] = (await this.publicClient.readContract({
         address: pool,
         abi: DECENTRAL_ABI,
         functionName: 'getYieldWithdrawalRequest',
         args: [tokenId],
       })) as readonly [bigint, bigint, boolean, boolean];
-      return exists && !approved ? 'yield withdrawal not approved' : null;
+      if (exists && !approved) return 'yield withdrawal not approved';
+      return exists ? this.poolShort(pool, amount) : null;
     }
     if (state === NFTState.PrincipalWithdrawalRequested) {
-      const [, , availableAt, exists, approved] = (await this.publicClient.readContract({
+      const [amount, , availableAt, exists, approved] = (await this.publicClient.readContract({
         address: pool,
         abi: DECENTRAL_ABI,
         functionName: 'getPrincipalWithdrawalRequest',
@@ -499,18 +525,43 @@ export class BILKeeper {
       })) as readonly [bigint, bigint, bigint, boolean, boolean];
       if (exists && !approved) return 'principal withdrawal not approved';
       if (exists && nowSeconds < Number(availableAt)) return `principal available at ${new Date(Number(availableAt) * 1000).toISOString()}`;
+      if (exists) return this.poolShort(pool, amount);
     }
     return null;
   }
 
-  private async tryProcessPosition(index: number): Promise<void> {
+  private async tryProcessPosition(index: number): Promise<boolean> {
     try {
       await this.writeContract('pokeDecentral', [BigInt(index)]);
       console.log(`    pokeDecentral(${index}) succeeded`);
+      return true;
     } catch (err) {
       // Expected: Decentral may not have approved the withdrawal yet
       console.log(`    pokeDecentral(${index}) reverted (may need Decentral approval)`);
+      return false;
     }
+  }
+
+  private async positionState(index: number): Promise<number> {
+    const position = (await this.readContract('getPosition', [BigInt(index)])) as readonly unknown[];
+    return Number(position[5]);
+  }
+
+  /// Decentral pays from its own HOLLAR balance; an approved request it can't fund
+  /// is still a paid no-op, so wait for liquidity instead of poking.
+  private async poolShort(pool: Address, amount: bigint): Promise<string | null> {
+    this.hollarAddress ??= (await this.publicClient.readContract({
+      address: this.vaultAddress,
+      abi: POSITION_POOL_ABI,
+      functionName: 'asset',
+    })) as Address;
+    const balance = (await this.publicClient.readContract({
+      address: this.hollarAddress,
+      abi: ERC20_BALANCE_ABI,
+      functionName: 'balanceOf',
+      args: [pool],
+    })) as bigint;
+    return balance < amount ? `pool holds ${formatEther(balance)} HOLLAR, needs ${formatEther(amount)}` : null;
   }
 
   // ─── Contract helpers ────────────────────────────────────────────────
