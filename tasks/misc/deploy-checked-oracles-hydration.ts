@@ -20,6 +20,7 @@ import { POOL_ADMIN } from "../../helpers/constants";
  *   0x000001 | 04 | 8 zero bytes (routed) | assetA | assetB
  */
 const WH_RECEIVER_ETHEREUM = "0x6913770466fed4dbc24337cd7f1ae92af4321083";
+const WH_RECEIVER_ETHEREUM_APYUSD = "0x75f0bc5d807d13073e3f555f0aaf83b538d2b432"
 const WH_RECEIVER_SOLANA = "0x582e2fac5af62dc024396b5e7f549c72273a69c3";
 const WH_RECEIVER_ROBINHOOD = "0x3b6e3469d8e64e306f235838e0fdf7b4d60a39ce";
 
@@ -28,6 +29,7 @@ type CheckedOracleSpec = {
   description: string;
   price: string; // 8 decimals
   check?: string; // day-EMA precompile; omitted = unchecked
+  coefficient?: string; // discount applied before the check
   maxDiffBps: number;
   pusher: string;
 };
@@ -40,6 +42,17 @@ export const CHECKED_ORACLES: CheckedOracleSpec[] = [
     check: "0x000001040000000000000000000000de0000002e", // HOLLAR(222) -> apyUSD(46)
     maxDiffBps: 100,
     pusher: WH_RECEIVER_ETHEREUM,
+  },
+  {
+    // Replaces APYUSD above. Fair value sits ~220 bps above
+    // the pool EMA, outside the band. Discounted it lands ~66 bps away.
+    name: "APYUSD-DISCOUNT",
+    description: "apyUSD/USD",
+    price: "145332509",
+    check: "0x000001040000000000000000000000de0000002e", // HOLLAR(222) -> apyUSD(46)
+    coefficient: "98500000", // -1.5%; set to 1e8 if the basis ever closes
+    maxDiffBps: 100,
+    pusher: WH_RECEIVER_ETHEREUM_APYUSD,
   },
   {
     name: "PRIME",
@@ -84,7 +97,12 @@ const CHECKED_ORACLE_ABI = [
   "function checkDecimals() view returns (uint8)",
   "function maxDiffBps() view returns (uint256)",
   "function checkPrice() view returns (bool ok, int256 price)",
+  "function latestRound() view returns (uint256)",
+  "function coefficient() view returns (uint256)",
 ];
+
+const deploymentName = (s: CheckedOracleSpec) =>
+  `${s.name}-${s.coefficient ? "DiscountedCheckedOracle" : "CheckedOracle"}`;
 
 const fmt8 = (v: BigNumber) => (Number(v.toString()) / 1e8).toFixed(8);
 
@@ -94,7 +112,7 @@ task(
 )
   .addOptionalParam(
     "only",
-    "Comma-separated subset of names to deploy (APYUSD,PRIME,WSTETH,JITOSOL,SPY)"
+    "Comma-separated subset of names to deploy (APYUSD,APYUSD-DISCOUNT,PRIME,WSTETH,JITOSOL,SPY)"
   )
   .setAction(async ({ only }: { only?: string }, hre) => {
     const network = hre.network.name;
@@ -116,6 +134,7 @@ task(
         owner,
         price: s.price,
         ...(s.check ? { check: s.check } : {}), // omitted = unchecked
+        ...(s.coefficient ? { coefficient: s.coefficient } : {}),
         maxDiffBps: String(s.maxDiffBps),
         pusher: s.pusher,
       });
@@ -123,7 +142,7 @@ task(
 
     console.log(`\n--- post-deploy sanity ---`);
     for (const s of specs) {
-      const dep = await hre.deployments.get(`${s.name}-CheckedOracle`);
+      const dep = await hre.deployments.get(deploymentName(s));
       const oracle = await hre.ethers.getContractAt(CHECKED_ORACLE_ABI, dep.address);
 
       const [answer, ownerOnChain, pusher, checkOracle, checkDecimals, band] =
@@ -137,8 +156,21 @@ task(
         ]);
       const [checkOk, checkPrice] = await oracle.checkPrice();
 
+      const expected = s.coefficient
+        ? BigNumber.from(s.price).mul(s.coefficient).div(1e8)
+        : BigNumber.from(s.price);
+
       const bad: string[] = [];
-      if (!answer.eq(BigNumber.from(s.price))) bad.push("initial price mismatch");
+      if (!answer.eq(expected)) bad.push("initial price mismatch");
+      if (s.coefficient) {
+        const [coef, round] = await Promise.all([
+          oracle.coefficient(),
+          oracle.latestRound(),
+        ]);
+        if (!coef.eq(s.coefficient)) bad.push("coefficient mismatch");
+        // the base constructor writes round 1, the discounted restate round 2
+        if (!round.eq(2)) bad.push(`latestRound ${round} != 2`);
+      }
       if (ownerOnChain.toLowerCase() !== owner.toLowerCase()) bad.push("owner mismatch");
       if (pusher.toLowerCase() !== s.pusher.toLowerCase()) bad.push("pusher mismatch");
       if (checkOracle.toLowerCase() !== (s.check ?? constants.AddressZero).toLowerCase())
@@ -146,8 +178,10 @@ task(
       if (checkDecimals !== 8) bad.push(`check decimals ${checkDecimals} != 8`);
       if (!band.eq(s.maxDiffBps)) bad.push("band mismatch");
 
-      console.log(`\n${s.name}-CheckedOracle ${dep.address}`);
-      console.log(`  reports ${fmt8(answer)} | band ${band.toString()} bps | pusher ${pusher}`);
+      console.log(`\n${deploymentName(s)} ${dep.address}`);
+      console.log(
+        `  reports ${fmt8(answer)}${s.coefficient ? ` (raw ${fmt8(BigNumber.from(s.price))} x ${fmt8(BigNumber.from(s.coefficient))})` : ""} | band ${band.toString()} bps | pusher ${pusher}`
+      );
       console.log(
         s.check
           ? `  check feed ${checkOracle} -> ${checkOk ? fmt8(checkPrice) : "UNAVAILABLE (fail-closed: pushes rejected until it answers)"}`

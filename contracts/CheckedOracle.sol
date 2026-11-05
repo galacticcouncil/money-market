@@ -83,7 +83,7 @@ contract CheckedOracle is ManagedOracle, ICheckedOracle {
     /// @notice Pushes `price`, provided it sits within `maxDiffBps` of the
     /// check feed, or unconditionally while no check feed is set. Callable by
     /// the pusher or the owner.
-    function setPrice(int256 price) external override onlyPriceSetter {
+    function setPrice(int256 price) external virtual override onlyPriceSetter {
         if (price <= 0) revert InvalidPrice();
 
         if (checkOracle == address(0)) {
@@ -139,7 +139,7 @@ contract CheckedOracle is ManagedOracle, ICheckedOracle {
     /// positive price is accepted then).
     function previewSetPrice(
         int256 price
-    ) external view override returns (bool ok, uint256 deviationBps) {
+    ) external view virtual override returns (bool ok, uint256 deviationBps) {
         if (price <= 0) return (false, 0);
         if (!checked()) return (true, 0);
 
