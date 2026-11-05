@@ -1,0 +1,931 @@
+{
+  "address": "0x802893C9CDD5AaC833E52783DF39e572fe8f8538",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "description_",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "version_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "initialOwner",
+          "type": "address"
+        },
+        {
+          "internalType": "int256",
+          "name": "initialPrice",
+          "type": "int256"
+        },
+        {
+          "internalType": "address",
+          "name": "checkOracle_",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maxDiffBps_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "pusher_",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "CheckPriceUnavailable",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidBps",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidFeed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidPrice",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotPriceSetter",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "price",
+          "type": "int256"
+        },
+        {
+          "internalType": "int256",
+          "name": "checkPrice",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "deviationBps",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maxDiffBps",
+          "type": "uint256"
+        }
+      ],
+      "name": "PriceDeviationTooLarge",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "checkOracle",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "checkDecimals",
+          "type": "uint8"
+        }
+      ],
+      "name": "CheckOracleUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "maxDiffBps",
+          "type": "uint256"
+        }
+      ],
+      "name": "MaxDiffBpsUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        },
+        {
+          "indexed": false,
+          "internalType": "int256",
+          "name": "price",
+          "type": "int256"
+        },
+        {
+          "indexed": false,
+          "internalType": "int256",
+          "name": "checkPrice",
+          "type": "int256"
+        }
+      ],
+      "name": "PriceSetUnchecked",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        },
+        {
+          "indexed": false,
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "PriceUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousPusher",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newPusher",
+          "type": "address"
+        }
+      ],
+      "name": "PusherUpdated",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "MAX_BPS",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "checkDecimals",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "checkOracle",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "checkPrice",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "ok",
+          "type": "bool"
+        },
+        {
+          "internalType": "int256",
+          "name": "price",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "checked",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "decimals",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "description",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getAnswer",
+      "outputs": [
+        {
+          "internalType": "int256",
+          "name": "",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint80",
+          "name": "_roundId",
+          "type": "uint80"
+        }
+      ],
+      "name": "getRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getTimestamp",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "latestAnswer",
+      "outputs": [
+        {
+          "internalType": "int256",
+          "name": "",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "latestRound",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "latestRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "latestTimestamp",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "maxDiffBps",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "price",
+          "type": "int256"
+        }
+      ],
+      "name": "previewSetPrice",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "ok",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "deviationBps",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pusher",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "checkOracle_",
+          "type": "address"
+        }
+      ],
+      "name": "setCheckOracle",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "maxDiffBps_",
+          "type": "uint256"
+        }
+      ],
+      "name": "setMaxDiffBps",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "price",
+          "type": "int256"
+        }
+      ],
+      "name": "setPrice",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "price",
+          "type": "int256"
+        }
+      ],
+      "name": "setPriceUnchecked",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "pusher_",
+          "type": "address"
+        }
+      ],
+      "name": "setPusher",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "version",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0xb5b597586cb34838485d4a1c5aae054ab56fba5fe796d38f33aa5c1f77f0a6ad",
+  "receipt": {
+    "to": null,
+    "from": "0x71FeB8b2849101a6E62e3369eaAfDc6154CD0Bc0",
+    "contractAddress": "0x802893C9CDD5AaC833E52783DF39e572fe8f8538",
+    "transactionIndex": 1,
+    "gasUsed": "2661186",
+    "logsBloom": "0x00000000000000100000000000000000000000200000000020800001000000000000000000000000000000001000002000000000000000000008000000040000000000000000000002000000000000000001000000140200000000200000000000000000020000000000100000000c00000000000000001000000000000000400004000100000000000000000100000010000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000100060000000000000000000000000000000000000000008000800000000000000000000",
+    "blockHash": "0x0f955fc1333035ebb21972918f16f94fffb0378dd50af55b1b4fd0f9e2c3cb59",
+    "transactionHash": "0xb5b597586cb34838485d4a1c5aae054ab56fba5fe796d38f33aa5c1f77f0a6ad",
+    "logs": [
+      {
+        "transactionIndex": 1,
+        "blockNumber": 15488009,
+        "transactionHash": "0xb5b597586cb34838485d4a1c5aae054ab56fba5fe796d38f33aa5c1f77f0a6ad",
+        "address": "0x802893C9CDD5AaC833E52783DF39e572fe8f8538",
+        "topics": [
+          "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x00000000000000000000000071feb8b2849101a6e62e3369eaafdc6154cd0bc0"
+        ],
+        "data": "0x",
+        "logIndex": 0,
+        "blockHash": "0x0f955fc1333035ebb21972918f16f94fffb0378dd50af55b1b4fd0f9e2c3cb59"
+      },
+      {
+        "transactionIndex": 1,
+        "blockNumber": 15488009,
+        "transactionHash": "0xb5b597586cb34838485d4a1c5aae054ab56fba5fe796d38f33aa5c1f77f0a6ad",
+        "address": "0x802893C9CDD5AaC833E52783DF39e572fe8f8538",
+        "topics": [
+          "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+          "0x00000000000000000000000071feb8b2849101a6e62e3369eaafdc6154cd0bc0",
+          "0x000000000000000000000000aa7e0000000000000000000000000000000aa7e0"
+        ],
+        "data": "0x",
+        "logIndex": 1,
+        "blockHash": "0x0f955fc1333035ebb21972918f16f94fffb0378dd50af55b1b4fd0f9e2c3cb59"
+      },
+      {
+        "transactionIndex": 1,
+        "blockNumber": 15488009,
+        "transactionHash": "0xb5b597586cb34838485d4a1c5aae054ab56fba5fe796d38f33aa5c1f77f0a6ad",
+        "address": "0x802893C9CDD5AaC833E52783DF39e572fe8f8538",
+        "topics": [
+          "0x7d8cee5d1217e47a14a662098e84a7758580aaf78f430c07c543249234e867bf",
+          "0x0000000000000000000000000000000000000000000000000000000000000001"
+        ],
+        "data": "0x0000000000000000000000000000000000000000000000000000001229a801d8000000000000000000000000000000000000000000000000000000006ac596d2",
+        "logIndex": 2,
+        "blockHash": "0x0f955fc1333035ebb21972918f16f94fffb0378dd50af55b1b4fd0f9e2c3cb59"
+      },
+      {
+        "transactionIndex": 1,
+        "blockNumber": 15488009,
+        "transactionHash": "0xb5b597586cb34838485d4a1c5aae054ab56fba5fe796d38f33aa5c1f77f0a6ad",
+        "address": "0x802893C9CDD5AaC833E52783DF39e572fe8f8538",
+        "topics": [
+          "0x4226e3f21014f6f9205a77c3fea0267ddfa4b781ad7ee7dd1834ab2c815176e8",
+          "0x0000000000000000000000000000000000000000000000000000000000000000"
+        ],
+        "data": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "logIndex": 3,
+        "blockHash": "0x0f955fc1333035ebb21972918f16f94fffb0378dd50af55b1b4fd0f9e2c3cb59"
+      },
+      {
+        "transactionIndex": 1,
+        "blockNumber": 15488009,
+        "transactionHash": "0xb5b597586cb34838485d4a1c5aae054ab56fba5fe796d38f33aa5c1f77f0a6ad",
+        "address": "0x802893C9CDD5AaC833E52783DF39e572fe8f8538",
+        "topics": [
+          "0x773f46ef9d55c5193f738cfa74f463e66f77e294b487ec132aaf30c69dad0254"
+        ],
+        "data": "0x0000000000000000000000000000000000000000000000000000000000000064",
+        "logIndex": 4,
+        "blockHash": "0x0f955fc1333035ebb21972918f16f94fffb0378dd50af55b1b4fd0f9e2c3cb59"
+      },
+      {
+        "transactionIndex": 1,
+        "blockNumber": 15488009,
+        "transactionHash": "0xb5b597586cb34838485d4a1c5aae054ab56fba5fe796d38f33aa5c1f77f0a6ad",
+        "address": "0x802893C9CDD5AaC833E52783DF39e572fe8f8538",
+        "topics": [
+          "0xb12fd8455a0e933618727b31763a89916bf45076863b7cfb5713c69e665357c1",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x0000000000000000000000003b6e3469d8e64e306f235838e0fdf7b4d60a39ce"
+        ],
+        "data": "0x",
+        "logIndex": 5,
+        "blockHash": "0x0f955fc1333035ebb21972918f16f94fffb0378dd50af55b1b4fd0f9e2c3cb59"
+      }
+    ],
+    "blockNumber": 15488009,
+    "cumulativeGasUsed": "2799258",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "SPY/USD",
+    1,
+    "0xaa7e0000000000000000000000000000000aa7e0",
+    "78008287704",
+    "0x0000000000000000000000000000000000000000",
+    100,
+    "0x3b6e3469d8e64e306f235838e0fdf7b4d60a39ce"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "4b9c61bff16fd8b798aeeb49b18e6f4c",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.10+commit.fc410830\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"string\",\"name\":\"description_\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"version_\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"initialOwner\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"initialPrice\",\"type\":\"int256\"},{\"internalType\":\"address\",\"name\":\"checkOracle_\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"maxDiffBps_\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"pusher_\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"CheckPriceUnavailable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidBps\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidFeed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidPrice\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotPriceSetter\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"price\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"checkPrice\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"deviationBps\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"maxDiffBps\",\"type\":\"uint256\"}],\"name\":\"PriceDeviationTooLarge\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"checkOracle\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"checkDecimals\",\"type\":\"uint8\"}],\"name\":\"CheckOracleUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"maxDiffBps\",\"type\":\"uint256\"}],\"name\":\"MaxDiffBpsUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"price\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"checkPrice\",\"type\":\"int256\"}],\"name\":\"PriceSetUnchecked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"PriceUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousPusher\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newPusher\",\"type\":\"address\"}],\"name\":\"PusherUpdated\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"MAX_BPS\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"checkDecimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"checkOracle\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"checkPrice\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"ok\",\"type\":\"bool\"},{\"internalType\":\"int256\",\"name\":\"price\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"checked\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"description\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"}],\"name\":\"getAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"_roundId\",\"type\":\"uint80\"}],\"name\":\"getRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"}],\"name\":\"getTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRound\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestTimestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxDiffBps\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"price\",\"type\":\"int256\"}],\"name\":\"previewSetPrice\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"ok\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"deviationBps\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pusher\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"checkOracle_\",\"type\":\"address\"}],\"name\":\"setCheckOracle\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"maxDiffBps_\",\"type\":\"uint256\"}],\"name\":\"setMaxDiffBps\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"price\",\"type\":\"int256\"}],\"name\":\"setPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"price\",\"type\":\"int256\"}],\"name\":\"setPriceUnchecked\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"pusher_\",\"type\":\"address\"}],\"name\":\"setPusher\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.\"},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"}},\"stateVariables\":{\"MAX_FEED_DECIMALS\":{\"details\":\"Upper bound on check-feed decimals; keeps the scaling factor sane.\"}},\"version\":1},\"userdoc\":{\"events\":{\"PriceSetUnchecked(uint80,int256,int256)\":{\"notice\":\"Emitted when the owner pushes a price without the deviation check. `checkPrice` is 0 when the check oracle was unavailable.\"}},\"kind\":\"user\",\"methods\":{\"checkOracle()\":{\"notice\":\"The check feed, or `address(0)` while pushes are unchecked.\"},\"checkPrice()\":{\"notice\":\"The check feed's current price, normalised to this oracle's decimals. `ok` is false when the feed is unusable or unset.\"},\"checked()\":{\"notice\":\"Whether pushes are checked at all: false while `checkOracle` is unset.\"},\"previewSetPrice(int256)\":{\"notice\":\"Whether `setPrice(price)` would be accepted right now, and by how much `price` deviates from the check feed. `deviationBps` is 0 when the check price is unavailable, and when no check feed is set (every positive price is accepted then).\"},\"setPrice(int256)\":{\"notice\":\"Pushes `price`, provided it sits within `maxDiffBps` of the check feed, or unconditionally while no check feed is set. Callable by the pusher or the owner.\"},\"setPriceUnchecked(int256)\":{\"notice\":\"Pushes `price` without consulting the check feed. Owner only; the escape hatch for a dead or wrong check feed.\"}},\"notice\":\"A ManagedOracle that refuses pushed prices which disagree with an on-chain check feed (Hydration's EMA oracle precompile) by more than `maxDiffBps`. Threat model: - The pushed price is the manipulation-prone side: a compromised relayer   key, a bad VAA, or a fat-fingered manual update can move it arbitrarily   in one call. ManagedOracle has no bound on it at all. - The check feed is Hydration's pool EMA precompile. Moving it meaningfully   needs sustained imbalance, not a single transaction. The check happens at write time, not at read time (cf. ClampedOracle): a bad update is rejected outright rather than reported clamped, so reads stay a plain storage load and the reported price is always exactly what was pushed and accepted. Roles: - `pusher` may only push prices that pass the check. Compromising it caps   the damage at `maxDiffBps` around the pool EMA. - `owner` (governance) configures the check feed, the band and the pusher,   and may push unchecked via `setPriceUnchecked` \\u2014 the escape hatch for a   dead check feed. Owner is therefore fully trusted, as in ManagedOracle. Fail-closed: no usable check price (feed reverts or returns <= 0) means no checked update. The price freezes at its last value until the feed recovers, governance swaps the feed, or the owner pushes unchecked. Unchecked mode: a `checkOracle` of `address(0)` means there is nothing to check against, and `setPrice` stores every positive price as a plain ManagedOracle would. This is for chains without an independent reference for the asset (HDX/USD on Robinhood Chain): the oracle is deployed at the address its consumers read from day one, and the owner switches a check on later with `setCheckOracle` without touching anything downstream. A non-zero check feed must answer a positive price when it is set, so a typo cannot turn the feed into reject-everything. The constructor price is not checked: deploying is an owner action, of the same weight as `setPriceUnchecked`, and requiring the initial value to sit inside the band would make a wrapper undeployable exactly when the managed price legitimately diverges from the pool.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/CheckedOracle.sol\":\"CheckedOracle\"},\"evmVersion\":\"berlin\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":100000},\"remappings\":[]},\"sources\":{\"contracts/CheckedOracle.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0\\npragma solidity ^0.8.10;\\n\\nimport {ManagedOracle} from \\\"./ManagedOracle.sol\\\";\\nimport {ICheckedOracle} from \\\"./interfaces/ICheckedOracle.sol\\\";\\nimport {IHydraChainlinkOracle} from \\\"./dependencies/hydra-chainlink/IHydraChainlinkOracle.sol\\\";\\n\\n/// @notice A ManagedOracle that refuses pushed prices which disagree with an\\n/// on-chain check feed (Hydration's EMA oracle precompile) by more than\\n/// `maxDiffBps`.\\n///\\n/// Threat model:\\n/// - The pushed price is the manipulation-prone side: a compromised relayer\\n///   key, a bad VAA, or a fat-fingered manual update can move it arbitrarily\\n///   in one call. ManagedOracle has no bound on it at all.\\n/// - The check feed is Hydration's pool EMA precompile. Moving it meaningfully\\n///   needs sustained imbalance, not a single transaction.\\n///\\n/// The check happens at write time, not at read time (cf. ClampedOracle): a\\n/// bad update is rejected outright rather than reported clamped, so reads stay\\n/// a plain storage load and the reported price is always exactly what was\\n/// pushed and accepted.\\n///\\n/// Roles:\\n/// - `pusher` may only push prices that pass the check. Compromising it caps\\n///   the damage at `maxDiffBps` around the pool EMA.\\n/// - `owner` (governance) configures the check feed, the band and the pusher,\\n///   and may push unchecked via `setPriceUnchecked` \\u2014 the escape hatch for a\\n///   dead check feed. Owner is therefore fully trusted, as in ManagedOracle.\\n///\\n/// Fail-closed: no usable check price (feed reverts or returns <= 0) means no\\n/// checked update. The price freezes at its last value until the feed\\n/// recovers, governance swaps the feed, or the owner pushes unchecked.\\n///\\n/// Unchecked mode: a `checkOracle` of `address(0)` means there is nothing to\\n/// check against, and `setPrice` stores every positive price as a plain\\n/// ManagedOracle would. This is for chains without an independent reference\\n/// for the asset (HDX/USD on Robinhood Chain): the oracle is deployed at the\\n/// address its consumers read from day one, and the owner switches a check on\\n/// later with `setCheckOracle` without touching anything downstream. A\\n/// non-zero check feed must answer a positive price when it is set, so a\\n/// typo cannot turn the feed into reject-everything.\\n///\\n/// The constructor price is not checked: deploying is an owner action, of the\\n/// same weight as `setPriceUnchecked`, and requiring the initial value to sit\\n/// inside the band would make a wrapper undeployable exactly when the managed\\n/// price legitimately diverges from the pool.\\ncontract CheckedOracle is ManagedOracle, ICheckedOracle {\\n    uint256 public constant MAX_BPS = 10_000;\\n\\n    /// @dev Upper bound on check-feed decimals; keeps the scaling factor sane.\\n    uint8 internal constant MAX_FEED_DECIMALS = 36;\\n\\n    address public override checkOracle;\\n    uint8 public override checkDecimals;\\n    uint256 public override maxDiffBps;\\n    address public override pusher;\\n\\n    modifier onlyPriceSetter() {\\n        if (msg.sender != pusher && msg.sender != owner())\\n            revert NotPriceSetter();\\n        _;\\n    }\\n\\n    constructor(\\n        string memory description_,\\n        uint256 version_,\\n        address initialOwner,\\n        int256 initialPrice,\\n        address checkOracle_,\\n        uint256 maxDiffBps_,\\n        address pusher_\\n    ) ManagedOracle(description_, version_, initialOwner, initialPrice) {\\n        _setCheckOracle(checkOracle_);\\n        _setMaxDiffBps(maxDiffBps_);\\n        _setPusher(pusher_);\\n    }\\n\\n    // ---------------------------------------------------------------------\\n    // price pushing\\n    // ---------------------------------------------------------------------\\n\\n    /// @notice Pushes `price`, provided it sits within `maxDiffBps` of the\\n    /// check feed, or unconditionally while no check feed is set. Callable by\\n    /// the pusher or the owner.\\n    function setPrice(int256 price) external override onlyPriceSetter {\\n        if (price <= 0) revert InvalidPrice();\\n\\n        if (checkOracle == address(0)) {\\n            _setPrice(price);\\n            return;\\n        }\\n\\n        (bool ok, uint256 check) = _checkPrice();\\n        if (!ok) revert CheckPriceUnavailable();\\n\\n        uint256 p = uint256(price);\\n        if (!_withinBand(p, check))\\n            revert PriceDeviationTooLarge(\\n                price,\\n                int256(check),\\n                _deviationBps(p, check),\\n                maxDiffBps\\n            );\\n\\n        _setPrice(price);\\n    }\\n\\n    /// @notice Pushes `price` without consulting the check feed. Owner only;\\n    /// the escape hatch for a dead or wrong check feed.\\n    function setPriceUnchecked(int256 price) external override onlyOwner {\\n        (bool ok, uint256 check) = _checkPrice();\\n        uint80 roundId = _setPrice(price);\\n\\n        emit PriceSetUnchecked(roundId, price, ok ? int256(check) : int256(0));\\n    }\\n\\n    // ---------------------------------------------------------------------\\n    // views\\n    // ---------------------------------------------------------------------\\n\\n    /// @notice Whether pushes are checked at all: false while `checkOracle` is\\n    /// unset.\\n    function checked() public view override returns (bool) {\\n        return checkOracle != address(0);\\n    }\\n\\n    /// @notice The check feed's current price, normalised to this oracle's\\n    /// decimals. `ok` is false when the feed is unusable or unset.\\n    function checkPrice() external view override returns (bool ok, int256 price) {\\n        uint256 check;\\n        (ok, check) = _checkPrice();\\n        return (ok, int256(check));\\n    }\\n\\n    /// @notice Whether `setPrice(price)` would be accepted right now, and by\\n    /// how much `price` deviates from the check feed. `deviationBps` is 0 when\\n    /// the check price is unavailable, and when no check feed is set (every\\n    /// positive price is accepted then).\\n    function previewSetPrice(\\n        int256 price\\n    ) external view override returns (bool ok, uint256 deviationBps) {\\n        if (price <= 0) return (false, 0);\\n        if (!checked()) return (true, 0);\\n\\n        (bool hasCheck, uint256 check) = _checkPrice();\\n        if (!hasCheck) return (false, 0);\\n\\n        uint256 p = uint256(price);\\n        return (_withinBand(p, check), _deviationBps(p, check));\\n    }\\n\\n    // ---------------------------------------------------------------------\\n    // configuration (owner)\\n    // ---------------------------------------------------------------------\\n\\n    function setCheckOracle(address checkOracle_) external override onlyOwner {\\n        _setCheckOracle(checkOracle_);\\n    }\\n\\n    function setMaxDiffBps(uint256 maxDiffBps_) external override onlyOwner {\\n        _setMaxDiffBps(maxDiffBps_);\\n    }\\n\\n    function setPusher(address pusher_) external override onlyOwner {\\n        _setPusher(pusher_);\\n    }\\n\\n    /// @dev `address(0)` switches checking off. Anything else must answer a\\n    /// positive price right now: enabling a check against a feed that does\\n    /// not answer would reject every push from this moment on.\\n    function _setCheckOracle(address checkOracle_) internal {\\n        uint8 feedDecimals = 0;\\n        if (checkOracle_ != address(0)) {\\n            feedDecimals = _feedDecimals(checkOracle_);\\n            if (!_feedAnswers(checkOracle_)) revert InvalidFeed();\\n        }\\n        checkOracle = checkOracle_;\\n        checkDecimals = feedDecimals;\\n\\n        emit CheckOracleUpdated(checkOracle_, feedDecimals);\\n    }\\n\\n    function _setMaxDiffBps(uint256 maxDiffBps_) internal {\\n        if (maxDiffBps_ > MAX_BPS) revert InvalidBps();\\n        maxDiffBps = maxDiffBps_;\\n\\n        emit MaxDiffBpsUpdated(maxDiffBps_);\\n    }\\n\\n    function _setPusher(address pusher_) internal {\\n        emit PusherUpdated(pusher, pusher_);\\n        pusher = pusher_;\\n    }\\n\\n    // ---------------------------------------------------------------------\\n    // internals\\n    // ---------------------------------------------------------------------\\n\\n    /// @dev Reads the check feed and rescales it to `decimals`. Any failure\\n    /// mode of the feed surfaces as `ok == false`, never as a revert.\\n    function _checkPrice() internal view returns (bool ok, uint256 price) {\\n        address feed = checkOracle;\\n        if (feed == address(0)) return (false, 0);\\n\\n        try IHydraChainlinkOracle(feed).latestAnswer() returns (int256 answer) {\\n            if (answer <= 0) return (false, 0);\\n            return (true, _scale(uint256(answer)));\\n        } catch {\\n            return (false, 0);\\n        }\\n    }\\n\\n    function _scale(uint256 answer) internal view returns (uint256) {\\n        uint8 d = checkDecimals;\\n        if (d == decimals) return answer;\\n        if (d < decimals) return answer * (10 ** uint256(decimals - d));\\n        return answer / (10 ** uint256(d - decimals));\\n    }\\n\\n    /// @dev |p - c| / c <= maxDiffBps / MAX_BPS, cross-multiplied so the band\\n    /// edges are exact rather than rounded.\\n    function _withinBand(uint256 p, uint256 c) internal view returns (bool) {\\n        uint256 diff = p > c ? p - c : c - p;\\n        return diff * MAX_BPS <= maxDiffBps * c;\\n    }\\n\\n    function _deviationBps(\\n        uint256 p,\\n        uint256 c\\n    ) internal pure returns (uint256) {\\n        uint256 diff = p > c ? p - c : c - p;\\n        return (diff * MAX_BPS) / c;\\n    }\\n\\n    /// @dev Whether `feed` currently answers a positive price.\\n    function _feedAnswers(address feed) internal view returns (bool) {\\n        try IHydraChainlinkOracle(feed).latestAnswer() returns (int256 answer) {\\n            return answer > 0;\\n        } catch {\\n            return false;\\n        }\\n    }\\n\\n    /// @dev Feeds that don't answer `decimals()` are assumed to match this\\n    /// oracle's own 8; the assumption is emitted in CheckOracleUpdated.\\n    function _feedDecimals(address feed) internal view returns (uint8) {\\n        try IHydraChainlinkOracle(feed).decimals() returns (uint8 d) {\\n            if (d > MAX_FEED_DECIMALS) revert InvalidFeed();\\n            return d;\\n        } catch {\\n            return decimals;\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x2338fba5f6c12c0722962f16a0a8b9f965645fc06a4effbaf6a26b2a19e518c6\",\"license\":\"AGPL-3.0\"},\"contracts/ManagedOracle.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0\\npragma solidity ^0.8.10;\\n\\nimport {AggregatorV3Interface} from \\\"./dependencies/chainlink/AggregatorV3Interface.sol\\\";\\nimport {Ownable} from \\\"./dependencies/openzeppelin/contracts/Ownable.sol\\\";\\n\\ncontract ManagedOracle is AggregatorV3Interface, Ownable {\\n\\n    uint8 public constant decimals = 8;\\n\\n    struct RoundData {\\n        uint80 roundId;\\n        int256 answer;\\n        uint256 startedAt;\\n        uint256 updatedAt;\\n        uint80 answeredInRound;\\n    }\\n\\n    RoundData private currentRound;\\n    string private _description;\\n    uint256 private _version;\\n\\n    event PriceUpdated(uint80 indexed roundId, int256 answer, uint256 timestamp);\\n\\n    constructor(\\n        string memory description_,\\n        uint256 version_,\\n        address initialOwner,\\n        int256 initialPrice\\n    ) Ownable() {\\n        _description = description_;\\n        _version = version_;\\n\\n        transferOwnership(initialOwner);\\n\\n        currentRound = RoundData({\\n            roundId: 1,\\n            answer: initialPrice,\\n            startedAt: block.timestamp,\\n            updatedAt: block.timestamp,\\n            answeredInRound: 1\\n        });\\n\\n        emit PriceUpdated(1, initialPrice, block.timestamp);\\n    }\\n\\n    function setPrice(int256 price) external virtual onlyOwner {\\n        _setPrice(price);\\n    }\\n\\n    function _setPrice(int256 price) internal returns (uint80 roundId) {\\n        currentRound.roundId++;\\n        currentRound.answer = price;\\n        currentRound.startedAt = block.timestamp;\\n        currentRound.updatedAt = block.timestamp;\\n        currentRound.answeredInRound = currentRound.roundId;\\n\\n        emit PriceUpdated(currentRound.roundId, price, block.timestamp);\\n\\n        return currentRound.roundId;\\n    }\\n\\n    function latestRoundData()\\n    external\\n    view\\n    override\\n    returns (\\n        uint80 roundId,\\n        int256 answer,\\n        uint256 startedAt,\\n        uint256 updatedAt,\\n        uint80 answeredInRound\\n    )\\n    {\\n        return (\\n            currentRound.roundId,\\n            currentRound.answer,\\n            currentRound.startedAt,\\n            currentRound.updatedAt,\\n            currentRound.answeredInRound\\n        );\\n    }\\n\\n    function description() external view override returns (string memory) {\\n        return _description;\\n    }\\n\\n    function version() external view override returns (uint256) {\\n        return _version;\\n    }\\n\\n    function getRoundData(uint80 _roundId)\\n    external\\n    view\\n    override\\n    returns (\\n        uint80 roundId,\\n        int256 answer,\\n        uint256 startedAt,\\n        uint256 updatedAt,\\n        uint80 answeredInRound\\n    )\\n    {\\n        // For simplicity, always return latest round data, historical data is not needed\\n        return this.latestRoundData();\\n    }\\n\\n    function latestAnswer() external view returns (int256) {\\n        return currentRound.answer;\\n    }\\n\\n    function latestTimestamp() external view returns (uint256) {\\n        return currentRound.updatedAt;\\n    }\\n\\n    function latestRound() external view returns (uint256) {\\n        return currentRound.roundId;\\n    }\\n\\n    function getAnswer(uint256 roundId) external view returns (int256) {\\n        // For simplicity, always return latest round data, historical data is not needed\\n        return currentRound.answer;\\n    }\\n\\n    function getTimestamp(uint256 roundId) external view returns (uint256) {\\n        // For simplicity, always return latest round data, historical data is not needed\\n        return currentRound.updatedAt;\\n    }\\n}\\n\",\"keccak256\":\"0x32a9dfd4532e61acc22729ad764f63a588e6dd3226d511463c95912c838f9a95\",\"license\":\"AGPL-3.0\"},\"contracts/dependencies/chainlink/AggregatorV3Interface.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// Chainlink Contracts v0.8\\npragma solidity ^0.8.0;\\n\\n// solhint-disable-next-line interface-starts-with-i\\ninterface AggregatorV3Interface {\\n  function decimals() external view returns (uint8);\\n\\n  function description() external view returns (string memory);\\n\\n  function version() external view returns (uint256);\\n\\n  function getRoundData(\\n    uint80 _roundId\\n  ) external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\\n\\n  function latestRoundData()\\n    external\\n    view\\n    returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\\n}\\n\",\"keccak256\":\"0xe86ddb6edb733d5d448cb965065f07c0c7d5369d636258a882019157fc1d8a06\",\"license\":\"MIT\"},\"contracts/dependencies/hydra-chainlink/IHydraChainlinkOracle.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.10;\\n\\ninterface IHydraChainlinkOracle {\\n    function latestAnswer() external view returns (int256);\\n\\n    function getAnswer(uint256 roundId) external view returns (int256);\\n\\n    function decimals() external view returns (uint8);\\n}\\n\",\"keccak256\":\"0x1f80d3cb2d88d9073a981947a4dd22c075d668456823cbeb53f9339d7f2c7423\",\"license\":\"MIT\"},\"contracts/dependencies/openzeppelin/contracts/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\n/*\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with GSN meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n  function _msgSender() internal view virtual returns (address payable) {\\n    return payable(msg.sender);\\n  }\\n\\n  function _msgData() internal view virtual returns (bytes memory) {\\n    this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691\\n    return msg.data;\\n  }\\n}\\n\",\"keccak256\":\"0xc0df5ebb2c3d8b4509464c40a88cc51e5e5f5e4a26fafc909330e9bb2658f641\",\"license\":\"MIT\"},\"contracts/dependencies/openzeppelin/contracts/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity ^0.8.0;\\n\\nimport './Context.sol';\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\ncontract Ownable is Context {\\n  address private _owner;\\n\\n  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n  /**\\n   * @dev Initializes the contract setting the deployer as the initial owner.\\n   */\\n  constructor() {\\n    address msgSender = _msgSender();\\n    _owner = msgSender;\\n    emit OwnershipTransferred(address(0), msgSender);\\n  }\\n\\n  /**\\n   * @dev Returns the address of the current owner.\\n   */\\n  function owner() public view returns (address) {\\n    return _owner;\\n  }\\n\\n  /**\\n   * @dev Throws if called by any account other than the owner.\\n   */\\n  modifier onlyOwner() {\\n    require(_owner == _msgSender(), 'Ownable: caller is not the owner');\\n    _;\\n  }\\n\\n  /**\\n   * @dev Leaves the contract without owner. It will not be possible to call\\n   * `onlyOwner` functions anymore. Can only be called by the current owner.\\n   *\\n   * NOTE: Renouncing ownership will leave the contract without an owner,\\n   * thereby removing any functionality that is only available to the owner.\\n   */\\n  function renounceOwnership() public virtual onlyOwner {\\n    emit OwnershipTransferred(_owner, address(0));\\n    _owner = address(0);\\n  }\\n\\n  /**\\n   * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n   * Can only be called by the current owner.\\n   */\\n  function transferOwnership(address newOwner) public virtual onlyOwner {\\n    require(newOwner != address(0), 'Ownable: new owner is the zero address');\\n    emit OwnershipTransferred(_owner, newOwner);\\n    _owner = newOwner;\\n  }\\n}\\n\",\"keccak256\":\"0x3ce185c4f579e32006f8893dbfdc1b5d878c0e2cafd1508f7ceb081698bc81f9\",\"license\":\"MIT\"},\"contracts/interfaces/ICheckedOracle.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0\\npragma solidity ^0.8.10;\\n\\ninterface ICheckedOracle {\\n    error InvalidFeed();\\n    error InvalidBps();\\n    error InvalidPrice();\\n    error NotPriceSetter();\\n    error CheckPriceUnavailable();\\n    error PriceDeviationTooLarge(\\n        int256 price,\\n        int256 checkPrice,\\n        uint256 deviationBps,\\n        uint256 maxDiffBps\\n    );\\n\\n    event CheckOracleUpdated(address indexed checkOracle, uint8 checkDecimals);\\n    event MaxDiffBpsUpdated(uint256 maxDiffBps);\\n    event PusherUpdated(\\n        address indexed previousPusher,\\n        address indexed newPusher\\n    );\\n    /// @notice Emitted when the owner pushes a price without the deviation\\n    /// check. `checkPrice` is 0 when the check oracle was unavailable.\\n    event PriceSetUnchecked(\\n        uint80 indexed roundId,\\n        int256 price,\\n        int256 checkPrice\\n    );\\n\\n    /// @notice The check feed, or `address(0)` while pushes are unchecked.\\n    function checkOracle() external view returns (address);\\n\\n    /// @notice False while no check feed is set: every positive push is stored.\\n    function checked() external view returns (bool);\\n\\n    function checkDecimals() external view returns (uint8);\\n\\n    function maxDiffBps() external view returns (uint256);\\n\\n    function pusher() external view returns (address);\\n\\n    function checkPrice() external view returns (bool ok, int256 price);\\n\\n    function previewSetPrice(\\n        int256 price\\n    ) external view returns (bool ok, uint256 deviationBps);\\n\\n    function setPriceUnchecked(int256 price) external;\\n\\n    function setCheckOracle(address checkOracle_) external;\\n\\n    function setMaxDiffBps(uint256 maxDiffBps_) external;\\n\\n    function setPusher(address pusher_) external;\\n}\\n\",\"keccak256\":\"0xab50615aa1fef8579ba0790a8246cfa82639c6620483806fad44fb311339d0aa\",\"license\":\"AGPL-3.0\"}},\"version\":1}",
+  "bytecode": "0x60806040523480156200001157600080fd5b5060405162001f1038038062001f108339810160408190526200003491620005ba565b600080546001600160a01b0319163390811782556040518992899289928992829160008051602062001ef0833981519152908290a35083516200007f906006906020870190620004e6565b506007839055620000908262000159565b6040805160a081018252600180825260208083018590524283850181905260608401819052608090930182905281546001600160501b0319908116831783556002869055600384905560048490556005805490911683179055835185815290810192909252917f7d8cee5d1217e47a14a662098e84a7758580aaf78f430c07c543249234e867bf910160405180910390a25050505062000136836200026a60201b60201c565b620001418262000319565b6200014c8162000378565b5050505050505062000771565b6000546001600160a01b03163314620001b95760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064015b60405180910390fd5b6001600160a01b038116620002205760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201526564647265737360d01b6064820152608401620001b0565b600080546040516001600160a01b038085169392169160008051602062001ef083398151915291a3600080546001600160a01b0319166001600160a01b0392909216919091179055565b60006001600160a01b03821615620002b2576200028782620003d4565b9050620002948262000471565b620002b2576040516301f86e1760e41b815260040160405180910390fd5b600880546001600160a01b0384166001600160a81b03199091168117600160a01b60ff851690810291909117909255604051918252907f4226e3f21014f6f9205a77c3fea0267ddfa4b781ad7ee7dd1834ab2c815176e89060200160405180910390a25050565b6127108111156200033d5760405163c6cc5d7f60e01b815260040160405180910390fd5b60098190556040518181527f773f46ef9d55c5193f738cfa74f463e66f77e294b487ec132aaf30c69dad02549060200160405180910390a150565b600a546040516001600160a01b038084169216907fb12fd8455a0e933618727b31763a89916bf45076863b7cfb5713c69e665357c190600090a3600a80546001600160a01b0319166001600160a01b0392909216919091179055565b6000816001600160a01b031663313ce5676040518163ffffffff1660e01b8152600401602060405180830381865afa92505050801562000433575060408051601f3d908101601f191682019092526200043091810190620006ee565b60015b6200044057506008919050565b602460ff8216111562000466576040516301f86e1760e41b815260040160405180910390fd5b92915050565b919050565b6000816001600160a01b03166350d25bcd6040518163ffffffff1660e01b8152600401602060405180830381865afa925050508015620004d0575060408051601f3d908101601f19168201909252620004cd918101906200071a565b60015b620004dd57506000919050565b60001292915050565b828054620004f49062000734565b90600052602060002090601f01602090048101928262000518576000855562000563565b82601f106200053357805160ff191683800117855562000563565b8280016001018555821562000563579182015b828111156200056357825182559160200191906001019062000546565b506200057192915062000575565b5090565b5b8082111562000571576000815560010162000576565b634e487b7160e01b600052604160045260246000fd5b80516001600160a01b03811681146200046c57600080fd5b600080600080600080600060e0888a031215620005d657600080fd5b87516001600160401b0380821115620005ee57600080fd5b818a0191508a601f8301126200060357600080fd5b8151818111156200061857620006186200058c565b604051601f8201601f19908116603f011681019083821181831017156200064357620006436200058c565b81604052828152602093508d848487010111156200066057600080fd5b600091505b8282101562000684578482018401518183018501529083019062000665565b82821115620006965760008484830101525b809b50505050808a015197505050620006b260408901620005a2565b945060608801519350620006c960808901620005a2565b925060a08801519150620006e060c08901620005a2565b905092959891949750929550565b6000602082840312156200070157600080fd5b815160ff811681146200071357600080fd5b9392505050565b6000602082840312156200072d57600080fd5b5051919050565b600181811c908216806200074957607f821691505b602082108114156200076b57634e487b7160e01b600052602260045260246000fd5b50919050565b61176f80620007816000396000f3fe608060405234801561001057600080fd5b50600436106101ae5760003560e01c80639a6fc8f5116100ee578063f019f63911610097578063f7a3080611610071578063f7a30806146103f4578063fd967f4714610407578063feaf968c14610410578063ff208a8a1461043457600080fd5b8063f019f639146103b8578063f2fde38b146103d8578063f40a1cbf146103eb57600080fd5b8063b5ab58dc116100c8578063b5ab58dc1461037b578063b633620c14610390578063ba8e8e8e146103a557600080fd5b80639a6fc8f51461030b578063a6d8033314610355578063ad30f1321461036857600080fd5b8063594ef6821161015b5780637284e416116101355780637284e416146102b15780638205bf6a146102c65780638da5cb5b146102ce5780638fc3047d146102ec57600080fd5b8063594ef68214610280578063668a0f0214610295578063715018a6146102a957600080fd5b806350d25bcd1161018c57806350d25bcd1461024157806354fd4d50146102535780635781c5521461025b57600080fd5b8063261e5636146101b3578063313ce567146101fd5780634322512514610217575b600080fd5b6008546101d39073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b610205600881565b60405160ff90911681526020016101f4565b60085460405173ffffffffffffffffffffffffffffffffffffffff909116151581526020016101f4565b6002545b6040519081526020016101f4565b600754610245565b6008546102059074010000000000000000000000000000000000000000900460ff1681565b61029361028e366004611323565b610447565b005b60015469ffffffffffffffffffff16610245565b6102936104d9565b6102b96105c9565b6040516101f49190611359565b600454610245565b60005473ffffffffffffffffffffffffffffffffffffffff166101d3565b6102f461065b565b6040805192151583526020830191909152016101f4565b61031e6103193660046113e4565b610672565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a0016101f4565b610293610363366004611323565b6106fb565b610293610376366004611401565b610785565b610245610389366004611401565b5060025490565b61024561039e366004611401565b5060045490565b6102936103b3366004611401565b61087d565b600a546101d39073ffffffffffffffffffffffffffffffffffffffff1681565b6102936103e6366004611323565b610907565b61024560095481565b610293610402366004611401565b610ab8565b61024561271081565b60015460025460035460045460055469ffffffffffffffffffff948516941661031e565b6102f4610442366004611401565b610c4e565b60005473ffffffffffffffffffffffffffffffffffffffff1633146104cd576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064015b60405180910390fd5b6104d681610ccf565b50565b60005473ffffffffffffffffffffffffffffffffffffffff16331461055a576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016104c4565b6000805460405173ffffffffffffffffffffffffffffffffffffffff909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080547fffffffffffffffffffffffff0000000000000000000000000000000000000000169055565b6060600680546105d89061141a565b80601f01602080910402602001604051908101604052809291908181526020018280546106049061141a565b80156106515780601f1061062657610100808354040283529160200191610651565b820191906000526020600020905b81548152906001019060200180831161063457829003601f168201915b5050505050905090565b6000806000610668610d5d565b9094909350915050565b60008060008060003073ffffffffffffffffffffffffffffffffffffffff1663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa1580156106c5573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106e9919061146e565b939a9299509097509550909350915050565b60005473ffffffffffffffffffffffffffffffffffffffff16331461077c576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016104c4565b6104d681610e48565b60005473ffffffffffffffffffffffffffffffffffffffff163314610806576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016104c4565b600080610811610d5d565b91509150600061082084610f4d565b90508069ffffffffffffffffffff167fccd88df54c66043e40d3112afb36727eccfc2fabcf4bbab273378aa92331c52b858561085d57600061085f565b845b6040805192835260208301919091520160405180910390a250505050565b60005473ffffffffffffffffffffffffffffffffffffffff1633146108fe576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016104c4565b6104d681611025565b60005473ffffffffffffffffffffffffffffffffffffffff163314610988576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016104c4565b73ffffffffffffffffffffffffffffffffffffffff8116610a2b576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f646472657373000000000000000000000000000000000000000000000000000060648201526084016104c4565b6000805460405173ffffffffffffffffffffffffffffffffffffffff808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff92909216919091179055565b600a5473ffffffffffffffffffffffffffffffffffffffff163314801590610af8575060005473ffffffffffffffffffffffffffffffffffffffff163314155b15610b2f576040517f6bc4042200000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60008113610b68576040517ebfc92100000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60085473ffffffffffffffffffffffffffffffffffffffff16610b9257610b8e81610f4d565b5050565b600080610b9d610d5d565b9150915081610bd8576040517f8e072d6c00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b82610be3818361109c565b610c3e578382610bf383856110e7565b6009546040517fd61a70c300000000000000000000000000000000000000000000000000000000815260048101949094526024840192909252604483015260648201526084016104c4565b610c4784610f4d565b5050505050565b60008060008313610c6457506000928392509050565b60085473ffffffffffffffffffffffffffffffffffffffff16610c8d5750600192600092509050565b600080610c98610d5d565b9150915081610cae575060009485945092505050565b84610cb9818361109c565b610cc382846110e7565b94509450505050915091565b600a5460405173ffffffffffffffffffffffffffffffffffffffff8084169216907fb12fd8455a0e933618727b31763a89916bf45076863b7cfb5713c69e665357c190600090a3600a80547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff92909216919091179055565b600854600090819073ffffffffffffffffffffffffffffffffffffffff1680610d8b57506000928392509050565b8073ffffffffffffffffffffffffffffffffffffffff166350d25bcd6040518163ffffffff1660e01b8152600401602060405180830381865afa925050508015610e10575060408051601f3d9081017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0168201909252610e0d918101906114c6565b60015b610e1f57506000928392509050565b60008113610e335750600093849350915050565b6001610e3e8261112b565b9350935050509091565b600073ffffffffffffffffffffffffffffffffffffffff821615610eb057610e6f826111b6565b9050610e7a82611287565b610eb0576040517f1f86e17000000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6008805473ffffffffffffffffffffffffffffffffffffffff84167fffffffffffffffffffffff00000000000000000000000000000000000000000090911681177401000000000000000000000000000000000000000060ff851690810291909117909255604051918252907f4226e3f21014f6f9205a77c3fea0267ddfa4b781ad7ee7dd1834ab2c815176e89060200160405180910390a25050565b6001805460009169ffffffffffffffffffff9091169082610f6d8361150e565b82546101009290920a69ffffffffffffffffffff8181021990931691831602179091556002849055426003819055600481905560015460058054919093167fffffffffffffffffffffffffffffffffffffffffffff0000000000000000000090911681179092556040805186815260208101929092529192507f7d8cee5d1217e47a14a662098e84a7758580aaf78f430c07c543249234e867bf910160405180910390a2505060015469ffffffffffffffffffff1690565b612710811115611061576040517fc6cc5d7f00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60098190556040518181527f773f46ef9d55c5193f738cfa74f463e66f77e294b487ec132aaf30c69dad02549060200160405180910390a150565b6000808284116110b5576110b08484611538565b6110bf565b6110bf8385611538565b9050826009546110cf919061154f565b6110db6127108361154f565b11159150505b92915050565b600080828411611100576110fb8484611538565b61110a565b61110a8385611538565b9050826111196127108361154f565b611123919061158c565b949350505050565b600880546000917401000000000000000000000000000000000000000090910460ff169081141561115d575090919050565b600860ff82161015611193576111748160086115c7565b6111829060ff16600a61170a565b61118c908461154f565b9392505050565b61119e6008826115c7565b6111ac9060ff16600a61170a565b61118c908461158c565b60008173ffffffffffffffffffffffffffffffffffffffff1663313ce5676040518163ffffffff1660e01b8152600401602060405180830381865afa92505050801561123d575060408051601f3d9081017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016820190925261123a91810190611716565b60015b61124957506008919050565b602460ff821611156110e1576040517f1f86e17000000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60008173ffffffffffffffffffffffffffffffffffffffff166350d25bcd6040518163ffffffff1660e01b8152600401602060405180830381865afa92505050801561130e575060408051601f3d9081017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016820190925261130b918101906114c6565b60015b61131a57506000919050565b60001292915050565b60006020828403121561133557600080fd5b813573ffffffffffffffffffffffffffffffffffffffff8116811461118c57600080fd5b600060208083528351808285015260005b818110156113865785810183015185820160400152820161136a565b81811115611398576000604083870101525b50601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016929092016040019392505050565b69ffffffffffffffffffff811681146104d657600080fd5b6000602082840312156113f657600080fd5b813561118c816113cc565b60006020828403121561141357600080fd5b5035919050565b600181811c9082168061142e57607f821691505b60208210811415611468577f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fd5b50919050565b600080600080600060a0868803121561148657600080fd5b8551611491816113cc565b8095505060208601519350604086015192506060860151915060808601516114b8816113cc565b809150509295509295909350565b6000602082840312156114d857600080fd5b5051919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b600069ffffffffffffffffffff8083168181141561152e5761152e6114df565b6001019392505050565b60008282101561154a5761154a6114df565b500390565b6000817fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0483118215151615611587576115876114df565b500290565b6000826115c2577f4e487b7100000000000000000000000000000000000000000000000000000000600052601260045260246000fd5b500490565b600060ff821660ff8416808210156115e1576115e16114df565b90039392505050565b600181815b8085111561164357817fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff04821115611629576116296114df565b8085161561163657918102915b93841c93908002906115ef565b509250929050565b60008261165a575060016110e1565b81611667575060006110e1565b816001811461167d5760028114611687576116a3565b60019150506110e1565b60ff841115611698576116986114df565b50506001821b6110e1565b5060208310610133831016604e8410600b84101617156116c6575081810a6110e1565b6116d083836115ea565b807fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff04821115611702576117026114df565b029392505050565b600061118c838361164b565b60006020828403121561172857600080fd5b815160ff8116811461118c57600080fdfea26469706673582212207402458dd8f2d53e2a3ddeea0fec154ec5ab4aadcf2416b7ac5cd920c53d692f64736f6c634300080a00338be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106101ae5760003560e01c80639a6fc8f5116100ee578063f019f63911610097578063f7a3080611610071578063f7a30806146103f4578063fd967f4714610407578063feaf968c14610410578063ff208a8a1461043457600080fd5b8063f019f639146103b8578063f2fde38b146103d8578063f40a1cbf146103eb57600080fd5b8063b5ab58dc116100c8578063b5ab58dc1461037b578063b633620c14610390578063ba8e8e8e146103a557600080fd5b80639a6fc8f51461030b578063a6d8033314610355578063ad30f1321461036857600080fd5b8063594ef6821161015b5780637284e416116101355780637284e416146102b15780638205bf6a146102c65780638da5cb5b146102ce5780638fc3047d146102ec57600080fd5b8063594ef68214610280578063668a0f0214610295578063715018a6146102a957600080fd5b806350d25bcd1161018c57806350d25bcd1461024157806354fd4d50146102535780635781c5521461025b57600080fd5b8063261e5636146101b3578063313ce567146101fd5780634322512514610217575b600080fd5b6008546101d39073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b610205600881565b60405160ff90911681526020016101f4565b60085460405173ffffffffffffffffffffffffffffffffffffffff909116151581526020016101f4565b6002545b6040519081526020016101f4565b600754610245565b6008546102059074010000000000000000000000000000000000000000900460ff1681565b61029361028e366004611323565b610447565b005b60015469ffffffffffffffffffff16610245565b6102936104d9565b6102b96105c9565b6040516101f49190611359565b600454610245565b60005473ffffffffffffffffffffffffffffffffffffffff166101d3565b6102f461065b565b6040805192151583526020830191909152016101f4565b61031e6103193660046113e4565b610672565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a0016101f4565b610293610363366004611323565b6106fb565b610293610376366004611401565b610785565b610245610389366004611401565b5060025490565b61024561039e366004611401565b5060045490565b6102936103b3366004611401565b61087d565b600a546101d39073ffffffffffffffffffffffffffffffffffffffff1681565b6102936103e6366004611323565b610907565b61024560095481565b610293610402366004611401565b610ab8565b61024561271081565b60015460025460035460045460055469ffffffffffffffffffff948516941661031e565b6102f4610442366004611401565b610c4e565b60005473ffffffffffffffffffffffffffffffffffffffff1633146104cd576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064015b60405180910390fd5b6104d681610ccf565b50565b60005473ffffffffffffffffffffffffffffffffffffffff16331461055a576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016104c4565b6000805460405173ffffffffffffffffffffffffffffffffffffffff909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080547fffffffffffffffffffffffff0000000000000000000000000000000000000000169055565b6060600680546105d89061141a565b80601f01602080910402602001604051908101604052809291908181526020018280546106049061141a565b80156106515780601f1061062657610100808354040283529160200191610651565b820191906000526020600020905b81548152906001019060200180831161063457829003601f168201915b5050505050905090565b6000806000610668610d5d565b9094909350915050565b60008060008060003073ffffffffffffffffffffffffffffffffffffffff1663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa1580156106c5573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106e9919061146e565b939a9299509097509550909350915050565b60005473ffffffffffffffffffffffffffffffffffffffff16331461077c576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016104c4565b6104d681610e48565b60005473ffffffffffffffffffffffffffffffffffffffff163314610806576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016104c4565b600080610811610d5d565b91509150600061082084610f4d565b90508069ffffffffffffffffffff167fccd88df54c66043e40d3112afb36727eccfc2fabcf4bbab273378aa92331c52b858561085d57600061085f565b845b6040805192835260208301919091520160405180910390a250505050565b60005473ffffffffffffffffffffffffffffffffffffffff1633146108fe576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016104c4565b6104d681611025565b60005473ffffffffffffffffffffffffffffffffffffffff163314610988576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016104c4565b73ffffffffffffffffffffffffffffffffffffffff8116610a2b576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f646472657373000000000000000000000000000000000000000000000000000060648201526084016104c4565b6000805460405173ffffffffffffffffffffffffffffffffffffffff808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff92909216919091179055565b600a5473ffffffffffffffffffffffffffffffffffffffff163314801590610af8575060005473ffffffffffffffffffffffffffffffffffffffff163314155b15610b2f576040517f6bc4042200000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60008113610b68576040517ebfc92100000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60085473ffffffffffffffffffffffffffffffffffffffff16610b9257610b8e81610f4d565b5050565b600080610b9d610d5d565b9150915081610bd8576040517f8e072d6c00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b82610be3818361109c565b610c3e578382610bf383856110e7565b6009546040517fd61a70c300000000000000000000000000000000000000000000000000000000815260048101949094526024840192909252604483015260648201526084016104c4565b610c4784610f4d565b5050505050565b60008060008313610c6457506000928392509050565b60085473ffffffffffffffffffffffffffffffffffffffff16610c8d5750600192600092509050565b600080610c98610d5d565b9150915081610cae575060009485945092505050565b84610cb9818361109c565b610cc382846110e7565b94509450505050915091565b600a5460405173ffffffffffffffffffffffffffffffffffffffff8084169216907fb12fd8455a0e933618727b31763a89916bf45076863b7cfb5713c69e665357c190600090a3600a80547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff92909216919091179055565b600854600090819073ffffffffffffffffffffffffffffffffffffffff1680610d8b57506000928392509050565b8073ffffffffffffffffffffffffffffffffffffffff166350d25bcd6040518163ffffffff1660e01b8152600401602060405180830381865afa925050508015610e10575060408051601f3d9081017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0168201909252610e0d918101906114c6565b60015b610e1f57506000928392509050565b60008113610e335750600093849350915050565b6001610e3e8261112b565b9350935050509091565b600073ffffffffffffffffffffffffffffffffffffffff821615610eb057610e6f826111b6565b9050610e7a82611287565b610eb0576040517f1f86e17000000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6008805473ffffffffffffffffffffffffffffffffffffffff84167fffffffffffffffffffffff00000000000000000000000000000000000000000090911681177401000000000000000000000000000000000000000060ff851690810291909117909255604051918252907f4226e3f21014f6f9205a77c3fea0267ddfa4b781ad7ee7dd1834ab2c815176e89060200160405180910390a25050565b6001805460009169ffffffffffffffffffff9091169082610f6d8361150e565b82546101009290920a69ffffffffffffffffffff8181021990931691831602179091556002849055426003819055600481905560015460058054919093167fffffffffffffffffffffffffffffffffffffffffffff0000000000000000000090911681179092556040805186815260208101929092529192507f7d8cee5d1217e47a14a662098e84a7758580aaf78f430c07c543249234e867bf910160405180910390a2505060015469ffffffffffffffffffff1690565b612710811115611061576040517fc6cc5d7f00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60098190556040518181527f773f46ef9d55c5193f738cfa74f463e66f77e294b487ec132aaf30c69dad02549060200160405180910390a150565b6000808284116110b5576110b08484611538565b6110bf565b6110bf8385611538565b9050826009546110cf919061154f565b6110db6127108361154f565b11159150505b92915050565b600080828411611100576110fb8484611538565b61110a565b61110a8385611538565b9050826111196127108361154f565b611123919061158c565b949350505050565b600880546000917401000000000000000000000000000000000000000090910460ff169081141561115d575090919050565b600860ff82161015611193576111748160086115c7565b6111829060ff16600a61170a565b61118c908461154f565b9392505050565b61119e6008826115c7565b6111ac9060ff16600a61170a565b61118c908461158c565b60008173ffffffffffffffffffffffffffffffffffffffff1663313ce5676040518163ffffffff1660e01b8152600401602060405180830381865afa92505050801561123d575060408051601f3d9081017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016820190925261123a91810190611716565b60015b61124957506008919050565b602460ff821611156110e1576040517f1f86e17000000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b60008173ffffffffffffffffffffffffffffffffffffffff166350d25bcd6040518163ffffffff1660e01b8152600401602060405180830381865afa92505050801561130e575060408051601f3d9081017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016820190925261130b918101906114c6565b60015b61131a57506000919050565b60001292915050565b60006020828403121561133557600080fd5b813573ffffffffffffffffffffffffffffffffffffffff8116811461118c57600080fd5b600060208083528351808285015260005b818110156113865785810183015185820160400152820161136a565b81811115611398576000604083870101525b50601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016929092016040019392505050565b69ffffffffffffffffffff811681146104d657600080fd5b6000602082840312156113f657600080fd5b813561118c816113cc565b60006020828403121561141357600080fd5b5035919050565b600181811c9082168061142e57607f821691505b60208210811415611468577f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fd5b50919050565b600080600080600060a0868803121561148657600080fd5b8551611491816113cc565b8095505060208601519350604086015192506060860151915060808601516114b8816113cc565b809150509295509295909350565b6000602082840312156114d857600080fd5b5051919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b600069ffffffffffffffffffff8083168181141561152e5761152e6114df565b6001019392505050565b60008282101561154a5761154a6114df565b500390565b6000817fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0483118215151615611587576115876114df565b500290565b6000826115c2577f4e487b7100000000000000000000000000000000000000000000000000000000600052601260045260246000fd5b500490565b600060ff821660ff8416808210156115e1576115e16114df565b90039392505050565b600181815b8085111561164357817fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff04821115611629576116296114df565b8085161561163657918102915b93841c93908002906115ef565b509250929050565b60008261165a575060016110e1565b81611667575060006110e1565b816001811461167d5760028114611687576116a3565b60019150506110e1565b60ff841115611698576116986114df565b50506001821b6110e1565b5060208310610133831016604e8410600b84101617156116c6575081810a6110e1565b6116d083836115ea565b807fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff04821115611702576117026114df565b029392505050565b600061118c838361164b565b60006020828403121561172857600080fd5b815160ff8116811461118c57600080fdfea26469706673582212207402458dd8f2d53e2a3ddeea0fec154ec5ab4aadcf2416b7ac5cd920c53d692f64736f6c634300080a0033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "owner()": {
+        "details": "Returns the address of the current owner."
+      },
+      "renounceOwnership()": {
+        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner."
+      },
+      "transferOwnership(address)": {
+        "details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+      }
+    },
+    "stateVariables": {
+      "MAX_FEED_DECIMALS": {
+        "details": "Upper bound on check-feed decimals; keeps the scaling factor sane."
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "events": {
+      "PriceSetUnchecked(uint80,int256,int256)": {
+        "notice": "Emitted when the owner pushes a price without the deviation check. `checkPrice` is 0 when the check oracle was unavailable."
+      }
+    },
+    "kind": "user",
+    "methods": {
+      "checkOracle()": {
+        "notice": "The check feed, or `address(0)` while pushes are unchecked."
+      },
+      "checkPrice()": {
+        "notice": "The check feed's current price, normalised to this oracle's decimals. `ok` is false when the feed is unusable or unset."
+      },
+      "checked()": {
+        "notice": "Whether pushes are checked at all: false while `checkOracle` is unset."
+      },
+      "previewSetPrice(int256)": {
+        "notice": "Whether `setPrice(price)` would be accepted right now, and by how much `price` deviates from the check feed. `deviationBps` is 0 when the check price is unavailable, and when no check feed is set (every positive price is accepted then)."
+      },
+      "setPrice(int256)": {
+        "notice": "Pushes `price`, provided it sits within `maxDiffBps` of the check feed, or unconditionally while no check feed is set. Callable by the pusher or the owner."
+      },
+      "setPriceUnchecked(int256)": {
+        "notice": "Pushes `price` without consulting the check feed. Owner only; the escape hatch for a dead or wrong check feed."
+      }
+    },
+    "notice": "A ManagedOracle that refuses pushed prices which disagree with an on-chain check feed (Hydration's EMA oracle precompile) by more than `maxDiffBps`. Threat model: - The pushed price is the manipulation-prone side: a compromised relayer   key, a bad VAA, or a fat-fingered manual update can move it arbitrarily   in one call. ManagedOracle has no bound on it at all. - The check feed is Hydration's pool EMA precompile. Moving it meaningfully   needs sustained imbalance, not a single transaction. The check happens at write time, not at read time (cf. ClampedOracle): a bad update is rejected outright rather than reported clamped, so reads stay a plain storage load and the reported price is always exactly what was pushed and accepted. Roles: - `pusher` may only push prices that pass the check. Compromising it caps   the damage at `maxDiffBps` around the pool EMA. - `owner` (governance) configures the check feed, the band and the pusher,   and may push unchecked via `setPriceUnchecked` — the escape hatch for a   dead check feed. Owner is therefore fully trusted, as in ManagedOracle. Fail-closed: no usable check price (feed reverts or returns <= 0) means no checked update. The price freezes at its last value until the feed recovers, governance swaps the feed, or the owner pushes unchecked. Unchecked mode: a `checkOracle` of `address(0)` means there is nothing to check against, and `setPrice` stores every positive price as a plain ManagedOracle would. This is for chains without an independent reference for the asset (HDX/USD on Robinhood Chain): the oracle is deployed at the address its consumers read from day one, and the owner switches a check on later with `setCheckOracle` without touching anything downstream. A non-zero check feed must answer a positive price when it is set, so a typo cannot turn the feed into reject-everything. The constructor price is not checked: deploying is an owner action, of the same weight as `setPriceUnchecked`, and requiring the initial value to sit inside the band would make a wrapper undeployable exactly when the managed price legitimately diverges from the pool.",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 1009,
+        "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 673,
+        "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+        "label": "currentRound",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_struct(RoundData)670_storage"
+      },
+      {
+        "astId": 675,
+        "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+        "label": "_description",
+        "offset": 0,
+        "slot": "6",
+        "type": "t_string_storage"
+      },
+      {
+        "astId": 677,
+        "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+        "label": "_version",
+        "offset": 0,
+        "slot": "7",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 22,
+        "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+        "label": "checkOracle",
+        "offset": 0,
+        "slot": "8",
+        "type": "t_address"
+      },
+      {
+        "astId": 25,
+        "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+        "label": "checkDecimals",
+        "offset": 20,
+        "slot": "8",
+        "type": "t_uint8"
+      },
+      {
+        "astId": 28,
+        "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+        "label": "maxDiffBps",
+        "offset": 0,
+        "slot": "9",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 31,
+        "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+        "label": "pusher",
+        "offset": 0,
+        "slot": "10",
+        "type": "t_address"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_int256": {
+        "encoding": "inplace",
+        "label": "int256",
+        "numberOfBytes": "32"
+      },
+      "t_string_storage": {
+        "encoding": "bytes",
+        "label": "string",
+        "numberOfBytes": "32"
+      },
+      "t_struct(RoundData)670_storage": {
+        "encoding": "inplace",
+        "label": "struct ManagedOracle.RoundData",
+        "members": [
+          {
+            "astId": 661,
+            "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+            "label": "roundId",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint80"
+          },
+          {
+            "astId": 663,
+            "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+            "label": "answer",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_int256"
+          },
+          {
+            "astId": 665,
+            "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+            "label": "startedAt",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 667,
+            "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+            "label": "updatedAt",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 669,
+            "contract": "contracts/CheckedOracle.sol:CheckedOracle",
+            "label": "answeredInRound",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint80"
+          }
+        ],
+        "numberOfBytes": "160"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      },
+      "t_uint8": {
+        "encoding": "inplace",
+        "label": "uint8",
+        "numberOfBytes": "1"
+      },
+      "t_uint80": {
+        "encoding": "inplace",
+        "label": "uint80",
+        "numberOfBytes": "10"
+      }
+    }
+  }
+}
