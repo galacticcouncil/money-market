@@ -363,6 +363,26 @@ export const strategySPY: IReserveParams = {
   borrowableIsolation: false,
 };
 
+// NEAR (Wormhole NTT, asset 1001358, 24 decimals) — raw Omnipool asset, same params as HYPE/ZEC/SPY.
+// Caps sized to $1M supply / $500k borrow at the NEAR/USD feed at listing ($4.0248).
+export const strategyNEAR: IReserveParams = {
+  strategy: rateStrategyDOT,
+  baseLTVAsCollateral: "7000",
+  liquidationThreshold: "7500",
+  liquidationBonus: "10700",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: true,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "24",
+  aTokenImpl: eContractid.AToken,
+  reserveFactor, // 20%
+  supplyCap: "248459",
+  borrowCap: "124229",
+  debtCeiling,
+  borrowableIsolation: false,
+};
+
 export const strategyGSOL: IReserveParams = {
   strategy: rateStrategyDOT,
   baseLTVAsCollateral: "6000",
