@@ -430,8 +430,10 @@ export const LAUNCH = {
   // the bootstrap deposit governance makes, by asset id; the first public one would revert without it.
   // ~$10 each: below ~1 HOLLAR of borrowing the loop can't take its first position (0.0001 GIGAETH on lark 0)
   bootstrap: { 1000765: "0.0001", 4200: "0.005" } as Record<number, string>,
-  // the loop's lazy-executor callbacks pay in WETH: ~1.5e12 wei each, HDX keeps the fee currency from moving
-  iceWeth: BigNumber.from(10).pow(16),
+  // the loop's lazy-executor callbacks pay in WETH: 332 intents on lark 4 spent 0.0004, ~1.2e12 wei each, so
+  // 0.002 covers ~1,660; the keeper's reconcile covers a missed one and anyone can top it up.
+  // HDX keeps the fee currency from moving
+  iceWeth: utils.parseUnits("0.002", 18),
   iceHdx: BigNumber.from(10).pow(13),
   // the discounted HOLLAR notional of the loop's debt
   loopCap: utils.parseUnits("5000000", 18),
@@ -483,7 +485,7 @@ export function executionPolicy(a: { subLoop: string; harvester: string; hollar:
   budget("unwind", a.aPrime, spec.unwind);
   budget("harvest", a.prime, spec.harvest);
   limit("entry", "entry", a.subLoop, a.hollar, a.aPrime, spec.entry, spec.primeShortfallBps);
-  // only the source's repayment may bypass expiry and pacing
+  // only the source's repayment may bypass pacing and the budget
   limit("unwind", "unwind", a.subLoop, a.aPrime, a.hollar, spec.unwind, spec.primeShortfallBps, true);
   for (const v of a.vaults) {
     const service = spec.service[v.assetId];

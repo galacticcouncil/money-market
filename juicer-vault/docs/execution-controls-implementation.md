@@ -5,15 +5,15 @@ The October 4 revision separates collateral deposits from debt deployment and
 adds price-aware slice selection, pacing and quoted source unwinds. Earlier
 APY models and native reports describe their recorded revisions; they do not
 establish an APY or execution throughput for this revision.
-The latest [swap-cost analysis with operator-funded gas](sponsored-gas-swap-costs-2026-10-03.md)
+The latest [swap-cost analysis with operator-funded gas](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/sponsored-gas-swap-costs-2026-10-03.md)
 uses funded user crypto as the objective and records the $10/month shared
 infrastructure budget separately. It supersedes the gas-saving interpretation
 of the earlier model; it does not change live keeper policy.
-The [three-round operations model](operations-tuning-three-rounds-2026-10-03.md)
+The [three-round operations model](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/operations-tuning-three-rounds-2026-10-03.md)
 includes this controller's gas and throughput limits, productive keeper writes,
 and explicit shared operating-cost sensitivities. Its returns remain conditional
 on market rates and external liquidity replenishment. Validation and measured native gas are recorded
-in the [3 October verification report](execution-controls-validation-2026-10-03.md).
+in the [3 October verification report](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/execution-controls-validation-2026-10-03.md).
 
 ## Trade controls
 
@@ -98,10 +98,10 @@ This revision is a fresh-deployment candidate. The controller's consumer ABI
 now includes the oracle-valued output, and Main debt/compound helpers are
 immutable deployment components. Do not upgrade an earlier controlled stack
 piecemeal: its one-time controller binding cannot be replaced through the normal
-setter. Existing deployment migration needs its own reviewed plan. The older
-`native-execution-controls.mjs` rehearsal describes the pre-deferred revision;
-use fresh `native-deploy.mjs`, `native-discount.mjs` and
-`native-deferred-deposit.mjs` for this revision's native deposit checks.
+setter. Existing deployment migration needs its own reviewed plan. Native
+deposit checks run through the
+[mainnet-fork launch rehearsal](external-review.md#mainnet-fork-launch-rehearsal);
+the earlier `native-*.mjs` fork scripts are in the [archive](archive.md#scripts-and-raw-outputs).
 
 ## Quotes and callers
 
@@ -243,7 +243,7 @@ The controller does not implement deposit/exit matching, a per-depositor admissi
 queue, automatic treasury funding, a provider replenishment service or a revised
 source-loss policy. Those must not be assumed in return estimates.
 
-The [four-round historical model](historical-apy-four-rounds-2026-10-03.md)
+The [four-round historical model](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/historical-apy-four-rounds-2026-10-03.md)
 tests these controls against 90 days of pool, oracle and interest-index inputs.
 It finds no supported parameter improvement on its held-out period. Adaptive
 harvest sizing helps the ideal-liquidity BTC diagnostic, but observed entry

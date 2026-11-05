@@ -1,8 +1,8 @@
 // What the deployer-only launch deploys and records: the market it binds, the vaults it can create
 // and the roles nobody but governance may hold. Pure; launch-deploy.mjs talks to the chain.
 export const GOV='0xAa7e0000000000000000000000000000000Aa7e0';
-// technical committee: GUARDIAN and the discount's RATE_ADMIN
-export const COMMITTEE='0x146a5e57fa0b8b1e13c53bcf1d05183b1c02b51b';
+// technical committee majority via dispatchAsEmergencyAdmin: GUARDIAN and the discount's RATE_ADMIN
+export const COMMITTEE='0xAA7e0000000000000000000000000000000AA7E1';
 export const POOL='0x1b02E051683b5cfaC5929C25E84adb26ECf87B38';
 export const HOLLAR='0x531a654d1696ED52e7275A8cede955E82620f99a';
 export const HOLLAR_DEBT='0x342923782cCaEBf9c38DD9cb40436e82C42c73B5';

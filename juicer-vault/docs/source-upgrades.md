@@ -211,7 +211,7 @@ underfunding, authorization/reinitialization and a deliberately reset counter.
 The reset-counter case demonstrates a bad upgrade that *installs successfully*
 but breaks settlement. It is not an automatic on-chain upgrade rejection guard.
 
-The [storage baseline](evidence/source-upgrades-2026-09-23/subloop-storage.json)
+The [storage baseline](../../scripts/juicer/subloop-storage.json)
 pins the local SubLoop layout, including inherited fields and gaps. The
 layout checker compiles only storage output using the pinned local compiler,
 verifies artifact source hashes, and leaves Forge bytecode/cache outputs alone.
@@ -240,4 +240,4 @@ node --test-reporter=tap scripts/juicer/source-storage.test.mjs
 not download a compiler. `--write-baseline` is for an explicitly reviewed new
 baseline path and refuses to overwrite an existing baseline. Current verification
 results and remaining limits are recorded in the
-[verification evidence](evidence/source-upgrades-2026-09-23/verification.json).
+[verification evidence](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/evidence/source-upgrades-2026-09-23/verification.json).

@@ -2,7 +2,7 @@
 
 2026-09-23, read-only production observations. This is evidence for
 [RC1](release-candidate.md), not authorization to change an oracle, fund a trader,
-open deposits or promise a redemption time. [Raw evidence and hashes](evidence/prime-validation-2026-09-23/summary.json).
+open deposits or promise a redemption time. [Raw evidence and hashes](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/evidence/prime-validation-2026-09-23/summary.json).
 
 ## Pricing Result
 

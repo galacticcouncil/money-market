@@ -42,7 +42,7 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 import { ethers } from "ethers";
 import { parseRoundingPolicies } from "../../juicer-vault/looper/src/rounding-policy";
 import { nativeAccount, nativeRoundingPolicy } from "./rounding-native";
-import { NEXT, readNextState, nextChecks, parseBand, envNumber, parseExitHeadroom } from "./next-governance";
+import { NEXT, LAUNCH, readNextState, nextChecks, parseBand, envNumber, parseExitHeadroom } from "./next-governance";
 
 const WS = process.env.WS_URL || "wss://hdx.tarn.hydration.cloud";
 const RPC = process.env.RPC_URL || "https://hdx.tarn.hydration.cloud";
@@ -306,8 +306,8 @@ async function main() {
     const currency = (await api.query.multiTransactionPayment.accountCurrencyMap(loopAccount) as any).unwrapOr(null)?.toNumber();
     add(g, "loop pays its ICE callbacks in WETH", currency === 20, `fee currency ${currency ?? "unset"}`);
     const weth = BigInt((await api.call.currenciesApi.account(20, loopAccount) as any).free.toString());
-    // half the callback buffer the launch funds, as lark-ice-plan tops it up
-    add(g, "loop holds WETH for its callbacks", weth >= 5_000_000_000_000_000n, `${weth} wei`);
+    // half the callback float the launch funds; juicer.ts and lark-ice-plan top it up below that
+    add(g, "loop holds WETH for its callbacks", weth * 2n >= BigInt(LAUNCH.iceWeth.toString()), `${weth} wei`);
     if (SWAPPER) {
       const adapter = new ethers.Contract(SWAPPER, ["function owner() view returns (address)", "function assetId(address) view returns (uint32)"], provider);
       add(g, "adapter owned by governance", eq(await sread(() => adapter.owner()), GOV));

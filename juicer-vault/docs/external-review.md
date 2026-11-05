@@ -111,7 +111,7 @@ All were internal; none is an independent audit.
   but unclaimed withdrawal shrank later deposits' deployment credit. The
   follow-ups (band liquidation-threshold bound, band fallback, strict launch
   environment) are in #89.
-- [`AUDIT.md`](../AUDIT.md) and [`x-ray/`](../x-ray/x-ray.md) are August
+- [`AUDIT.md`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/AUDIT.md) and [`x-ray/`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/x-ray/x-ray.md) are August
   snapshots of an earlier revision.
 
 ## 2. System overview
@@ -263,7 +263,7 @@ startUnwinds(n): eligible requests, FIFO
 | Holder | Roles | Can | Cannot |
 | --- | --- | --- | --- |
 | Governance: the money market's pool admin, EVM origin `0xAa7e…Aa7e0`, reached from a Root referendum through `dispatcher.dispatchAsAaveManager` | `DEFAULT_ADMIN_ROLE`, `ADMIN_ROLE`, `UPGRADER_ROLE` and `GUARDIAN_ROLE` on vaults and the loop; `DEFAULT_ADMIN_ROLE` on the synthetic, Harvester, fee controller, execution controller and discount; `RATE_ADMIN_ROLE` on the discount; owner of HydraAugustus | upgrade vaults and the loop; set every parameter and policy; grant roles; withdraw a protocol reserve (`withdrawReserve`); unpause; rewire. As pool admin it also controls the Aave reserves Juicer uses: fully trusted | move vault or loop assets without an upgrade: there is no sweep |
-| Technical committee: `0x146a…b51b` in `launch-manifest.mjs` | `GUARDIAN_ROLE` on vaults and the loop; `RATE_ADMIN_ROLE` on JuicerDiscount | pause a vault; freeze the loop (`pauseEmergency`); stop and restart the loop's routes; pause and resume deposits; set the Main and loop discounts, 0–100% | unpause a vault or lift the emergency freeze; change fees or enrolment; upgrade; move funds |
+| Technical committee: EVM origin `0xAA7e…AA7E1`, reached by a TC majority motion through `dispatcher.dispatchAsEmergencyAdmin` (`COMMITTEE` in `launch-manifest.mjs`) | `GUARDIAN_ROLE` on vaults and the loop; `RATE_ADMIN_ROLE` on JuicerDiscount | pause a vault; freeze the loop (`pauseEmergency`); stop and restart the loop's routes; pause and resume deposits; set the Main and loop discounts, 0–100% | unpause a vault or lift the emergency freeze; change fees or enrolment; upgrade; move funds |
 | Keepers: `0xAF11…9898` and `0x8862…1E8a` (`LAUNCH.keepers`; `JUICER_KEEPERS` replaces them) | `KEEPER_ROLE` on the loop; `DEPOSIT_GUARDIAN_ROLE` on each vault | pass a router quote with `pokeBorrowQuoted` and `pokeRepayQuoted`, which can only raise the floor; set or clear `deficitStop` | anything else that anyone cannot |
 | Deployer | none after the deploy, which is checked | one call after deploying: `HydraAugustus.transferOwnership(governance)` | — |
 | Vaults | `VAULT_ROLE` on the loop; `MINTER_ROLE` on the synthetic | loop deposits, unwind requests and pulls; mint and burn the synthetic | — |
@@ -423,6 +423,7 @@ are `propext`, `Classical.choice` and `Quot.sound`.
 | Pinned pallet indices | `DcaDispatch` hardcodes Router 67 and Intent 98; a renumbered runtime breaks every dispatch until an upgrade | readiness checks the call indices `router.sell` 67/0, `intent.submitIntent` 98/0 and `intent.removeIntent` 98/1, and that `intent.cleanupIntent` exists; the encodings are pinned in `test/DcaDispatch.t.sol` |
 | Discount cache | the debt token caches each borrower's discount between actions; a reverting loop refresh blocks `setDiscountBps`; a re-registered loop resumes its old rate; `balanceOf(loop)` returns `LOOP_TAG \| cap` | [discount](main-borrow-discount.md#cache-and-lifecycle) |
 | Budgets never lapse | trading permissions have no automatic sunset | governance changes budgets by referendum |
+| Repointing a funded vault's source | `setYieldSource` does not rebase the Main ledger's `sourceCostCheckpoint`, taken from the source at construction. A source with a different cumulative unwind cost underflows `creditSource`, so `pokeSettle` reverts, and keeps `pendingSourceAccounting` true, so deposits revert. The guard (no loop shares, nothing in flight) holds through the exit queue but not through a vault-wide delever to zero loop shares, e.g. the reserve's LTV at or below the band gap with loop equity at or below Main debt | `ADMIN_ROLE` only; the launch never calls it; `setYieldSource` is deployment wiring ([incident checks](../DEPLOYMENT.md#incident-and-abort-checks)). Recovery: point the vault back at the old source. Raised in review on 4 November, acknowledged, not fixed |
 | Collateral liquidity | `pokeSettle` withdraws released collateral from Aave and reverts while the reserve's cash is borrowed out | liveness |
 | Rescale rounding | a seeded lazy rescale leaves one reward unit unclaimed | aggregate bound proved ([rounding](../formal/ROUNDING.md)) |
 
@@ -583,14 +584,20 @@ non-local endpoints. Run the steps from the repository root.
    claims. The referendum's keepers have no keys on a fork, so the smoke's dev
    keeper gets the loop's `KEEPER_ROLE` through a fork-only governance call and
    loses it afterwards.
+9. `node scripts/juicer/launch-rehearsal.mjs committee <manifest.json>`: a TC
+   majority motion, as the scheduler carries it, dispatches as the emergency
+   admin to pause the vault, freeze the loop and set the Main discount to 0 and
+   back; a one-short minority is refused; governance lifts the pause and the
+   freeze.
 
 The report goes to `JUICER_REHEARSAL_REPORT`. Recorded at mainnet block
-16,588,006 (4 November) with the tooling at the head of PR #89: 75 EVM calls
+16,609,850 (4 November) with the tooling of PR #90: 75 EVM calls
 with 0 failures and the treasury's GIGAETH buy executed; readiness 158/159
-before the first rebalance (loop equity) and 161/161 after it; smoke passed.
+before the first rebalance (loop equity) and 161/161 after it; smoke passed;
+the committee step passed (4/7 acted, 3/7 refused).
 After the smoke's headroom exit drew a fraction of a cent from the protocol
 reserve, readiness flags the reserve below 1,000 HOLLAR, as designed. On a fork
-of block 16,588,875 the same deploy with the bound pinned regenerated the same
+of block 16,610,804 the same deploy with the bound pinned regenerated the same
 preimage.
 
 ## 8. Deployment and launch
@@ -616,7 +623,7 @@ preimage.
    | --- | --- |
    | chain | pool 143 fee to 1 bp; the harvest and servicing routes the router lacks; the synthetic registered as ERC20 asset 5550; `initReserves` for it, then LTV 1%, LT 98%, 1% bonus, borrowing off, no supply cap, the $1 source; each share registered as a sufficient ERC20 asset |
    | custody | duster whitelist for the loop, Harvester, fee controller, each vault, Main ledger and yield accounting, and the adapter |
-   | funding | collateral the treasury lacks bought first: an exact-out `router.buy` as the treasury, with HOLLAR along the router's stored route, the gap plus 20%, for at most 50% over the runtime's quote at planning (`LAUNCH.treasuryBuy`); from the treasury to the governance account: collateral for rounding and the bootstrap, HOLLAR for the reserves; the loop's fee currency reset to WETH, with 0.01 WETH and 10 HDX for ICE callbacks |
+   | funding | collateral the treasury lacks bought first: an exact-out `router.buy` as the treasury, with HOLLAR along the router's stored route, the gap plus 20%, for at most 50% over the runtime's quote at planning (`LAUNCH.treasuryBuy`); from the treasury to the governance account: collateral for rounding and the bootstrap, HOLLAR for the reserves; the loop's fee currency reset to WETH, with 0.002 WETH and 10 HDX for ICE callbacks |
    | wire | loop tranches, route (`configureDca(222, 43, 1043, 143, 5000)`) and harvester; the Harvester's fee controller; per vault `MINTER_ROLE`, `VAULT_ROLE`, `setMainDebt`, the fee controller and registration, the Harvester, 100 bps compound slippage, the withdrawal delay; `GUARDIAN_ROLE` for the committee on the loop and vaults; the adapter's asset ids |
    | execution | budgets, pacing, lane limits, price caps (50 bps PRIME lanes, the unwind lane flagged safety; 100 bps collateral lanes), the four quote entrypoints, then `setExecutionController` on the loop, Harvester and vaults |
    | discount | JuicerDiscount installed as the HOLLAR debt token's discount token and rate strategy; per vault `setDiscountController` and `registerVault`; `registerLoop` with its cap |
@@ -655,6 +662,7 @@ All checked against the launch tooling at the head of PR #89 (contracts as at `5
 | Band | 65/75/83%: gaps 500/1000/800 at GIGAETH's 80% max LTV (85% LT) | gaps 0/500/300 | `NEXT.band` |
 | Harvest threshold | 0.02% of principal | 0.1% | `NEXT.harvestThreshold` |
 | ICE | 300 s intents, 2 bps drift, both loop lanes async | 0: the router | `NEXT.intentTtl`, `NEXT.intentDriftBps` |
+| ICE callback float | 0.002 WETH and 10 HDX from the treasury to the loop's account, unless it holds half already; ~1,660 callbacks at the Lark 4 rate | — | `LAUNCH.iceWeth`, `LAUNCH.iceHdx` |
 | Compound slippage | 100 bps | 0: fails closed | `juicer.ts` |
 | Loop health factor | target 1.05, deploy floor 1.05, de-lever trigger 1.10 | initializer | `launch-manifest.mjs` |
 | Pool 143 fee | 1 bp, from 4 | — | `NEXT.primePoolFeePpm` |
@@ -696,4 +704,6 @@ and evidence; this document and the code take precedence.
 - [`main-borrow-discount.md`](main-borrow-discount.md) and
   [`protocol-fees.md`](protocol-fees.md) keep their standalone forge-script
   deployment steps; the launch uses the process above.
-- [`../AUDIT.md`](../AUDIT.md), [`../x-ray/`](../x-ray/x-ray.md): August snapshots.
+- The [archive](archive.md) lists what left the tree before the release, with
+  permalinks: dated validations, Lark deployment records, studies and the August
+  [`AUDIT.md`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/AUDIT.md) and [`x-ray/`](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/x-ray/x-ray.md) snapshots.

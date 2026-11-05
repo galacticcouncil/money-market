@@ -5,22 +5,22 @@
 RC1 designates this code/documentation checkpoint, not a production deployment,
 unconditional principal guarantee, audit sign-off or approval of market limits.
 
-**Later review checkpoint:** the [2 October PR integration record](pr-integration-2026-10-02.md)
+**Later review checkpoint:** the [2 October PR integration record](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/pr-integration-2026-10-02.md)
 covers #60 → #61 → #63 with 297 passing tests and updated runtime sizes.
 The September results below retain their original scope. PR #62 adds
 [separate yield ownership](yield-ownership.md) and faster eligible compounding.
-Its [completion record](pr62-completion-2026-10-02.md) contains the new implementation evidence.
-The later [three-pass validation](pr62-three-pass-validation-2026-10-02.md)
+Its [completion record](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/pr62-completion-2026-10-02.md) contains the new implementation evidence.
+The later [three-pass validation](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/pr62-three-pass-validation-2026-10-02.md)
 includes a fresh native lifecycle of the corrected ownership contracts on
 runtime 447 with unchanged oracle values and swap floors. The later [execution controls implementation](execution-controls-implementation.md)
 adds admission/harvest bounds and economical keeper scheduling. The
-[7 October Lark deployment](lark-deployment-2026-10-07.md) runs the candidate on
+[7 October Lark deployment](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/lark-deployment-2026-10-07.md) runs the candidate on
 a fresh mainnet fork with mainnet-synced markets and records a mined and claimed
 harvest, under test-only policies. Production policy, quote-aware UI integration
 and deployment activation remain open.
 
 **Current candidate:** PR #89 (`juicer-headroom-exits` into `propeller`;
-[review package](external-review.md), [plan](next-version-plan.md)) changes some RC1
+[review package](external-review.md), [plan](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/next-version-plan.md)) changes some RC1
 items below. Deposits have an on-chain Main-backing admission ceiling (50 bps at
 initialization, 250 from the launch proposal) plus the keepers' hysteretic
 `deficitStop` (stop 250, resume 200); yield is allocated at events
@@ -33,7 +33,7 @@ the activation gates still apply.
 
 The candidate is on `feat/propeller-interest-buffer`; the name is historical.
 Sponsored operating buffers have been replaced. The commit containing this
-document identifies the candidate; [runtime hashes](evidence/route-execution-2026-09-23/summary.json)
+document identifies the candidate; [runtime hashes](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/evidence/route-execution-2026-09-23/summary.json)
 identify its seven production contract templates. No release tag is implied.
 
 ## Included
@@ -55,7 +55,7 @@ identify its seven production contract templates. No release tag is implied.
 
 ## Verification
 
-[Final regression logs and runtime hashes](evidence/rc1-2026-09-23/summary.json)
+[Final regression logs and runtime hashes](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/evidence/rc1-2026-09-23/summary.json)
 are archived with the candidate. Native and campaign evidence retains its
 separate fixture and funding assumptions.
 
@@ -70,7 +70,7 @@ separate fixture and funding assumptions.
 | Pricing/refill validation       | Fresh Hastra reference, live replacement oracle/guard and NTT/reserve reads; replenishment commitment not established                                                                     |
 | Runtime size                    | CollateralVault 24,381 bytes, 195 bytes below EIP-170; no native size/gas-limit relaxation                                                                                                |
 
-The [September 25 completion checks](pr60-completion.md) close the recorded
+The [September 25 completion checks](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/pr60-completion.md) close the recorded
 snapshot-replay failures: the capacity search handles rejected quotes and the
 peg tests check each snapshot's actual reserve and burn budgets. The pressure,
 peg, coupled and policy suites now pass on both September 22 and September 23
@@ -120,7 +120,7 @@ verification; a docs-only RC designation cannot close a technical gate.
 ## Evidence Index
 
 - [Main debt policy](main-debt-servicing.md) and [principal protection](principal-safety.md).
-- [Production adapter, native workflow and retention results](route-execution-calibration.md).
+- [Production adapter, native workflow and retention results](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/route-execution-calibration.md).
 - [PRIME pricing and replenishment validation](prime-pricing-replenishment.md).
 - [Source upgrade compatibility and deferred rotation](source-upgrades.md).
 - [Deployment runbook](../DEPLOYMENT.md) and [keeper operations](../looper/README.md).

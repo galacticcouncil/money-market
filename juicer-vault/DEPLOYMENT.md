@@ -7,7 +7,7 @@ Audience: deployment, governance and operations reviewers. Complete the
 production transactions. This runbook supports a reviewed fresh deployment;
 it does not approve production settings or upgrade a live old-buffer deployment.
 
-The [#62 ownership implementation](docs/pr62-completion-2026-10-02.md) requires
+The [#62 ownership implementation](https://github.com/galacticcouncil/money-market/blob/8519575/juicer-vault/docs/pr62-completion-2026-10-02.md) requires
 a fresh, matching vault/source/Main/ownership/fee/Harvester stack. Its new source
 cost bases and reward ownership cannot be initialized by preserving old storage
 slots alone. Do not apply this runbook as an upgrade of funded older vaults.
@@ -85,7 +85,10 @@ JUICER_ARTIFACT_DIR=juicer-vault/out-production JUICER_ADAPTER_ARTIFACT=<HydraAu
   node scripts/juicer/launch-deploy.mjs <manifest.json>
 ```
 
-`WS` defaults to `RPC` over websockets. For jETH the script creates, in order:
+`WS` defaults to `RPC` over websockets. The launch scripts import `viem`, which
+`package.json` does not pin (its optional TypeScript peer conflicts with the
+repository's): in a fresh checkout add it with
+`npm install --no-save --ignore-scripts viem@2.50.4`. For jETH the script creates, in order:
 HydraAugustus, CompoundLogic, the vault implementation, SyntheticToken,
 SubLoopLogic, the SubLoop implementation and proxy, Harvester,
 JuicerFeeController (recipient: the Aave treasury), ExecutionController (60 s,
@@ -195,7 +198,21 @@ Rehearse the exact proposal on a fork of mainnet before submission
 `scripts/juicer/launch-rehearsal.mjs` enacts it, mines every scheduled batch and
 reports each block's EVM calls and failure events. Inspect every permission
 change, including the absence of deployer authority. Submit the proposal as one
-Root referendum.
+Root referendum, or through the whitelist:
+
+```sh
+WS=<substrate ws> node scripts/juicer/whitelist-proposal.mjs <plan.json> <whitelist.json>
+```
+
+prints the Technical Committee motion, `technicalCommittee.propose(<majority>,
+whitelist.whitelistCall(<launch call hash>), 34)`, and the WhitelistedCaller
+referendum that dispatches the launch call inline,
+`whitelist.dispatchWhitelistedCallWithPreimage(<launch call>)`: its preimage,
+hash and `referenda.submit` call, the track's deposit and periods, and its
+enactment weight against the scheduler's. A TC majority whitelists the hash and
+closes the motion; the referendum then runs the launch call as Root, and batch 0
+schedules the rest as before. `launch-rehearsal.mjs enact <proposal.hex>
+--whitelist` rehearses that path.
 
 ## 5. Verify Readiness
 

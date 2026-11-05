@@ -1,207 +1,178 @@
-# Propeller Mainnet Handover
+# Juicer mainnet handover (formerly Propeller)
 
-> Companion to `propeller-vault/DEPLOYMENT.md` (the runbook) and
-> `propeller-vault/deployments/` (the address registry).
-> Modelled on `BIL-MAINNET-HANDOVER.md` (formerly HDCL), whose "what went wrong" section
-> saved that mainnet launch from repeating four separate lark mistakes.
->
-> Historical lark-4 handover; use the current deployment runbook for this candidate.
-> Current release status and open gates: [`propeller-vault/docs/README.md`](propeller-vault/docs/README.md).
+> Status 5 November 2026: deployed on mainnet and verified; the launch call waits for the TC whitelist and its WhitelistedCaller referendum. Release PR #46 (`propeller` → `hydration`).
+> Companions: [`juicer-vault/DEPLOYMENT.md`](juicer-vault/DEPLOYMENT.md) is the runbook,
+> [`juicer-vault/docs/external-review.md`](juicer-vault/docs/external-review.md) holds the scope,
+> trust model, invariants and the full known-issues table. This page is the go-live checklist:
+> what launches, in what order, what was rehearsed, what was decided and what stays open.
 
-**Read § "What went wrong on lark-4" before touching mainnet.** Everything in it cost real
-time or a wasted referendum, and every item is repeatable.
+## Launch at a glance
 
----
+| | |
+| --- | --- |
+| Vault | **jETH on GIGAETH** only; jBTC and other collaterals later, each by its own referendum |
+| TVL cap | 44.4 GIGAETH |
+| Withdrawals | 7-day delay; waiting shares keep earning until their unwind starts; requests can't be cancelled |
+| Exits | headroom exits on (gap 0); otherwise the unwind queue |
+| PRIME price cap | 50 bps on chain (loop floor and controller lanes); keepers enter only within 25 bps of oracle-fair (`ENTRY_MAX_COST_BPS`) |
+| Lanes | 2,500 HOLLAR a trade at 10/s (25k budget); collateral lanes 100 bps; budgets never lapse |
+| Loop | target HF 1.05, de-lever trigger 1.10; band 65/75/83 % LTV (GIGAETH max LTV 80 %) |
+| Deposits | admission closes at 250 bps of negative carry; keepers stop at 250, resume at 200 |
+| Revenue | 69 % of harvests to the treasury; HOLLAR discounts 40 % on Main debt, 90 % on loop debt (5M HOLLAR cap) |
+| Reserves | 1,000 HOLLAR protocol reserve; rounding reserve from GIGAETH's existential deposit; 0.005 GIGAETH bootstrap by governance |
+| Pool 143 | fee 4 → 1 bp |
+| Keepers | `0xAF11238c61D8D3E98b6e5A10c227e77DfD0D9898`, `0x8862A05A7d9aF0fdd7A0f8611c067E1f73921E8a` |
+| Committee | `0xAA7e…AA7E1`, the Technical Committee's emergency-admin origin (a TC majority motion through `dispatchAsEmergencyAdmin`, as on the GIGAHDX market): pause (`GUARDIAN_ROLE`) and discount rates |
+
+Defaults live in `scripts/juicer/next-governance.ts` (`LAUNCH`, `NEXT`), `scripts/juicer/launch-manifest.mjs` and
+`tasks/proposals/juicer.ts`; the review package's launch-values table maps each to its contract default.
+
+## Mainnet deploy (5 November)
+
+Deployer `0x71FeB8b2849101a6E62e3369eaAfDc6154CD0Bc0`, nonces 851–864, blocks 16,630,298–16,630,314: 13 creations and the
+adapter's handover to governance, from money-market `7ad5ba2` built at a neutral path. All 14 contracts verify on the
+explorer as exact matches. The discount is bound to the predicted jsHOLLAR aToken `0x3A31FF0a1E07dA4158677cE861980cdf2e316b78`
+(pool configurator nonce 97), so no other listing may be enacted before the launch.
+
+| Contract | Address |
+| --- | --- |
+| HydraAugustus | `0x09827297ed1298d25eb7f6493275dc2852fad4d8` |
+| CompoundLogic | `0xda1c729f5988b3764abe74b41332b13df0f09e2f` |
+| CollateralVault | `0x713946f65e2537a1c35f852e1f85a68d5c0f93a9` |
+| SyntheticToken | `0xb94025f14fdc01f8e3b0c34311bcbae0febd1a4a` |
+| SubLoopLogic | `0xd5f73480bf41cce2b5eba7f21d967bd63595dff4` |
+| SubLoop | `0x71673f4a9ead0ecc4c5373914fad43b348563148` |
+| SubLoop.proxy | `0x2df1d70f413b5edd16bb794791117948a7436a45` |
+| Harvester | `0x91454e38b5ec11f3e9d6c23ca631e0f65388daf9` |
+| JuicerFeeController | `0x9e9e273df28b4f54a4b7227517fe56d7ffa24843` |
+| ExecutionController | `0x13deb9ef055328cf0daf88d4e44160b4e4a398f0` |
+| JuicerDiscount@97 | `0x6a00bd956908bccdbac3523f862740ae9de38550` |
+| CollateralVault.ETH.proxy | `0x98db179d65b8abc53946bd89b3433a4fd3bfb60c` |
+| MainDebt.ETH | `0x4b1f2fc264986a7d792af4c4fc1c878cb98f1518` |
+| JuicerYieldAccounting (created by MainDebt.ETH) | `0x3f4b16860C15a0Ea7596c0B4218f5E45A1a8e53D` |
+
+**The launch call:** `utility.batchAll`, 16,938 bytes, hash `0x829348528f31814b544c0884dbbb4745644322d245ffa43dd747ad88d1d20eed`;
+treasury buy bound `JUICER_TREASURY_BUY_MAX_IN=22229645385071019576` (22.23 HOLLAR for 0.006 GIGAETH). Regenerating with that
+bound against mainnet gives the same hash.
+
+**Submission through the whitelist** (`scripts/juicer/whitelist-proposal.mjs`):
+1. TC motion, 4 of 7: `technicalCommittee.propose(4, whitelist.whitelistCall(0x8293…0eed), 34)`, motion hash
+   `0xae879ae83a7b9b2b5b0ca38e700b859bc640e36baf90df63c9b7616b905dfa27`; vote, then close.
+2. `preimage.notePreimage` of `whitelist.dispatchWhitelistedCallWithPreimage(<the launch call>)`: 16,940 bytes, hash
+   `0x6ee2650ffd1d7fa6256cd25a36338896fe1317d9904df691cbb4326da9c8b9d1`.
+3. `referenda.submit` on WhitelistedCaller (track 1), enactment after 1 block (the track's 300-block minimum applies);
+   decision deposit 50,000 HDX. Prepare 300 blocks, decision up to 129,600, confirm 7,200.
+
+Both paths were rehearsed on forks of mainnet taken after the deploy (hdx.tarn): the launch call as a Root referendum and
+through the TC whitelist, each enacting 75 EVM calls with none failed, readiness 161/161 after the first rebalance.
 
 ## Components
 
-| Component | Upgradeable | Where |
-|---|---|---|
-| `CollateralVault` (one per collateral: pETH, ptBTC) | UUPS | `propeller-vault/src/CollateralVault.sol` |
-| `SubLoop` (ONE shared instance across all collaterals) | UUPS | `propeller-vault/src/SubLoop.sol` |
-| `SyntheticToken` (psHOLLAR) | **No** | `propeller-vault/src/SyntheticToken.sol` |
-| `Harvester` | **No** | `propeller-vault/src/Harvester.sol` |
-| `HydraAugustus` (REQ-SWAP) | separate repo | `../aave-debt-swap` |
-| `looper` keeper | Docker Swarm | `propeller-vault/looper/` |
+| Contract | Deployment | Upgrade path |
+| --- | --- | --- |
+| CollateralVault (jETH) | ERC1967 proxy (UUPS) | `UPGRADER_ROLE` (governance); the implementation fixes `compoundLogic` |
+| SubLoop | ERC1967 proxy (UUPS), one shared loop | `UPGRADER_ROLE` (governance); the implementation fixes `logic` (SubLoopLogic) |
+| CompoundLogic, SubLoopLogic | stateless delegatecall targets | only through a new implementation |
+| JuicerMainDebt (+ JuicerYieldAccounting) | one per vault | none; bound once by `setMainDebt` |
+| Harvester, ExecutionController, JuicerFeeController, JuicerDiscount, SyntheticToken | plain contracts | none; a replacement needs governance rewiring |
+| HydraAugustus (swap adapter) | separate repo, handed to governance at deploy | owner = governance |
+| Keeper (`juicer-vault/looper`) | two operators, Docker | image tag per release |
 
-The two non-upgradeable contracts are the ones to get right first time. A defect in either is
-fixed only by redeploy + a governance rewire (`setHarvester` / `grantRole(MINTER_ROLE)`).
+## Go-live checklist
 
----
+**0. Preconditions**
+- [ ] External review report received and its findings resolved or accepted.
+- [ ] Pool 143 within the keepers' entry limit (PRIME ≲ 25 bps over the oracle; ~39 bps on 4 November). Above it entries simply wait.
+- [ ] No other money-market listing will be enacted between the deploy and this referendum's enactment: the synthetic's aToken address is predicted from the pool configurator's nonce. `juicer.ts` refuses to emit if it moved; then redeploy JuicerDiscount and regenerate.
+- [ ] Treasury holds ≥ ~1,050 HOLLAR, ≥ 0.002 WETH and 10 HDX (it buys its own GIGAETH inside the referendum).
+- [ ] Deployer is a whitelisted contract deployer (it is) and funded for 13 creations.
+- [ ] The committee's account `0xAA7e…AA7E1` holds WETH for EVM gas (0.016 on 4 November).
+- [ ] A clean checkout at the release commit, the production build (CI's `forge build src …/ERC1967Proxy.sol --evm-version london …`), and the gitignored `typechain`/`artifacts` the hardhat tasks import.
 
-## Correct phase ordering
+**1. Deploy** — `scripts/juicer/launch-deploy.mjs <manifest.json>` with `JUICER_DEPLOYER_KEY_FILE` (a path, never the key).
+13 creations, then `transferOwnership(governance)` on HydraAugustus, nothing else. It refuses to finish unless the
+deployer holds no role, governance holds every admin role, the proxies have no admin, implementations refuse
+`initialize`, every runtime matches its artifact and the predicted aToken is recorded.
 
-```
-1. Deploy HydraAugustus            (../aave-debt-swap)      → SWAPPER
-2. DeploySynth                                              → SYNTH
-3. DeployMain                      (needs SYNTH, SWAPPER)   → SUBLOOP, VAULT_ETH, HARVESTER, IMPL
-4. DeployVaultTBTC                 (needs IMPL)             → VAULT_TBTC
-5. Referendum 1: list-reserve      (substrate register → initReserves)
-6. Referendum 2: configure         (LTV/LT/borrowing/supply-cap/oracle)
-7. Referendum 3: wire              (roles, registry, tranches, route, harvester, slippage, swapper, guardian)
-8. verify-readiness.ts             ← GATE. Do not continue past a red row.
-9. Seed deposit
-10. pokeBorrow ramp                ← REQUIRED before anyone can redeem
-11. Start the looper
-12. Update deployments/ + re-run verify-readiness
-```
+**2. Publish** — the manifest (addresses, code hashes, deploy transactions), verified sources (`scripts/juicer/verify-contracts.mjs`
+submits each creation transaction to the explorer) and the external review.
 
-Steps 5-7 are separate referenda because `initReserves` alone is ~58e9 refTime and a combined
-`batchAll` trips `scheduler.PermanentlyOverweight`.
+**3. Build the proposal** — `npx hardhat juicer` with `JUICER_MANIFEST=<manifest.json>` and no overrides. It prints each
+batch decoded, the single PROPOSAL hex and hash, the treasury buy's bound and the plan file. Publish hash, bound and decode.
 
----
+**4. Submit** — through the whitelist (above): the TC whitelists the launch call's hash by majority, then a WhitelistedCaller
+referendum dispatches it inline. A plain Root referendum also works (1M HDX deposit, up to 7 days of decision).
 
-## What went wrong on lark-4 — and how to avoid it
+**5. Enactment** — batch 0 runs on enactment and schedules four more on the next four blocks:
+chain (pool fee, routes, synthetic listing) → custody, treasury buy and funding, wiring, execution policy →
+discount install, keepers, ICE, bands, admission, headroom, revenue → reserve, rounding → governance's bootstrap.
+`dispatchAsAaveManager` reports EVM reverts as events, so check every one of the five blocks for `ExecutedFailed`,
+`BatchInterrupted`, `CallUnavailable` and overweight; a rerun of `juicer.ts` must print "nothing to propose".
 
-### 1. Chased a circuit-breaker red herring (cost: 2 wasted referenda, ~a day)
+**6. Readiness** — `scripts/juicer/verify-readiness.ts` with the environment `launch-manifest.mjs` prints. Green before
+anything is announced; "positive loop equity" turns green after the keepers' first rebalance.
 
-`SubLoop.deposit` reverted `DcaDispatch.DispatchFailed`. The failure was **amount-dependent** —
-a 4,500-HOLLAR sell failed, 2,250 succeeded — which pointed at HydraDX's `circuitBreaker`
-per-block net-trade-volume limit. Two referenda were spent on it: **#371 failed** (tried to set
->100%), **#372 set 100%**.
+**7. Keepers** — start both operators on separate hosts and RPCs (`OPERATOR_COUNT=2`, `OPERATOR_INDEX` 0/1,
+`OPERATOR_SLOT_SECONDS=60`, `OPERATOR_GUARD_SECONDS=15`, `ENTRY_MAX_COST_BPS=25`, `DEFICIT_STOP_BPS=250`,
+`DEFICIT_RESUME_BPS=200`), funded with WETH for gas; alerts (`[ALERT]` lines) wired to the team channel.
 
-It was the wrong diagnosis. The real error was `router.TradingLimitReached` raised by the
-**router's own min-out check**, not the circuit breaker — the two surface similarly.
+**8. Announce** — publish the UI with the mainnet addresses. Raising the cap later is its own referendum.
 
-**Avoid:** decode the *module* error, not just the name. `router.TradingLimitReached` and
-`circuitBreaker.TokenOutflowLimitReached` are different pallets. Scan the block's events for
-the emitting pallet index before proposing a fix. The #372 change is harmless but unnecessary —
-revert it when tidying.
+## What was rehearsed
 
-### 2. The actual fix was slippage, not limits (ref #373)
+| Where | What | Result |
+| --- | --- | --- |
+| Mainnet forks (chopsticks, from hdx.tarn), latest 4 Nov (#16,609,850) | deploy → one referendum → readiness → smoke (deposit, rebalance, ICE intent, headroom exit, exact claims) → committee (TC motions) | 0 failures; readiness passes after the first rebalance; a 4/7 TC motion paused, froze and set the discount, 3/7 was refused |
+| Lark 0, 2 Nov | GIGAETH-only through the launch process on a live chain | referendum 458 clean; readiness 159/159; keepers ~730 txs in 12 h with no alerts |
+| Lark 4, 4 Nov (reforked from mainnet #16,589,287) | the exact mainnet payload, defaults only | referendum 448: 75 EVM calls, 0 failed; treasury buy executed; preimage byte-identical to the mainnet-fork dry run with addresses swapped |
+| Lark 4, 30 Oct (jBTC) | $100k ramp, testers' withdrawals | headroom exits and partial exact claims on real requests |
 
-Pool-143's HOLLAR→PRIME rate sits **~1.1% off oracle-fair**. `_fundDeploy` sizes its min-out
-from the AaveOracle, so at `dcaSlippagePpm = 1%` the router could never fill.
-`configureDca(222, 43, 1043, 143, 80000)` — 8% — unblocked it.
+## Decisions taken
 
-**This is a live risk parameter, not a tuning detail.** It is the slippage bound on two
-*permissionless* entrypoints (`pokeBorrow`, `pokeRepay`), so 8% is the width of the sandwich a
-caller could theoretically arrange. Before mainnet: measure pool-143's actual deviation, set
-the tightest value that fills, and write down the intended tightening path as depth improves.
+| Date | Decision |
+| --- | --- |
+| 30 Oct | One root referendum after a deploy-only step; the deployer never holds admin |
+| 31 Oct | Withdrawal delay 7 days; policy expiry removed from ExecutionController |
+| 3 Nov | Launch with GIGAETH instead of tBTC (the tBTC bridge was paused); cap 44.4 GIGAETH; the referendum buys the treasury's GIGAETH |
+| 3 Nov | Keepers and committee as above; the aToken prediction and the permissionless pokes stay as they are |
+| 4 Nov | PRIME cap 50 bps on chain, keepers enter within 25 bps |
+| 4 Nov | ETH/USD stays on DIA (one EOA writes the price and owns the adapter), as the money market already does |
+| 4 Nov | Committee is the TC's emergency-admin origin `0xAA7e…AA7E1`, not the main market's emergency admin `0x146a…b51b` (a 4-of-6 multisig behind a proxy) |
+| 5 Nov | Deployed on mainnet; the launch call goes through the TC whitelist and a WhitelistedCaller referendum |
 
-### 3. Diagnosed an "intra-tx EVM visibility" runtime bug that did not exist (cost: ~half a day)
+## Open before mainnet
 
-The first theory was that `SubLoop.deposit`'s `transferFrom` of HOLLAR was not visible to the
-`0x0401` dispatch precompile within the same transaction. A `DispatchProbe` contract doing
-`transferFrom` + `router.sell` in one call returned `sellOk = true`, refuting it.
+- External review.
+- Pool 143 near peg.
+- Deploy, then publish addresses, the regenerated preimage and the treasury buy's bound.
+- Whether the wstETH rate check needs a reference outside pool 4200.
 
-**Avoid:** when a same-transaction interaction is suspected, write the two-line probe *first*.
-It cost minutes and would have skipped both this and lesson 1.
+## Accepted risks (summary)
 
-### 4. Redeeming before ramping orphaned a request (cost: a stuck request #0)
+The full table with bounds is in the review package, section 5. The ones operators feel first:
 
-PRIME is listed in **isolation mode**, so a plain `supply` never auto-enables it as collateral —
-only `pokeBorrow`'s explicit `setUserUseReserveAsCollateral` does. Until that runs the loop
-reports `totalEquity() == 0`, and `requestUnwind` recorded a **zero** unwind target while the
-vault escrowed shares and enqueued a real `debtShare`. The request could only ever settle by
-accident, out of another unwind's freed HOLLAR.
+- **ETH/USD trust:** DIA's updater EOA writes the price and owns the adapter behind GIGAETH (and the ETH reserve).
+- **Structural negative carry:** entries cost fee, premium and slippage times leverage before income arrives; admission closes at 250 bps.
+- **Permissionless pokes:** anyone can open an entry or exit intent at the 50 bps on-chain floor whenever there is work; the keepers' 25 bps limit only governs the keepers.
+- **Keeper trust:** keepers choose quotes and timing within the caps; quotes only tighten floors.
+- **Headroom exits shift risk** to the holders who stay, up to max LTV − gap, until deposits refill the room.
+- **Manual emergency accounting:** a fair recovery needs a freeze, a per-holder snapshot and governance funding.
+- **Silent referendum failures:** EVM reverts are events; readiness is the gate.
 
-**Fixed in the contracts:** `requestRedeem` now reverts `NoLoopEquity` in that state.
-**Still an operational rule:** ramp before announcing, and assert `totalEquity() > 0` in the
-readiness gate (it is check H).
+## Operating after launch
 
-### 5. A fresh chain needs `evmAccounts.bindEvmAddress()` (cost: ~an hour)
+- **Watch:** loop HF and leverage, negative carry vs the 250 cap, unfilled or expiring intents, the PRIME premium in pool 143 and arbitrage refill, the reserve balance, keeper `[ALERT]` lines and gas.
+- **Change parameters:** caps, lanes, fees and bands by referendum; the EconomicParameters track can act as the money market's admin (`dispatchAsAaveManager`) and is the fast path. TVL cap raises the same way.
+- **Incidents:** a TC majority motion (`technicalCommittee.propose` → `dispatcher.dispatchAsEmergencyAdmin` → `evm.call`) pauses a vault or freezes the loop (`GUARDIAN_ROLE`, `pauseEmergency`); governance lifts both. Keepers set the deficit stop. Upgrades only by governance.
+- **Keepers:** rotate or add by governance (`KEEPER_ROLE`, `DEPOSIT_GUARDIAN_ROLE`); one key must never run on two hosts.
 
-An unbound depositor EVM address makes the dispatch precompile read an empty account. Bind
-every address that will transact before testing.
+## Lessons that still apply
 
-### 6. `@polkadot/api` was listed but not installed in `money-market` (cost: a blocked wiring run)
-
-It was present in `aave-debt-swap/node_modules` but not here. Run `npm install` in the repo
-root before the wiring step. (It resolves today — keep it that way.)
-
-### 7. The mainnet proposal builder silently drifted from the contracts (found 2026-08-07)
-
-`tasks/proposals/propeller.ts` — the *mainnet-shaped* path — had rotted while all real work
-went through `scripts/propeller-wire-lark.mjs`:
-
-- `configureDca` encoded with **6 arguments** against a 5-argument function → selector
-  mismatch → the call would have reverted inside the batch
-- granted `KEEPER_ROLE`, **removed from the contracts** in `1e1e5ac` — `grantRole` with an
-  unknown role id succeeds silently and wires nothing
-- lark-2 HDCL route ids (`222/550/55/10055`) instead of PRIME (`222/43/1043/143`)
-- no `setHarvester` → carry would have been claimable by any caller
-- no `setCompoundSlippageBps` → every compound would revert
-- no `GUARDIAN_ROLE` delegation
-
-**Avoid:** the lark script and the mainnet task must not diverge. Either generate both from one
-source, or run the mainnet task in dry-run against every lark deploy so it stays exercised.
-Nothing catches an unexercised code path except exercising it.
-
-### 8. Wiring was applied per-vault inconsistently (found 2026-08-07 by `verify-readiness`)
-
-The lark-4 wiring set `compoundSlippageBps = 100` on the **pETH** vault and never set it on
-**ptBTC**, which therefore sits at 0 — meaning every harvest compound into ptBTC reverts. It
-went unnoticed for a week because nothing read the state back.
-
-**Avoid:** the proposal builder now loops over `PROPELLER_VAULTS` so per-vault settings cannot
-be applied to one and forgotten on another, and `verify-readiness` checks every vault
-independently. Run it after *every* governance change, not just the first.
-
-### 9. Mock fidelity hid a real bug (found 2026-08-07)
-
-`MockPool` auto-enabled PRIME as collateral on first supply. Real Aave does not for an
-isolation-mode reserve — which is precisely why `SubLoop.pokeBorrow` opens with an explicit
-enable. That divergence is what let lesson 4's orphan bug through the entire test suite.
-
-**Avoid:** when a contract contains a workaround for external behaviour, the mock must model
-the behaviour being worked around, or the workaround's absence is untestable. `MockPool` now
-models isolation mode. `MockPool` still **accrues no interest** and `MockDispatch` still
-defaults to **zero swap fee** — both remain known blind spots (see `AUDIT.md`).
-
-### 10. `setYieldSource` is unreachable once a vault is funded (found 2026-08-07)
-
-`DEAD_SHARES` stay locked in `totalSupply` forever, so `requestRedeem` always leaves the dead
-shares' proportional loop slice behind and `loopShares` never returns to 0. The guard is
-therefore satisfiable only before the first deposit.
-
-**Not a bug — but plan around it.** There is no in-place yield-source migration. To change a
-live vault's source, deploy a new vault and let holders migrate through the redemption queue.
-Get the source right at deploy time.
-
----
-
-## Risk parameters that need a decision before mainnet
-
-| Parameter | lark-4 value | Question |
-|---|---|---|
-| `dcaSlippagePpm` | 80000 (8%) | What is mainnet pool-143's real deviation? Set the tightest value that fills |
-| `deployTranche` / `unwindTranche` | 5000 / 5000 | Sized against mainnet depth, not lark's |
-| `tvlCap` | 1e24 | Launch cap should be far lower and raised on evidence |
-| `targetHf` | 1.05 | ~20× leverage on the loop. Deliberate? |
-| `deLeverTrigger` | 1.10 | Above `targetHf`, so it is a ceiling not a floor — the operative gate in `deLever()` is `hf < targetHf` |
-| `compoundSlippageBps` | 100 | Per-vault. Set it on **every** vault |
-| `withdrawalDelay` | 12h (initialize default) | Per-vault, `setWithdrawalDelay`. Applies before unwinds start; queued requests keep their recorded time |
-| Synthetic LT | 9800 | Read **live**; changing it later changes the floor for every existing position |
-
----
-
-## Known limitations carried into mainnet
-
-- **Conditional native evidence.** Optional pinned Aave forks and a native HydraAugustus
-  lifecycle are archived in [the release record](propeller-vault/docs/release-candidate.md).
-  The lifecycle used a labelled oracle fixture and recovery funding; unchanged-market
-  entry remains an activation gate.
-- **No external audit.** The in-repo report is AI-assisted and says so in its own footer.
-- **All five privileged roles sit on one address** at `initialize`, with no on-chain timelock.
-  Batch 3 delegates `GUARDIAN_ROLE` to the technical committee; nothing else is separated.
-- **The de-lever spiral is inoperable below HF 1.02** — `pokeRepay`'s sell gate never opens, so
-  a sharp PRIME drawdown freezes both de-levering and redemption funding until price recovers
-  or Aave liquidates the loop. Arguably the designed risk split (the loop is the sink; user
-  principal is floored by the synthetic and un-liquidatable), but it is undocumented as a
-  deliberate choice.
-- **A redeemer can be settled marginally short.** `_retireExhaustedHead` snaps a head request's
-  `debtShare` down to what the spiral actually realized once the source is exhausted, so the
-  FIFO queue cannot jam. Measured at 1.3e-11 relative with a frictionless mock; real slippage
-  widens it. Collateral is released strictly proportionally, so short settlement means
-  proportionally less collateral, never someone else's.
-- **`SyntheticToken` transfers are unrestricted.** It is a real Aave reserve at LT 9800 with no
-  supply cap; only `MINTER_ROLE` custody keeps it contained. The soulbinding note at
-  `SyntheticToken.sol:50` was deferred "before audit" and never revisited.
-- **Main-interest servicing is implemented in the PR #60 candidate**, using fresh
-  after-fee harvests ([policy](propeller-vault/docs/main-debt-servicing.md)). The Main
-  HOLLAR borrowing discount is also implemented ([main-borrow-discount.md](propeller-vault/docs/main-borrow-discount.md)); a
-  redemption discount is not. Historical carry estimates (~8.6% at
-  `maxLtv · loopLeverage · spread`) are not a guaranteed APY.
-- **PRIME mirror oracle** is still owned by the looper hot key on lark. Mainnet needs governance
-  ownership with the bot behind an updater role.
+1. **Every batch reports success.** `dispatchAsAaveManager` turns EVM reverts into events; read the events of every scheduled block, then run readiness.
+2. **Plan from one state.** A live node's eth RPC trails the substrate head; `juicer.ts` waits until both agree.
+3. **Size the bootstrap in value, not units.** 0.0001 of a $2k asset is too small for the loop's first position; the launch bootstrap is ~$10 per collateral.
+4. **Gas estimates move between estimate and inclusion** for intent submissions; the keeper adds 50 % there, 20 % elsewhere.
+5. **Two keepers need one writer per slot.** Without guard bands they settled behind each other's intents; the guards and the pre-signing recheck stopped it.
+6. **Arbitrage inventory is the loop's real limit.** The loop buys about 4.2× its TVL in PRIME through pool 143; on a testnet a 500k float ran dry in hours.
+7. **Watch for state that can't resolve.** On a reforked testnet, mainnet referenda deciding at the fork block hold the root track forever; clear them first (testnet only).
+8. **Slippage, not limits.** On the August lark-4 runs, swaps failed on slippage while the circuit breaker looked guilty; read the dispatch error before changing limits.

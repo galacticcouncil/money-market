@@ -1,9 +1,11 @@
 // The launch, end to end on a local chopsticks fork of mainnet. Test fixtures (storage writes, public dev
 // keys) are confined here and to local endpoints; the deploy and the proposal run unchanged.
 //   prepare               whitelist and fund the dev deployer, keeper and user; instant blocks for the deploy
-//   enact <hex file>      note, submit, pass and enact the ONE Root referendum, then every scheduled batch
+//   enact <hex file>      note, submit, pass and enact the ONE Root referendum, then every scheduled batch;
+//                         --whitelist: a TC majority whitelists the call, a WhitelistedCaller referendum dispatches it
 //   rebalance <manifest>  the first keeper rebalance: governance's bootstrap into the loop, before readiness
 //   smoke <manifest>      a collateral deposit, a keeper rebalance and intent, a headroom exit and exact claims
+//   committee <manifest>  the committee's pause and rate powers through a TC motion; governance lifts them after
 // WS (default ws://127.0.0.1:18098), JUICER_REHEARSAL_REPORT (default /tmp/juicer-launch-rehearsal.json),
 // JUICER_LAUNCH_VAULTS (the user is funded with each launch collateral)
 import assert from 'node:assert/strict';
@@ -60,20 +62,24 @@ const failed=e=>{
  const k=`${e.section}.${e.method}`;
  if(/^(evm\.ExecutedFailed|utility\.BatchInterrupted|utility\.ItemFailed|system\.ExtrinsicFailed|scheduler\.(CallUnavailable|PermanentlyOverweight|RetryFailed))$/.test(k))return true;
  const data=JSON.stringify(e.data.toJSON());
- if(/^(scheduler\.Dispatched|dispatcher\.TreasuryManagerCallDispatched|utility\.DispatchedAs|dispatcher\.AaveManagerCallDispatched)$/.test(k))return /"err"/i.test(data);
+ if(/^(scheduler\.Dispatched|dispatcher\.TreasuryManagerCallDispatched|utility\.DispatchedAs|dispatcher\.(AaveManager|EmergencyAdmin)CallDispatched)$/.test(k))return /"err"/i.test(data);
  return /DispatchError/.test(data);
 };
 const eventsAt=async n=>(await (await api.at(await api.rpc.chain.getBlockHash(n))).query.system.events()).map(({event})=>event);
 const newBlocks=async(count=1)=>{await send('dev_newBlock',[{count}]);return head();};
-// a Root call through the scheduler, as the referenda alarm would make it
-async function rootCall(call,label){
+// a call through the scheduler with the origin a referendum alarm or a motion would give it
+async function scheduled(call,origin){
  const hex=call.method.toHex(),hash=blake2AsHex(hex),len=(hex.length-2)/2,body=hexToU8a(hex);
  await send('dev_setStorage',[[[api.query.preimage.preimageFor.key([hash,len]),u8aToHex(u8aConcat(compactToU8a(body.length),body))]]]);
  await send('dev_setStorage',[{Preimage:{RequestStatusFor:[[[hash],{Requested:{maybeTicket:null,count:1,maybeLen:len}}]]}}]);
  const t=(await head())+1;
- await send('dev_setStorage',[{Scheduler:{Agenda:[[[t],[{maybeId:null,priority:0,call:{Lookup:{hash_:hash,len}},maybePeriodic:null,origin:{system:'Root'}}]]]}}]);
+ await send('dev_setStorage',[{Scheduler:{Agenda:[[[t],[{maybeId:null,priority:0,call:{Lookup:{hash_:hash,len}},maybePeriodic:null,origin}]]]}}]);
  await newBlocks();
- const bad=(await eventsAt(t)).filter(failed);
+ return {t,events:await eventsAt(t)};
+}
+async function rootCall(call,label){
+ const {t,events}=await scheduled(call,{system:'Root'});
+ const bad=events.filter(failed);
  assert.equal(bad.length,0,`${label}: ${bad.map(e=>`${e.section}.${e.method} ${JSON.stringify(e.data.toJSON())}`).join('; ')}`);
  return t;
 }
@@ -87,24 +93,37 @@ async function signed(signer,tx,label){
  console.log('SIGNED',label,'block',n,hash);
  return {block:n,events:mine};
 }
-async function enact(file){
+async function enact(file,whitelisted){
  await cryptoWaitReady();
  await send('dev_setBlockBuildMode',['Manual']);
- const hex=readFileSync(file,'utf8').trim(),call=api.createType('Call',hex),hash=call.hash.toHex(),len=call.encodedLength;
+ let call=api.createType('Call',readFileSync(file,'utf8').trim());
  const alice=new Keyring({type:'sr25519',ss58Format:63}).addFromUri('//Alice');
  await fund(null,[[0,10_000_000n*10n**12n]],alice.address);
- const r=report.referendum={preimage:{hash,len},startBlock:await head()};save();
+ const r=report.referendum={launchCall:{hash:call.hash.toHex(),len:call.encodedLength},startBlock:await head()};save();
+ if(whitelisted){
+  // the motion's close, as the collective dispatches it: a bare TC majority whitelists the launch call
+  const members=(await api.query.technicalCommittee.members()).length,yes=Math.ceil(members/2);
+  const {t,events}=await scheduled(api.tx.whitelist.whitelistCall(call.hash),{technicalCommittee:{members:[yes,members]}});
+  const bad=events.filter(failed);
+  assert.equal(bad.length,0,`whitelist.whitelistCall: ${bad.map(e=>`${e.section}.${e.method} ${JSON.stringify(e.data.toJSON())}`).join('; ')}`);
+  assert.ok((await api.query.whitelist.whitelistedCall(call.hash)).isSome,'the launch call is not whitelisted');
+  r.whitelist={motion:`TC ${yes}/${members}`,block:t};
+  call=api.tx.whitelist.dispatchWhitelistedCallWithPreimage(call).method;
+ }
+ const hex=call.toHex(),hash=call.hash.toHex(),len=call.encodedLength;
+ r.preimage={hash,len};save();
+ const name=t=>String(t.toHuman().name).replace(/\0/g,'').trim();
+ const [trackId,track]=api.consts.referenda.tracks.find(([,t])=>name(t)===(whitelisted?'whitelisted_caller':'root'));
  // the referendum, as a proposer submits it
  await signed(alice,api.tx.preimage.notePreimage(hex),'preimage.notePreimage');
- const sub=await signed(alice,api.tx.referenda.submit({system:'Root'},{Lookup:{hash,len}},{After:1}),'referenda.submit');
+ const sub=await signed(alice,api.tx.referenda.submit(whitelisted?{Origins:'WhitelistedCaller'}:{system:'Root'},{Lookup:{hash,len}},{After:1}),'referenda.submit');
  r.index=sub.events.find(e=>e.section==='referenda'&&e.method==='Submitted').data[0].toNumber();
  await signed(alice,api.tx.referenda.placeDecisionDeposit(r.index),'referenda.placeDecisionDeposit');
  await signed(alice,api.tx.convictionVoting.vote(r.index,{Standard:{vote:{aye:true,conviction:'Locked1x'},balance:(1_000_000n*10n**12n).toString()}}),'convictionVoting.vote');
- const track=api.consts.referenda.tracks.find(([id])=>id.toNumber()===0)[1];
  // time compressed: decision and confirmation periods already elapsed with a passing tally
  const info=(await api.query.referenda.referendumInfoFor(r.index)).unwrap(),og=info.asOngoing,h=await head(),big=(5_000_000_000n*10n**12n).toString();
- assert.equal(og.track.toNumber(),0,'not on the root track');
- const ongoing=api.registry.createType(og.toRawType(),{...og.toJSON(),track:0,origin:og.origin,proposal:og.proposal,enactment:og.enactment,
+ assert.equal(og.track.toNumber(),trackId.toNumber(),`not on the ${name(track)} track`);
+ const ongoing=api.registry.createType(og.toRawType(),{...og.toJSON(),track:trackId.toNumber(),origin:og.origin,proposal:og.proposal,enactment:og.enactment,
   deciding:{since:h-1,confirming:h-track.confirmPeriod.toNumber()-2},tally:{ayes:big,nays:0,support:big},inQueue:false,alarm:null});
  await send('dev_setStorage',[[[api.query.referenda.referendumInfoFor.key(r.index),api.registry.createType(info.toRawType(),{Ongoing:ongoing}).toHex()]]]);
  r.compressed={decidingSince:h-1,confirmingSince:h-track.confirmPeriod.toNumber()-2,note:'storage: decision and confirm periods elapsed, tally passing'};
@@ -120,10 +139,10 @@ async function enact(file){
  r.enactmentBlock=enactAt;save();
  console.log('APPROVED',r.index,'at',r.approvedBlock,'enactment at',enactAt);
  while(await head()<enactAt-1)await newBlocks(Math.min(50,enactAt-1-await head()));
- const scheduled=JSON.parse(readFileSync(process.env.JUICER_PLAN_OUT,'utf8')).batches.length;
+ const batches=JSON.parse(readFileSync(process.env.JUICER_PLAN_OUT,'utf8')).batches.length;
  r.blocks=[];
  const maxW=api.consts.scheduler.maximumWeight;
- for(let n=enactAt;n<=enactAt+scheduled-1;n++){
+ for(let n=enactAt;n<=enactAt+batches-1;n++){
   await newBlocks();
   const events=await eventsAt(n),at=await api.at(await api.rpc.chain.getBlockHash(n));
   const w=(await at.query.system.blockWeight()).toJSON(),mandatory=w.mandatory;
@@ -140,7 +159,7 @@ async function enact(file){
  }
  // every batch serviced in its own block, none postponed or left behind
  const left=[];
- for(let n=enactAt;n<=enactAt+scheduled-1;n++)if((await api.query.scheduler.agenda(n)).some(t=>t.isSome))left.push(n);
+ for(let n=enactAt;n<=enactAt+batches-1;n++)if((await api.query.scheduler.agenda(n)).some(t=>t.isSome))left.push(n);
  r.unserviced=left;r.clean=r.blocks.every(b=>!b.failures.length)&&!left.length;save();
  console.log('ENACTED',r.clean?'clean':'WITH FAILURES',JSON.stringify(r.blocks.map(b=>[b.block,b.failures])));
 }
@@ -273,6 +292,47 @@ async function smoke(file){
  console.log('SMOKE PASSED',JSON.stringify(s,(_,x)=>typeof x==='bigint'?x.toString():x).slice(0,600));
 }
 
+// the committee acts as the emergency admin through a TC majority motion; a minority is refused
+async function committee(file){
+ const {artifact}=await import('./native-artifacts.mjs');
+ const {COMMITTEE}=await import('./launch-manifest.mjs');
+ const m=JSON.parse(readFileSync(file,'utf8')),vault=m.vaults.find(x=>x.address),A=m.addresses;
+ assert.equal(m.committee.toLowerCase(),COMMITTEE.toLowerCase(),'the manifest names another committee');
+ await send('dev_setBlockBuildMode',['Manual']);
+ const members=(await api.query.technicalCommittee.members()).length,majority=Math.ceil(members/2);
+ const c=report.committee={address:COMMITTEE,members,majority,steps:[]};save();
+ const vaultAbi=artifact('CollateralVault').abi,loopAbi=artifact('SubLoop').abi,discountAbi=artifact('JuicerDiscount').abi;
+ const read=(address,a,functionName,args=[])=>pub.readContract({address,abi:a,functionName,args});
+ const data=(a,functionName,args=[])=>v.encodeFunctionData({abi:a,functionName,args});
+ const evm=(from,to,input)=>api.tx.evm.call(from,to,input,0,500000,'600000000',null,null,[],[]);
+ async function motion(yes,to,input,label){
+  const {t,events}=await scheduled(api.tx.dispatcher.dispatchAsEmergencyAdmin(evm(COMMITTEE,to,input)),{technicalCommittee:{members:[yes,members]}});
+  const bad=events.filter(failed).map(e=>`${e.section}.${e.method} ${JSON.stringify(e.data.toJSON())}`);
+  c.steps.push({label,origin:`TC ${yes}/${members}`,block:t,failures:bad});save();
+  console.log('COMMITTEE',label,`TC ${yes}/${members}`,'block',t,bad.length?`refused ${bad.join('; ')}`:'ok');
+  return bad;
+ }
+ const gov=(to,input,label)=>rootCall(api.tx.dispatcher.dispatchAsAaveManager(evm(GOV,to,input)),label);
+ assert.ok((await motion(majority-1,vault.address,data(vaultAbi,'pause'),'a minority pauses the vault')).some(x=>/badorigin/i.test(x)),'a minority motion went through');
+ assert.equal(await read(vault.address,vaultAbi,'paused'),false);
+ assert.equal((await motion(majority,vault.address,data(vaultAbi,'pause'),'the majority pauses the vault')).length,0);
+ assert.equal(await read(vault.address,vaultAbi,'paused'),true);
+ assert.equal((await motion(majority,A.subLoop,data(loopAbi,'pauseEmergency'),'the majority freezes the loop')).length,0);
+ assert.equal(await read(A.subLoop,loopAbi,'emergencyPaused'),true);
+ const rate=await read(A.discount,discountAbi,'discountBps');
+ assert.equal((await motion(majority,A.discount,data(discountAbi,'setDiscountBps',[0]),'the majority sets the Main discount to 0')).length,0);
+ assert.equal(await read(A.discount,discountAbi,'discountBps'),0);
+ assert.equal((await motion(majority,A.discount,data(discountAbi,'setDiscountBps',[rate]),`the majority restores it to ${rate}`)).length,0);
+ assert.equal(await read(A.discount,discountAbi,'discountBps'),rate);
+ // only governance lifts a pause or the freeze
+ await gov(vault.address,data(vaultAbi,'unpause'),'governance unpauses the vault');
+ await gov(A.subLoop,data(loopAbi,'unpauseEmergency'),'governance lifts the freeze');
+ assert.equal(await read(vault.address,vaultAbi,'paused'),false);
+ assert.equal(await read(A.subLoop,loopAbi,'emergencyPaused'),false);
+ c.passed=true;save();
+ console.log('COMMITTEE PASSED',COMMITTEE,`majority ${majority}/${members}`);
+}
+
 try{
  assert.equal(Number(await send('eth_chainId',[])),222222);
  if(cmd==='prepare'){
@@ -285,8 +345,9 @@ try{
   report.fork={block:await head(),hash:(await api.rpc.chain.getBlockHash()).toHex(),runtime:(await api.rpc.state.getRuntimeVersion()).specVersion.toNumber()};
   report.fixtures={deployer:deployer.address,keeper:keeper.address,user:user.address,note:'storage-funded public dev keys; deployer whitelisted as on mainnet'};save();
   console.log('PREPARED',JSON.stringify(report.fixtures),'fork',JSON.stringify(report.fork));
- }else if(cmd==='enact')await enact(arg);
+ }else if(cmd==='enact')await enact(arg,process.argv.includes('--whitelist'));
  else if(cmd==='rebalance')await firstRebalance(arg);
  else if(cmd==='smoke')await smoke(arg);
+ else if(cmd==='committee')await committee(arg);
  else throw Error(`unknown command ${cmd}`);
 }finally{await api.disconnect();}
