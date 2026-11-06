@@ -40,7 +40,7 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
   keeper.poke = async (_abi: unknown, address: string, fn: string, _label: string, args: unknown[]) => {
     if (fn === 'maintainPeg') return false; // real poke filters a zero-work peg simulation
     if (fn === 'startUnwinds') assert.deepEqual(args, [8n], 'native-tested start batch fits the keeper budget');
-    calls.push(`${address}:${fn}`); return true;
+    calls.push(`${address}:${fn}`); return state.failPoke !== fn;
   };
   await keeper.runCycle();
   return calls;
@@ -69,9 +69,11 @@ test('funded idle Main interest settles without scheduling a source unwind or ha
   finally { CONFIG.OPERATOR_COUNT = count; CONFIG.OPERATOR_INDEX = index; }
 });
 test('active exits prevent ramping and share a single source repayment', async () => {
-  assert.deepEqual(await cycle({ effectiveHealthFactor: 2n * TARGET, queueTail: 1n, queueUnwind: 1n }, true), [
-    `${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`, `${OTHER}:pokeSettle`,
-  ]);
+  for (const queueTail of [1n, 2n]) {
+    assert.deepEqual(await cycle({ effectiveHealthFactor: 2n * TARGET, queueTail, queueUnwind: 1n, unwindEligibleAt: 101n }, true), [
+      `${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`, `${OTHER}:pokeSettle`,
+    ]);
+  }
 });
 test('source pause stops swaps but not settlement of already freed funds', async () => {
   assert.deepEqual(await cycle({ paused: true, deleverTarget: 1n }), [`${VAULT}:pokeSettle`]);
@@ -92,14 +94,26 @@ test('idle recovery surplus is not a repayment obligation', async () => {
   assert.deepEqual(await cycle({ effectiveHealthFactor: 2n * TARGET, availableHollar: 100n }), [`${LOOP}:pokeBorrow`]);
 });
 
-test('cooldown-only requests do not start source repayment or ramping', async () => {
-  assert.deepEqual(await cycle({ effectiveHealthFactor: 2n * TARGET, queueTail: 1n, unwindEligibleAt: 101n }), []);
+test('cooldown-only requests allow ramping without starting source repayment', async () => {
+  assert.deepEqual(await cycle({ effectiveHealthFactor: 2n * TARGET, queueTail: 1n, unwindEligibleAt: 101n }, true), [
+    `${LOOP}:pokeBorrow`,
+  ]);
 });
 test('eligible requests start before a single source repayment and settlement', async () => {
-  assert.deepEqual(await cycle({ queueTail: 1n }, true), [
+  assert.deepEqual(await cycle({ effectiveHealthFactor: 2n * TARGET, queueTail: 1n }, true), [
     `${VAULT}:startUnwinds`, `${OTHER}:startUnwinds`, `${LOOP}:pokeRepay`,
     `${VAULT}:pokeSettle`, `${OTHER}:pokeSettle`,
   ]);
+});
+test('an eligible withdrawal still blocks ramping when starting its unwind fails', async () => {
+  assert.deepEqual(await cycle({ effectiveHealthFactor: 2n * TARGET, queueTail: 1n, failPoke: 'startUnwinds' }), [
+    `${VAULT}:startUnwinds`,
+  ]);
+});
+test('unknown withdrawal eligibility blocks ramping without preventing safety repayment', async () => {
+  const queued = { queueTail: 1n, failRead: 'unwindEligibleAt' };
+  assert.deepEqual(await cycle({ ...queued, effectiveHealthFactor: 2n * TARGET }), []);
+  assert.deepEqual(await cycle({ ...queued, deleverDebtTarget: 1n }), [`${LOOP}:pokeRepay`]);
 });
 test('local vault freeze prevents starts, FIFO settlement and new ramping', async () => {
   assert.deepEqual(await cycle({ vaultPaused: true, queueTail: 2n, queueUnwind: 1n, effectiveHealthFactor: 2n * TARGET }), []);

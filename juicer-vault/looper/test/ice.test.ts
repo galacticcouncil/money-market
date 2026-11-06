@@ -36,6 +36,7 @@ type Pending = { nonce: bigint; deadline: bigint; kind: number; amountIn: bigint
 function chain() {
   const c = {
     ttl: 60, hf: 2n * TARGET, unwind: 0n, safetyDebt: 0n, emergency: false, idle: 0n, nonce: 0n, sourcePending: 0n,
+    queueTail: 0n, queueUnwind: 0n, unwindEligibleAt: 0n,
     head: {number: 1_000n, timestamp: 10_000n},
     pending: undefined as Pending | undefined,
     outcome: 1,
@@ -102,7 +103,8 @@ function keeper(c: Chain, name: 'k0' | 'k1', index: number) {
       prime: () => '0x00000000000000000000000000000000000000ee', ADDRESSES_PROVIDER: () => VAULT, getPriceOracle: () => VAULT,
       getAssetPrice: () => args[0] === '0x00000000000000000000000000000000000000dd' ? c.hollarPrice : 100_000_000n,
       hollarAssetId: () => IDS.hollar, primeAssetId: () => IDS.prime, aPrimeAssetId: () => IDS.aPrime, primePoolId: () => IDS.pool,
-      queueHead: () => 0n, queueTail: () => 0n, queueUnwind: () => 0n, deleverTarget: () => 0n, reinvestAssets: () => 0n,
+      queueHead: () => 0n, queueTail: () => c.queueTail, queueUnwind: () => c.queueUnwind,
+      unwindEligibleAt: () => c.unwindEligibleAt, deleverTarget: () => 0n, reinvestAssets: () => 0n,
       mainDebt: () => VAULT, pendingSourceAccounting: () => false, deficitStop: () => false, yieldAccounting: () => VAULT,
       activePosition: () => [0n, 0n, 0n], activeFunds: () => 0n, sourceValue: () => 0n, requiredSourceBacking: () => 0n,
     };
@@ -314,6 +316,29 @@ test('idle deposit cash rides an entry even without ramp headroom', async () => 
   assert.deepEqual(c.probes, []);
   c.idle = 3n * E18;
   assert.deepEqual((await run(c, keeper(c, 'k0', 0))).calls, ['k0:pokeBorrowQuoted(940000)']);
+});
+
+test('queued withdrawals allow quoted entries during cooldown and take priority at eligibility', async () => {
+  for (const hf of [TARGET, 2n * TARGET]) {
+    const c = chain();
+    c.hf = hf;
+    c.queueTail = 1n;
+    c.unwindEligibleAt = 31n;
+    c.idle = 73_000n * E18;
+    c.next[ENTRY] = 2_500n * E18;
+    const k = keeper(c, 'k0', 0);
+    assert.deepEqual((await run(c, k)).calls, ['k0:pokeBorrowQuoted(940000)']);
+    assert.equal(c.pending?.kind, ENTRY);
+    assert.deepEqual(c.sells, [{origin: LOOP_ACCOUNT, route: intentRoute(ENTRY, IDS), amountIn: 2_500n * E18}]);
+
+    c.pending = undefined;
+    c.unwindEligibleAt = 30n;
+    c.next[EXIT] = 500_000_000n;
+    assert.deepEqual((await run(c, k)).calls, [
+      'k0:startUnwinds(8)', 'k0:pokeSettle', 'k0:pokeRepayQuoted(1060000000000000000000000000000)',
+    ]);
+    assert.deepEqual(c.pending, {nonce: 2n, deadline: (c.head.timestamp + 60n) * 1000n, kind: EXIT, amountIn: c.next[EXIT]});
+  }
 });
 
 test('an exit probe with no intent to send still repays what an earlier fill brought back', async () => {

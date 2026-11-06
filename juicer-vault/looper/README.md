@@ -69,6 +69,8 @@ read each vault's pause, queue cursors and Main repayment target
   healthy, no pending work, duty slot         -> quoted bounded pokeBorrow(), or with intents
     (also for idle deposit cash) pokeBorrowQuoted(router dry-run rate),
     only while that rate is within ENTRY_MAX_COST_BPS of oracle-fair
+    withdrawals in cooldown remain invested and do not block entries;
+    eligible withdrawals block entries even if startUnwinds fails
   intent in flight                            -> nothing new is submitted
     fill or refund landed, duty slot          -> reconcile()
     unfilled ICE_STALL_BLOCKS, or input still away

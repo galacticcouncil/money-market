@@ -249,7 +249,7 @@ export class JuicerLooper {
     const frozen = new Set<Address>();
     const unsettled = new Set<Address>();
     let funded = true;
-    let waiting = false;
+    let eligible = false;
     let started = false;
     let now: bigint | undefined;
     for (const vault of this.vaults) {
@@ -285,12 +285,12 @@ export class JuicerLooper {
         if (unallocated) unsettled.add(vault);
         if (undeployed > 0n) deployment.add(vault);
         if (vaultPaused || emergency) frozen.add(vault);
-        waiting ||= tail > next;
         let starting = false;
         if (tail > next && !paused && !frozen.has(vault)) {
           now ??= await this.blockTimestamp();
           const eligibleAt = await this.read(VAULT_ABI, vault, 'unwindEligibleAt', [next]) as bigint;
           if (now >= eligibleAt) {
+            eligible = true;
             // 16 starts measured at >13M gas natively; 8 keeps headroom
             starting = await this.poke(VAULT_ABI, vault, 'startUnwinds', `startUnwinds ${short(vault)}`, [8n]);
             started ||= starting;
@@ -301,7 +301,7 @@ export class JuicerLooper {
         }
       } catch (error) {
         funded = false;
-        waiting = true;
+        eligible = true;
         frozen.add(vault);
         console.error(`[ALERT] ${vault}: queue monitor failed; optional risk disabled: ${shortErr(error)}`);
       }
@@ -310,7 +310,7 @@ export class JuicerLooper {
     const deficit = await this.checkDeficits(frozen, turn);
     // one intent in flight per loop, entries and exits alike: nothing new goes out while it is
     const busy = await this.watchIntent(intent, emergency, turn);
-    const servicing = unwind > 0n || safetyDebt > 0n || pending.length > 0 || waiting;
+    const servicing = unwind > 0n || safetyDebt > 0n || pending.length > 0 || eligible;
     let harvested = false;
     if (turn && this.harvester && !paused && !emergency && frozen.size === 0) {
       try {
