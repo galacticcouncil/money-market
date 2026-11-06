@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+from stateful_coverage import check_coverage, check_loss_recovery_coverage
+from compiler_environment import compiler_environment, compiler_cache_path
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--compiled", action="store_true", help="use already compiled modules from LEAN_PATH")
+    args = parser.parse_args()
+    formal = Path(__file__).resolve().parent
+    vault = formal.parent
+    env = compiler_environment()
+    subprocess.run([sys.executable, str(formal / "check-dispatch.py")], cwd=formal, check=True)
+    manifest = json.loads((formal / "solidity-manifest.json").read_text())
+    for name, expected in manifest["files"].items():
+        actual = hashlib.sha256((vault / name).read_bytes()).hexdigest()
+        if actual != expected:
+            raise SystemExit(f"source changed: {name}; review the model and update the manifest")
+    if not args.compiled:
+        subprocess.run(["lake", "build"], cwd=formal, check=True)
+    lean = ["lean"] if args.compiled else ["lake", "env", "lean"]
+    subprocess.run(lean + ["CheckAxioms.lean"], cwd=formal, check=True)
+    for source, artifact in [("ParityVectors.lean", "runtime-vectors.json"),
+                             ("CoverageVectors.lean", "coverage-vectors.json"),
+                             ("MachineVectors.lean", "machine-vectors.json"),
+                             ("ConfigVectors.lean", "config-vectors.json")]:
+        generated = subprocess.check_output(lean + ["--run", source], cwd=formal, text=True)
+        if json.loads(generated) != json.loads((formal / artifact).read_text()):
+            raise SystemExit(f"{artifact} changed; regenerate it with {source}")
+    layout_out = formal / ".stateful" / "layout-out"
+    subprocess.run(["forge", "build", "--offline", "--skip", "test", "--skip", "script",
+                    "--extra-output", "storageLayout", "--ast", "--out", str(layout_out),
+                    "--cache-path", str(compiler_cache_path("layout-cache"))],
+                   cwd=vault, env=compiler_environment("layout-cache"), check=True)
+    subprocess.run([sys.executable, str(formal / "check-bytecode.py"),
+                    "--artifacts", str(layout_out)], cwd=vault, check=True)
+    subprocess.run([sys.executable, str(formal / "solidity_bodies.py"),
+                    "--artifacts", str(layout_out)], cwd=formal, check=True)
+    subprocess.run([sys.executable, str(formal / "test_solidity_bodies.py"), "--artifacts",
+                    str(layout_out)], cwd=formal, check=True)
+    subprocess.run([sys.executable, str(formal / "solidity_guards.py"),
+                    "--artifacts", str(layout_out)], cwd=formal, check=True)
+    subprocess.run([sys.executable, str(formal / "test_solidity_guards.py"),
+                    "--artifacts", str(layout_out)], cwd=formal, check=True)
+    layout = json.loads((layout_out / "JuicerYieldAccounting.sol" /
+                         "JuicerYieldAccounting.json").read_text())["storageLayout"]
+    slots = {entry["label"]: int(entry["slot"]) for entry in layout["storage"]}
+    names = ["sourceShares", "protocolShares", "totalUnits", "rewardIndex", "units", "accountIndex",
+             "requestIndex", "harvestUnits", "harvestRewardUnits", "harvestProtocolUnits", "epoch",
+             "accountEpoch", "requestEpoch", "unitScale", "accountScale", "requestScale", "requestUnits",
+             "sourceLossCarry", "protocolLossCarry"]
+    for slot, name in enumerate(names):
+        if slots.get(name) != slot:
+            raise SystemExit(f"storage layout changed: {name}")
+    main_layout = json.loads((layout_out / "JuicerMainDebt.sol" /
+                              "JuicerMainDebt.json").read_text())["storageLayout"]
+    main_slots = {entry["label"]: int(entry["slot"]) for entry in main_layout["storage"]}
+    for slot, name in enumerate(["allocationAmount", "allocationCost", "allocationTotal",
+                                 "allocationWeight", "allocationCursor", "allocationTail"], 13):
+        if main_slots.get(name) != slot:
+            raise SystemExit(f"Main storage layout changed: {name}")
+    traces = [formal / ".stateful" / f"{prefix}-{seed}.jsonl"
+              for prefix in ("trace", "market", "rescale") for seed in range(1, 9)]
+    shared_traces = [formal / ".stateful" / f"shared-intent-{seed}.jsonl" for seed in range(1, 7)]
+    harvest_traces = [formal / ".stateful" / f"harvest-capacity-{fixture}.jsonl" for fixture in (1, 2)]
+    for path in traces + shared_traces + harvest_traces:
+        path.unlink(missing_ok=True)
+    env.update(LEAN_STATEFUL_SEED="1", LEAN_STATEFUL_COUNT="8", LEAN_STATEFUL_DEPTH="192")
+    # the env already moves the cache; keep these artifacts out of the default out/ too
+    tree = ["--out", str(formal / ".stateful" / "test-out")]
+    subprocess.run(["forge", "test", "--offline", "--match-path", "test/formal/*.t.sol", "--match-contract", "^(Lean|Rescale)", "--gas-limit", str(2**40), "-vv"] + tree,
+                   cwd=vault, env=env, check=True)
+    subprocess.run(lean + ["--run", "StatefulReplay.lean"] +
+                   [str(path) for path in traces],
+                   cwd=formal, check=True)
+    subprocess.run(lean + ["--run", "StatefulReplay.lean", "--harvest-capacity"] +
+                   [str(path) for path in harvest_traces], cwd=formal, check=True)
+    subprocess.run(lean + ["--run", "SharedIntentReplay.lean"] +
+                   [str(path) for path in shared_traces],
+                   cwd=formal, check=True)
+    subprocess.run(lean + ["--run", "ScaledDebtReplay.lean",
+                           str(formal / ".stateful" / "scaled-debt.jsonl")],
+                   cwd=formal, check=True)
+    subprocess.run(["forge", "test", "--offline", "--match-contract", "^(AuditPr46|YieldFundTransfer)",
+                    "--match-test", "^test_(pr46_|walletSharesCannotReachTheFund|depositCannotMintIntoTheFund|smallAllocationsOwnAFundThatHeldSharesBeforeAnyUnits)",
+                    "--gas-limit", str(2**40), "-vv"] + tree,
+                   cwd=vault, env=env, check=True)
+    for contract, test in [
+        ("SharedHarvestFormalHarness", "test_repeatedTwoVaultHarvestHistory"),
+        ("IceSequenceFormalHarness", "test_longEntryExpiryReconcileAndExitHistory"),
+    ]:
+        subprocess.run(["forge", "test", "--offline", "--match-path",
+                        "test/formal/SharedFlowHarness.t.sol", "--match-contract", contract,
+                        "--match-test", test, "--gas-limit", str(2**40), "-vv"] + tree,
+                       cwd=vault, env=env, check=True)
+    check_coverage(traces[:8])
+    check_coverage(traces[8:16])
+    check_loss_recovery_coverage(traces[16:])
+    print("Lean/Solidity runtime comparisons passed; source fingerprints and vector regeneration match")
+
+
+if __name__ == "__main__":
+    main()

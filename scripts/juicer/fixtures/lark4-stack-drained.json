@@ -1,0 +1,290 @@
+{
+  "version": "3.8",
+  "services": {
+    "keeper0": {
+      "stop_grace_period": "4m",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "deploy": {
+        "replicas": 0,
+        "update_config": {
+          "order": "stop-first",
+          "failure_action": "rollback"
+        },
+        "restart_policy": {
+          "condition": "any",
+          "delay": "15s"
+        },
+        "resources": {
+          "limits": {
+            "cpus": "0.50",
+            "memory": "512M"
+          },
+          "reservations": {
+            "memory": "128M"
+          }
+        }
+      },
+      "image": "galacticcouncil/propeller-lark-keeper@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "environment": {
+        "RPC_URL": "https://node4.lark.hydration.cloud",
+        "RPC_URLS": "https://node4.lark.hydration.cloud,https://4.lark.hydration.cloud",
+        "LOOPER_PRIVATE_KEY": "<testAccount(18) key>",
+        "SUBLOOP_ADDRESS": "0x0000000000000000000000000000000000000105",
+        "HARVESTER_ADDRESS": "0x0000000000000000000000000000000000000106",
+        "EXECUTION_CONTROLLER": "0x0000000000000000000000000000000000000108",
+        "VAULT_ADDRESSES": "0x0000000000000000000000000000000000000201,0x0000000000000000000000000000000000000301",
+        "JUICER_ROUNDING_RESERVES": "[{\"vault\":\"0x0000000000000000000000000000000000000201\",\"assetId\":34,\"minimum\":\"10746910264300\",\"target\":\"53735551316500\"},{\"vault\":\"0x0000000000000000000000000000000000000301\",\"assetId\":1000765,\"minimum\":\"213606750974\",\"target\":\"1069033749870\"}]",
+        "SPONSORED_GAS": "true",
+        "POLL_INTERVAL_MS": "30000",
+        "SAFETY_INTERVAL_MS": "30000",
+        "SLOW_EVERY": "2",
+        "OPERATOR_COUNT": "2",
+        "OPERATOR_INDEX": "0",
+        "OPERATOR_SLOT_SECONDS": "60",
+        "HARVEST_MIN_USD8": "1000000",
+        "HARVEST_MAX_DELAY_SECONDS": "60",
+        "QUOTE_TTL_SECONDS": "60",
+        "QUOTE_DEPTH_BLOCKS": "3",
+        "MAX_TX_GAS": "16777216"
+      }
+    },
+    "keeper1": {
+      "stop_grace_period": "4m",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "deploy": {
+        "replicas": 0,
+        "update_config": {
+          "order": "stop-first",
+          "failure_action": "rollback"
+        },
+        "restart_policy": {
+          "condition": "any",
+          "delay": "15s"
+        },
+        "resources": {
+          "limits": {
+            "cpus": "0.50",
+            "memory": "512M"
+          },
+          "reservations": {
+            "memory": "128M"
+          }
+        }
+      },
+      "image": "galacticcouncil/propeller-lark-keeper@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "environment": {
+        "RPC_URL": "https://node4.lark.hydration.cloud",
+        "RPC_URLS": "https://node4.lark.hydration.cloud,https://4.lark.hydration.cloud",
+        "LOOPER_PRIVATE_KEY": "<testAccount(20) key>",
+        "SUBLOOP_ADDRESS": "0x0000000000000000000000000000000000000105",
+        "HARVESTER_ADDRESS": "0x0000000000000000000000000000000000000106",
+        "EXECUTION_CONTROLLER": "0x0000000000000000000000000000000000000108",
+        "VAULT_ADDRESSES": "0x0000000000000000000000000000000000000201,0x0000000000000000000000000000000000000301",
+        "JUICER_ROUNDING_RESERVES": "[{\"vault\":\"0x0000000000000000000000000000000000000201\",\"assetId\":34,\"minimum\":\"10746910264300\",\"target\":\"53735551316500\"},{\"vault\":\"0x0000000000000000000000000000000000000301\",\"assetId\":1000765,\"minimum\":\"213606750974\",\"target\":\"1069033749870\"}]",
+        "SPONSORED_GAS": "true",
+        "POLL_INTERVAL_MS": "30000",
+        "SAFETY_INTERVAL_MS": "30000",
+        "SLOW_EVERY": "2",
+        "OPERATOR_COUNT": "2",
+        "OPERATOR_INDEX": "1",
+        "OPERATOR_SLOT_SECONDS": "60",
+        "HARVEST_MIN_USD8": "1000000",
+        "HARVEST_MAX_DELAY_SECONDS": "60",
+        "QUOTE_TTL_SECONDS": "60",
+        "QUOTE_DEPTH_BLOCKS": "3",
+        "MAX_TX_GAS": "16777216"
+      }
+    },
+    "mirror": {
+      "stop_grace_period": "4m",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "deploy": {
+        "replicas": 1,
+        "update_config": {
+          "order": "stop-first",
+          "failure_action": "rollback"
+        },
+        "restart_policy": {
+          "condition": "any",
+          "delay": "15s"
+        },
+        "resources": {
+          "limits": {
+            "cpus": "0.50",
+            "memory": "512M"
+          },
+          "reservations": {
+            "memory": "128M"
+          }
+        }
+      },
+      "image": "galacticcouncil/propeller-lark-bots@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "environment": {
+        "BOT_MODE": "mirror",
+        "BOT_LIVE": "true",
+        "BOT_MANIFEST": "/app/manifest.json",
+        "BOT_INTERVAL_MS": "30000"
+      },
+      "configs": [
+        {
+          "source": "juicer_manifest",
+          "target": "/app/manifest.json"
+        }
+      ]
+    },
+    "markets": {
+      "stop_grace_period": "4m",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "deploy": {
+        "replicas": 1,
+        "update_config": {
+          "order": "stop-first",
+          "failure_action": "rollback"
+        },
+        "restart_policy": {
+          "condition": "any",
+          "delay": "15s"
+        },
+        "resources": {
+          "limits": {
+            "cpus": "0.50",
+            "memory": "512M"
+          },
+          "reservations": {
+            "memory": "128M"
+          }
+        }
+      },
+      "image": "galacticcouncil/propeller-lark-bots@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "environment": {
+        "BOT_MODE": "markets",
+        "BOT_LIVE": "true",
+        "BOT_MANIFEST": "/app/manifest.json",
+        "BOT_INTERVAL_MS": "5000",
+        "PEG_BAND_BPS": "0.5"
+      },
+      "configs": [
+        {
+          "source": "juicer_manifest",
+          "target": "/app/manifest.json"
+        }
+      ]
+    },
+    "pools": {
+      "stop_grace_period": "4m",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "deploy": {
+        "replicas": 1,
+        "update_config": {
+          "order": "stop-first",
+          "failure_action": "rollback"
+        },
+        "restart_policy": {
+          "condition": "any",
+          "delay": "15s"
+        },
+        "resources": {
+          "limits": {
+            "cpus": "0.50",
+            "memory": "512M"
+          },
+          "reservations": {
+            "memory": "128M"
+          }
+        }
+      },
+      "image": "galacticcouncil/propeller-lark-bots@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "environment": {
+        "BOT_MODE": "pools",
+        "BOT_LIVE": "true",
+        "BOT_MANIFEST": "/app/manifest.json",
+        "BOT_INTERVAL_MS": "30000"
+      },
+      "configs": [
+        {
+          "source": "juicer_manifest",
+          "target": "/app/manifest.json"
+        }
+      ]
+    },
+    "replay": {
+      "stop_grace_period": "4m",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "deploy": {
+        "replicas": 1,
+        "update_config": {
+          "order": "stop-first",
+          "failure_action": "rollback"
+        },
+        "restart_policy": {
+          "condition": "any",
+          "delay": "15s"
+        },
+        "resources": {
+          "limits": {
+            "cpus": "0.50",
+            "memory": "512M"
+          },
+          "reservations": {
+            "memory": "128M"
+          }
+        }
+      },
+      "image": "galacticcouncil/propeller-lark-bots@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "environment": {
+        "BOT_MODE": "replay",
+        "BOT_LIVE": "true",
+        "BOT_MANIFEST": "/app/manifest.json",
+        "BOT_INTERVAL_MS": "6000"
+      },
+      "configs": [
+        {
+          "source": "juicer_manifest",
+          "target": "/app/manifest.json"
+        }
+      ]
+    }
+  },
+  "configs": {
+    "juicer_manifest": {
+      "external": true,
+      "name": "propeller-lark4-20261007-manifest-v3"
+    }
+  }
+}
