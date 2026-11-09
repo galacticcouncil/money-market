@@ -435,10 +435,11 @@ export class JuicerLooper {
     return gasWei * gasPrice * 10_000n <= amount * hollarPrice * CONFIG.MAIN_SERVICE_MAX_GAS_BPS;
   }
 
-  // allocation follows prices: sync after a PRIME or collateral oracle update, and every SYNC_EVERY seconds
+  // routine allocation coalesces price updates; safety work is scheduled separately
   private async syncVaults(skip: ReadonlySet<Address>, now: bigint): Promise<void> {
     const synced = (this.synced ??= new Map<Address, bigint>());
     const every = BigInt(CONFIG.SYNC_EVERY);
+    const minInterval = BigInt(CONFIG.SYNC_MIN_INTERVAL_SECONDS);
     let prime: Address | undefined, updates = new Map<string, bigint>();
     const assets = new Map<Address, Address>();
     try {
@@ -454,14 +455,14 @@ export class JuicerLooper {
         .filter((t): t is bigint => t !== undefined);
       const updated = times.length ? times.reduce((a, b) => (b > a ? b : a)) : undefined;
       let last = synced.get(vault) ?? 0n;
-      if (!syncDue(last, updated, now, every)) continue;
+      if (!syncDue(last, updated, now, every, minInterval)) continue;
       // another operator, or any allocating checkpoint, may already have synced
       const seen = await this.lastSyncAt(vault).catch(error => {
         console.log(`  sync evidence of ${short(vault)} unreadable: ${shortErr(error)}`);
         return 0n;
       });
       if (seen > last) synced.set(vault, last = seen);
-      if (!syncDue(last, updated, now, every)) continue;
+      if (!syncDue(last, updated, now, every, minInterval)) continue;
       // mined after the head read at `now`, and block timestamps strictly increase
       if (await this.poke(SYNC_ABI, vault, 'sync', `sync ${short(vault)}`)) synced.set(vault, now + 1n);
     }
@@ -481,7 +482,7 @@ export class JuicerLooper {
         const [answer, updatedAt] = await this.read(ORACLE_ABI, source as Address, 'latestRoundData')
           .then(round => [(round as readonly bigint[])[1], (round as readonly bigint[])[3]])
           .catch(async () => [await this.read(ORACLE_ABI, oracle, 'getAssetPrice', [asset]) as bigint, 0n]);
-        const feed = feedUpdate(seen.get(source), answer, updatedAt, now);
+        const feed = feedUpdate(seen.get(source), answer, updatedAt, now, CONFIG.SYNC_PRICE_CHANGE_BPS);
         seen.set(source, feed);
         updates.set(asset, feed.at);
       } catch (error) {

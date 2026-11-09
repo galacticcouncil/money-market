@@ -13,6 +13,8 @@ const operatorCount = integer('OPERATOR_COUNT', 1);
 const slotSeconds = integer('OPERATOR_SLOT_SECONDS', 60);
 const guardSeconds = integer('OPERATOR_GUARD_SECONDS', 15, 0);
 if (operatorCount > 1 && guardSeconds * 2 >= slotSeconds) throw new Error('OPERATOR_GUARD_SECONDS must leave part of each slot');
+const syncEvery = integer('SYNC_EVERY', 3600);
+const syncMinInterval = integer('SYNC_MIN_INTERVAL_SECONDS', Math.min(600, syncEvery), 1, syncEvery);
 const deficitStop = integer('DEFICIT_STOP_BPS', 250, 1, 10_000);
 const cleanupSuri = process.env.ICE_CLEANUP_SURI || undefined;
 // dev-phrase derivations only (//Name), so a real seed can't end up in a keeper's environment
@@ -90,7 +92,9 @@ export const CONFIG = {
   DEFICIT_STOP_BPS: deficitStop,
   DEFICIT_RESUME_BPS: integer('DEFICIT_RESUME_BPS', 200, 0, deficitStop - 1),
   // seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner
-  SYNC_EVERY: integer('SYNC_EVERY', 3600),
+  SYNC_EVERY: syncEvery,
+  SYNC_MIN_INTERVAL_SECONDS: syncMinInterval,
+  SYNC_PRICE_CHANGE_BPS: BigInt(integer('SYNC_PRICE_CHANGE_BPS', 1, 1, 10_000)),
   // blocks an intent may stay unfilled before the solver is reported quiet
   ICE_STALL_BLOCKS: integer('ICE_STALL_BLOCKS', 10),
   // blocks past an intent's deadline before a refund that hasn't come back is cleaned up or alerted
