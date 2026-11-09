@@ -120,6 +120,25 @@ before preparing fair recovery for **all affected holders**, including holders
 without withdrawal requests. Automatic all-holder settlement and extraction of
 compounded user yield are not implemented. See [principal and emergency policy](docs/principal-safety.md).
 
+### ICE deposits
+
+`JuicerIceDepositAdapter` accepts `OnResolved::Forward` callbacks with
+`data = abi.encode(address vault, uint256 minShares)`. One deployment serves
+multiple accounts and vaults without a whitelist. The intent owner must choose
+a trusted vault. Each call deposits exactly `amountOut` for `user`, checks the
+minimum shares and asset consumption, and clears the vault's allowance.
+Reentrant callbacks are rejected.
+
+ICE transfers each owner's output immediately before their callback, in the
+same rollback scope. If Juicer is full, paused, or otherwise rejects the deposit,
+the forward rolls back and the output stays in the owner's wallet. The swap
+remains completed; the failed forward is consumed without automatic retry.
+
+`msg.sender == user` binds the receiver to the caller; it does not authenticate
+ICE. Do not prefund the adapter: it has no accounting for ownership of unsolicited
+tokens, and direct callers can spend them. A callback deposits its declared
+output rather than sweeping unrelated balances.
+
 ## Controls and Defaults
 
 | Control                | Authority and RC behavior                                                                                                                             |
