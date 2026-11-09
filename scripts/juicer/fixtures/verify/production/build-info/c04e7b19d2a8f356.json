@@ -1,0 +1,98 @@
+{
+ "id": "c04e7b19d2a8f356",
+ "source_id_to_path": {
+  "0": "/build/money-market/bil-vault/lib/oz/contracts/proxy/Proxy.sol",
+  "1": "../bil-vault/lib/oz/contracts/proxy/ERC1967/ERC1967Proxy.sol"
+ },
+ "language": "Solidity",
+ "_format": "ethers-rs-sol-build-info-1",
+ "input": {
+  "version": "0.8.22",
+  "language": "Solidity",
+  "sources": {
+   "/build/money-market/bil-vault/lib/oz/contracts/proxy/Proxy.sol": {
+    "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.22;\nabstract contract Proxy {}\n"
+   },
+   "../bil-vault/lib/oz/contracts/proxy/ERC1967/ERC1967Proxy.sol": {
+    "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.22;\nimport \"../Proxy.sol\";\n\ncontract ERC1967Proxy is Proxy {\n    constructor(address, bytes memory) payable {}\n}\n"
+   }
+  },
+  "settings": {
+   "remappings": [
+    "@base/=../bil-vault/lib/base/src/",
+    "base/=/build/money-market/bil-vault/lib/base/src/"
+   ],
+   "optimizer": {
+    "enabled": true,
+    "runs": 200
+   },
+   "metadata": {
+    "useLiteralContent": false,
+    "bytecodeHash": "ipfs",
+    "appendCBOR": true
+   },
+   "outputSelection": {
+    "/build/money-market/bil-vault/lib/oz/contracts/proxy/Proxy.sol": {
+     "": [
+      "ast"
+     ],
+     "*": [
+      "abi",
+      "evm.bytecode.object",
+      "evm.deployedBytecode.object",
+      "evm.deployedBytecode.immutableReferences",
+      "evm.methodIdentifiers",
+      "metadata"
+     ]
+    },
+    "../bil-vault/lib/oz/contracts/proxy/ERC1967/ERC1967Proxy.sol": {
+     "": [
+      "ast"
+     ],
+     "*": [
+      "abi",
+      "evm.bytecode.object",
+      "evm.deployedBytecode.object",
+      "evm.deployedBytecode.immutableReferences",
+      "evm.methodIdentifiers",
+      "metadata"
+     ]
+    }
+   },
+   "evmVersion": "london",
+   "viaIR": true,
+   "libraries": {}
+  },
+  "allowPaths": [
+   "/build/money-market/bil-vault/lib",
+   "/build/money-market/juicer-vault"
+  ],
+  "basePath": "/build/money-market/juicer-vault",
+  "includePaths": [
+   "/build/money-market/juicer-vault"
+  ]
+ },
+ "output": {
+  "contracts": {
+   "../bil-vault/lib/oz/contracts/proxy/ERC1967/ERC1967Proxy.sol": {
+    "ERC1967Proxy": {
+     "abi": [],
+     "evm": {
+      "bytecode": {
+       "object": "60806040526102168038038061001481610168565b608060405236601057600e6013565b005b600e5b999999999999999999999999a2646970667358221220515954156e0508424596739849f44f7b50bff81472d41403a257b7eb2a193ed064736f6c63430008160033"
+      },
+      "deployedBytecode": {
+       "object": "608060405236601057600e6013565b005b600e5b999999999999999999999999a2646970667358221220515954156e0508424596739849f44f7b50bff81472d41403a257b7eb2a193ed064736f6c63430008160033",
+       "immutableReferences": {}
+      },
+      "methodIdentifiers": {}
+     },
+     "metadata": "{\"compiler\":{\"version\":\"0.8.22+commit.4fc1097e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"../bil-vault/lib/oz/contracts/proxy/ERC1967/ERC1967Proxy.sol\":\"ERC1967Proxy\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@base/=../bil-vault/lib/base/src/\",\":base/=/build/money-market/bil-vault/lib/base/src/\"],\"viaIR\":true},\"sources\":{\"../bil-vault/lib/oz/contracts/proxy/ERC1967/ERC1967Proxy.sol\":{\"keccak256\":\"0xea080716c1a7730730c25403af986845b6721493c47d4dd86a0c7d090c088d09\",\"license\":\"MIT\",\"urls\":[]},\"../bil-vault/lib/oz/contracts/proxy/Proxy.sol\":{\"keccak256\":\"0x6e2439138351202d5d0706a7d05a6f72691d62754046a5c4ad7b09b8d8b6c37b\",\"license\":\"MIT\",\"urls\":[]}},\"version\":1}"
+    }
+   }
+  },
+  "sources": {}
+ },
+ "solcLongVersion": "0.8.22",
+ "solcVersion": "0.8.22"
+}
