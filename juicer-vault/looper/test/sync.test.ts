@@ -25,6 +25,7 @@ const CHECKPOINT = toEventSelector('YieldCheckpoint(uint256,uint256)');
 const books = (vault: Address) => (vault === ETH ? '0x00000000000000000000000000000000000000e8'
   : '0x00000000000000000000000000000000000000b8') as Address;
 const EVERY = BigInt(CONFIG.SYNC_EVERY);
+const MIN_INTERVAL = BigInt(CONFIG.SYNC_MIN_INTERVAL_SECONDS);
 
 function chain(allocationEvents = true) {
   const c = {
@@ -39,7 +40,9 @@ function chain(allocationEvents = true) {
     getLogs: 0,
     oracleDown: false,
     mine(seconds = 6n) { c.block += 1n; c.time += seconds; c.timestamps.set(c.block, c.time); },
-    update(asset: Address) { c.mine(); c.rounds[asset] = {answer: c.rounds[asset].answer + 1n, updatedAt: c.time}; },
+    update(asset: Address, seconds = MIN_INTERVAL) {
+      c.mine(seconds); c.rounds[asset] = {answer: c.rounds[asset].answer + 1n, updatedAt: c.time};
+    },
     log(address: Address, topic: string) {
       c.mine();
       c.logs.push({address, topics: [topic], data: '0x', blockNumber: toHex(c.block), logIndex: '0x0',
@@ -207,10 +210,73 @@ test('a composite feed moving without a newer updatedAt still triggers one sync'
   const c = chain();
   const k = keeper(c);
   await sync(c, k);
-  c.mine();
+  c.mine(MIN_INTERVAL);
   c.rounds[PRIME] = {...c.rounds[PRIME], answer: 101n};
   assert.deepEqual(await sync(c, k), ['k0:sync:eth', 'k0:sync:btc']);
   assert.deepEqual(await sync(c, k), []);
+});
+
+test('routine syncs defer updates until the shared minimum interval, without losing the update', async () => {
+  const c = chain();
+  const k0 = keeper(c, 'k0'), k1 = keeper(c, 'k1');
+  await sync(c, k0);
+  const allocatedAt = c.time;
+  c.update(PRIME, 6n);
+  assert.deepEqual(await sync(c, k0), []);
+  assert.deepEqual(await sync(c, k1), [], 'another operator also respects the on-chain allocation');
+  c.mine(allocatedAt + MIN_INTERVAL - 1n - c.time);
+  assert.deepEqual(await sync(c, k1), ['k1:sync:eth'], 'each vault measures from its own allocation');
+  assert.deepEqual(await sync(c, k1), ['k1:sync:btc'], 'the deferred update remains pending');
+  assert.deepEqual(await sync(c, k0), [], 'the first operator observes both allocations');
+  assert.deepEqual(await sync(c, keeper(c, 'restart')), [], 'restart does not reset the interval');
+});
+
+test('composite-price noise accumulates to a threshold in either direction', () => {
+  const baseline = 215331463669n;
+  const initial = feedUpdate(undefined, baseline, 0n, 1000n, 1n);
+  let feed = initial;
+  for (let i = 1n; i <= 100n; i++) {
+    feed = feedUpdate(feed, baseline + i * 2115n, 0n, 1000n + i, 1n);
+    assert.equal(feed, initial, 'the observed mainnet-sized changes are ignored');
+  }
+  const threshold = (baseline + 9999n) / 10000n;
+  assert.equal(feedUpdate(feed, baseline + threshold - 1n, 0n, 2000n, 1n), initial);
+  assert.equal(feedUpdate(feed, baseline + threshold, 0n, 2000n, 1n).at, 2000n);
+  assert.equal(feedUpdate(feed, baseline - threshold, 0n, 2000n, 1n).at, 2000n);
+  assert.equal(feedUpdate(initial, baseline + 1n, 1900n, 2000n, 1n).at, 1900n,
+    'a real oracle round is retained even for a small price change');
+});
+
+test('composite noise sends no early transactions; cumulative movement and the hourly fallback still sync', async () => {
+  const c = chain();
+  c.ethAsset = GIGAETH;
+  const baseline = 215331463669n;
+  c.rounds[GIGAETH] = {answer: baseline, updatedAt: 0n};
+  const k0 = keeper(c, 'k0'), k1 = keeper(c, 'k1');
+  await sync(c, k0);
+  await sync(c, k1);
+  const start = c.time;
+  for (let i = 1n; i <= 30n; i++) {
+    c.mine(60n);
+    c.rounds[GIGAETH].answer = baseline + i * 2115n;
+    assert.deepEqual(await sync(c, k0), []);
+    assert.deepEqual(await sync(c, k1), []);
+  }
+  c.rounds[GIGAETH].answer = baseline + (baseline + 9999n) / 10000n;
+  assert.deepEqual(await sync(c, k0), ['k0:sync:eth']);
+  assert.deepEqual(await sync(c, k1), [], 'a second observation cannot bypass the shared minimum');
+  c.mine(start + EVERY - c.time);
+  assert.deepEqual(await sync(c, k0), ['k0:sync:btc'], 'quiet prices retain the hourly fallback');
+  c.mine(EVERY);
+  assert.deepEqual(await sync(c, k0), ['k0:sync:eth', 'k0:sync:btc']);
+});
+
+test('the minimum interval includes the exact boundary and an unknown last sync is not delayed', () => {
+  assert.equal(syncDue(1000n, 1001n, 1599n, 3600n, 600n), false);
+  assert.equal(syncDue(1000n, 1001n, 1600n, 3600n, 600n), true);
+  assert.equal(syncDue(1000n, 999n, 1600n, 3600n, 600n), false);
+  assert.equal(syncDue(1000n, undefined, 4600n, 3600n, 600n), true);
+  assert.equal(syncDue(0n, 1n, 100n, 3600n, 600n), true);
 });
 
 test('unreadable oracles fall back to the timer; skipped vaults are not synced', async () => {

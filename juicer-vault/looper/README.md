@@ -82,8 +82,9 @@ then, for each vault:
   settled request below the queue head,
     DELIVER_CLAIMS=true                     -> claim(id, owner, max)
   exit surplus >= CLAIM_MIN_SURPLUS         -> claimSurplus(id)
-  PRIME or collateral oracle update since its last sync,
-    or SYNC_EVERY elapsed, duty slot        -> sync()
+  PRIME or material collateral oracle update since its last sync,
+    or SYNC_EVERY elapsed, duty slot,
+    at least SYNC_MIN_INTERVAL_SECONDS since allocation -> sync()
 duty slot = this operator's slot, at least OPERATOR_GUARD_SECONDS from either edge,
   checked when the cycle starts and again right before each duty write is signed
 independent read loop, including during slow writes/receipt waits:
@@ -218,8 +219,18 @@ it to holders. The keeper calls each vault's permissionless `sync()` after a pri
 that changes the allocation moves: PRIME for every vault, and the vault's own
 collateral. It polls each asset's Aave oracle source (`getSourceOfAsset`, then
 `latestRoundData`); a newer `updatedAt`, or an answer that moved under an
-unchanged `updatedAt`, is an update. Without updates a vault is synced every
-`SYNC_EVERY` seconds. A vault's last sync is the newest of the keeper's own syncs
+unchanged `updatedAt`, is an update. Composite sources without rounds, such as
+GIGAETH, use `getAssetPrice`. Changes without a newer round must accumulate to
+`SYNC_PRICE_CHANGE_BPS` (default 1 bp / 0.01%) from the last accepted price;
+smaller changes retain that reference instead of resetting it each poll.
+New timestamped rounds still count regardless of price movement. Routine syncs
+wait at least `SYNC_MIN_INTERVAL_SECONDS` (default 600 / ten minutes) after the
+latest allocation, coalescing updates during that interval. Without updates a
+vault is synced every `SYNC_EVERY` seconds (default 3600 / one hour). The minimum
+interval cannot exceed that fallback and defaults to the smaller of 600 seconds
+and `SYNC_EVERY`. These limits apply only to routine `sync()` calls: safety
+reads, repayments, withdrawals and other maintenance retain their existing cadence.
+A vault's last sync is the newest of the keeper's own syncs
 and the `Allocated()` events of its yield accounting, which every allocation
 emits: deposit, `requestRedeem`, `startUnwinds`, `rebalance` and `sync`, including
 the Harvester's. Only the operator on duty syncs; the other finds that event on
@@ -315,6 +326,8 @@ Default scheduling values (operator examples, not approved production policies):
 | `DEFICIT_STOP_BPS` | `250` | Above this source or vault deficit, stop the ramp and set the vault's `deficitStop` |
 | `DEFICIT_RESUME_BPS` | `200` | Below this, resume the ramp and clear `deficitStop`; must be below the stop, `0` never clears |
 | `SYNC_EVERY` | `3600` | Seconds between vault syncs when no PRIME or collateral oracle update calls for one sooner |
+| `SYNC_MIN_INTERVAL_SECONDS` | `600` | Minimum seconds since the last allocation by any operator before a routine sync; at most `SYNC_EVERY` |
+| `SYNC_PRICE_CHANGE_BPS` | `1` | Cumulative price movement in bps required for a composite feed without a newer timestamped round |
 | `ICE_STALL_BLOCKS` | `10` | Blocks an intent may stay unfilled before the solver is reported quiet |
 | `ICE_CLEANUP_BLOCKS` | `10` | Blocks past an intent's deadline before its missing refund is cleaned up (with a signer) or alerted |
 | `ICE_QUOTE_HOLDER` | Omnipool account | 32-byte account whose HOLLAR stands in for an entry's router dry run |
