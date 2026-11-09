@@ -24,10 +24,12 @@ import {IAavePool} from "../src/interfaces/IAavePool.sol";
 contract DeployLark is Script {
     address constant POOL = 0x1b02E051683b5cfaC5929C25E84adb26ECf87B38;
     address constant PRIME = 0x000000000000000000000000000000010000002B;
+    /// @dev Hydration has no ERC-4337 EntryPoint yet, so only the NFT holder can execute from a position.
+    address constant ENTRY_POINT = address(0);
 
     function run() external {
         vm.startBroadcast();
-        LooperPosition impl = new LooperPosition(IAavePool(POOL));
+        LooperPosition impl = new LooperPosition(IAavePool(POOL), ENTRY_POINT);
         LooperFactory factory = new LooperFactory(IAavePool(POOL), address(impl));
         vm.stopBroadcast();
 

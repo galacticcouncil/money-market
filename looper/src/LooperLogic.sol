@@ -69,7 +69,7 @@ library LooperLogic {
 
     /// @dev The first caller becomes the factory; the factory clones and initialises in one transaction.
     function initialize(State storage s, IAavePool pool, uint256 id, P.Params calldata p) external {
-        if (s.factory != address(0)) revert P.AlreadyInitialized();
+        if (s.factory != address(0)) revert P.PositionAlreadyInitialized();
         s.factory = msg.sender;
         s.tokenId = SafeCast.toUint64(id);
         s.coll = IERC20(p.collateral);
@@ -335,8 +335,9 @@ library LooperLogic {
         }
 
         uint256 need = _grossColl(s, owedBase, slip, pC);
+        // one debt unit over the floor, so the floored `minOut` of this sliver still clears `minProceeds`
         uint256 floorIn = Math.max(
-            _grossColl(s, Units.toBase(minProceeds, pD, s.decD, Math.Rounding.Up), slip, pC), s.minIntentAToken
+            _grossColl(s, Units.toBase(minProceeds + 1, pD, s.decD, Math.Rounding.Up), slip, pC), s.minIntentAToken
         );
         uint256 sliver = Math.min(Math.min(Math.max(need, floorIn), cap), s.aColl.balanceOf(address(this)));
         uint256 minOut = Units.fromBase(
@@ -531,7 +532,8 @@ library LooperLogic {
         uint256 own = s.collId;
         for (uint256 i = 0; (cfg >> (2 * i)) != 0; ++i) {
             if (i != own && (cfg >> (2 * i + 1)) & 1 == 1) {
-                pool.setUserUseReserveAsCollateral(pool.getReserveAddressById(uint16(i)), false);
+                // a gift whose reserve refuses the disable (paused, or beside a zero-LTV gift) must not block exits
+                try pool.setUserUseReserveAsCollateral(pool.getReserveAddressById(uint16(i)), false) {} catch {}
             }
         }
         if (s.aColl.scaledBalanceOf(address(this)) > 0 && (cfg >> (2 * own + 1)) & 1 == 0) {
