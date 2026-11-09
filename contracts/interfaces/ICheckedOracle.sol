@@ -28,7 +28,11 @@ interface ICheckedOracle {
         int256 checkPrice
     );
 
+    /// @notice The check feed, or `address(0)` while pushes are unchecked.
     function checkOracle() external view returns (address);
+
+    /// @notice False while no check feed is set: every positive push is stored.
+    function checked() external view returns (bool);
 
     function checkDecimals() external view returns (uint8);
 

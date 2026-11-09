@@ -3,17 +3,24 @@ import { BigNumber, constants } from "ethers";
 
 task(
   `deploy-checked-oracle`,
-  `Deploys a CheckedOracle: a ManagedOracle that rejects pushed prices more than <maxDiffBps> away from <check>`
+  `Deploys a CheckedOracle: a ManagedOracle that rejects pushed prices more than <maxDiffBps> away from <check>; without --check it runs unchecked until the owner sets one`
 )
   .addParam("name", "Asset name -- used for the deployment artifact (e.g. APYUSD)")
   .addParam("description", "Feed description (e.g. APYUSD/USD)")
   .addParam("owner", "Owner address (governance) -- configures the check and can push unchecked")
   .addParam("price", "Initial price, 8 decimals (not checked against the check feed)")
-  .addParam("check", "Check feed address (Hydration EMA oracle precompile)")
-  .addParam("maxDiffBps", "Max allowed deviation from the check feed, in bps (0..10000)")
+  .addOptionalParam(
+    "check",
+    "Check feed address (Hydration EMA oracle precompile). Omit for unchecked mode: every push is stored until the owner calls setCheckOracle"
+  )
+  .addParam("maxDiffBps", "Max allowed deviation from the check feed, in bps (0..10000); inert while unchecked")
   .addOptionalParam("pusher", "Address allowed to push checked prices (default: none)")
   // "version" is a reserved hardhat param name
   .addOptionalParam("feedVersion", "Feed version (default: 1)")
+  .addOptionalParam(
+    "coefficient",
+    "Discount applied to every push before the check, 8 decimals (1e8 = none). Set => deploys a DiscountedCheckedOracle and `price` is taken raw"
+  )
   .setAction(
     async (
       {
@@ -25,15 +32,17 @@ task(
         maxDiffBps,
         pusher,
         feedVersion,
+        coefficient,
       }: {
         name: string;
         description: string;
         owner: string;
         price: string;
-        check: string;
+        check?: string;
         maxDiffBps: string;
         pusher?: string;
         feedVersion?: string;
+        coefficient?: string;
       },
       hre
     ) => {
@@ -51,38 +60,52 @@ task(
         throw new Error(`price must be positive, got ${price}`);
       }
 
+      const discounted = coefficient !== undefined;
+      const contract = discounted ? "DiscountedCheckedOracle" : "CheckedOracle";
+      const deploymentName = `${name}-${contract}`;
+
       const pusherAddress = pusher ?? constants.AddressZero;
+      const checkAddress = check ?? constants.AddressZero;
+      const unchecked = checkAddress.toLowerCase() === constants.AddressZero;
       const feedVersionNum = feedVersion ? parseInt(feedVersion, 10) : 1;
 
       const { deployer } = await hre.getNamedAccounts();
-      const artifact = await hre.deployments.deploy(`${name}-CheckedOracle`, {
+      const args: (string | number | BigNumber)[] = [
+        description,
+        feedVersionNum,
+        owner,
+        initialPrice,
+        checkAddress,
+        bps,
+        pusherAddress,
+      ];
+      if (discounted) args.push(BigNumber.from(coefficient));
+
+      const artifact = await hre.deployments.deploy(deploymentName, {
         from: deployer,
-        contract: "CheckedOracle",
-        args: [
-          description,
-          feedVersionNum,
-          owner,
-          initialPrice,
-          check,
-          bps,
-          pusherAddress,
-        ],
+        contract,
+        args,
         log: true,
       });
 
-      console.log(`CheckedOracle(${name}) deployed at: ${artifact.address}`);
+      console.log(`${contract}(${name}) deployed at: ${artifact.address}`);
       console.log(`  description: ${description}`);
       console.log(`  owner:       ${owner}`);
       console.log(`  pusher:      ${pusherAddress}`);
       console.log(`  price:       ${initialPrice.toString()}`);
-      console.log(`  check:       ${check}`);
-      console.log(`  maxDiffBps:  ${bps}`);
+      console.log(
+        `  check:       ${unchecked ? "none -- UNCHECKED: every push is stored until setCheckOracle" : checkAddress}`
+      );
+      console.log(`  maxDiffBps:  ${bps}${unchecked ? " (inert while unchecked)" : ""}`);
+      if (discounted) console.log(`  coefficient: ${coefficient}`);
 
       // sanity: what the freshly deployed oracle thinks of its own price
-      const oracle = await hre.ethers.getContractAt(
-        "CheckedOracle",
-        artifact.address
-      );
+      const oracle = await hre.ethers.getContractAt(contract, artifact.address);
+      if (unchecked) {
+        const isChecked = await oracle.checked();
+        if (isChecked) throw new Error("deployed oracle reports checked() == true in unchecked mode");
+        return;
+      }
       const [ok, checkPrice] = await oracle.checkPrice();
       if (!ok) {
         console.log(`  check feed:  UNAVAILABLE -- setPrice is blocked until it recovers`);

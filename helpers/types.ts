@@ -19,7 +19,8 @@ export type eNetwork =
   | eOptimismNetwork
   | eBaseNetwork
   | eTenderlyNetwork
-  | eHydrationNetwork;
+  | eHydrationNetwork
+  | eRobinhoodNetwork;
 
 type eTenderlyNetwork = "tenderly";
 
@@ -85,6 +86,12 @@ export enum eHydrationNetwork {
   chopsticks = "chopsticks",
   gigahdx = "gigahdx",
   bil = "bil",
+}
+
+// Robinhood Chain (Arbitrum Orbit L2, chain id 4663). Not a money market:
+// only the HDX/USD CheckedOracle for the BandHook pools deploys here.
+export enum eRobinhoodNetwork {
+  robinhood = "robinhood",
 }
 
 export enum EthereumNetworkNames {

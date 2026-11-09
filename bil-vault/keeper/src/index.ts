@@ -16,8 +16,12 @@ async function main() {
     }
   };
 
-  await run(); // Run immediately
-  setInterval(run, CONFIG.POLL_INTERVAL_MS);
+  // serialize cycles: overlapping ones race the same nonce
+  const loop = async () => {
+    await run();
+    setTimeout(loop, CONFIG.POLL_INTERVAL_MS);
+  };
+  await loop();
 }
 
 main().catch(console.error);

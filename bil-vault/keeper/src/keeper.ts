@@ -7,6 +7,8 @@ import {
   type Address,
   type Chain,
   formatEther,
+  keccak256,
+  toHex,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { CONFIG } from './config.js';
@@ -72,6 +74,13 @@ const VAULT_ABI = [
   },
   {
     name: 'totalQueuedBil',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'totalSettledBil',
     type: 'function',
     stateMutability: 'view',
     inputs: [],
@@ -158,6 +167,56 @@ const VAULT_ABI = [
     ],
     outputs: [{ name: 'assets', type: 'uint256' }],
   },
+  {
+    name: 'hasRole',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+] as const;
+
+const CLAIM_OPERATOR_ROLE = keccak256(toHex('CLAIM_OPERATOR_ROLE'));
+
+const POSITION_POOL_ABI = [
+  {
+    name: 'positionPool',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'positionIndex', type: 'uint256' }],
+    outputs: [{ name: '', type: 'address' }],
+  },
+] as const;
+
+const DECENTRAL_ABI = [
+  {
+    name: 'getYieldWithdrawalRequest',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: '_tokenId', type: 'uint256' }],
+    outputs: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'requestTimestamp', type: 'uint256' },
+      { name: 'exists', type: 'bool' },
+      { name: 'approved', type: 'bool' },
+    ],
+  },
+  {
+    name: 'getPrincipalWithdrawalRequest',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: '_tokenId', type: 'uint256' }],
+    outputs: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'requestTimestamp', type: 'uint256' },
+      { name: 'availableTimestamp', type: 'uint256' },
+      { name: 'exists', type: 'bool' },
+      { name: 'approved', type: 'bool' },
+    ],
+  },
 ] as const;
 
 // ─── Keeper class ────────────────────────────────────────────────────────────
@@ -167,6 +226,7 @@ export class BILKeeper {
   private walletClient: WalletClient;
   private account: ReturnType<typeof privateKeyToAccount>;
   private vaultAddress: Address;
+  private hadClaimRole: boolean | undefined;
 
   constructor() {
     this.account = privateKeyToAccount(CONFIG.PRIVATE_KEY);
@@ -221,17 +281,19 @@ export class BILKeeper {
     }
 
     // 3. Re-read state after position processing (it may have changed)
-    const [idleHollarAfter, totalQueuedBilAfter] = await Promise.all([
+    const [idleHollarAfter, totalQueuedBilAfter, totalSettledBilAfter] = await Promise.all([
       this.readContract('idleHollar'),
       this.readContract('totalQueuedBil'),
+      this.readContract('totalSettledBil'),
     ]);
 
     const idle = idleHollarAfter as bigint;
-    const queued = totalQueuedBilAfter as bigint;
+    // totalQueuedBil still counts settled-but-unclaimed shares; only the unsettled part needs funds
+    const queued = (totalQueuedBilAfter as bigint) - (totalSettledBilAfter as bigint);
     const minReinvest = minReinvestAmount as bigint;
 
     // 4. pokeQueue handles both queue processing and reinvestment
-    if ((idle > 0n && queued > 0n) || (idle >= minReinvest && queued === 0n)) {
+    if ((idle >= CONFIG.MIN_QUEUE_HOLLAR && queued > 0n) || (idle >= minReinvest && queued === 0n)) {
       try {
         console.log(`  Calling pokeQueue() (idle=${formatEther(idle)}, queued=${formatEther(queued)})...`);
         await this.writeContract('pokeQueue');
@@ -241,11 +303,10 @@ export class BILKeeper {
       }
     }
 
-    // 5. Auto-claim on behalf of opted-in controllers. Requires this keeper
-    //    address to hold CLAIM_OPERATOR_ROLE on the vault. With pull-redemption,
-    //    settled shares sit in totalReservedHollar until someone calls redeem();
-    //    this step closes the loop for users who toggled setAutoClaim(true).
-    await this.autoClaimSettled();
+    // 5. Auto-claim on behalf of opted-in controllers. Optional: only runs if
+    //    this keeper holds CLAIM_OPERATOR_ROLE. Without it users claim themselves
+    //    via redeem(); the steps above don't need the role.
+    if (await this.hasClaimRole()) await this.autoClaimSettled();
 
     console.log('  Cycle complete.');
   }
@@ -270,6 +331,24 @@ export class BILKeeper {
   }
 
   // ─── Auto-claim for opted-in controllers ─────────────────────────────
+
+  /// Checked every cycle so a later grant/revoke takes effect without a restart.
+  private async hasClaimRole(): Promise<boolean> {
+    let has: boolean;
+    try {
+      has = (await this.readContract('hasRole', [CLAIM_OPERATOR_ROLE, this.account.address])) as boolean;
+    } catch (err) {
+      console.error('  hasRole() failed, skipping auto-claim:', err);
+      return false;
+    }
+    if (has !== this.hadClaimRole) {
+      console.log(has
+        ? `  CLAIM_OPERATOR_ROLE held by ${this.account.address}: auto-claim enabled`
+        : `  ${this.account.address} lacks CLAIM_OPERATOR_ROLE: auto-claim disabled (optional feature)`);
+      this.hadClaimRole = has;
+    }
+    return has;
+  }
 
   /// Walk the redemption queue, sum claimable shares per controller, and call
   /// `redeem(shares, controller, controller)` for those with autoClaim on.
@@ -361,10 +440,17 @@ export class BILKeeper {
       state === NFTState.PrincipalWithdrawalRequested
     ) {
       const stateNames = ['Active', 'YieldWithdrawalRequested', 'YieldClaimed', 'PrincipalWithdrawalRequested'];
-      console.log(
-        `  Position ${index} (token ${tokenId}): state=${stateNames[state]}, calling processPosition()...`
-      );
-      await this.tryProcessPosition(index);
+      // the vault try/catches every Decentral call, so an unready step still "succeeds" as a
+      // paid no-op. only send when Decentral says the step can progress
+      const waiting = await this.decentralWaiting(index, tokenId, state, nowSeconds);
+      if (waiting) {
+        console.log(`  Position ${index} (token ${tokenId}): state=${stateNames[state]}, waiting on Decentral (${waiting})`);
+      } else {
+        console.log(
+          `  Position ${index} (token ${tokenId}): state=${stateNames[state]}, calling processPosition()...`
+        );
+        await this.tryProcessPosition(index);
+      }
 
       // Off-chain monitoring (see comment above on the Active branch).
       const cutoff = maturity + CONFIG.STALE_THRESHOLD_SECONDS;
@@ -380,6 +466,41 @@ export class BILKeeper {
       }
       return;
     }
+  }
+
+  /// Returns why the next Decentral step can't progress yet, or null if it can.
+  private async decentralWaiting(
+    index: number,
+    tokenId: bigint,
+    state: number,
+    nowSeconds: number,
+  ): Promise<string | null> {
+    const pool = (await this.publicClient.readContract({
+      address: this.vaultAddress,
+      abi: POSITION_POOL_ABI,
+      functionName: 'positionPool',
+      args: [BigInt(index)],
+    })) as Address;
+    if (state === NFTState.YieldWithdrawalRequested) {
+      const [, , exists, approved] = (await this.publicClient.readContract({
+        address: pool,
+        abi: DECENTRAL_ABI,
+        functionName: 'getYieldWithdrawalRequest',
+        args: [tokenId],
+      })) as readonly [bigint, bigint, boolean, boolean];
+      return exists && !approved ? 'yield withdrawal not approved' : null;
+    }
+    if (state === NFTState.PrincipalWithdrawalRequested) {
+      const [, , availableAt, exists, approved] = (await this.publicClient.readContract({
+        address: pool,
+        abi: DECENTRAL_ABI,
+        functionName: 'getPrincipalWithdrawalRequest',
+        args: [tokenId],
+      })) as readonly [bigint, bigint, bigint, boolean, boolean];
+      if (exists && !approved) return 'principal withdrawal not approved';
+      if (exists && nowSeconds < Number(availableAt)) return `principal available at ${new Date(Number(availableAt) * 1000).toISOString()}`;
+    }
+    return null;
   }
 
   private async tryProcessPosition(index: number): Promise<void> {
@@ -411,11 +532,14 @@ export class BILKeeper {
       functionName: functionName as any,
       args: args as any,
     });
-    // Hydration requires legacy (type 0) transactions
+    // hydration requires legacy (type 0) txs; price from the node + 25% headroom so base-fee
+    // drift doesn't reject it. fixed gas: estimation would pick the limit where try/catch'd
+    // Decentral calls OOG silently (unused gas is refunded)
+    const gasPrice = ((await this.publicClient.getGasPrice()) * 125n) / 100n;
     const hash = await this.walletClient.writeContract({
       ...request,
-      gasPrice: 1_500_000n,
-      gas: 5_000_000n,
+      gasPrice,
+      gas: 15_000_000n,
     } as any);
     console.log(`    tx: ${hash}`);
     await this.publicClient.waitForTransactionReceipt({ hash });

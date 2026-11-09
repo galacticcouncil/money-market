@@ -303,6 +303,66 @@ export const strategySOL: IReserveParams = {
   borrowableIsolation: false,
 };
 
+// HYPE (Wormhole NTT, asset 1001355) — raw Omnipool asset, SOL-style params.
+// Caps sized to $1M supply / $500k borrow at the HYPE/USD feed at listing ($79.69).
+export const strategyHYPE: IReserveParams = {
+  strategy: rateStrategyDOT,
+  baseLTVAsCollateral: "7000",
+  liquidationThreshold: "7500",
+  liquidationBonus: "10700",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: true,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "18",
+  aTokenImpl: eContractid.AToken,
+  reserveFactor, // 20%
+  supplyCap: "12,500".replace(/,/g, ""),
+  borrowCap: "6,250".replace(/,/g, ""),
+  debtCeiling,
+  borrowableIsolation: false,
+};
+
+// ZEC (Wormhole NTT, asset 1001357, 8 decimals) — raw Omnipool asset, same params as HYPE.
+// Caps sized to $1M supply / $500k borrow at the ZEC/USD feed at listing ($1,234.90).
+export const strategyZEC: IReserveParams = {
+  strategy: rateStrategyDOT,
+  baseLTVAsCollateral: "7000",
+  liquidationThreshold: "7500",
+  liquidationBonus: "10700",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: true,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "8",
+  aTokenImpl: eContractid.AToken,
+  reserveFactor, // 20%
+  supplyCap: "809",
+  borrowCap: "404",
+  debtCeiling,
+  borrowableIsolation: false,
+};
+
+// SPY (Wormhole NTT, asset 1001356, 18 decimals) — raw Omnipool asset, same params as HYPE/ZEC.
+// Caps sized to $1M supply / $500k borrow at the SPY/USD feed at listing ($772.94).
+export const strategySPY: IReserveParams = {
+  strategy: rateStrategyDOT,
+  baseLTVAsCollateral: "7000",
+  liquidationThreshold: "7500",
+  liquidationBonus: "10700",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: true,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "18",
+  aTokenImpl: eContractid.AToken,
+  reserveFactor, // 20%
+  supplyCap: "1293",
+  borrowCap: "646",
+  debtCeiling,
+  borrowableIsolation: false,
+};
+
 export const strategyGSOL: IReserveParams = {
   strategy: rateStrategyDOT,
   baseLTVAsCollateral: "6000",

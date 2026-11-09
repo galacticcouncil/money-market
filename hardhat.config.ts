@@ -16,6 +16,7 @@ import {
   eHydrationNetwork,
   eOptimismNetwork,
   ePolygonNetwork,
+  eRobinhoodNetwork,
 } from "./helpers/types";
 import { DEFAULT_NAMED_ACCOUNTS } from "./helpers/constants";
 
@@ -155,6 +156,10 @@ export default {
     [eHydrationNetwork.bil]: getCommonNetworkConfig(
       eHydrationNetwork.bil,
       222222
+    ),
+    [eRobinhoodNetwork.robinhood]: getCommonNetworkConfig(
+      eRobinhoodNetwork.robinhood,
+      4663
     ),
     [eBaseNetwork.base]: getCommonNetworkConfig(eBaseNetwork.base, 8453),
     [eBaseNetwork.baseGoerli]: getCommonNetworkConfig(

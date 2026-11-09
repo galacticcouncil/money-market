@@ -27,3 +27,9 @@
 [submodule "looper/lib/solady"]
 	path = looper/lib/solady
 	url = https://github.com/Vectorized/solady
+[submodule "univ3-fee-setter/lib/forge-std"]
+	path = univ3-fee-setter/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "univ3-fee-setter/lib/v3-core"]
+	path = univ3-fee-setter/lib/v3-core
+	url = https://github.com/Uniswap/v3-core
