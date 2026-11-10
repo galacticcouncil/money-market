@@ -6,7 +6,6 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {DcaDispatch} from "juicer-vault/lib/DcaDispatch.sol";
 
 import {IAavePool, IAToken, IAaveOracle, IPoolAddressesProvider} from "./interfaces/IAavePool.sol";
 import {ILooperPosition as P} from "./interfaces/ILooperPosition.sol";
@@ -148,7 +147,7 @@ library LooperLogic {
         P.PendingIntent memory p = s.pending;
         if (p.kind == P.Kind.None) revert P.NothingToDo();
         if (!_prefixOk(intentId, p)) revert P.WrongIntent();
-        if (!Dispatch.dispatch(DcaDispatch.encodeRemoveIntent(intentId), DISPATCH_GAS)) revert P.WrongIntent();
+        if (!Dispatch.dispatch(Dispatch.encodeRemoveIntent(intentId), DISPATCH_GAS)) revert P.WrongIntent();
         _settle(s, p, false, 0);
         s.stalled = P.Stall.Cancelled;
         emit P.Cancelled();
@@ -162,7 +161,7 @@ library LooperLogic {
         if (p.kind != P.Kind.None) {
             if (block.timestamp * 1000 < p.deadline) revert P.Busy();
             if (!_prefixOk(intentId, p)) revert P.WrongIntent();
-            if (Dispatch.dispatch(DcaDispatch.encodeRemoveIntent(intentId), DISPATCH_GAS)) {
+            if (Dispatch.dispatch(Dispatch.encodeRemoveIntent(intentId), DISPATCH_GAS)) {
                 _settle(s, p, false, 0);
                 return;
             }
@@ -441,7 +440,7 @@ library LooperLogic {
         uint64 deadline = SafeCast.toUint64(block.timestamp * 1000 + TTL_MS);
         (uint32 assetIn, uint32 assetOut) =
             kind == P.Kind.Entry ? (s.debtAssetId, s.aCollAssetId) : (s.aCollAssetId, s.debtAssetId);
-        bytes memory call = DcaDispatch.encodeSubmitIntent(
+        bytes memory call = Dispatch.encodeSubmitIntent(
             assetIn,
             assetOut,
             SafeCast.toUint128(amountIn),
