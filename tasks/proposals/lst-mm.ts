@@ -5,7 +5,7 @@
 // wstETH (1000809, 18 dec) and jitoSOL (40, 9 dec) are the LST legs of the 2-Pool-GETH (4200)
 // and 2-Pool-GSOL (90001) stableswap pools. This lists both in the main market the way vDOT is
 // listed next to GDOT: borrowable, reserve factor 20 %, rateStrategyDOT, collateral params =
-// GETH's / GSOL's shifted by the vDOT-vs-GDOT deltas, caps = GETH's / GSOL's scaled by the
+// GETH's shifted by the vDOT-vs-GDOT deltas (wstETH) / vDOT's own (jitoSOL), caps = GETH's / GSOL's scaled by the
 // vDOT/GDOT cap ratio (reservesConfigs.ts `strategyWSTETH` / `strategyJITOSOL`), and each asset
 // joins its e-mode: wstETH -> ETH (3), jitoSOL -> SOL correlated (4). The three LST e-mode
 // categories are re-parameterised in the same batch (markets/hydration/index.ts EModes):

@@ -382,8 +382,8 @@ export const strategyGSOL: IReserveParams = {
 };
 
 // wstETH (1000809) and jitoSOL (40): the LST legs of the GETH / GSOL stableswap pools, listed as
-// vDOT is listed next to GDOT. Collateral params are GETH's / GSOL's shifted by the vDOT-vs-GDOT
-// deltas (LTV -9, LT -5, bonus +0.5 pt); caps are the GETH / GSOL supply caps scaled by the
+// vDOT is listed next to GDOT. wstETH params are GETH's shifted by the vDOT-vs-GDOT deltas
+// (LTV -9, LT -5, bonus +0.5 pt); jitoSOL takes vDOT's own 60/70/8 %; caps are the GETH / GSOL supply caps scaled by the
 // vDOT/GDOT cap ratio in USD terms (11.3 %), borrow cap 5 % of supply cap like vDOT.
 export const strategyWSTETH: IReserveParams = {
   strategy: rateStrategyDOT,
@@ -405,9 +405,9 @@ export const strategyWSTETH: IReserveParams = {
 
 export const strategyJITOSOL: IReserveParams = {
   strategy: rateStrategyDOT,
-  baseLTVAsCollateral: "5100",
-  liquidationThreshold: "6500",
-  liquidationBonus: "10750",
+  baseLTVAsCollateral: "6000", // = vDOT (user: GSOL-relative deltas gave 51/65, too low)
+  liquidationThreshold: "7000",
+  liquidationBonus: "10800",
   liquidationProtocolFee: "1000",
   borrowingEnabled: true,
   stableBorrowRateEnabled: false,
