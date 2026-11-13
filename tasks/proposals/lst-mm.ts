@@ -10,11 +10,12 @@
 // joins its e-mode: wstETH -> ETH (3), jitoSOL -> SOL correlated (4). The e-mode categories
 // themselves are not changed.
 //
-// Pricing: wstETH uses the DIA wstETH/USD feed already in the market config. jitoSOL has no
-// USD feed, so it is priced like vDOT (ratio oracle x base USD feed): a USDOracleAdapter
-// (jitoSOL/SOL CheckedOracle x DIA SOL/USD) deployed separately with
-// `deploy-USDOracleAdapter --oracle JITOSOL`; this task reads its address from the deployment
-// artifact or from JITOSOL_ORACLE.
+// Pricing mirrors vDOT (fair-value ratio oracle x base USD feed): USDOracleAdapter(wstETH/stETH
+// CheckedOracle x DIA ETH/USD) and USDOracleAdapter(jitoSOL/SOL CheckedOracle x DIA SOL/USD) — the
+// CheckedOracles that peg the two GIGA pools, so the reserve price and the pool peg never diverge.
+// The DIA wstETH/USD feed is not used. Both adapters are deployed separately
+// (`deploy-USDOracleAdapter --oracle WSTETH|JITOSOL`); this task reads their addresses from the
+// deployment artifacts or from WSTETH_ORACLE / JITOSOL_ORACLE.
 //
 // One enactment batch:
 //   1. aave manager: setAssetSources(both), initReserves(wstETH), initReserves(jitoSOL),
@@ -155,15 +156,15 @@ task(`lst-mm`, `wstETH + jitoSOL money-market listing (ETH / SOL e-modes) + aTok
     const reserveAddresses = await getReserveAddresses(config, network);
     const assets = { WSTETH: reserveAddresses.WSTETH, JITOSOL: reserveAddresses.JITOSOL };
 
-    // oracle sources: wstETH = DIA feed from the market config; jitoSOL = adapter (env override, else deployment artifact)
-    const chainlink = config.ChainlinkAggregator[network];
-    const jitoSolSource = async () => {
-      if (process.env.JITOSOL_ORACLE) return process.env.JITOSOL_ORACLE;
-      const artifact = await hre.deployments.getOrNull(`JITOSOL-${USD_ORACLE_ADAPTER_ID}`);
-      if (!artifact) throw new Error(`no JITOSOL_ORACLE and no JITOSOL-${USD_ORACLE_ADAPTER_ID} deployment: deploy the adapter first`);
+    // oracle sources: USDOracleAdapter per asset (env override, else the deployment artifact)
+    const sourceOf = async (symbol) => {
+      const env = process.env[`${symbol}_ORACLE`];
+      if (env) return env;
+      const artifact = await hre.deployments.getOrNull(`${symbol}-${USD_ORACLE_ADAPTER_ID}`);
+      if (!artifact) throw new Error(`no ${symbol}_ORACLE and no ${symbol}-${USD_ORACLE_ADAPTER_ID} deployment: deploy the adapter first`);
       return artifact.address;
     };
-    const sources = { WSTETH: chainlink.WSTETH, JITOSOL: await jitoSolSource() };
+    const sources = { WSTETH: await sourceOf("WSTETH"), JITOSOL: await sourceOf("JITOSOL") };
     const feed = (a) =>
       new hre.ethers.Contract(a, ["function latestAnswer() view returns (int256)"], hre.ethers.provider);
     const prices = { WSTETH: await feed(sources.WSTETH).latestAnswer(), JITOSOL: await feed(sources.JITOSOL).latestAnswer() };

@@ -366,8 +366,13 @@ export const HydrationConfig: IAaveConfiguration = {
         assetToX: "0x00000102737461626c657377000003f100015f91", // hydration's chainlink precompile, stableswap 10min., aSOL(1009)/gSOLs(90001)
         xToUSD: "0x2FAA73BCC0115b9F67d2f36E53738B7FF95f0D2C", // DIA SOL/USD oracle
       },
-      // jitoSOL money-market listing: no jitoSOL/USD feed exists, so it is priced like vDOT
-      // (ratio oracle x base USD feed) using the CheckedOracle that pegs 2-Pool-GSOL.
+      // wstETH / jitoSOL money-market listing: priced like vDOT (fair-value ratio oracle x base
+      // USD feed) using the same CheckedOracles that peg the GETH / GSOL stableswap pools. The DIA
+      // wstETH/USD feed in ChainlinkAggregator is NOT used.
+      WSTETH: {
+        assetToX: "0xBE6B91cCb5b41e68426Dcb584830A360093c2775", // wstETH/stETH CheckedOracle (pegs 2-Pool-GETH)
+        xToUSD: "0x1AF549Fe19A9B73D094173C41e18BF7F357F594b", // DIA ETH/USD oracle
+      },
       JITOSOL: {
         assetToX: "0x64b7BbAC63E5aDcA0ec35C4AEBf9937Fc1d79C1D", // jitoSOL/SOL CheckedOracle (pegs 2-Pool-GSOL)
         xToUSD: "0x2FAA73BCC0115b9F67d2f36E53738B7FF95f0D2C", // DIA SOL/USD oracle
