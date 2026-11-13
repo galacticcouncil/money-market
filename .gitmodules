@@ -30,3 +30,6 @@
 [submodule "univ3-fee-setter/lib/v3-core"]
 	path = univ3-fee-setter/lib/v3-core
 	url = https://github.com/Uniswap/v3-core
+[submodule "looper/lib/solady"]
+	path = looper/lib/solady
+	url = https://github.com/Vectorized/solady
