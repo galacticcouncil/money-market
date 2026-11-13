@@ -29,6 +29,8 @@ import {
   strategySIGIL,
   strategySOL,
   strategyGSOL,
+  strategyWSTETH,
+  strategyJITOSOL,
   strategyHYPE,
   strategyZEC,
   strategySPY,
@@ -85,6 +87,8 @@ export const HydrationConfig: IAaveConfiguration = {
     SIGIL: strategySIGIL,
     SOL: strategySOL,
     "2-POOL-GSOL": strategyGSOL,
+    WSTETH: strategyWSTETH,
+    JITOSOL: strategyJITOSOL,
     HYPE: strategyHYPE,
     ZEC: strategyZEC,
     SPY: strategySPY,
@@ -115,6 +119,8 @@ export const HydrationConfig: IAaveConfiguration = {
       SIGIL: tokenAddress(816),
       SOL: tokenAddress(1000752),
       "2-POOL-GSOL": tokenAddress(90001),
+      WSTETH: tokenAddress(1000809),
+      JITOSOL: tokenAddress(40),
       HYPE: tokenAddress(1001355),
       ZEC: tokenAddress(1001357),
       SPY: tokenAddress(1001356),
@@ -176,27 +182,27 @@ export const HydrationConfig: IAaveConfiguration = {
     },
     DotEMode: {
       id: "2",
-      ltv: "8500",
-      liquidationThreshold: "9200",
-      liquidationBonus: "10450",
+      ltv: "9000",
+      liquidationThreshold: "9500",
+      liquidationBonus: "10300",
       label: "DOT correlated",
       assets: ["DOT", "VDOT", "2-Pool-GDOT"],
     },
     EthEMode: {
       id: "3",
-      ltv: "8000",
-      liquidationThreshold: "9000",
-      liquidationBonus: "10450",
+      ltv: "9000",
+      liquidationThreshold: "9500",
+      liquidationBonus: "10300",
       label: "ETH",
-      assets: ["ETH", "2-Pool-GETH"],
+      assets: ["ETH", "2-Pool-GETH", "WSTETH"],
     },
     SolEMode: {
       id: "4",
-      ltv: "8000",
-      liquidationThreshold: "8500",
-      liquidationBonus: "10450",
+      ltv: "8500",
+      liquidationThreshold: "9000",
+      liquidationBonus: "10300",
       label: "SOL correlated",
-      assets: ["SOL", "2-Pool-GSOL"],
+      assets: ["SOL", "2-Pool-GSOL", "JITOSOL"],
     },
     EurozoneEMode: {
       id: "5",
@@ -358,6 +364,17 @@ export const HydrationConfig: IAaveConfiguration = {
       // GIGASOL - stableswap price oracle for 2-POOL-GSOL
       "2-POOL-GSOL": {
         assetToX: "0x00000102737461626c657377000003f100015f91", // hydration's chainlink precompile, stableswap 10min., aSOL(1009)/gSOLs(90001)
+        xToUSD: "0x2FAA73BCC0115b9F67d2f36E53738B7FF95f0D2C", // DIA SOL/USD oracle
+      },
+      // wstETH / jitoSOL money-market listing: priced like vDOT (fair-value ratio oracle x base
+      // USD feed) using the same CheckedOracles that peg the GETH / GSOL stableswap pools. The DIA
+      // wstETH/USD feed in ChainlinkAggregator is NOT used.
+      WSTETH: {
+        assetToX: "0xBE6B91cCb5b41e68426Dcb584830A360093c2775", // wstETH/stETH CheckedOracle (pegs 2-Pool-GETH)
+        xToUSD: "0x1AF549Fe19A9B73D094173C41e18BF7F357F594b", // DIA ETH/USD oracle
+      },
+      JITOSOL: {
+        assetToX: "0x64b7BbAC63E5aDcA0ec35C4AEBf9937Fc1d79C1D", // jitoSOL/SOL CheckedOracle (pegs 2-Pool-GSOL)
         xToUSD: "0x2FAA73BCC0115b9F67d2f36E53738B7FF95f0D2C", // DIA SOL/USD oracle
       },
       // HEURC - stableswap price oracle for 2-POOL-HEURC
