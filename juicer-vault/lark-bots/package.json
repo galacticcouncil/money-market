@@ -1,0 +1,16 @@
+{
+  "name": "juicer-lark-bots",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@galacticcouncil/math-stableswap": "2.5.0",
+    "@polkadot/api": "15.10.2",
+    "@polkadot/util-crypto": "13.5.9",
+    "viem": "2.50.4"
+  }
+}

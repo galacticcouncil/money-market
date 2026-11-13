@@ -1,0 +1,190 @@
+{
+  "address": "0xA9d3e3C8516357831E2513049Cb3Fa12eE1224A8",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract IGhoPool",
+          "name": "pool",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IGhoToken",
+          "name": "ghoToken",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "GHO",
+      "outputs": [
+        {
+          "internalType": "contract IGhoToken",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "POOL",
+      "outputs": [
+        {
+          "internalType": "contract IGhoPool",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getGhoReserveData",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "ghoBaseVariableBorrowRate",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "ghoDiscountedPerToken",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "ghoDiscountRate",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "ghoMinDebtTokenBalanceForDiscount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "ghoMinDiscountTokenBalanceForDiscount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint40",
+              "name": "ghoReserveLastUpdateTimestamp",
+              "type": "uint40"
+            },
+            {
+              "internalType": "uint128",
+              "name": "ghoCurrentBorrowIndex",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint256",
+              "name": "aaveFacilitatorBucketLevel",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "aaveFacilitatorBucketMaxCapacity",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct IUiGhoDataProvider.GhoReserveData",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getGhoUserData",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "userGhoDiscountPercent",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "userDiscountTokenBalance",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "userPreviousGhoBorrowIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "userGhoScaledBorrowBalance",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct IUiGhoDataProvider.GhoUserData",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x1dc54a18ce87b11deb15b580d47a2c927c06c0ba618cee68d63529ed274eb27b",
+  "receipt": {
+    "to": null,
+    "from": "0x71FeB8b2849101a6E62e3369eaAfDc6154CD0Bc0",
+    "contractAddress": "0xA9d3e3C8516357831E2513049Cb3Fa12eE1224A8",
+    "transactionIndex": 0,
+    "gasUsed": "1294908",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x0b373e8e9b1d0e8812b35a98de33d8669adab28903e6d693f55f01703acac971",
+    "transactionHash": "0x1dc54a18ce87b11deb15b580d47a2c927c06c0ba618cee68d63529ed274eb27b",
+    "logs": [],
+    "blockNumber": 16824244,
+    "cumulativeGasUsed": "1294908",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38",
+    "0x531a654d1696ED52e7275A8cede955E82620f99a"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "855bfa7593dd1cc04736ae7cbe5620f2",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.10+commit.fc410830\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"contract IGhoPool\",\"name\":\"pool\",\"type\":\"address\"},{\"internalType\":\"contract IGhoToken\",\"name\":\"ghoToken\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"GHO\",\"outputs\":[{\"internalType\":\"contract IGhoToken\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"POOL\",\"outputs\":[{\"internalType\":\"contract IGhoPool\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getGhoReserveData\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"ghoBaseVariableBorrowRate\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"ghoDiscountedPerToken\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"ghoDiscountRate\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"ghoMinDebtTokenBalanceForDiscount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"ghoMinDiscountTokenBalanceForDiscount\",\"type\":\"uint256\"},{\"internalType\":\"uint40\",\"name\":\"ghoReserveLastUpdateTimestamp\",\"type\":\"uint40\"},{\"internalType\":\"uint128\",\"name\":\"ghoCurrentBorrowIndex\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"aaveFacilitatorBucketLevel\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"aaveFacilitatorBucketMaxCapacity\",\"type\":\"uint256\"}],\"internalType\":\"struct IUiGhoDataProvider.GhoReserveData\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"getGhoUserData\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"userGhoDiscountPercent\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"userDiscountTokenBalance\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"userPreviousGhoBorrowIndex\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"userGhoScaledBorrowBalance\",\"type\":\"uint256\"}],\"internalType\":\"struct IUiGhoDataProvider.GhoUserData\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Required market reads retain the original fail-closed behavior. Only      optional, strategy-specific metadata falls back to zero when absent or      malformed. Zero matches the previous Hydration strategy values and      does not affect the debt token's discount accounting.\",\"kind\":\"dev\",\"methods\":{},\"title\":\"UiGhoDataProviderCompat\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"notice\":\"Drop-in UiGhoDataProvider for discount strategies that implement the         required calculateDiscountRate surface but not Aave's four legacy         public metadata getters.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/UiGhoDataProviderCompat.sol\":\"UiGhoDataProviderCompat\"},\"evmVersion\":\"berlin\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":100000},\"remappings\":[]},\"sources\":{\"@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol\":{\"content\":\"// SPDX-License-Identifier: BUSL-1.1\\npragma solidity ^0.8.0;\\n\\nlibrary DataTypes {\\n  struct ReserveData {\\n    //stores the reserve configuration\\n    ReserveConfigurationMap configuration;\\n    //the liquidity index. Expressed in ray\\n    uint128 liquidityIndex;\\n    //the current supply rate. Expressed in ray\\n    uint128 currentLiquidityRate;\\n    //variable borrow index. Expressed in ray\\n    uint128 variableBorrowIndex;\\n    //the current variable borrow rate. Expressed in ray\\n    uint128 currentVariableBorrowRate;\\n    //the current stable borrow rate. Expressed in ray\\n    uint128 currentStableBorrowRate;\\n    //timestamp of last update\\n    uint40 lastUpdateTimestamp;\\n    //the id of the reserve. Represents the position in the list of the active reserves\\n    uint16 id;\\n    //aToken address\\n    address aTokenAddress;\\n    //stableDebtToken address\\n    address stableDebtTokenAddress;\\n    //variableDebtToken address\\n    address variableDebtTokenAddress;\\n    //address of the interest rate strategy\\n    address interestRateStrategyAddress;\\n    //the current treasury balance, scaled\\n    uint128 accruedToTreasury;\\n    //the outstanding unbacked aTokens minted through the bridging feature\\n    uint128 unbacked;\\n    //the outstanding debt borrowed against this asset in isolation mode\\n    uint128 isolationModeTotalDebt;\\n  }\\n\\n  struct ReserveConfigurationMap {\\n    //bit 0-15: LTV\\n    //bit 16-31: Liq. threshold\\n    //bit 32-47: Liq. bonus\\n    //bit 48-55: Decimals\\n    //bit 56: reserve is active\\n    //bit 57: reserve is frozen\\n    //bit 58: borrowing is enabled\\n    //bit 59: stable rate borrowing enabled\\n    //bit 60: asset is paused\\n    //bit 61: borrowing in isolation mode is enabled\\n    //bit 62: siloed borrowing enabled\\n    //bit 63: flashloaning enabled\\n    //bit 64-79: reserve factor\\n    //bit 80-115 borrow cap in whole tokens, borrowCap == 0 => no cap\\n    //bit 116-151 supply cap in whole tokens, supplyCap == 0 => no cap\\n    //bit 152-167 liquidation protocol fee\\n    //bit 168-175 eMode category\\n    //bit 176-211 unbacked mint cap in whole tokens, unbackedMintCap == 0 => minting disabled\\n    //bit 212-251 debt ceiling for isolation mode with (ReserveConfiguration::DEBT_CEILING_DECIMALS) decimals\\n    //bit 252-255 unused\\n\\n    uint256 data;\\n  }\\n\\n  struct UserConfigurationMap {\\n    /**\\n     * @dev Bitmap of the users collaterals and borrows. It is divided in pairs of bits, one pair per asset.\\n     * The first bit indicates if an asset is used as collateral by the user, the second whether an\\n     * asset is borrowed by the user.\\n     */\\n    uint256 data;\\n  }\\n\\n  struct EModeCategory {\\n    // each eMode category has a custom ltv and liquidation threshold\\n    uint16 ltv;\\n    uint16 liquidationThreshold;\\n    uint16 liquidationBonus;\\n    // each eMode category may or may not have a custom oracle to override the individual assets price oracles\\n    address priceSource;\\n    string label;\\n  }\\n\\n  enum InterestRateMode {NONE, STABLE, VARIABLE}\\n\\n  struct ReserveCache {\\n    uint256 currScaledVariableDebt;\\n    uint256 nextScaledVariableDebt;\\n    uint256 currPrincipalStableDebt;\\n    uint256 currAvgStableBorrowRate;\\n    uint256 currTotalStableDebt;\\n    uint256 nextAvgStableBorrowRate;\\n    uint256 nextTotalStableDebt;\\n    uint256 currLiquidityIndex;\\n    uint256 nextLiquidityIndex;\\n    uint256 currVariableBorrowIndex;\\n    uint256 nextVariableBorrowIndex;\\n    uint256 currLiquidityRate;\\n    uint256 currVariableBorrowRate;\\n    uint256 reserveFactor;\\n    ReserveConfigurationMap reserveConfiguration;\\n    address aTokenAddress;\\n    address stableDebtTokenAddress;\\n    address variableDebtTokenAddress;\\n    uint40 reserveLastUpdateTimestamp;\\n    uint40 stableDebtLastUpdateTimestamp;\\n  }\\n\\n  struct ExecuteLiquidationCallParams {\\n    uint256 reservesCount;\\n    uint256 debtToCover;\\n    address collateralAsset;\\n    address debtAsset;\\n    address user;\\n    bool receiveAToken;\\n    address priceOracle;\\n    uint8 userEModeCategory;\\n    address priceOracleSentinel;\\n  }\\n\\n  struct ExecuteSupplyParams {\\n    address asset;\\n    uint256 amount;\\n    address onBehalfOf;\\n    uint16 referralCode;\\n  }\\n\\n  struct ExecuteBorrowParams {\\n    address asset;\\n    address user;\\n    address onBehalfOf;\\n    uint256 amount;\\n    InterestRateMode interestRateMode;\\n    uint16 referralCode;\\n    bool releaseUnderlying;\\n    uint256 maxStableRateBorrowSizePercent;\\n    uint256 reservesCount;\\n    address oracle;\\n    uint8 userEModeCategory;\\n    address priceOracleSentinel;\\n  }\\n\\n  struct ExecuteRepayParams {\\n    address asset;\\n    uint256 amount;\\n    InterestRateMode interestRateMode;\\n    address onBehalfOf;\\n    bool useATokens;\\n  }\\n\\n  struct ExecuteWithdrawParams {\\n    address asset;\\n    uint256 amount;\\n    address to;\\n    uint256 reservesCount;\\n    address oracle;\\n    uint8 userEModeCategory;\\n  }\\n\\n  struct ExecuteSetUserEModeParams {\\n    uint256 reservesCount;\\n    address oracle;\\n    uint8 categoryId;\\n  }\\n\\n  struct FinalizeTransferParams {\\n    address asset;\\n    address from;\\n    address to;\\n    uint256 amount;\\n    uint256 balanceFromBefore;\\n    uint256 balanceToBefore;\\n    uint256 reservesCount;\\n    address oracle;\\n    uint8 fromEModeCategory;\\n  }\\n\\n  struct FlashloanParams {\\n    address receiverAddress;\\n    address[] assets;\\n    uint256[] amounts;\\n    uint256[] interestRateModes;\\n    address onBehalfOf;\\n    bytes params;\\n    uint16 referralCode;\\n    uint256 flashLoanPremiumToProtocol;\\n    uint256 flashLoanPremiumTotal;\\n    uint256 maxStableRateBorrowSizePercent;\\n    uint256 reservesCount;\\n    address addressesProvider;\\n    uint8 userEModeCategory;\\n    bool isAuthorizedFlashBorrower;\\n  }\\n\\n  struct FlashloanSimpleParams {\\n    address receiverAddress;\\n    address asset;\\n    uint256 amount;\\n    bytes params;\\n    uint16 referralCode;\\n    uint256 flashLoanPremiumToProtocol;\\n    uint256 flashLoanPremiumTotal;\\n  }\\n\\n  struct FlashLoanRepaymentParams {\\n    uint256 amount;\\n    uint256 totalPremium;\\n    uint256 flashLoanPremiumToProtocol;\\n    address asset;\\n    address receiverAddress;\\n    uint16 referralCode;\\n  }\\n\\n  struct CalculateUserAccountDataParams {\\n    UserConfigurationMap userConfig;\\n    uint256 reservesCount;\\n    address user;\\n    address oracle;\\n    uint8 userEModeCategory;\\n  }\\n\\n  struct ValidateBorrowParams {\\n    ReserveCache reserveCache;\\n    UserConfigurationMap userConfig;\\n    address asset;\\n    address userAddress;\\n    uint256 amount;\\n    InterestRateMode interestRateMode;\\n    uint256 maxStableLoanPercent;\\n    uint256 reservesCount;\\n    address oracle;\\n    uint8 userEModeCategory;\\n    address priceOracleSentinel;\\n    bool isolationModeActive;\\n    address isolationModeCollateralAddress;\\n    uint256 isolationModeDebtCeiling;\\n  }\\n\\n  struct ValidateLiquidationCallParams {\\n    ReserveCache debtReserveCache;\\n    uint256 totalDebt;\\n    uint256 healthFactor;\\n    address priceOracleSentinel;\\n  }\\n\\n  struct CalculateInterestRatesParams {\\n    uint256 unbacked;\\n    uint256 liquidityAdded;\\n    uint256 liquidityTaken;\\n    uint256 totalStableDebt;\\n    uint256 totalVariableDebt;\\n    uint256 averageStableBorrowRate;\\n    uint256 reserveFactor;\\n    address reserve;\\n    address aToken;\\n  }\\n\\n  struct InitReserveParams {\\n    address asset;\\n    address aTokenAddress;\\n    address stableDebtAddress;\\n    address variableDebtAddress;\\n    address interestRateStrategyAddress;\\n    uint16 reservesCount;\\n    uint16 maxNumberReserves;\\n  }\\n}\\n\",\"keccak256\":\"0x771cb99fd8519c974f7e12130387c4d9a997a6e8d0ac10e4303b842fe53efa88\",\"license\":\"BUSL-1.1\"},\"contracts/UiGhoDataProviderCompat.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.10;\\n\\nimport {DataTypes} from \\\"@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol\\\";\\nimport {IUiGhoDataProvider} from \\\"./interfaces/IUiGhoDataProvider.sol\\\";\\n\\ninterface IERC20BalanceOf {\\n    function balanceOf(address account) external view returns (uint256);\\n}\\n\\ninterface IGhoPool {\\n    function getReserveData(address asset) external view returns (DataTypes.ReserveData memory);\\n}\\n\\ninterface IGhoToken {\\n    function getFacilitatorBucket(address facilitator) external view returns (uint256, uint256);\\n}\\n\\ninterface IGhoVariableDebtToken {\\n    function getDiscountRateStrategy() external view returns (address);\\n\\n    function getDiscountToken() external view returns (address);\\n\\n    function getDiscountPercent(address user) external view returns (uint256);\\n\\n    function getPreviousIndex(address user) external view returns (uint256);\\n\\n    function scaledBalanceOf(address user) external view returns (uint256);\\n}\\n\\ninterface ILegacyGhoDiscountRateStrategy {\\n    function GHO_DISCOUNTED_PER_DISCOUNT_TOKEN() external view returns (uint256);\\n\\n    function DISCOUNT_RATE() external view returns (uint256);\\n\\n    function MIN_DISCOUNT_TOKEN_BALANCE() external view returns (uint256);\\n\\n    function MIN_DEBT_TOKEN_BALANCE() external view returns (uint256);\\n}\\n\\n/**\\n * @title UiGhoDataProviderCompat\\n * @notice Drop-in UiGhoDataProvider for discount strategies that implement the\\n *         required calculateDiscountRate surface but not Aave's four legacy\\n *         public metadata getters.\\n * @dev Required market reads retain the original fail-closed behavior. Only\\n *      optional, strategy-specific metadata falls back to zero when absent or\\n *      malformed. Zero matches the previous Hydration strategy values and\\n *      does not affect the debt token's discount accounting.\\n */\\ncontract UiGhoDataProviderCompat is IUiGhoDataProvider {\\n    IGhoPool public immutable POOL;\\n    IGhoToken public immutable GHO;\\n\\n    constructor(IGhoPool pool, IGhoToken ghoToken) {\\n        POOL = pool;\\n        GHO = ghoToken;\\n    }\\n\\n    function getGhoReserveData() public view override returns (GhoReserveData memory) {\\n        DataTypes.ReserveData memory baseData = POOL.getReserveData(address(GHO));\\n        IGhoVariableDebtToken debtToken = IGhoVariableDebtToken(baseData.variableDebtTokenAddress);\\n        address strategy = debtToken.getDiscountRateStrategy();\\n\\n        (uint256 bucketCapacity, uint256 bucketLevel) = GHO.getFacilitatorBucket(baseData.aTokenAddress);\\n\\n        return GhoReserveData({\\n            ghoBaseVariableBorrowRate: baseData.currentVariableBorrowRate,\\n            ghoDiscountedPerToken: _readOptionalUint256(\\n                strategy, ILegacyGhoDiscountRateStrategy.GHO_DISCOUNTED_PER_DISCOUNT_TOKEN.selector\\n            ),\\n            ghoDiscountRate: _readOptionalUint256(strategy, ILegacyGhoDiscountRateStrategy.DISCOUNT_RATE.selector),\\n            ghoMinDebtTokenBalanceForDiscount: _readOptionalUint256(\\n                strategy, ILegacyGhoDiscountRateStrategy.MIN_DEBT_TOKEN_BALANCE.selector\\n            ),\\n            ghoMinDiscountTokenBalanceForDiscount: _readOptionalUint256(\\n                strategy, ILegacyGhoDiscountRateStrategy.MIN_DISCOUNT_TOKEN_BALANCE.selector\\n            ),\\n            ghoReserveLastUpdateTimestamp: baseData.lastUpdateTimestamp,\\n            ghoCurrentBorrowIndex: baseData.variableBorrowIndex,\\n            aaveFacilitatorBucketLevel: bucketLevel,\\n            aaveFacilitatorBucketMaxCapacity: bucketCapacity\\n        });\\n    }\\n\\n    function getGhoUserData(address user) public view override returns (GhoUserData memory) {\\n        DataTypes.ReserveData memory baseData = POOL.getReserveData(address(GHO));\\n        IGhoVariableDebtToken debtToken = IGhoVariableDebtToken(baseData.variableDebtTokenAddress);\\n        address discountToken = debtToken.getDiscountToken();\\n\\n        return GhoUserData({\\n            userGhoDiscountPercent: debtToken.getDiscountPercent(user),\\n            userDiscountTokenBalance: IERC20BalanceOf(discountToken).balanceOf(user),\\n            userPreviousGhoBorrowIndex: debtToken.getPreviousIndex(user),\\n            userGhoScaledBorrowBalance: debtToken.scaledBalanceOf(user)\\n        });\\n    }\\n\\n    function _readOptionalUint256(address target, bytes4 selector) internal view returns (uint256) {\\n        (bool success, bytes memory result) = target.staticcall(abi.encodeWithSelector(selector));\\n        if (!success || result.length < 32) return 0;\\n        return abi.decode(result, (uint256));\\n    }\\n}\\n\",\"keccak256\":\"0x2b7f803dd276791f19e3bc2b4c6fbcb9c14fcc98de2c1b2e02c00251e74ac7c2\",\"license\":\"MIT\"},\"contracts/interfaces/IUiGhoDataProvider.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.10;\\n\\n/**\\n * @title IUiGhoDataProvider\\n * @notice ABI consumed by the Aave GHO/HOLLAR UI integration.\\n */\\ninterface IUiGhoDataProvider {\\n    struct GhoReserveData {\\n        uint256 ghoBaseVariableBorrowRate;\\n        uint256 ghoDiscountedPerToken;\\n        uint256 ghoDiscountRate;\\n        uint256 ghoMinDebtTokenBalanceForDiscount;\\n        uint256 ghoMinDiscountTokenBalanceForDiscount;\\n        uint40 ghoReserveLastUpdateTimestamp;\\n        uint128 ghoCurrentBorrowIndex;\\n        uint256 aaveFacilitatorBucketLevel;\\n        uint256 aaveFacilitatorBucketMaxCapacity;\\n    }\\n\\n    struct GhoUserData {\\n        uint256 userGhoDiscountPercent;\\n        uint256 userDiscountTokenBalance;\\n        uint256 userPreviousGhoBorrowIndex;\\n        uint256 userGhoScaledBorrowBalance;\\n    }\\n\\n    function getGhoReserveData() external view returns (GhoReserveData memory);\\n\\n    function getGhoUserData(address user) external view returns (GhoUserData memory);\\n}\\n\",\"keccak256\":\"0x432b4bdada10053f30a992e01489abbe64440a9de0ace252bca2b898fe3550ad\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60c060405234801561001057600080fd5b50604051610e40380380610e4083398101604081905261002f9161005e565b6001600160a01b039182166080521660a052610098565b6001600160a01b038116811461005b57600080fd5b50565b6000806040838503121561007157600080fd5b825161007c81610046565b602084015190925061008d81610046565b809150509250929050565b60805160a051610d626100de6000396000818160ed0152818161020501528181610632015261079b015260008181605601528181610230015261065d0152610d626000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c80637535d2461461005157806382d761a9146100a2578063b8d008f3146100e8578063f5a5b3641461010f575b600080fd5b6100787f000000000000000000000000000000000000000000000000000000000000000081565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6100b56100b0366004610a3f565b61019d565b60405161009991908151815260208083015190820152604080830151908201526060918201519181019190915260800190565b6100787f000000000000000000000000000000000000000000000000000000000000000081565b61011761058d565b6040516100999190600061012082019050825182526020830151602083015260408301516040830152606083015160608301526080830151608083015264ffffffffff60a08401511660a08301526fffffffffffffffffffffffffffffffff60c08401511660c083015260e083015160e083015261010080840151818401525092915050565b6101c86040518060800160405280600081526020016000815260200160008152602001600081525090565b6040517f35ea6a7500000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff7f0000000000000000000000000000000000000000000000000000000000000000811660048301526000917f0000000000000000000000000000000000000000000000000000000000000000909116906335ea6a75906024016101e060405180830381865afa15801561027a573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061029e9190610b74565b90506000816101400151905060008173ffffffffffffffffffffffffffffffffffffffff1663efe3de146040518163ffffffff1660e01b8152600401602060405180830381865afa1580156102f7573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061031b9190610c97565b6040805160808101918290527f6c53272b0000000000000000000000000000000000000000000000000000000090915273ffffffffffffffffffffffffffffffffffffffff87811660848301529192509081908416636c53272b60a48301602060405180830381865afa158015610396573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906103ba9190610cb4565b81526040517f70a0823100000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff88811660048301526020909201918416906370a0823190602401602060405180830381865afa15801561042e573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104529190610cb4565b81526040517fe075398600000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff888116600483015260209092019185169063e075398690602401602060405180830381865afa1580156104c6573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104ea9190610cb4565b81526040517f1da24f3e00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff8881166004830152602090920191851690631da24f3e90602401602060405180830381865afa15801561055e573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105829190610cb4565b905295945050505050565b6105f56040518061012001604052806000815260200160008152602001600081526020016000815260200160008152602001600064ffffffffff16815260200160006fffffffffffffffffffffffffffffffff16815260200160008152602001600081525090565b6040517f35ea6a7500000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff7f0000000000000000000000000000000000000000000000000000000000000000811660048301526000917f0000000000000000000000000000000000000000000000000000000000000000909116906335ea6a75906024016101e060405180830381865afa1580156106a7573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106cb9190610b74565b90506000816101400151905060008173ffffffffffffffffffffffffffffffffffffffff1663fe49b7946040518163ffffffff1660e01b8152600401602060405180830381865afa158015610724573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906107489190610c97565b6101008401516040517faa02f94a00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff918216600482015291925060009182917f0000000000000000000000000000000000000000000000000000000000000000169063aa02f94a906024016040805180830381865afa1580156107e1573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906108059190610ccd565b9150915060405180610120016040528086608001516fffffffffffffffffffffffffffffffff1681526020016108428563771a73af60e01b610915565b8152602001610871857fb510c58900000000000000000000000000000000000000000000000000000000610915565b81526020016108a0857f98c4f43800000000000000000000000000000000000000000000000000000000610915565b81526020016108cf857f3454274e00000000000000000000000000000000000000000000000000000000610915565b81526020018660c0015164ffffffffff16815260200186606001516fffffffffffffffffffffffffffffffff168152602001828152602001838152509550505050505090565b60408051600481526024810182526020810180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff167fffffffff00000000000000000000000000000000000000000000000000000000851617905290516000918291829173ffffffffffffffffffffffffffffffffffffffff8716916109989190610cf1565b600060405180830381855afa9150503d80600081146109d3576040519150601f19603f3d011682016040523d82523d6000602084013e6109d8565b606091505b50915091508115806109eb575060208151105b156109fb57600092505050610a14565b80806020019051810190610a0f9190610cb4565b925050505b92915050565b73ffffffffffffffffffffffffffffffffffffffff81168114610a3c57600080fd5b50565b600060208284031215610a5157600080fd5b8135610a5c81610a1a565b9392505050565b6040516101e0810167ffffffffffffffff81118282101715610aae577f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b60405290565b600060208284031215610ac657600080fd5b6040516020810181811067ffffffffffffffff82111715610b10577f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b6040529151825250919050565b80516fffffffffffffffffffffffffffffffff81168114610b3d57600080fd5b919050565b805164ffffffffff81168114610b3d57600080fd5b805161ffff81168114610b3d57600080fd5b8051610b3d81610a1a565b60006101e08284031215610b8757600080fd5b610b8f610a63565b610b998484610ab4565b8152610ba760208401610b1d565b6020820152610bb860408401610b1d565b6040820152610bc960608401610b1d565b6060820152610bda60808401610b1d565b6080820152610beb60a08401610b1d565b60a0820152610bfc60c08401610b42565b60c0820152610c0d60e08401610b57565b60e0820152610100610c20818501610b69565b90820152610120610c32848201610b69565b90820152610140610c44848201610b69565b90820152610160610c56848201610b69565b90820152610180610c68848201610b1d565b908201526101a0610c7a848201610b1d565b908201526101c0610c8c848201610b1d565b908201529392505050565b600060208284031215610ca957600080fd5b8151610a5c81610a1a565b600060208284031215610cc657600080fd5b5051919050565b60008060408385031215610ce057600080fd5b505080516020909101519092909150565b6000825160005b81811015610d125760208186018101518583015201610cf8565b81811115610d21576000828501525b50919091019291505056fea2646970667358221220fb4100deb9714f374f5a8d7b3e3a93e9371985875bcf5d07eefe238f80418f3f64736f6c634300080a0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061004c5760003560e01c80637535d2461461005157806382d761a9146100a2578063b8d008f3146100e8578063f5a5b3641461010f575b600080fd5b6100787f000000000000000000000000000000000000000000000000000000000000000081565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6100b56100b0366004610a3f565b61019d565b60405161009991908151815260208083015190820152604080830151908201526060918201519181019190915260800190565b6100787f000000000000000000000000000000000000000000000000000000000000000081565b61011761058d565b6040516100999190600061012082019050825182526020830151602083015260408301516040830152606083015160608301526080830151608083015264ffffffffff60a08401511660a08301526fffffffffffffffffffffffffffffffff60c08401511660c083015260e083015160e083015261010080840151818401525092915050565b6101c86040518060800160405280600081526020016000815260200160008152602001600081525090565b6040517f35ea6a7500000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff7f0000000000000000000000000000000000000000000000000000000000000000811660048301526000917f0000000000000000000000000000000000000000000000000000000000000000909116906335ea6a75906024016101e060405180830381865afa15801561027a573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061029e9190610b74565b90506000816101400151905060008173ffffffffffffffffffffffffffffffffffffffff1663efe3de146040518163ffffffff1660e01b8152600401602060405180830381865afa1580156102f7573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061031b9190610c97565b6040805160808101918290527f6c53272b0000000000000000000000000000000000000000000000000000000090915273ffffffffffffffffffffffffffffffffffffffff87811660848301529192509081908416636c53272b60a48301602060405180830381865afa158015610396573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906103ba9190610cb4565b81526040517f70a0823100000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff88811660048301526020909201918416906370a0823190602401602060405180830381865afa15801561042e573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104529190610cb4565b81526040517fe075398600000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff888116600483015260209092019185169063e075398690602401602060405180830381865afa1580156104c6573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104ea9190610cb4565b81526040517f1da24f3e00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff8881166004830152602090920191851690631da24f3e90602401602060405180830381865afa15801561055e573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105829190610cb4565b905295945050505050565b6105f56040518061012001604052806000815260200160008152602001600081526020016000815260200160008152602001600064ffffffffff16815260200160006fffffffffffffffffffffffffffffffff16815260200160008152602001600081525090565b6040517f35ea6a7500000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff7f0000000000000000000000000000000000000000000000000000000000000000811660048301526000917f0000000000000000000000000000000000000000000000000000000000000000909116906335ea6a75906024016101e060405180830381865afa1580156106a7573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106cb9190610b74565b90506000816101400151905060008173ffffffffffffffffffffffffffffffffffffffff1663fe49b7946040518163ffffffff1660e01b8152600401602060405180830381865afa158015610724573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906107489190610c97565b6101008401516040517faa02f94a00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff918216600482015291925060009182917f0000000000000000000000000000000000000000000000000000000000000000169063aa02f94a906024016040805180830381865afa1580156107e1573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906108059190610ccd565b9150915060405180610120016040528086608001516fffffffffffffffffffffffffffffffff1681526020016108428563771a73af60e01b610915565b8152602001610871857fb510c58900000000000000000000000000000000000000000000000000000000610915565b81526020016108a0857f98c4f43800000000000000000000000000000000000000000000000000000000610915565b81526020016108cf857f3454274e00000000000000000000000000000000000000000000000000000000610915565b81526020018660c0015164ffffffffff16815260200186606001516fffffffffffffffffffffffffffffffff168152602001828152602001838152509550505050505090565b60408051600481526024810182526020810180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff167fffffffff00000000000000000000000000000000000000000000000000000000851617905290516000918291829173ffffffffffffffffffffffffffffffffffffffff8716916109989190610cf1565b600060405180830381855afa9150503d80600081146109d3576040519150601f19603f3d011682016040523d82523d6000602084013e6109d8565b606091505b50915091508115806109eb575060208151105b156109fb57600092505050610a14565b80806020019051810190610a0f9190610cb4565b925050505b92915050565b73ffffffffffffffffffffffffffffffffffffffff81168114610a3c57600080fd5b50565b600060208284031215610a5157600080fd5b8135610a5c81610a1a565b9392505050565b6040516101e0810167ffffffffffffffff81118282101715610aae577f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b60405290565b600060208284031215610ac657600080fd5b6040516020810181811067ffffffffffffffff82111715610b10577f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b6040529151825250919050565b80516fffffffffffffffffffffffffffffffff81168114610b3d57600080fd5b919050565b805164ffffffffff81168114610b3d57600080fd5b805161ffff81168114610b3d57600080fd5b8051610b3d81610a1a565b60006101e08284031215610b8757600080fd5b610b8f610a63565b610b998484610ab4565b8152610ba760208401610b1d565b6020820152610bb860408401610b1d565b6040820152610bc960608401610b1d565b6060820152610bda60808401610b1d565b6080820152610beb60a08401610b1d565b60a0820152610bfc60c08401610b42565b60c0820152610c0d60e08401610b57565b60e0820152610100610c20818501610b69565b90820152610120610c32848201610b69565b90820152610140610c44848201610b69565b90820152610160610c56848201610b69565b90820152610180610c68848201610b1d565b908201526101a0610c7a848201610b1d565b908201526101c0610c8c848201610b1d565b908201529392505050565b600060208284031215610ca957600080fd5b8151610a5c81610a1a565b600060208284031215610cc657600080fd5b5051919050565b60008060408385031215610ce057600080fd5b505080516020909101519092909150565b6000825160005b81811015610d125760208186018101518583015201610cf8565b81811115610d21576000828501525b50919091019291505056fea2646970667358221220fb4100deb9714f374f5a8d7b3e3a93e9371985875bcf5d07eefe238f80418f3f64736f6c634300080a0033",
+  "devdoc": {
+    "details": "Required market reads retain the original fail-closed behavior. Only      optional, strategy-specific metadata falls back to zero when absent or      malformed. Zero matches the previous Hydration strategy values and      does not affect the debt token's discount accounting.",
+    "kind": "dev",
+    "methods": {},
+    "title": "UiGhoDataProviderCompat",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "notice": "Drop-in UiGhoDataProvider for discount strategies that implement the         required calculateDiscountRate surface but not Aave's four legacy         public metadata getters.",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  }
+}
