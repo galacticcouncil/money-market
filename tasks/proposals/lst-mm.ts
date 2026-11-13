@@ -219,10 +219,13 @@ task(`lst-mm`, `wstETH + jitoSOL money-market listing (ETH / SOL e-modes) + aTok
       );
       console.log(`${symbol} -> e-mode ${eMode.id} (${eMode.label})`);
     }
+    // gas: never below the 1M house default. review-e-mode hardcodes 300k for setEModeCategory, which
+    // ran out of gas on the fork (the call loops over all 34 reserves; ~331k needed) — and
+    // dispatchAsAaveManager swallows the revert, so the ref would pass with the e-modes unchanged.
     const txs = [];
     for (const el of getBatch()) {
       el.from = admin;
-      el.gasLimit = el.gasLimit ?? EVM_DEFAULT_GAS;
+      el.gasLimit = Math.max(Number(el.gasLimit?.toString() ?? 0), EVM_DEFAULT_GAS);
       txs.push(await aaveManagerCall(el));
     }
     clearBatch();
