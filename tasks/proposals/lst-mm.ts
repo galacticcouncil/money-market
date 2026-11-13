@@ -1,14 +1,15 @@
 // @ts-nocheck
 //
-// wstETH + jitoSOL money-market listing (Nov 2026, Root track).
+// wstETH + jitoSOL money-market listing + e-mode re-parameterisation (Nov 2026, Root track).
 //
 // wstETH (1000809, 18 dec) and jitoSOL (40, 9 dec) are the LST legs of the 2-Pool-GETH (4200)
 // and 2-Pool-GSOL (90001) stableswap pools. This lists both in the main market the way vDOT is
 // listed next to GDOT: borrowable, reserve factor 20 %, rateStrategyDOT, collateral params =
 // GETH's / GSOL's shifted by the vDOT-vs-GDOT deltas, caps = GETH's / GSOL's scaled by the
 // vDOT/GDOT cap ratio (reservesConfigs.ts `strategyWSTETH` / `strategyJITOSOL`), and each asset
-// joins its e-mode: wstETH -> ETH (3), jitoSOL -> SOL correlated (4). The e-mode categories
-// themselves are not changed.
+// joins its e-mode: wstETH -> ETH (3), jitoSOL -> SOL correlated (4). The three LST e-mode
+// categories are re-parameterised in the same batch (markets/hydration/index.ts EModes):
+// DOT 85/92/4.5 -> 90/95/3, ETH 80/90/4.5 -> 90/95/3, SOL 80/85/4.5 -> 85/90/3.
 //
 // Pricing mirrors vDOT (fair-value ratio oracle x base USD feed): USDOracleAdapter(wstETH/stETH
 // CheckedOracle x DIA ETH/USD) and USDOracleAdapter(jitoSOL/SOL CheckedOracle x DIA SOL/USD) — the
@@ -19,12 +20,15 @@
 //
 // One enactment batch:
 //   1. aave manager: setAssetSources(both), initReserves(wstETH), initReserves(jitoSOL),
-//      configureReserves x2, setLiquidationProtocolFee x2, setAssetEModeCategory x2
+//      configureReserves x2, setLiquidationProtocolFee x2, setEModeCategory x3 (DOT/ETH/SOL),
+//      setAssetEModeCategory x2
 //   2. root: assetRegistry.register awstETH (1014) / ajitoSOL (1015) at the predicted aToken
 //      addresses, multiTransactionPayment.addCurrency for both
 //   3. root: routes HDX/WETH -> aToken (fee pricing) and a liquidation route between each new
 //      asset and every other reserve (neither asset is in the Omnipool, so the router's default
-//      one-hop route never applies: every pair needs a stored route), plus wstETH <-> jitoSOL
+//      one-hop route never applies: every pair needs a stored route), plus wstETH <-> jitoSOL,
+//      plus the missing 2-Pool-GSOL share -> SOL route (no stored route on chain today, so a
+//      GSOL-collateral / SOL-debt position had no liquidation path)
 //   4. root: ice.updateRouting(AaveWrap(asset, aToken), Included) for both
 //
 // aToken addresses are predicted from the PoolConfigurator nonce (wstETH = nonce, jitoSOL =
@@ -205,6 +209,8 @@ task(`lst-mm`, `wstETH + jitoSOL money-market listing (ETH / SOL e-modes) + aTok
     );
     await configureReservesByHelper(config.ReservesConfig, assets, true);
     await hre.run("setup-liquidation-protocol-fee", { batch: true, only: "WSTETH,JITOSOL" });
+    // e-mode categories: review-e-mode diffs config vs chain and batches setEModeCategory when they differ
+    for (const name of ["DotEMode", "EthEMode", "SolEMode"]) await hre.run("review-e-mode", { name, fix: true, batch: true });
     const configurator = await getPoolConfiguratorProxy();
     for (const [symbol, eMode] of [["WSTETH", config.EModes.EthEMode], ["JITOSOL", config.EModes.SolEMode]]) {
       if (!eMode.assets.includes(symbol)) throw new Error(`${symbol} missing from e-mode ${eMode.label} config`);
@@ -271,6 +277,8 @@ task(`lst-mm`, `wstETH + jitoSOL money-market listing (ETH / SOL e-modes) + aTok
       ...Object.entries(viaGETH).map(([r, legs]) => [WSTETH, Number(r), [...WSTETH_TO_GETH, ...legs]]),
       // jitoSOL vs the SOL side of its own pool (no Omnipool leg); (40, SOL) is already stored on chain
       [JITOSOL, GSOL_POOL, [ss(GSOL_POOL, JITOSOL, GSOL_POOL)]],
+      // missing today: 2-Pool-GSOL share collateral -> SOL debt (ETH twin (34, 4200) exists)
+      [GSOL_POOL, SOL, [ss(GSOL_POOL, GSOL_POOL, ASOL), aave(ASOL, SOL)]],
       // jitoSOL vs the ETH side
       [JITOSOL, ETH, [...JITOSOL_TO_GSOL, omni(GSOL, GETH), aave(GETH, GETH_POOL), ss(GETH_POOL, GETH_POOL, AETH), aave(AETH, ETH)]],
       [JITOSOL, GETH_POOL, [...JITOSOL_TO_GSOL, omni(GSOL, GETH), aave(GETH, GETH_POOL)]],
