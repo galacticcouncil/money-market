@@ -137,7 +137,7 @@ library LooperLogic {
     function close(State storage s) external {
         _tryFeeCurrency(s);
         _requireIdle(s);
-        if (isClosed(s)) revert P.NothingToDo();
+        if (isClosed(s) && !_holdsLoose(s)) revert P.NothingToDo();
         _startClose(s);
     }
 
@@ -623,5 +623,10 @@ library LooperLogic {
 
     function _requireIdle(State storage s) internal view {
         if (s.pending.kind != P.Kind.None || (s.ladder != P.Ladder.None && s.stalled == P.Stall.None)) revert P.Busy();
+    }
+
+    function _holdsLoose(State storage s) internal view returns (bool) {
+        return s.debt.balanceOf(address(this)) > 0 || s.coll.balanceOf(address(this)) > 0
+            || s.feeAsset.balanceOf(address(this)) > 0;
     }
 }
