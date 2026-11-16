@@ -238,7 +238,8 @@ library LooperLogic {
         P.PendingIntent memory p = s.pending;
         if (p.kind != P.Kind.Exit || d == 0 || _outDelta(s, pool, p) >= p.reconcileOut) return hf;
         (uint256 pC,) = _prices(s, pool);
-        return Math.mulDiv(c + Units.toBase(p.amountIn, pC, s.decC, Math.Rounding.Down), lt * 1e14, d);
+        uint256 escrow = Units.sat(p.amountIn, _inDelta(s, pool, p));
+        return Math.mulDiv(c + Units.toBase(escrow, pC, s.decC, Math.Rounding.Down), lt * 1e14, d);
     }
 
     function nav(State storage s, IAavePool pool) public view returns (uint256) {
@@ -484,6 +485,13 @@ library LooperLogic {
         return Units.rayToTokens(scaled, pool.getReserveNormalizedIncome(address(s.coll)));
     }
 
+    /// @dev How much of the input came back since submit, so a refund is not counted as balance and as escrow.
+    function _inDelta(State storage s, IAavePool pool, P.PendingIntent memory p) internal view returns (uint256) {
+        if (p.kind == P.Kind.Entry) return Units.sat(s.debt.balanceOf(address(this)), p.inSnap);
+        uint256 scaled = Units.sat(s.aColl.scaledBalanceOf(address(this)), p.inSnap);
+        return Units.rayToTokens(scaled, pool.getReserveNormalizedIncome(address(s.coll)));
+    }
+
     /// @dev The runtime id is `(submission_ms << 64) | counter`; only this submission's second passes.
     function _prefixOk(uint256 intentId, P.PendingIntent memory p) internal pure returns (bool) {
         return (intentId >> 64) / 1000 == p.submittedAt;
@@ -613,9 +621,10 @@ library LooperLogic {
             + Units.toBase(s.debt.balanceOf(address(this)), pD, s.decD, Math.Rounding.Down);
         P.PendingIntent memory p = s.pending;
         if (p.kind != P.Kind.None && _outDelta(s, pool, p) < p.reconcileOut) {
+            uint256 escrow = Units.sat(p.amountIn, _inDelta(s, pool, p));
             assets += p.kind == P.Kind.Entry
-                ? Units.toBase(p.amountIn, pD, s.decD, Math.Rounding.Down)
-                : Units.toBase(p.amountIn, pC, s.decC, Math.Rounding.Down);
+                ? Units.toBase(escrow, pD, s.decD, Math.Rounding.Down)
+                : Units.toBase(escrow, pC, s.decC, Math.Rounding.Down);
         }
         (, uint256 d,,,,) = pool.getUserAccountData(address(this));
         return Units.sat(assets, d);

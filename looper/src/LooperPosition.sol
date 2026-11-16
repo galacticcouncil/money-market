@@ -259,8 +259,8 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
         return LooperLogic.effectiveHealthFactor(s, pool);
     }
 
-    /// @notice Equity in collateral units: own aToken + debt-asset cash − debt, plus an in-flight input whose
-    /// output has not landed yet. The fee budget is not part of it.
+    /// @notice Equity in collateral units: own aToken + debt-asset cash − debt, plus the part of an in-flight
+    /// input that has neither landed as output nor come back. The fee budget is not part of it.
     function nav() public view returns (uint256) {
         return LooperLogic.nav(s, pool);
     }
