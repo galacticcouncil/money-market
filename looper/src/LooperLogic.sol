@@ -318,7 +318,7 @@ library LooperLogic {
         (uint256 c, uint256 d,, uint256 lt,,) = pool.getUserAccountData(address(this));
         uint256 lt18 = lt * 1e14;
         (uint256 pC, uint256 pD) = _prices(s, pool);
-        uint256 target = closing ? 0 : _debtTarget(s, c, d, lt18, _deployHf(s, lt), pC);
+        uint256 target = closing ? 0 : _debtTarget(s, pool, c, d, lt18, _deployHf(s, lt), pC);
         if (!closing && d <= target + TOL) return _finish(s, pool);
 
         uint256 hf = d == 0 ? type(uint256).max : Math.mulDiv(c, lt18, d);
@@ -368,7 +368,7 @@ library LooperLogic {
             return left == 0 ? _finish(s, pool) : (P.Stall.TailUnfunded, left);
         }
         (uint256 c, uint256 d,, uint256 lt,,) = pool.getUserAccountData(address(this));
-        uint256 target = _debtTarget(s, c, d, lt * 1e14, _deployHf(s, lt), pC);
+        uint256 target = _debtTarget(s, pool, c, d, lt * 1e14, _deployHf(s, lt), pC);
         if (d <= target + TOL) return _finish(s, pool);
         return (P.Stall.TailUnfunded, Units.fromBase(d - target, pD, s.decD, Math.Rounding.Up));
     }
@@ -393,10 +393,10 @@ library LooperLogic {
         }
         (uint256 c, uint256 d,, uint256 lt,,) = pool.getUserAccountData(address(this));
         (uint256 pC, uint256 pD) = _prices(s, pool);
-        uint256 free = _removable(s, pool, c, d, lt * 1e14, _deployHf(s, lt));
         uint256 request = s.request;
         uint256 payout = Math.min(
-            Math.min(request, Units.fromBase(free, pC, s.decC, Math.Rounding.Down)), s.aColl.balanceOf(address(this))
+            Math.min(request, _removable(s, pool, c, d, lt * 1e14, pC, _deployHf(s, lt))),
+            s.aColl.balanceOf(address(this))
         );
         // the equity `nav()` reports, so a partial withdraw leaves `pnl()` unchanged
         uint256 equity = Units.fromBase(_navBase(s, pool, pC, pD), pC, s.decC, Math.Rounding.Down);
@@ -408,14 +408,20 @@ library LooperLogic {
         return (P.Stall.None, 0);
     }
 
-    /// @dev The debt a position at `deployHf` carries when its equity is the current one less the request.
-    function _debtTarget(State storage s, uint256 c, uint256 d, uint256 lt18, uint256 deployHf, uint256 pC)
-        internal
-        view
-        returns (uint256)
-    {
-        uint256 keep = Units.sat(Units.sat(c, d), Units.toBase(s.request, pC, s.decC, Math.Rounding.Up));
-        return Math.mulDiv(keep, lt18, deployHf - lt18);
+    /// @dev The debt at which paying out the request leaves HF at `deployHf`. Selling or paying out own collateral
+    /// removes the own LT from the blended sum, so it matches `_removable` at the finish.
+    function _debtTarget(
+        State storage s,
+        IAavePool pool,
+        uint256 c,
+        uint256 d,
+        uint256 lt18,
+        uint256 deployHf,
+        uint256 pC
+    ) internal view returns (uint256) {
+        (uint256 blended, uint256 own) = _lts(s, pool, lt18);
+        uint256 rest = (d + Units.toBase(s.request, pC, s.decC, Math.Rounding.Up)) * own;
+        return Units.sat(c * blended, rest) / (deployHf - own);
     }
 
     function _cap(State storage s, IAavePool pool, uint256 c, uint256 d, uint256 lt18, uint256 pC, uint256 floorHf)
@@ -423,20 +429,34 @@ library LooperLogic {
         view
         returns (uint256)
     {
-        return Units.fromBase(_removable(s, pool, c, d, lt18, floorHf), pC, s.decC, Math.Rounding.Down) * CAP_BPS / BPS;
+        return _removable(s, pool, c, d, lt18, pC, floorHf) * CAP_BPS / BPS;
     }
 
-    /// @dev Base value of own collateral that can leave with HF staying at `floorHf`. Each unit removes the own
-    /// LT, not the blended `lt18`, so a lower-LT gift still enabled as collateral does not inflate it.
-    function _removable(State storage s, IAavePool pool, uint256 c, uint256 d, uint256 lt18, uint256 floorHf)
-        internal
-        view
-        returns (uint256)
-    {
-        uint256 ownLt = s.eMode != 0
-            ? pool.getEModeCategoryData(s.eMode).liquidationThreshold
-            : (pool.getConfiguration(address(s.coll)) >> 16) & 0xFFFF;
-        return Units.sat(c * lt18, floorHf * d) / (ownLt * 1e14);
+    /// @dev Own collateral (token units) that can leave with HF staying at or above `floorHf`. Each unit removes the
+    /// own LT, not the blended one, so a lower-LT gift still enabled as collateral does not inflate it.
+    function _removable(
+        State storage s,
+        IAavePool pool,
+        uint256 c,
+        uint256 d,
+        uint256 lt18,
+        uint256 pC,
+        uint256 floorHf
+    ) internal view returns (uint256) {
+        (uint256 blended, uint256 own) = _lts(s, pool, lt18);
+        if (own == 0) return s.aColl.balanceOf(address(this));
+        return Units.fromBase(Units.sat(c * blended, floorHf * d) / own, pC, s.decC, Math.Rounding.Down);
+    }
+
+    /// @dev The blended LT less one bps when other collateral is mixed in (Aave floors it to whole bps after every
+    /// change), and the LT Aave applies to own collateral: its eMode category one while the reserve is in it.
+    function _lts(State storage s, IAavePool pool, uint256 lt18) internal view returns (uint256 blended, uint256 own) {
+        uint256 cfg = pool.getConfiguration(address(s.coll));
+        uint8 eMode = s.eMode;
+        own = eMode != 0 && (cfg >> 168) & 0xFF == eMode
+            ? uint256(pool.getEModeCategoryData(eMode).liquidationThreshold) * 1e14
+            : ((cfg >> 16) & 0xFFFF) * 1e14;
+        blended = lt18 == own ? lt18 : Units.sat(lt18, 1e14);
     }
 
     /// @dev Collateral that sells for `base` after slippage `slip`, rounded up.
@@ -497,8 +517,10 @@ library LooperLogic {
         return Units.rayToTokens(scaled, pool.getReserveNormalizedIncome(address(s.coll)));
     }
 
-    /// @dev How much of the input came back since submit, so a refund is not counted as balance and as escrow.
+    /// @dev How much of the input came back since submit, so a refund is not counted as balance and as escrow. Only
+    /// cleanup refunds, and only once the deadline passed; before that every inflow is a gift and stays counted.
     function _inDelta(State storage s, IAavePool pool, P.PendingIntent memory p) internal view returns (uint256) {
+        if (block.timestamp * 1000 < p.deadline) return 0;
         if (p.kind == P.Kind.Entry) return Units.sat(s.debt.balanceOf(address(this)), p.inSnap);
         uint256 scaled = Units.sat(s.aColl.scaledBalanceOf(address(this)), p.inSnap);
         return Units.rayToTokens(scaled, pool.getReserveNormalizedIncome(address(s.coll)));

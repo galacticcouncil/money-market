@@ -7,8 +7,9 @@ import {MockAToken} from "./MockAToken.sol";
 
 /// @notice Aave v3.0 pool stand-in with the real ABI and units: 8-decimal base, LT/LTV in bps, HF in
 /// WAD, collateral flags in the user configuration bitmap (bit 2i+1), eMode categories with a price
-/// source, LTV-capped borrows, zero-amount and no-debt reverts, the zero-LTV collateral rule and the
-/// HF ≥ 1 check on aToken transfers. Doubles as its own addresses provider and oracle.
+/// source, LTV-capped borrows, zero-amount and no-debt reverts, the zero-LTV collateral rule, the
+/// HF ≥ 1 check on aToken transfers, HF from the blended LT floored to whole bps, and paused reserves
+/// refusing the collateral switch. Doubles as its own addresses provider and oracle.
 contract MockPool {
     uint256 internal constant WAD = 1e18;
     uint256 internal constant BPS = 10_000;
@@ -190,7 +191,7 @@ contract MockPool {
         lt = c == 0 ? 0 : ltSum / c;
         ltv = c == 0 ? 0 : ltvSum / c;
         available = ltvSum / BPS > d ? ltvSum / BPS - d : 0;
-        hf = d == 0 ? type(uint256).max : ltSum * WAD / BPS / d;
+        hf = d == 0 ? type(uint256).max : c * lt * WAD / BPS / d;
     }
 
     function getConfiguration(address asset) public view returns (uint256 cfg) {
@@ -368,8 +369,10 @@ contract MockPool {
         d = _debtBase(user);
     }
 
+    /// @dev Like Aave: the blended LT is floored to whole bps before it scales the collateral.
     function _hf(address user) internal view returns (uint256) {
-        (, uint256 ltSum, uint256 d,,) = _account(user);
-        return d == 0 ? type(uint256).max : ltSum * WAD / BPS / d;
+        (uint256 c, uint256 ltSum, uint256 d,,) = _account(user);
+        if (d == 0) return type(uint256).max;
+        return c == 0 ? 0 : c * (ltSum / c) * WAD / BPS / d;
     }
 }
