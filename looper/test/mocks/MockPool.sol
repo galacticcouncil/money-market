@@ -9,7 +9,7 @@ import {MockAToken} from "./MockAToken.sol";
 /// WAD, collateral flags in the user configuration bitmap (bit 2i+1), eMode categories with a price
 /// source, LTV-capped borrows, zero-amount and no-debt reverts, the zero-LTV collateral rule, the
 /// HF ≥ 1 check on aToken transfers, HF from the blended LT floored to whole bps, and paused reserves
-/// refusing the collateral switch. Doubles as its own addresses provider and oracle.
+/// refusing the collateral switch and aToken transfers. Doubles as its own addresses provider and oracle.
 contract MockPool {
     uint256 internal constant WAD = 1e18;
     uint256 internal constant BPS = 10_000;
@@ -171,6 +171,7 @@ contract MockPool {
     ) external {
         Reserve storage r = reserves[asset];
         require(msg.sender == address(r.aToken), "MockPool: not aToken");
+        require(!r.paused, "MockPool: paused");
         if (from == to) return;
         bool flagged = _isCollateral(from, r.id);
         if (r.aToken.scaledBalanceOf(from) == 0) _setCollateral(from, r.id, false);

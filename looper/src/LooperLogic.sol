@@ -321,7 +321,9 @@ library LooperLogic {
         uint256 target = closing ? 0 : _debtTarget(s, pool, c, d, lt18, _deployHf(s, lt), pC);
         if (!closing && d <= target + TOL) return _finish(s, pool);
 
-        uint256 hf = d == 0 ? type(uint256).max : Math.mulDiv(c, lt18, d);
+        // the same LT `_removable` sizes with, so just above stepHf the cap is never zero
+        (uint256 blended,) = _lts(s, pool, lt18);
+        uint256 hf = d == 0 ? type(uint256).max : Math.mulDiv(c, blended, d);
         uint256 slip = s.slippageBps;
         uint256 minProceeds = s.minIntentDebt;
         // Above stepHf the cap never crosses it, even if that stalls; at or under it, emergency slivers that each

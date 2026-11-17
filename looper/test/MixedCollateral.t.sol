@@ -8,7 +8,7 @@ import {ILooperPosition} from "../src/interfaces/ILooperPosition.sol";
 import {LooperPosition} from "../src/LooperPosition.sol";
 
 contract MixedCollateralTest is Fixture {
-    /// @dev Carol gifts DOT with the given LTV/LT into `pos`, then the DOT reserve is paused, so `_normalise`
+    /// @dev A donor gifts DOT with the given LTV/LT into `pos`, then the DOT reserve is paused, so `_normalise`
     /// cannot disable it.
     function giftPausedDot(LooperPosition pos, uint256 amount, uint16 ltv, uint16 lt) internal {
         pool.setLtvLt(address(dot), ltv, lt);
@@ -68,7 +68,20 @@ contract MixedCollateralTest is Fixture {
         }
 
         assertTrue(pos.isClosed());
-        assertEq(aDot.balanceOf(alice), 500e10, "gift swept to the holder");
+        assertEq(aDot.balanceOf(address(pos)), 500e10, "a paused reserve refuses the sweep, the gift stays");
+    }
+
+    function test_close_should_submit_a_sliver_just_above_step_hf_with_a_tiny_gift() public {
+        LooperPosition pos = open(alice, DEPOSIT, 3e18);
+        ramp(pos);
+        giftPausedDot(pos, 1e5, 7_000, 7_999);
+        pool.setPrice(address(hollar), 1e8 * hfOf(pos) / 1.05008e18);
+
+        vm.prank(alice);
+        pos.close();
+
+        assertTrue(hasPending(pos), "sliver submitted");
+        assertEq(uint8(pos.stalled()), uint8(ILooperPosition.Stall.None));
     }
 
     function test_withdraw_should_pay_the_request_and_keep_hf_at_min_hf_when_a_low_lt_gift_stays_collateral() public {
