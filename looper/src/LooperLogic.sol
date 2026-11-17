@@ -137,7 +137,7 @@ library LooperLogic {
     function close(State storage s) external {
         _tryFeeCurrency(s);
         _requireIdle(s);
-        if (isClosed(s)) revert P.NothingToDo();
+        if (isClosed(s) && !_holdsLoose(s)) revert P.NothingToDo();
         _startClose(s);
     }
 
@@ -238,7 +238,8 @@ library LooperLogic {
         P.PendingIntent memory p = s.pending;
         if (p.kind != P.Kind.Exit || d == 0 || _outDelta(s, pool, p) >= p.reconcileOut) return hf;
         (uint256 pC,) = _prices(s, pool);
-        return Math.mulDiv(c + Units.toBase(p.amountIn, pC, s.decC, Math.Rounding.Down), lt * 1e14, d);
+        uint256 escrow = Units.sat(p.amountIn, _inDelta(s, pool, p));
+        return Math.mulDiv(c + Units.toBase(escrow, pC, s.decC, Math.Rounding.Down), lt * 1e14, d);
     }
 
     function nav(State storage s, IAavePool pool) public view returns (uint256) {
@@ -317,17 +318,20 @@ library LooperLogic {
         (uint256 c, uint256 d,, uint256 lt,,) = pool.getUserAccountData(address(this));
         uint256 lt18 = lt * 1e14;
         (uint256 pC, uint256 pD) = _prices(s, pool);
-        uint256 target = closing ? 0 : _debtTarget(s, c, d, lt18, _deployHf(s, lt), pC);
+        uint256 target = closing ? 0 : _debtTarget(s, pool, c, d, lt18, _deployHf(s, lt), pC);
         if (!closing && d <= target + TOL) return _finish(s, pool);
 
-        uint256 hf = d == 0 ? type(uint256).max : Math.mulDiv(c, lt18, d);
+        // the same LT `_removable` sizes with, so just above stepHf the cap is never zero
+        (uint256 blended,) = _lts(s, pool, lt18);
+        uint256 hf = d == 0 ? type(uint256).max : Math.mulDiv(c, blended, d);
         uint256 slip = s.slippageBps;
         uint256 minProceeds = s.minIntentDebt;
         // Above stepHf the cap never crosses it, even if that stalls; at or under it, emergency slivers that each
         // raise HF.
         uint256 stepHf = s.stepHf;
-        uint256 cap =
-            _cap(s, c, d, lt18, pC, hf > stepHf ? stepHf : Math.max(Units.sat(hf, EMERGENCY_STEP), EMERGENCY_FLOOR));
+        uint256 cap = _cap(
+            s, pool, c, d, lt18, pC, hf > stepHf ? stepHf : Math.max(Units.sat(hf, EMERGENCY_STEP), EMERGENCY_FLOOR)
+        );
         uint256 owedBase = closing ? Units.toBase(owed, pD, s.decD, Math.Rounding.Up) : d - target;
         if (cap == 0) {
             return (P.Stall.InsufficientHeadroom, Units.fromBase(owedBase, pD, s.decD, Math.Rounding.Up));
@@ -366,7 +370,7 @@ library LooperLogic {
             return left == 0 ? _finish(s, pool) : (P.Stall.TailUnfunded, left);
         }
         (uint256 c, uint256 d,, uint256 lt,,) = pool.getUserAccountData(address(this));
-        uint256 target = _debtTarget(s, c, d, lt * 1e14, _deployHf(s, lt), pC);
+        uint256 target = _debtTarget(s, pool, c, d, lt * 1e14, _deployHf(s, lt), pC);
         if (d <= target + TOL) return _finish(s, pool);
         return (P.Stall.TailUnfunded, Units.fromBase(d - target, pD, s.decD, Math.Rounding.Up));
     }
@@ -391,10 +395,10 @@ library LooperLogic {
         }
         (uint256 c, uint256 d,, uint256 lt,,) = pool.getUserAccountData(address(this));
         (uint256 pC, uint256 pD) = _prices(s, pool);
-        uint256 free = Units.sat(c, Math.mulDiv(d, _deployHf(s, lt), lt * 1e14, Math.Rounding.Up));
         uint256 request = s.request;
         uint256 payout = Math.min(
-            Math.min(request, Units.fromBase(free, pC, s.decC, Math.Rounding.Down)), s.aColl.balanceOf(address(this))
+            Math.min(request, _removable(s, pool, c, d, lt * 1e14, pC, _deployHf(s, lt))),
+            s.aColl.balanceOf(address(this))
         );
         // the equity `nav()` reports, so a partial withdraw leaves `pnl()` unchanged
         uint256 equity = Units.fromBase(_navBase(s, pool, pC, pD), pC, s.decC, Math.Rounding.Down);
@@ -406,24 +410,55 @@ library LooperLogic {
         return (P.Stall.None, 0);
     }
 
-    /// @dev The debt a position at `deployHf` carries when its equity is the current one less the request.
-    function _debtTarget(State storage s, uint256 c, uint256 d, uint256 lt18, uint256 deployHf, uint256 pC)
-        internal
-        view
-        returns (uint256)
-    {
-        uint256 keep = Units.sat(Units.sat(c, d), Units.toBase(s.request, pC, s.decC, Math.Rounding.Up));
-        return Math.mulDiv(keep, lt18, deployHf - lt18);
+    /// @dev The debt at which paying out the request leaves HF at `deployHf`. Selling or paying out own collateral
+    /// removes the own LT from the blended sum, so it matches `_removable` at the finish.
+    function _debtTarget(
+        State storage s,
+        IAavePool pool,
+        uint256 c,
+        uint256 d,
+        uint256 lt18,
+        uint256 deployHf,
+        uint256 pC
+    ) internal view returns (uint256) {
+        (uint256 blended, uint256 own) = _lts(s, pool, lt18);
+        uint256 rest = (d + Units.toBase(s.request, pC, s.decC, Math.Rounding.Up)) * own;
+        return Units.sat(c * blended, rest) / (deployHf - own);
     }
 
-    function _cap(State storage s, uint256 c, uint256 d, uint256 lt18, uint256 pC, uint256 floorHf)
+    function _cap(State storage s, IAavePool pool, uint256 c, uint256 d, uint256 lt18, uint256 pC, uint256 floorHf)
         internal
         view
         returns (uint256)
     {
-        return Units.fromBase(
-            Units.sat(c, Math.mulDiv(floorHf, d, lt18, Math.Rounding.Up)), pC, s.decC, Math.Rounding.Down
-        ) * CAP_BPS / BPS;
+        return _removable(s, pool, c, d, lt18, pC, floorHf) * CAP_BPS / BPS;
+    }
+
+    /// @dev Own collateral (token units) that can leave with HF staying at or above `floorHf`. Each unit removes the
+    /// own LT, not the blended one, so a lower-LT gift still enabled as collateral does not inflate it.
+    function _removable(
+        State storage s,
+        IAavePool pool,
+        uint256 c,
+        uint256 d,
+        uint256 lt18,
+        uint256 pC,
+        uint256 floorHf
+    ) internal view returns (uint256) {
+        (uint256 blended, uint256 own) = _lts(s, pool, lt18);
+        if (own == 0) return s.aColl.balanceOf(address(this));
+        return Units.fromBase(Units.sat(c * blended, floorHf * d) / own, pC, s.decC, Math.Rounding.Down);
+    }
+
+    /// @dev The blended LT less one bps when other collateral is mixed in (Aave floors it to whole bps after every
+    /// change), and the LT Aave applies to own collateral: its eMode category one while the reserve is in it.
+    function _lts(State storage s, IAavePool pool, uint256 lt18) internal view returns (uint256 blended, uint256 own) {
+        uint256 cfg = pool.getConfiguration(address(s.coll));
+        uint8 eMode = s.eMode;
+        own = eMode != 0 && (cfg >> 168) & 0xFF == eMode
+            ? uint256(pool.getEModeCategoryData(eMode).liquidationThreshold) * 1e14
+            : ((cfg >> 16) & 0xFFFF) * 1e14;
+        blended = lt18 == own ? lt18 : Units.sat(lt18, 1e14);
     }
 
     /// @dev Collateral that sells for `base` after slippage `slip`, rounded up.
@@ -481,6 +516,15 @@ library LooperLogic {
     function _outDelta(State storage s, IAavePool pool, P.PendingIntent memory p) internal view returns (uint256) {
         if (p.kind == P.Kind.Exit) return Units.sat(s.debt.balanceOf(address(this)), p.outSnap);
         uint256 scaled = Units.sat(s.aColl.scaledBalanceOf(address(this)), p.outSnap);
+        return Units.rayToTokens(scaled, pool.getReserveNormalizedIncome(address(s.coll)));
+    }
+
+    /// @dev How much of the input came back since submit, so a refund is not counted as balance and as escrow. Only
+    /// cleanup refunds, and only once the deadline passed; before that every inflow is a gift and stays counted.
+    function _inDelta(State storage s, IAavePool pool, P.PendingIntent memory p) internal view returns (uint256) {
+        if (block.timestamp * 1000 < p.deadline) return 0;
+        if (p.kind == P.Kind.Entry) return Units.sat(s.debt.balanceOf(address(this)), p.inSnap);
+        uint256 scaled = Units.sat(s.aColl.scaledBalanceOf(address(this)), p.inSnap);
         return Units.rayToTokens(scaled, pool.getReserveNormalizedIncome(address(s.coll)));
     }
 
@@ -613,9 +657,10 @@ library LooperLogic {
             + Units.toBase(s.debt.balanceOf(address(this)), pD, s.decD, Math.Rounding.Down);
         P.PendingIntent memory p = s.pending;
         if (p.kind != P.Kind.None && _outDelta(s, pool, p) < p.reconcileOut) {
+            uint256 escrow = Units.sat(p.amountIn, _inDelta(s, pool, p));
             assets += p.kind == P.Kind.Entry
-                ? Units.toBase(p.amountIn, pD, s.decD, Math.Rounding.Down)
-                : Units.toBase(p.amountIn, pC, s.decC, Math.Rounding.Down);
+                ? Units.toBase(escrow, pD, s.decD, Math.Rounding.Down)
+                : Units.toBase(escrow, pC, s.decC, Math.Rounding.Down);
         }
         (, uint256 d,,,,) = pool.getUserAccountData(address(this));
         return Units.sat(assets, d);
@@ -623,5 +668,10 @@ library LooperLogic {
 
     function _requireIdle(State storage s) internal view {
         if (s.pending.kind != P.Kind.None || (s.ladder != P.Ladder.None && s.stalled == P.Stall.None)) revert P.Busy();
+    }
+
+    function _holdsLoose(State storage s) internal view returns (bool) {
+        return s.debt.balanceOf(address(this)) > 0 || s.coll.balanceOf(address(this)) > 0
+            || s.feeAsset.balanceOf(address(this)) > 0;
     }
 }
