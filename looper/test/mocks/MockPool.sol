@@ -143,6 +143,7 @@ contract MockPool {
 
     function setUserUseReserveAsCollateral(address asset, bool use) external {
         Reserve storage r = reserves[asset];
+        require(!r.paused, "MockPool: paused");
         if (use) {
             require(!refuseEnable, "MockPool: enable refused");
             require(r.aToken.balanceOf(msg.sender) > 0, "MockPool: balance 0");

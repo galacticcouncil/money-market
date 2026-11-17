@@ -327,8 +327,9 @@ library LooperLogic {
         // Above stepHf the cap never crosses it, even if that stalls; at or under it, emergency slivers that each
         // raise HF.
         uint256 stepHf = s.stepHf;
-        uint256 cap =
-            _cap(s, c, d, lt18, pC, hf > stepHf ? stepHf : Math.max(Units.sat(hf, EMERGENCY_STEP), EMERGENCY_FLOOR));
+        uint256 cap = _cap(
+            s, pool, c, d, lt18, pC, hf > stepHf ? stepHf : Math.max(Units.sat(hf, EMERGENCY_STEP), EMERGENCY_FLOOR)
+        );
         uint256 owedBase = closing ? Units.toBase(owed, pD, s.decD, Math.Rounding.Up) : d - target;
         if (cap == 0) {
             return (P.Stall.InsufficientHeadroom, Units.fromBase(owedBase, pD, s.decD, Math.Rounding.Up));
@@ -392,7 +393,7 @@ library LooperLogic {
         }
         (uint256 c, uint256 d,, uint256 lt,,) = pool.getUserAccountData(address(this));
         (uint256 pC, uint256 pD) = _prices(s, pool);
-        uint256 free = Units.sat(c, Math.mulDiv(d, _deployHf(s, lt), lt * 1e14, Math.Rounding.Up));
+        uint256 free = _removable(s, pool, c, d, lt * 1e14, _deployHf(s, lt));
         uint256 request = s.request;
         uint256 payout = Math.min(
             Math.min(request, Units.fromBase(free, pC, s.decC, Math.Rounding.Down)), s.aColl.balanceOf(address(this))
@@ -417,14 +418,25 @@ library LooperLogic {
         return Math.mulDiv(keep, lt18, deployHf - lt18);
     }
 
-    function _cap(State storage s, uint256 c, uint256 d, uint256 lt18, uint256 pC, uint256 floorHf)
+    function _cap(State storage s, IAavePool pool, uint256 c, uint256 d, uint256 lt18, uint256 pC, uint256 floorHf)
         internal
         view
         returns (uint256)
     {
-        return Units.fromBase(
-            Units.sat(c, Math.mulDiv(floorHf, d, lt18, Math.Rounding.Up)), pC, s.decC, Math.Rounding.Down
-        ) * CAP_BPS / BPS;
+        return Units.fromBase(_removable(s, pool, c, d, lt18, floorHf), pC, s.decC, Math.Rounding.Down) * CAP_BPS / BPS;
+    }
+
+    /// @dev Base value of own collateral that can leave with HF staying at `floorHf`. Each unit removes the own
+    /// LT, not the blended `lt18`, so a lower-LT gift still enabled as collateral does not inflate it.
+    function _removable(State storage s, IAavePool pool, uint256 c, uint256 d, uint256 lt18, uint256 floorHf)
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 ownLt = s.eMode != 0
+            ? pool.getEModeCategoryData(s.eMode).liquidationThreshold
+            : (pool.getConfiguration(address(s.coll)) >> 16) & 0xFFFF;
+        return Units.sat(c * lt18, floorHf * d) / (ownLt * 1e14);
     }
 
     /// @dev Collateral that sells for `base` after slippage `slip`, rounded up.
