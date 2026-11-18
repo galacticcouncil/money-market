@@ -4,6 +4,7 @@ import {
   rateStrategyDOT,
   rateStrategyDOT275,
   rateStrategyETH,
+  rateStrategySOL,
   rateStrategyPRIME,
   rateStrategyStables,
   rateStrategyStables80,
@@ -287,7 +288,7 @@ export const strategyApyUSD: IReserveParams = {
 
 // GIGASOL reserve configurations
 export const strategySOL: IReserveParams = {
-  strategy: rateStrategyDOT,
+  strategy: rateStrategySOL,
   baseLTVAsCollateral: "7000",
   liquidationThreshold: "7500",
   liquidationBonus: "10700",

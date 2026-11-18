@@ -81,6 +81,22 @@ export const rateStrategyETH: IInterestRateStrategyParams = {
   optimalStableToTotalDebtRatio: parseUnits("0.2", 27).toString(),
 };
 
+// SOL: 0 % base, 4.5 % slope1, 49.5 % slope2, 85 % optimal usage (max 54 %), sized to keep the
+// borrow rate under the jitoSOL staking APY (4.82 % at the time) up to the kink. Replaces the
+// original DOT strategy SOL launched on.
+export const rateStrategySOL: IInterestRateStrategyParams = {
+  name: "rateStrategySOL",
+  optimalUsageRatio: parseUnits("0.85", 27).toString(),
+  baseVariableBorrowRate: "0",
+  variableRateSlope1: parseUnits("0.045", 27).toString(),
+  variableRateSlope2: parseUnits("0.495", 27).toString(),
+  stableRateSlope1: parseUnits("0.07", 27).toString(),
+  stableRateSlope2: parseUnits("3", 27).toString(),
+  baseStableRateOffset: parseUnits("0.02", 27).toString(),
+  stableRateExcessOffset: parseUnits("0.05", 27).toString(),
+  optimalStableToTotalDebtRatio: parseUnits("0.2", 27).toString(),
+};
+
 export const rateStrategyPRIME: IInterestRateStrategyParams = {
   name: "rateStrategyPRIME",
   optimalUsageRatio: parseUnits("0.75", 27).toString(),
