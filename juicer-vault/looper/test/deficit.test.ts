@@ -49,6 +49,8 @@ function keeper(c: Chain, name: 'k0' | 'k1', index: number) {
       deficitStop: () => v.stop, mainDebt: () => `L:${address}`, yieldAccounting: () => `A:${address}`,
       activePosition: () => { assert.equal(tag, 'L'); return [DEBT, DEBT, 0n]; },
       activeFunds: () => 0n, pendingSourceAccounting: () => v.unallocated,
+      hollar: () => 'H', hollarDebtToken: () => 'D', principalEquity: () => 0n, scaledBalanceOf: () => 0n, balanceOf: () => 0n,
+      getReserveNormalizedVariableDebt: () => 10n ** 27n,
       sourceValue: () => { assert.equal(tag, 'A'); return 0n; },
       // debt less active cash, plus the protocol fee on interest that only yield can still pay
       requiredSourceBacking: () => { assert.equal(tag, 'A'); return DEBT + v.grossUp; },

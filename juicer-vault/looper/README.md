@@ -57,6 +57,8 @@ read source HF (effectiveHealthFactor), repayment targets, route pause and emerg
   low HF                                  -> schedule safety repayment first
 read each vault's pause, queue cursors and Main repayment target
   waiting request eligible by chain timestamp -> startUnwinds(8)
+  loop's HOLLAR discount unsettled by LOOP_DISCOUNT_SETTLE_BPS
+    of its principal, duty slot                 -> rebalanceUserDiscountPercent(loop) on the debt token
   source or vault deficit above DEFICIT_STOP_BPS -> no pokeBorrow; setDeficitStop(true), any operator
   below DEFICIT_RESUME_BPS, flag set, duty slot   -> setDeficitStop(false)
   source safety target                        -> pokeRepay() on the router
@@ -113,6 +115,17 @@ unwind nor harvests, obtains treasury money or widens slippage. see
 [yield funding and recovery](../docs/main-debt-servicing.md).
 urgent-interest alerts are emitted once per episode and reset after interest
 falls below the configured urgent threshold.
+
+The loop's HOLLAR discount is burned only when its debt is touched, and at its
+target the loop borrows weeks apart. Until then Aave counts the debt at the full
+rate, so `totalEquity()`, both deficits, the harvest gate and the health factor
+that triggers the next top-up all miss the discount: at launch rates the loop
+earns about three times what the contracts see. The duty operator therefore calls
+the debt token's `rebalanceUserDiscountPercent(loop)`, which is open to anyone,
+once the unsettled amount (the scaled balance at the reserve index less the live
+balance) reaches `LOOP_DISCOUNT_SETTLE_BPS` of loop principal (default 5) and
+`LOOP_DISCOUNT_SETTLE_MIN_HOLLAR_CENTS` (default 100 cents). It runs before the
+deficit and harvest checks, not under an emergency freeze, and moves no funds.
 
 Settled collateral waits for its owner by default, who claims it with `claim(id,
 receiver, amount)` (an exact amount, or `type(uint256).max` for all settled) and can
@@ -310,6 +323,8 @@ Default scheduling values (operator examples, not approved production policies):
 | `HARVEST_MAX_GAS_BPS` | `10` | When sponsored gas is false, gas budget up to 0.1% of gross converted yield |
 | `HARVEST_MAX_DELAY_SECONDS` | `86400` | Bypass economic delay after a day, when a safe harvest exists |
 | `MAIN_INTEREST_URGENT_USD8` | `1000000000` | Urgent Main interest threshold; HOLLAR valued at par |
+| `LOOP_DISCOUNT_SETTLE_BPS` | `5` | Burn the loop's accrued HOLLAR discount once it reaches this many bps of loop principal, about every 18 hours at launch rates; `0` turns it off |
+| `LOOP_DISCOUNT_SETTLE_MIN_HOLLAR_CENTS` | `100` | Smallest unsettled discount worth a transaction (1 HOLLAR) |
 | `QUOTE_TTL_SECONDS` | `60` | Quote deadline, must fit the controller deployment |
 | `QUOTE_DRIFT_BPS` | `2` | Additional tolerance from observed output; cannot widen oracle floors |
 | `QUOTE_SIZE_STEPS` | `6` | Bounded size samples, including when a large slice already succeeds |

@@ -107,6 +107,7 @@ function keeper(c: Chain, name: 'k0' | 'k1', index: number) {
       unwindEligibleAt: () => c.unwindEligibleAt, deleverTarget: () => 0n, reinvestAssets: () => 0n,
       mainDebt: () => VAULT, pendingSourceAccounting: () => false, deficitStop: () => false, yieldAccounting: () => VAULT,
       activePosition: () => [0n, 0n, 0n], activeFunds: () => 0n, sourceValue: () => 0n, requiredSourceBacking: () => 0n,
+      hollarDebtToken: () => VAULT, principalEquity: () => 0n, scaledBalanceOf: () => 0n, getReserveNormalizedVariableDebt: () => 10n ** 27n,
     };
     if (!(fn in views)) throw new Error(`no view ${fn}`);
     return views[fn]();

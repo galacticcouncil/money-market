@@ -67,6 +67,9 @@ export const CONFIG = {
   MAIN_SERVICE_MIN_HOLLAR: BigInt(integer('MAIN_SERVICE_MIN_HOLLAR_CENTS', 100)) * 10n ** 16n,
   MAIN_SERVICE_MAX_GAS_BPS: BigInt(integer('MAIN_SERVICE_MAX_GAS_BPS', 100, 1, 10000)),
   MAIN_SERVICE_RETRY_SECONDS: BigInt(integer('MAIN_SERVICE_RETRY_SECONDS', 300)),
+  // the loop's unsettled HOLLAR discount is burned once it reaches this share of loop principal; 0 turns it off
+  LOOP_DISCOUNT_SETTLE_BPS: BigInt(integer('LOOP_DISCOUNT_SETTLE_BPS', 5, 0, 10_000)),
+  LOOP_DISCOUNT_SETTLE_MIN_HOLLAR: BigInt(integer('LOOP_DISCOUNT_SETTLE_MIN_HOLLAR_CENTS', 100, 0)) * 10n ** 16n,
   OPERATOR_COUNT: operatorCount,
   OPERATOR_INDEX: integer('OPERATOR_INDEX', 0, 0, operatorCount - 1),
   OPERATOR_SLOT_SECONDS: slotSeconds,
