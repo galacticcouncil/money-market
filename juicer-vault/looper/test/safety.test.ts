@@ -24,6 +24,9 @@ async function cycle(overrides: Record<string, bigint | boolean | string> = {}, 
     pendingUnwindOf: 0n, harvestable: false, negativeCarryBps: 0n, deficitStop: false, yieldAccounting: OTHER,
     activePosition: [0n, 0n, 0n] as any, activeFunds: 0n, equityOf: 0n, sourceValue: 0n, requiredSourceBacking: 0n,
     sourceFees: [0n, 0n] as any,
+    // the loop's discount: nothing unsettled
+    hollar: OTHER, hollarDebtToken: OTHER, principalEquity: 0n, scaledBalanceOf: 0n, balanceOf: 0n,
+    getReserveNormalizedVariableDebt: 10n ** 27n,
     // router mode, nothing in flight
     intentTtl: 0 as any, pendingIntent: [0n, 0n, 0, false, 0n, 0n, 0n, 0n, 0n] as any,
     ...overrides,
@@ -157,6 +160,22 @@ test('unallocated source proceeds are queue work and still settle, but not while
     `${LOOP}:pokeRepay`, `${VAULT}:pokeSettle`,
   ]);
   assert.deepEqual(await cycle({ pendingSourceAccounting: true, vaultPaused: true }), []);
+});
+test('the loop discount is settled on duty, before the harvest it unlocks, and not under an emergency', async () => {
+  const u = 10n ** 18n;
+  // 40 of discount on 100,000 of principal is 4 bps, 60 is 6: the default asks for 5
+  const unsettled = (pending: bigint) => ({principalEquity: 100_000n * u, scaledBalanceOf: 300_000n * u, balanceOf: (300_000n - pending) * u});
+  assert.deepEqual(await cycle({...unsettled(40n), harvestable: true}, false, true), [`${OTHER}:harvest`, `${VAULT}:rebalance`]);
+  assert.deepEqual(await cycle({...unsettled(60n), harvestable: true}, false, true), [
+    `${OTHER}:rebalanceUserDiscountPercent`, `${OTHER}:harvest`, `${VAULT}:rebalance`,
+  ]);
+  assert.deepEqual(await cycle({...unsettled(60n), paused: true}), [`${OTHER}:rebalanceUserDiscountPercent`]);
+  assert.deepEqual(await cycle({...unsettled(60n), emergencyPaused: true}), []);
+  const [count, index] = [CONFIG.OPERATOR_COUNT, CONFIG.OPERATOR_INDEX];
+  CONFIG.OPERATOR_COUNT = 2;
+  CONFIG.OPERATOR_INDEX = 0;
+  try { assert.deepEqual(await cycle(unsettled(60n)), []); }
+  finally { CONFIG.OPERATOR_COUNT = count; CONFIG.OPERATOR_INDEX = index; }
 });
 test('empty harvests do not submit transactions or trigger extra maintenance', async () => {
   assert.deepEqual(await cycle({ harvestable: false }, false, true), []);

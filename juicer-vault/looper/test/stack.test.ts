@@ -12,6 +12,11 @@ test('the shipped stack keeps the code defaults for the deficit stop', () => {
   }
 });
 
+test('the shipped stack keeps the loop discount settlement on', () => {
+  assert.equal(fallback('LOOP_DISCOUNT_SETTLE_BPS'), String(CONFIG.LOOP_DISCOUNT_SETTLE_BPS));
+  assert.equal(BigInt(fallback('LOOP_DISCOUNT_SETTLE_MIN_HOLLAR_CENTS')!) * 10n ** 16n, CONFIG.LOOP_DISCOUNT_SETTLE_MIN_HOLLAR);
+});
+
 test('the shipped stack keeps the routine sync limits', () => {
   for (const name of ['SYNC_EVERY', 'SYNC_MIN_INTERVAL_SECONDS', 'SYNC_PRICE_CHANGE_BPS'] as const) {
     assert.equal(fallback(name), String(CONFIG[name]), name);

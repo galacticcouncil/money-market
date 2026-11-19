@@ -12,6 +12,7 @@ import { CONFIG, ROUNDING_POLICIES } from './config.js';
 import { EXECUTION_ABI, executionQuotes, worthwhileHarvest, operatorTurn, efficientCandidate, type Fill } from './execution-policy.js';
 import { roundingAlert } from './rounding-policy.js';
 import { deficitLevel, deficitStopped, vaultDeficitBps } from './deficit-policy.js';
+import { discountDue, pendingDiscount } from './discount-policy.js';
 import { LatestLog, newestInChunks, type EvidenceLog } from './log-evidence.js';
 import { SYNC_EVIDENCE, feedUpdate, syncDue, type FeedSeen } from './sync-policy.js';
 import { connectSubstrate, type Substrate } from './substrate.js';
@@ -98,6 +99,14 @@ const ACCOUNTING_ABI = parseAbi([
 
 // keepers hold DEPOSIT_GUARDIAN_ROLE for it; deposits revert while it is set
 const DEFICIT_STOP_ABI = parseAbi(['function setDeficitStop(bool stopped)']);
+
+// the HOLLAR debt token and the pool's index for it; the rebalance is open to anyone
+const DISCOUNT_ABI = parseAbi([
+  'function scaledBalanceOf(address user) view returns (uint256)',
+  'function balanceOf(address user) view returns (uint256)',
+  'function rebalanceUserDiscountPercent(address user)',
+  'function getReserveNormalizedVariableDebt(address asset) view returns (uint256)',
+]);
 
 // declared void: the harvestable shares sync() returns say nothing about whether allocation ran
 const SYNC_ABI = parseAbi(['function sync()']);
@@ -306,6 +315,8 @@ export class JuicerLooper {
         console.error(`[ALERT] ${vault}: queue monitor failed; optional risk disabled: ${shortErr(error)}`);
       }
     }
+    // settled first: the deficit and harvest checks below then read the loop's real equity
+    if (turn && !emergency) await this.onTurn(() => this.settleLoopDiscount());
     // any operator sets a vault's deficit stop; clearing it waits for the duty slot and an unfrozen vault
     const deficit = await this.checkDeficits(frozen, turn);
     // one intent in flight per loop, entries and exits alike: nothing new goes out while it is
@@ -433,6 +444,32 @@ export class JuicerLooper {
     ]) as [bigint, bigint];
     if (hollarPrice === 0n || gasPrice === 0n) throw new Error('missing service economic price');
     return gasWei * gasPrice * 10_000n <= amount * hollarPrice * CONFIG.MAIN_SERVICE_MAX_GAS_BPS;
+  }
+
+  // aave values the loop's debt before its HOLLAR discount is burned, and only the loop's own borrows and
+  // repayments burn it. at target those are weeks apart, and equity, deficits and harvests lag by the difference
+  private async settleLoopDiscount(): Promise<boolean> {
+    if (CONFIG.LOOP_DISCOUNT_SETTLE_BPS === 0n || !this.vaults.length) return false;
+    try {
+      const [hollar, debtToken, principal] = await Promise.all([
+        this.read(ICE_ABI, this.subLoop, 'hollar'),
+        this.read([view('hollarDebtToken', 'address')], this.vaults[0], 'hollarDebtToken'),
+        this.read([view('principalEquity', 'uint256')], this.subLoop, 'principalEquity'),
+      ]) as [Address, Address, bigint];
+      const [scaled, balance, index] = await Promise.all([
+        this.read(DISCOUNT_ABI, debtToken, 'scaledBalanceOf', [this.subLoop]),
+        this.read(DISCOUNT_ABI, debtToken, 'balanceOf', [this.subLoop]),
+        this.read(DISCOUNT_ABI, this.pool, 'getReserveNormalizedVariableDebt', [hollar]),
+      ]) as [bigint, bigint, bigint];
+      this.note('discount');
+      const pending = pendingDiscount(scaled, index, balance);
+      if (!discountDue(pending, principal, CONFIG.LOOP_DISCOUNT_SETTLE_BPS, CONFIG.LOOP_DISCOUNT_SETTLE_MIN_HOLLAR)) return false;
+      console.log(`  loop discount: ${pending} unsettled of principal ${principal}`);
+      return await this.poke(DISCOUNT_ABI, debtToken, 'rebalanceUserDiscountPercent', 'settle loop discount', [this.subLoop]);
+    } catch (error) {
+      this.note('discount', `[ALERT] loop discount unreadable; loop equity may lag its earnings: ${shortErr(error)}`);
+      return false;
+    }
   }
 
   // routine allocation coalesces price updates; safety work is scheduled separately
