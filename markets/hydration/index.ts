@@ -11,6 +11,8 @@ import {
   strategyDOT,
   strategyUSDC,
   strategyUSDT,
+  strategyUSDCwh,
+  strategyUSDTwh,
   strategyVDOT,
   strategyWBTC,
   strategyWETH,
@@ -21,6 +23,8 @@ import {
   strategy3POOL,
   strategyHUSDT,
   strategyHUSDC,
+  strategyHUSDCwh,
+  strategyHUSDTwh,
   strategyHUSDS,
   strategyHUSDe,
   strategyPAXG,
@@ -66,6 +70,8 @@ export const HydrationConfig: IAaveConfiguration = {
   ReservesConfig: {
     USDC: strategyUSDC,
     USDT: strategyUSDT,
+    "USDC.WH": strategyUSDCwh,
+    "USDT.WH": strategyUSDTwh,
     WETH: strategyWETH,
     WBTC: strategyWBTC,
     DOT: strategyDOT,
@@ -77,6 +83,8 @@ export const HydrationConfig: IAaveConfiguration = {
     "3-POOL": strategy3POOL,
     "2-POOL-HUSDT": strategyHUSDT,
     "2-POOL-HUSDC": strategyHUSDC,
+    "2-POOL-HUSDC.WH": strategyHUSDCwh,
+    "2-POOL-HUSDT.WH": strategyHUSDTwh,
     "2-POOL-HUSDS": strategyHUSDS,
     "2-POOL-HUSDE": strategyHUSDe,
     PAXG: strategyPAXG,
@@ -96,6 +104,8 @@ export const HydrationConfig: IAaveConfiguration = {
     [eHydrationNetwork.hydration]: {
       USDC: tokenAddress(22),
       USDT: tokenAddress(10),
+      "USDC.WH": tokenAddress(21),
+      "USDT.WH": tokenAddress(23),
       // WETH: tokenAddress(20),
       WBTC: tokenAddress(19),
       DOT: tokenAddress(5),
@@ -106,6 +116,8 @@ export const HydrationConfig: IAaveConfiguration = {
       "2-POOL-GETH": tokenAddress(4200),
       "3-POOL": tokenAddress(103),
       "2-POOL-HUSDC": tokenAddress(110),
+      "2-POOL-HUSDC.WH": tokenAddress(114),
+      "2-POOL-HUSDT.WH": tokenAddress(115),
       "2-POOL-HUSDT": tokenAddress(111),
       "2-POOL-HUSDS": tokenAddress(112),
       "2-POOL-HUSDE": tokenAddress(113),
@@ -167,9 +179,13 @@ export const HydrationConfig: IAaveConfiguration = {
       assets: [
         "USDC",
         "USDT",
+        "USDC.WH",
+        "USDT.WH",
         "3-POOL",
         "2-POOL-HUSDT",
         "2-POOL-HUSDC",
+        "2-POOL-HUSDC.WH",
+        "2-POOL-HUSDT.WH",
         "2-POOL-HUSDS",
         "2-POOL-HUSDE",
       ],
@@ -211,6 +227,8 @@ export const HydrationConfig: IAaveConfiguration = {
     [eHydrationNetwork.hydration]: {
       USDC: "0x17711BE5D63B2Fe8A2C379725DE720773158b954",
       USDT: "0x8b0DDfB8F56690eAde9ECa23a7d90E153C268d5B",
+      "USDC.WH": "0x17711BE5D63B2Fe8A2C379725DE720773158b954", // same feed as native USDC
+      "USDT.WH": "0x8b0DDfB8F56690eAde9ECa23a7d90E153C268d5B", // same feed as native USDT
       WETH: "0x8aEAE0bBf623B0E70732086B8D48A6090C311596",
       WBTC: "0xeDD9A7C47A9F91a0F2db93978A88844167B4a04f",
       DOT: "0xFBCa0A6dC5B74C042DF23025D99ef0F1fcAC6702",
@@ -226,6 +244,8 @@ export const HydrationConfig: IAaveConfiguration = {
       "3-POOL": "0xFbD6F083b9e8683fe62B21cF5849f362238610AF",
       "2-POOL-HUSDC": "0x00000102737461626c657377000000de0000006e", // HOLLAR(222) / 2-POOL-HUSDC(110) 10 min. stablesw
       "2-POOL-HUSDT": "0x00000102737461626c657377000000de0000006f", // HOLLAR(222) / 2-POOL-HUSDT(111) 10 min. stablesw
+      "2-POOL-HUSDC.WH": "0x00000102737461626c657377000000de00000072", // HOLLAR(222) / 2-POOL-HUSDC (Wormhole)(114) 10 min. stablesw
+      "2-POOL-HUSDT.WH": "0x00000102737461626c657377000000de00000073", // HOLLAR(222) / 2-POOL-HUSDT (Wormhole)(115) 10 min. stablesw
       "2-POOL-HUSDS": "0x00000102737461626c657377000000de00000070", // HOLLAR(222) / 2-POOL-HUSDS(112) 10 min. stablesw
       "2-POOL-HUSDE": "0x00000102737461626c657377000000de00000071", // HOLLAR(222) / 2-POOL-HUSDe(113) 10 min. stablesw
       PAXG: "0x8fB61B8E81C2f17695F14A136C98b0C4013bc105",

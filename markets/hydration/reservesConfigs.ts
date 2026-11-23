@@ -33,6 +33,15 @@ export const strategyUSDC: IReserveParams = {
 
 export const strategyUSDT = strategyUSDC;
 
+// Wormhole NTT USDC (21) / USDT (23): native stables' params, own caps.
+export const strategyUSDCwh: IReserveParams = {
+  ...strategyUSDC,
+  supplyCap: "2000000",
+  borrowCap: "1000000",
+};
+
+export const strategyUSDTwh = strategyUSDCwh;
+
 export const strategyWETH: IReserveParams = {
   strategy: rateStrategyVolatileOne,
   baseLTVAsCollateral: "7000",
@@ -201,6 +210,15 @@ export const strategyHUSDC: IReserveParams = {
   ...strategyHtoken,
   supplyCap: "8,000,000".replace(/,/g, ""),
 };
+
+// Wormhole H-pools: HOLLAR / aUSDC.wh (114) and HOLLAR / aUSDT.wh (115). Same as the
+// Polkadot H-pools at their live cap.
+export const strategyHUSDCwh: IReserveParams = {
+  ...strategyHtoken,
+  supplyCap: "4,000,000".replace(/,/g, ""),
+};
+
+export const strategyHUSDTwh = strategyHUSDCwh;
 
 export const strategyHUSDS: IReserveParams = {
   ...strategyHtoken,
