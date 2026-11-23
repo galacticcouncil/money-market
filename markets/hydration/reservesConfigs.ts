@@ -381,6 +381,46 @@ export const strategyGSOL: IReserveParams = {
   borrowableIsolation: false,
 };
 
+// wstETH (1000809) and jitoSOL (40): the LST legs of the GETH / GSOL stableswap pools, listed as
+// vDOT is listed next to GDOT. wstETH params are GETH's shifted by the vDOT-vs-GDOT deltas
+// (LTV -9, LT -5, bonus +0.5 pt); jitoSOL takes vDOT's own 60/70/8 %; caps are the GETH / GSOL supply caps scaled by the
+// vDOT/GDOT cap ratio in USD terms (11.3 %), borrow cap 5 % of supply cap like vDOT.
+export const strategyWSTETH: IReserveParams = {
+  strategy: rateStrategyDOT,
+  baseLTVAsCollateral: "7100",
+  liquidationThreshold: "8000",
+  liquidationBonus: "10750",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: true,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "18",
+  aTokenImpl: eContractid.AToken,
+  reserveFactor, // 20%
+  supplyCap: "740",
+  borrowCap: "37",
+  debtCeiling,
+  borrowableIsolation: false,
+};
+
+export const strategyJITOSOL: IReserveParams = {
+  strategy: rateStrategyDOT,
+  baseLTVAsCollateral: "6000", // = vDOT (user: GSOL-relative deltas gave 51/65, too low)
+  liquidationThreshold: "7000",
+  liquidationBonus: "10800",
+  liquidationProtocolFee: "1000",
+  borrowingEnabled: true,
+  stableBorrowRateEnabled: false,
+  flashLoanEnabled: false,
+  reserveDecimals: "9",
+  aTokenImpl: eContractid.AToken,
+  reserveFactor, // 20%
+  supplyCap: "8800",
+  borrowCap: "440",
+  debtCeiling,
+  borrowableIsolation: false,
+};
+
 // HEURC reserve configurations
 export const strategyEURC: IReserveParams = {
   strategy: rateStrategyStables80,
