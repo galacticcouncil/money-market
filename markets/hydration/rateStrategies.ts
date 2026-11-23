@@ -66,14 +66,15 @@ export const rateStrategyDOT275: IInterestRateStrategyParams = {
   optimalStableToTotalDebtRatio: parseUnits("0.2", 27).toString(),
 };
 
-// ETH: 0 % base, 2.2 % slope1, 8.2 % slope2, 85 % optimal usage (max 10.4 %). Replaces the
-// original DOT strategy (0 / 7 / 300 @ 75 %) that ETH launched on.
+// ETH: 0 % base, 2.2 % slope1, 49.5 % slope2, 85 % optimal usage (max 51.7 %). Replaces the
+// original DOT strategy (0 / 7 / 300 @ 75 %) that ETH launched on. Slope2 matches SOL's so a
+// reserve above the kink prices borrowers out quickly.
 export const rateStrategyETH: IInterestRateStrategyParams = {
   name: "rateStrategyETH",
   optimalUsageRatio: parseUnits("0.85", 27).toString(),
   baseVariableBorrowRate: "0",
   variableRateSlope1: parseUnits("0.022", 27).toString(),
-  variableRateSlope2: parseUnits("0.082", 27).toString(),
+  variableRateSlope2: parseUnits("0.495", 27).toString(),
   stableRateSlope1: parseUnits("0.07", 27).toString(),
   stableRateSlope2: parseUnits("3", 27).toString(),
   baseStableRateOffset: parseUnits("0.02", 27).toString(),

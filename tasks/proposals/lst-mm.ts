@@ -12,7 +12,7 @@
 // DOT 85/92/4.5 -> 90/95/3, ETH 80/90/4.5 -> 90/95/3, SOL 80/85/4.5 -> 85/90/3.
 //
 // The ETH and SOL reserves also move off the original DOT rate strategy (0 / 7 / 300 @ 75 %):
-//   ETH -> rateStrategyETH  0 / 2.2 / 8.2 @ 85 % (max 10.4 %)
+//   ETH -> rateStrategyETH  0 / 2.2 / 49.5 @ 85 % (max 51.7 %)
 //   SOL -> rateStrategySOL  0 / 4.5 / 49.5 @ 85 % (max 54 %), under the jitoSOL staking APY up to the kink
 // review-rate-strategies reuses deployed `ReserveStrategy-<name>` artifacts when their on-chain params
 // match, otherwise deploys them from `deployer` (whitelisted deployer key on mainnet).
