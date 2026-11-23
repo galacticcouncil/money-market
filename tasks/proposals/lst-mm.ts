@@ -1,6 +1,6 @@
 // @ts-nocheck
 //
-// wstETH + jitoSOL money-market listing + e-mode re-parameterisation (Nov 2026, Root track).
+// wstETH + jitoSOL money-market listing + e-mode re-parameterisation + ETH/SOL rate strategies (Nov 2026, Root track).
 //
 // wstETH (1000809, 18 dec) and jitoSOL (40, 9 dec) are the LST legs of the 2-Pool-GETH (4200)
 // and 2-Pool-GSOL (90001) stableswap pools. This lists both in the main market the way vDOT is
@@ -10,6 +10,12 @@
 // joins its e-mode: wstETH -> ETH (3), jitoSOL -> SOL correlated (4). The three LST e-mode
 // categories are re-parameterised in the same batch (markets/hydration/index.ts EModes):
 // DOT 85/92/4.5 -> 90/95/3, ETH 80/90/4.5 -> 90/95/3, SOL 80/85/4.5 -> 85/90/3.
+//
+// The ETH and SOL reserves also move off the original DOT rate strategy (0 / 7 / 300 @ 75 %):
+//   ETH -> rateStrategyETH  0 / 2.2 / 8.2 @ 85 % (max 10.4 %)
+//   SOL -> rateStrategySOL  0 / 4.5 / 49.5 @ 85 % (max 54 %), under the jitoSOL staking APY up to the kink
+// review-rate-strategies reuses deployed `ReserveStrategy-<name>` artifacts when their on-chain params
+// match, otherwise deploys them from `deployer` (whitelisted deployer key on mainnet).
 //
 // Pricing mirrors vDOT (fair-value ratio oracle x base USD feed): USDOracleAdapter(wstETH/stETH
 // CheckedOracle x DIA ETH/USD) and USDOracleAdapter(jitoSOL/SOL CheckedOracle x DIA SOL/USD) — the
@@ -21,7 +27,7 @@
 // One enactment batch:
 //   1. aave manager: setAssetSources(both), initReserves(wstETH), initReserves(jitoSOL),
 //      configureReserves x2, setLiquidationProtocolFee x2, setEModeCategory x3 (DOT/ETH/SOL),
-//      setAssetEModeCategory x2
+//      setAssetEModeCategory x2, setReserveInterestRateStrategyAddress x2 (ETH, SOL)
 //   2. root: assetRegistry.register awstETH (1014) / ajitoSOL (1015) at the predicted aToken
 //      addresses, multiTransactionPayment.addCurrency for both
 //   3. root: routes HDX/WETH -> aToken (fee pricing) and a liquidation route between each new
@@ -147,7 +153,7 @@ const fromOmnipool = (g) => ({
   ...Object.fromEntries(OMNIPOOL_RESERVES.map((r) => [r, [omni(g, r)]])),
 });
 
-task(`lst-mm`, `wstETH + jitoSOL money-market listing (ETH / SOL e-modes) + aToken registration + routes + ICE routing`).setAction(
+task(`lst-mm`, `wstETH + jitoSOL listing + ETH/SOL e-modes + ETH/SOL rate strategies + aToken registration + routes + ICE routing`).setAction(
   async function (_, hre) {
     const { utils, BigNumber } = hre.ethers;
     const network = FORK ? FORK : hre.network.name;
@@ -219,6 +225,8 @@ task(`lst-mm`, `wstETH + jitoSOL money-market listing (ETH / SOL e-modes) + aTok
       );
       console.log(`${symbol} -> e-mode ${eMode.id} (${eMode.label})`);
     }
+    // ETH / SOL rate strategies (deploys when no matching artifact exists)
+    await hre.run("review-rate-strategies", { deploy: true, fix: true, batch: true, only: "ETH,SOL" });
     // gas: never below the 1M house default. review-e-mode hardcodes 300k for setEModeCategory, which
     // ran out of gas on the fork (the call loops over all 34 reserves; ~331k needed) — and
     // dispatchAsAaveManager swallows the revert, so the ref would pass with the e-modes unchanged.
