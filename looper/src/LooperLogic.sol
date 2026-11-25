@@ -331,7 +331,8 @@ library LooperLogic {
         uint256 slip = s.slippageBps;
         uint256 minProceeds = s.minIntentDebt;
         // Above stepHf, read with the same 1 bps haircut LT, the cap never crosses it, even if that stalls; at or
-        // under it, emergency slivers that each raise HF.
+        // under it, emergency slivers that each raise HF. Those can stop just above stepHf with no room for a minimum
+        // sliver: the close then stalls TailUnfunded until a small price rise or a top-up, then `resume`.
         uint256 stepHf = s.stepHf;
         uint256 cap = _cap(
             s, pool, c, d, lt18, pC, hf > stepHf ? stepHf : Math.max(Units.sat(hf, EMERGENCY_STEP), EMERGENCY_FLOOR)
@@ -646,6 +647,8 @@ library LooperLogic {
     }
 
     /// @dev The eMode category's price source when it has one, the Aave oracle per asset otherwise.
+    /// Known gap: the category price stays in use after governance moves a leg out of the category, where Aave
+    /// switches to the leg's own price. Latent while no Hydration eMode category sets a price source.
     function _prices(State storage s, IAavePool pool) internal view returns (uint256 pC, uint256 pD) {
         IAaveOracle oracle = IAaveOracle(IPoolAddressesProvider(pool.ADDRESSES_PROVIDER()).getPriceOracle());
         uint8 eMode = s.eMode;
