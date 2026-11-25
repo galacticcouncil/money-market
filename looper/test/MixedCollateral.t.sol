@@ -153,4 +153,27 @@ contract MixedCollateralTest is Fixture {
         assertTrue(pos.isClosed());
         assertGt(prime.balanceOf(alice), before, "collateral returned");
     }
+
+    function test_effective_hf_should_count_escrow_at_the_own_lt_when_a_gift_stays_collateral() public {
+        LooperPosition high = open(alice, DEPOSIT, 3e18);
+        ramp(high);
+        giftPausedDot(high, 500e10, 8_500, 9_000);
+        uint256 highBefore = hfOf(high);
+        vm.prank(alice);
+        high.close();
+        uint256 highShown = high.effectiveHealthFactor();
+
+        pool.setFlags(address(dot), false, false, true, false); // unpause DOT so the next gift can land
+        LooperPosition low = open(bob, DEPOSIT, 3e18);
+        ramp(low);
+        giftPausedDot(low, 500e10, 3_000, 4_000);
+        uint256 lowBefore = hfOf(low);
+        vm.prank(bob);
+        low.close();
+        uint256 lowShown = low.effectiveHealthFactor();
+
+        assertTrue(hasPending(high) && hasPending(low), "both slivers in flight");
+        assertApproxEqRel(highShown, highBefore, 0.001e18, "LT 90% gift: hf before the sliver left");
+        assertApproxEqRel(lowShown, lowBefore, 0.001e18, "LT 40% gift: hf before the sliver left");
+    }
 }

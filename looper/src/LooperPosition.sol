@@ -254,7 +254,7 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
         return LooperLogic.aaveLeverage(pool);
     }
 
-    /// @notice Aave HF with an in-flight exit sliver counted back as collateral.
+    /// @notice Aave HF with an in-flight exit sliver counted back as collateral at the position's own LT.
     function effectiveHealthFactor() external view returns (uint256) {
         return LooperLogic.effectiveHealthFactor(s, pool);
     }

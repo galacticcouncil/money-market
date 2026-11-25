@@ -239,7 +239,9 @@ library LooperLogic {
         if (p.kind != P.Kind.Exit || d == 0 || _outDelta(s, pool, p) >= p.reconcileOut) return hf;
         (uint256 pC,) = _prices(s, pool);
         uint256 escrow = Units.sat(p.amountIn, _inDelta(s, pool, p));
-        return Math.mulDiv(c + Units.toBase(escrow, pC, s.decC, Math.Rounding.Down), lt * 1e14, d);
+        // the sliver comes back as own collateral, so it counts at the own LT, not the blended one
+        (, uint256 own) = _lts(s, pool, lt * 1e14);
+        return (c * lt * 1e14 + Units.toBase(escrow, pC, s.decC, Math.Rounding.Down) * own) / d;
     }
 
     function nav(State storage s, IAavePool pool) public view returns (uint256) {
@@ -326,8 +328,8 @@ library LooperLogic {
         uint256 hf = d == 0 ? type(uint256).max : Math.mulDiv(c, blended, d);
         uint256 slip = s.slippageBps;
         uint256 minProceeds = s.minIntentDebt;
-        // Above stepHf the cap never crosses it, even if that stalls; at or under it, emergency slivers that each
-        // raise HF.
+        // Above stepHf, read with the same 1 bps haircut LT, the cap never crosses it, even if that stalls; at or
+        // under it, emergency slivers that each raise HF.
         uint256 stepHf = s.stepHf;
         uint256 cap = _cap(
             s, pool, c, d, lt18, pC, hf > stepHf ? stepHf : Math.max(Units.sat(hf, EMERGENCY_STEP), EMERGENCY_FLOOR)
