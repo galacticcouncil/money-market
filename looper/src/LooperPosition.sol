@@ -19,7 +19,7 @@ import {Dispatch} from "./lib/Dispatch.sol";
 /// and it runs the next rung. Storage and entry points only; the logic lives in `LooperLogic`.
 /// The clone is also an ERC-4337 account: the holder, or the EntryPoint with the holder's signature, can
 /// `execute` any EVM call from it, except into the account itself, the dispatch precompile, the pool and the
-/// position's own tokens, and no credit delegation.
+/// position's own tokens, and no approval or credit delegation.
 contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
     error TargetNotAllowed(address target);
     error SelectorNotAllowed(bytes4 selector);
@@ -27,6 +27,12 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
 
     /// @dev Every Aave debt token has it; a delegation would let someone borrow against this position after a sale.
     bytes4 internal constant APPROVE_DELEGATION = bytes4(keccak256("approveDelegation(address,uint256)"));
+    /// @dev An approval outlives a sale too, and HOLLAR even honours one set on the HDX precompile. The holder moves
+    /// a gift out with a plain transfer instead.
+    bytes4 internal constant APPROVE = bytes4(keccak256("approve(address,uint256)"));
+    bytes4 internal constant INCREASE_ALLOWANCE = bytes4(keccak256("increaseAllowance(address,uint256)"));
+    bytes4 internal constant SET_APPROVAL_FOR_ALL = bytes4(keccak256("setApprovalForAll(address,bool)"));
+    bytes4 internal constant PERMIT = bytes4(keccak256("permit(address,address,uint256,uint256,uint8,bytes32,bytes32)"));
 
     IAavePool public immutable pool;
     /// @dev Zero means no EntryPoint: only the holder can execute. Hydration has none today.
@@ -286,7 +292,12 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
 
     function _checkCall(address target, bytes calldata data) internal view {
         _checkTarget(target);
-        if (data.length >= 4 && bytes4(data[:4]) == APPROVE_DELEGATION) revert SelectorNotAllowed(APPROVE_DELEGATION);
+        if (data.length < 4) return;
+        bytes4 sel = bytes4(data[:4]);
+        if (
+            sel == APPROVE_DELEGATION || sel == APPROVE || sel == INCREASE_ALLOWANCE || sel == SET_APPROVAL_FOR_ALL
+                || sel == PERMIT
+        ) revert SelectorNotAllowed(sel);
     }
 
     /// @dev Pool or token calls would move funds behind the ladder's books, and a self-call would pass the
