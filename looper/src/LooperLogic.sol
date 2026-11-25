@@ -525,6 +525,8 @@ library LooperLogic {
 
     /// @dev How much of the input came back since submit, so a refund is not counted as balance and as escrow. Only
     /// cleanup refunds, and only once the deadline passed; before that every inflow is a gift and stays counted.
+    /// Known gap: a liquidation while the input is out hides that much of the refund, so nav and effective HF read
+    /// high by the seized amount (at most the input) until `resume`. The EVM sees no liquidation to correct it.
     function _inDelta(State storage s, IAavePool pool, P.PendingIntent memory p) internal view returns (uint256) {
         if (block.timestamp * 1000 < p.deadline) return 0;
         if (p.kind == P.Kind.Entry) return Units.sat(s.debt.balanceOf(address(this)), p.inSnap);
