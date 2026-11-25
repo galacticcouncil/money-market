@@ -26,6 +26,8 @@ library LooperLogic {
     /// @dev Aave base units of oracle rounding tolerated between two Aave figures.
     uint256 internal constant TOL = 10;
     uint256 internal constant CAP_BPS = 9_000;
+    /// @dev The slippage stays with the position through an NFT sale and prices every rung after it.
+    uint256 internal constant MAX_SLIPPAGE_BPS = 500;
     uint256 internal constant EMERGENCY_STEP = 0.02e18;
     uint256 internal constant EMERGENCY_FLOOR = 1.01e18;
     /// @dev A failed dispatch burns its whole frame; the catch path still needs `CATCH_RESERVE` to record
@@ -182,7 +184,7 @@ library LooperLogic {
 
     function setSlippage(State storage s, uint16 bps) external {
         _tryFeeCurrency(s);
-        if (bps >= BPS) revert P.SlippageTooHigh();
+        if (bps > MAX_SLIPPAGE_BPS) revert P.SlippageTooHigh();
         s.slippageBps = bps;
     }
 
