@@ -306,6 +306,20 @@ task(`wormhole-hpools-launch`, `3-Pool-MRL unwind + Wormhole H-pools + MM listin
     }
     console.log(`re-pointed ${routes.size} routes off pool 105; left as they are (3-Pool-MRL share): ${skipped.join(" ")}`);
 
+    // 8a'. stored routes that reach a Wormhole stable through the dust 4-Pool (100): keep them up to
+    // HOLLAR, then go through the stable's own new pool
+    const DUST_POOL = 100;
+    for (const { pair, route } of stored) {
+      const stable = pair.find((a) => poolOf(a));
+      if (stable === undefined || !route.some((h) => isSs(h, DUST_POOL)) || route.some((h) => isSs(h, MRL_POOL))) continue;
+      const toStable = pair[1] === stable ? route : reverse(route);
+      const at = toStable.findIndex((h) => h.assetOut === HOLLAR);
+      if (at < 0) throw new Error(`route ${pair.join(",")} runs through pool ${DUST_POOL} without a HOLLAR hop: rework it by hand`);
+      const fixed = [...toStable.slice(0, at + 1), ...reverse(toHollar(stable))];
+      put(pair[1] === stable ? pair[0] : pair[1], stable, fixed);
+      console.log(`re-pointed ${pair.join(",")} off dust pool ${DUST_POOL}: ${show(fixed)}`);
+    }
+
     // 8b. liquidation routes for the new shares: share -> HOLLAR, then the tail the Wormhole
     // stables' routes already use from HOLLAR to each reserve
     const tails = new Map([[HOLLAR, []]]);
