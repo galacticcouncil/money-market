@@ -28,15 +28,15 @@
 // aToken addresses are predicted from the PoolConfigurator nonce (+3 per reserve; USDC pool
 // at nonce, USDT pool at nonce + 3; ATOKEN_NONCE overrides).
 //
-// dispatchAsAaveManager and dispatchAsTreasury swallow inner failures, so the dry-run must
-// confirm the events and the treasury balances, not just BatchCompleted.
+// Treasury legs use utility.dispatchAsFallible(Signed(treasury)): a failed leg reverts the whole
+// batch. dispatchAsAaveManager still swallows inner failures, so the dry-run must confirm the
+// evm events, not just BatchCompleted.
 //
 import {
   getApi,
   location,
   generateProposalV2,
   aaveManagerCall,
-  dispatchAsTreasury,
 } from "../../helpers/hydration-proposal.js";
 import {
   ConfigNames,
@@ -162,10 +162,14 @@ task(`wormhole-hpools-launch`, `3-Pool-MRL unwind + Wormhole H-pools + MM listin
       clearBatch();
       return out;
     };
-    const asTreasury = async (call) => await dispatchAsTreasury(call);
+    // treasury legs go through utility.dispatchAsFallible, not dispatcher.dispatchAsTreasury: the
+    // latter swallows the inner error, and a silently failed seed would leave an empty pool whose
+    // share is listed in the money market. With the fallible wrapper any failed treasury leg
+    // reverts the whole batchAll.
+    const asTreasury = async (call) => tx.utility.dispatchAsFallible({ system: { Signed: TREASURY } }, call);
     // MM supply / withdraw as the treasury: the default EVM gas budget of a dispatched call
     // is too small for the health-factor pass over the treasury's collaterals (EvmOutOfGas)
-    const asTreasuryMm = async (call) => await dispatchAsTreasury(tx.dispatcher.dispatchWithExtraGas(call, TREASURY_MM_EXTRA_GAS));
+    const asTreasuryMm = async (call) => await asTreasury(tx.dispatcher.dispatchWithExtraGas(call, TREASURY_MM_EXTRA_GAS));
     const rename = (id, name) => tx.assetRegistry.update(id, name, null, null, null, null, null, null, null);
 
     // ---- 1. treasury unwinds 3-Pool-MRL
