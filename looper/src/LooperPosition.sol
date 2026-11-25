@@ -101,7 +101,7 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
         bytes calldata data
     ) external returns (bytes4) {
         if (msg.sender != address(this) || owner_ != address(this)) revert WrongIntent();
-        LooperLogic.execute(s, intentId, assetIn, amountIn, assetOut, amountOut, data);
+        LooperLogic.execute(s, pool, intentId, assetIn, amountIn, assetOut, amountOut, data);
         return IIntentForward.execute.selector;
     }
 

@@ -171,6 +171,7 @@ library LooperLogic {
             uint256 out = _outDelta(s, pool, p);
             if (out >= p.reconcileOut) {
                 _settle(s, p, true, out);
+                if (p.kind == P.Kind.Exit) _tryRepayCash(s, pool);
                 _attempt(s);
             } else {
                 _settle(s, p, false, 0);
@@ -199,6 +200,7 @@ library LooperLogic {
 
     function execute(
         State storage s,
+        IAavePool pool,
         uint256 intentId,
         address assetIn,
         uint256 amountIn,
@@ -219,6 +221,7 @@ library LooperLogic {
                 || !_prefixOk(intentId, p)
         ) revert P.WrongIntent();
         _settle(s, p, true, amountOut);
+        if (kind == P.Kind.Exit) _tryRepayCash(s, pool);
         _attempt(s);
     }
 
@@ -594,6 +597,15 @@ library LooperLogic {
             uint256 x = Math.min(s.debt.balanceOf(address(this)), s.vDebt.balanceOf(address(this)));
             if (x > 0) _repay(s, pool, x, x);
         }
+    }
+
+    /// @dev Exit proceeds repaid before the next rung, so a rung that reverts cannot roll the repay back. A refused
+    /// repay is left to the rung, which records the stall.
+    function _tryRepayCash(State storage s, IAavePool pool) internal {
+        uint256 x = Math.min(s.debt.balanceOf(address(this)), s.vDebt.balanceOf(address(this)));
+        if (x == 0) return;
+        _approve(s.debt, pool, x);
+        try pool.repay(address(s.debt), x, 2, address(this)) {} catch {}
     }
 
     function _borrow(State storage s, IAavePool pool, uint256 amount) internal {
