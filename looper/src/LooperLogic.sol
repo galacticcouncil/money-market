@@ -586,7 +586,8 @@ library LooperLogic {
             }
         }
         if (s.aColl.scaledBalanceOf(address(this)) > 0 && (cfg >> (2 * own + 1)) & 1 == 0) {
-            pool.setUserUseReserveAsCollateral(address(s.coll), true);
+            // Aave refuses the enable at LTV 0, and a refunded sliver must still be able to leave
+            try pool.setUserUseReserveAsCollateral(address(s.coll), true) {} catch {}
         }
         if (repayCash) {
             uint256 x = Math.min(s.debt.balanceOf(address(this)), s.vDebt.balanceOf(address(this)));
