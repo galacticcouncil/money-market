@@ -112,13 +112,17 @@ const THREE_POOL = 103;
 const PRIME_POOL = 143;
 const APYUSD_POOL = 146;
 const HEURC_POOL = 10044;
-const MRL_POOL = 105;
+const HUSDC_WH_POOL = 114; // 2-Pool-HUSDC (HOLLAR + aUSDC.wh), ref 465
+const HUSDT_WH_POOL = 115; // 2-Pool-HUSDT (HOLLAR + aUSDT.wh), ref 465
+const AUSDC_WH = 1021;
+const AUSDT_WH = 1023;
 const WETH_POOL = 104;
-// HOLLAR-paired shares listed as collateral: H-pools, 2-Pool-PRIME/apyUSD/HEURC/BIL, 3-Pool-MRL
-const HOLLAR_POOLS = [110, 111, 112, 113, PRIME_POOL, APYUSD_POOL, HEURC_POOL, 10055, MRL_POOL];
+// HOLLAR-paired shares listed as collateral: H-pools (incl. the Wormhole 2-Pool-HUSDC/HUSDT from ref 465),
+// 2-Pool-PRIME/apyUSD/HEURC/BIL. 3-Pool-MRL (105) is still a reserve but its pool was destroyed by ref 465: no route possible.
+const HOLLAR_POOLS = [110, 111, 112, 113, HUSDC_WH_POOL, HUSDT_WH_POOL, PRIME_POOL, APYUSD_POOL, HEURC_POOL, 10055];
 // reserves reachable with one Omnipool hop from GETH / GSOL
 const OMNIPOOL_RESERVES = [TBTC, HOLLAR, PAXG, HYPE, SPY, ZEC, NEAR];
-// no route possible: WBTC (frozen, no venue), SIGIL (no venue), jsHOLLAR (no router venue)
+// no route possible: WBTC (frozen, no venue), SIGIL (no venue), jsHOLLAR (no router venue), 3-Pool-MRL (pool destroyed)
 
 const WSTETH_ED = "3244646333550"; // awstETH ED = wstETH ED
 const JITOSOL_ED = "2651"; // ajitoSOL ED = jitoSOL ED
@@ -148,8 +152,8 @@ const fromOmnipool = (g) => ({
   [PRIME]: [omni(g, HOLLAR), ss(PRIME_POOL, HOLLAR, PRIME)],
   [EURC]: [omni(g, HOLLAR), ss(HEURC_POOL, HOLLAR, AEURC), aave(AEURC, EURC)],
   [APYUSD]: [omni(g, HOLLAR), ss(APYUSD_POOL, HOLLAR, APYUSD)],
-  [USDC_WH]: [omni(g, HOLLAR), ss(MRL_POOL, HOLLAR, USDC_WH)],
-  [USDT_WH]: [omni(g, HOLLAR), ss(MRL_POOL, HOLLAR, USDT_WH)],
+  [USDC_WH]: [omni(g, HOLLAR), ss(HUSDC_WH_POOL, HOLLAR, AUSDC_WH), aave(AUSDC_WH, USDC_WH)],
+  [USDT_WH]: [omni(g, HOLLAR), ss(HUSDT_WH_POOL, HOLLAR, AUSDT_WH), aave(AUSDT_WH, USDT_WH)],
   ...Object.fromEntries(HOLLAR_POOLS.map((p) => [p, [omni(g, HOLLAR), ss(p, HOLLAR, p)]])),
   ...Object.fromEntries(OMNIPOOL_RESERVES.map((r) => [r, [omni(g, r)]])),
 });
