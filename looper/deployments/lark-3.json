@@ -2,15 +2,15 @@
   "network": "lark-3",
   "rpc": "https://3.lark.hydration.cloud",
   "chainId": 222222,
-  "commit": "7651f58",
+  "commit": "4895fb0",
   "blocks": [
-    41091,
-    41101
+    53979,
+    53982
   ],
   "addresses": {
-    "LooperFactory": "0xfa456bAF41daB0051E50D0a3a5aF3eFD3431cA2f",
-    "LooperPosition": "0x202df3eDac2775b857ee2f61A3569731E53eC713",
-    "LooperLogic": "0xbd1108369553bfFBAaa1BA5C8D07a8131EB92F10",
+    "LooperFactory": "0xCcDAB1e51C309D8921afC01c565551A90D19C9F8",
+    "LooperPosition": "0x51D94FB04acb83fE23b44758F1eE251395607fEE",
+    "LooperLogic": "0x75C76CF34710bAB47E6D755a049D0Bf023f8D819",
     "AavePool": "0x1b02E051683b5cfaC5929C25E84adb26ECf87B38"
   },
   "assets": {
