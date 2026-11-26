@@ -2,10 +2,10 @@
   "network": "lark-3",
   "rpc": "https://3.lark.hydration.cloud",
   "chainId": 222222,
-  "commit": "1a835f3",
+  "commit": "7651f58",
   "blocks": [
-    79459,
-    79462
+    41091,
+    41101
   ],
   "addresses": {
     "LooperFactory": "0xfa456bAF41daB0051E50D0a3a5aF3eFD3431cA2f",
