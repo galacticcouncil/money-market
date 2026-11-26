@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
@@ -312,6 +313,9 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
                 || target == address(s.vDebt) || target == address(s.feeAsset) || target == _precompile(s.debtAssetId)
                 || target == _precompile(s.aCollAssetId) || target == _precompile(s.feeAssetId)
         ) revert TargetNotAllowed(target);
+        // an approved contract (Pool-Proxy-BIL, the GIGAHDX pool) reads an unlimited allowance and pulls HOLLAR with
+        // it; the position never approves, so any allowance marks one
+        if (IERC20(_precompile(0)).allowance(address(this), target) != 0) revert TargetNotAllowed(target);
     }
 
     function _precompile(uint32 assetId) internal pure returns (address) {

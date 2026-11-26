@@ -2,12 +2,14 @@
 pragma solidity ^0.8.22;
 
 // The account fence refuses every approval, so a seller cannot leave one behind that still works after the
-// NFT sale. Built from the audit PoC (HDX precompile allowance honoured by HOLLAR, child NFT approvals).
+// NFT sale. Built from the audit PoCs (HDX allowance honoured by HOLLAR, child NFT approvals, approved pools).
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC4337} from "solady/accounts/ERC4337.sol";
 import {Fixture} from "./helpers/Fixture.t.sol";
+import {MockApprovedPool} from "./mocks/MockApprovedPool.sol";
+import {MockAssetPrecompile} from "./mocks/MockAssetPrecompile.sol";
 import {ILooperPosition} from "../src/interfaces/ILooperPosition.sol";
 import {LooperPosition} from "../src/LooperPosition.sol";
 
@@ -82,6 +84,24 @@ contract ApprovalFenceTest is Fixture {
         vm.expectRevert(notAllowed(calls[1].data));
         pos.executeBatch(calls);
         assertEq(dot.balanceOf(address(pos)), 100e10, "nothing moved");
+    }
+
+    /// @dev Pool-Proxy-BIL and the GIGAHDX pool are approved contracts, so either pulls HOLLAR with no approve.
+    function test_execute_should_refuse_an_approved_pool_that_could_pull_the_refunded_hollar() public {
+        LooperPosition pos = open(alice, DEPOSIT, 2e18);
+        uint128 id = liveId();
+        warpPastDeadline(pos);
+        pallet.cleanup(id);
+        uint256 cash = hollar.balanceOf(address(pos));
+        assertGt(cash, 0, "entry input refunded");
+
+        MockApprovedPool bil = new MockApprovedPool();
+        MockAssetPrecompile(HDX_PRECOMPILE).setApprovedContract(address(bil), true);
+        bytes memory call = abi.encodeCall(MockApprovedPool.repay, (address(hollar), cash, 2, alice));
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(LooperPosition.TargetNotAllowed.selector, address(bil)));
+        pos.execute(address(bil), 0, call);
+        assertEq(hollar.balanceOf(address(pos)), cash, "refund still in the position");
     }
 
     function test_execute_should_still_move_a_gift_out_with_a_plain_transfer() public {
