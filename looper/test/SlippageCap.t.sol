@@ -36,6 +36,13 @@ contract SlippageCapTest is Fixture {
         factory.open(p, DEPOSIT, FEE_BUDGET);
     }
 
+    function test_open_should_accept_exactly_five_percent_slippage() public {
+        ILooperPosition.Params memory p = defaultParams(3e18);
+        p.slippageBps = 500;
+        LooperPosition pos = openWith(alice, DEPOSIT, p);
+        assertEq(pos.slippageBps(), 500);
+    }
+
     /// @dev The PoC again, at the widest slippage the cap allows: the buyer loses at most 5 % of the live sliver.
     function test_sale_with_a_live_exit_should_cost_the_buyer_at_most_five_percent_of_the_sliver() public {
         LooperPosition pos = open(alice, DEPOSIT, 3e18);

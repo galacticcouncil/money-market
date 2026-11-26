@@ -70,7 +70,7 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
     }
 
     function close() external onlyOwner {
-        LooperLogic.close(s);
+        LooperLogic.close(s, pool);
     }
 
     function cancel(uint128 intentId) external onlyOwner {
@@ -261,14 +261,15 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
     }
 
     /// @notice Aave HF with an in-flight exit sliver counted back as collateral at the position's own LT.
-    /// Reads high like `nav` after a liquidation while the sliver was out, until `resume`.
+    /// Reads high like `nav` once a sliver comes back after a liquidation, until `resume`.
     function effectiveHealthFactor() external view returns (uint256) {
         return LooperLogic.effectiveHealthFactor(s, pool);
     }
 
     /// @notice Equity in collateral units: own aToken + debt-asset cash − debt, plus the part of an in-flight
     /// input that has neither landed as output nor come back. The fee budget is not part of it.
-    /// A liquidation while an exit sliver is out makes it read high by the seized amount until `resume`.
+    /// After a liquidation while an exit sliver is out, it reads high by the seized amount once the sliver comes back,
+    /// until `resume`.
     function nav() public view returns (uint256) {
         return LooperLogic.nav(s, pool);
     }

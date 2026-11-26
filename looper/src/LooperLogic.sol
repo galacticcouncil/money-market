@@ -110,7 +110,7 @@ library LooperLogic {
         s.stalled = P.Stall.None;
         s.closing = false;
         emit P.Deposited(amount);
-        _attempt(s);
+        _attempt(s, pool);
     }
 
     // ── owner ──
@@ -125,7 +125,7 @@ library LooperLogic {
         (uint256 pC,) = _prices(s, pool);
         if (amount >= s.aColl.balanceOf(address(this)) || Units.toBase(amount, pC, s.decC, Math.Rounding.Up) >= equity)
         {
-            _startClose(s);
+            _startClose(s, pool);
             return;
         }
         s.ladder = P.Ladder.Unwind;
@@ -133,14 +133,14 @@ library LooperLogic {
         s.stalled = P.Stall.None;
         s.request = amount;
         emit P.WithdrawRequested(amount);
-        _attempt(s);
+        _attempt(s, pool);
     }
 
-    function close(State storage s) external {
+    function close(State storage s, IAavePool pool) external {
         _tryFeeCurrency(s);
         _requireIdle(s);
         if (isClosed(s) && !_holdsLoose(s)) revert P.NothingToDo();
-        _startClose(s);
+        _startClose(s, pool);
     }
 
     /// @notice Remove the live intent; success of `remove_intent` proves it was this position's.
@@ -171,8 +171,7 @@ library LooperLogic {
             uint256 out = _outDelta(s, pool, p);
             if (out >= p.reconcileOut) {
                 _settle(s, p, true, out);
-                if (p.kind == P.Kind.Exit) _tryRepayCash(s, pool);
-                _attempt(s);
+                _attempt(s, pool);
             } else {
                 _settle(s, p, false, 0);
             }
@@ -180,7 +179,7 @@ library LooperLogic {
         }
         if (s.stalled == P.Stall.None || s.ladder == P.Ladder.None) revert P.NothingToDo();
         s.stalled = P.Stall.None;
-        _attempt(s);
+        _attempt(s, pool);
     }
 
     function setSlippage(State storage s, uint16 bps) external {
@@ -221,8 +220,7 @@ library LooperLogic {
                 || !_prefixOk(intentId, p)
         ) revert P.WrongIntent();
         _settle(s, p, true, amountOut);
-        if (kind == P.Kind.Exit) _tryRepayCash(s, pool);
-        _attempt(s);
+        _attempt(s, pool);
     }
 
     function step(State storage s, IAavePool pool) external returns (P.Stall, uint256) {
@@ -308,13 +306,13 @@ library LooperLogic {
 
     // ── unwind ──
 
-    function _startClose(State storage s) internal {
+    function _startClose(State storage s, IAavePool pool) internal {
         s.ladder = P.Ladder.Unwind;
         s.closing = true;
         s.stalled = P.Stall.None;
         s.request = type(uint256).max;
         emit P.WithdrawRequested(type(uint256).max);
-        _attempt(s);
+        _attempt(s, pool);
     }
 
     function _rungDown(State storage s, IAavePool pool) internal returns (P.Stall, uint256) {
@@ -335,7 +333,7 @@ library LooperLogic {
         uint256 minProceeds = s.minIntentDebt;
         // Above stepHf, read with the same 1 bps haircut LT, the cap never crosses it, even if that stalls; at or
         // under it, emergency slivers that each raise HF. Those can stop just above stepHf with no room for a minimum
-        // sliver: the close then stalls TailUnfunded until a small price rise or a top-up, then `resume`.
+        // sliver: the close then stalls TailUnfunded until a small price rise or debt asset sent in, then `resume`.
         uint256 stepHf = s.stepHf;
         uint256 cap = _cap(
             s, pool, c, d, lt18, pC, hf > stepHf ? stepHf : Math.max(Units.sat(hf, EMERGENCY_STEP), EMERGENCY_FLOOR)
@@ -546,7 +544,8 @@ library LooperLogic {
     /// @dev Exactly one rung attempt through the position's own `step`, so a revert rolls back only the
     /// rung; whatever it raises becomes `stalled`. The reserve keeps enough gas to record the stall and
     /// acknowledge after a failed dispatch burned its frame.
-    function _attempt(State storage s) internal {
+    function _attempt(State storage s, IAavePool pool) internal {
+        if (s.ladder == P.Ladder.Unwind) _tryRepayCash(s, pool);
         uint256 g = gasleft();
         g = g > CATCH_RESERVE ? g - CATCH_RESERVE : 0;
         try P(address(this)).step{gas: g}() returns (P.Stall r, uint256 remainder) {
@@ -599,8 +598,8 @@ library LooperLogic {
         }
     }
 
-    /// @dev Exit proceeds repaid before the next rung, so a rung that reverts cannot roll the repay back. A refused
-    /// repay is left to the rung, which records the stall.
+    /// @dev Cash repaid before an unwind rung, so a rung that reverts cannot roll the repay back. A refused repay is
+    /// left to the rung, which records the stall.
     function _tryRepayCash(State storage s, IAavePool pool) internal {
         uint256 x = Math.min(s.debt.balanceOf(address(this)), s.vDebt.balanceOf(address(this)));
         if (x == 0) return;
