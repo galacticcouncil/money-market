@@ -74,3 +74,32 @@ UNAVAILABLE / fail-closed (route not yet registered at that block). Fork deploye
 2. Governance: `AaveOracle.setAssetSources` for apyUSD + PRIME; stableswap peg-source
    updates for pools 4200 + 90001. Chopsticks dry-run each.
 3. Alerting on `checkPrice()`-vs-feed divergence (>150 bps) and on oracle staleness.
+
+## apyUSD DiscountedCheckedOracle (2026-11)
+
+The apyUSD CheckedOracle never accepted a push: the vault's fair value
+(`convertToAssets(1e18)`) trades at a persistent basis to the apyUSD/HOLLAR pool, so
+every pushed value failed the 100 bps check and the oracle stayed at its initial
+`136723180` from 2026-09-17 on. `DiscountedCheckedOracle` (`contracts/DiscountedCheckedOracle.sol`,
+money-market#91) stores `raw × coefficient` and checks the discounted value against the
+same day-EMA, which closes the gap without widening the band.
+
+| | apyUSD (discounted) |
+|---|---|
+| Artifact | `APYUSD-DISCOUNT-DiscountedCheckedOracle` |
+| Address | `0x69E3409b0A1EEe647971650f594Bce5e8529a0BD` (deployed 2026-11-05) |
+| Initial raw price / coefficient | `145332509` × `98500000` (−1.5 %; owner-settable in `[0.9e8, 1e8]`, takes effect on the next push) |
+| Check feed | `0x…00de0000002e` HOLLAR→apyUSD day-EMA, `maxDiffBps` 100 |
+| Pusher | dedicated Ethereum receiver `0x75f0bc5d807d13073e3f555f0aaf83b538d2b432` (whm `oracle-relay-ethereum` steps 012–015, ownership renounced) |
+| Owner | `POOL_ADMIN` = aave-manager `0xaa7e…aa7e0` |
+
+The original receiver `0x6913…1083` is ownerless and keeps pushing to the old
+CheckedOracle (rejected); the new receiver delivers the same Ethereum VAAs to the
+discounted oracle. Both run side by side.
+
+Consumers move by governance with `tasks/proposals/apyusd-discount-oracle.ts`
+(`AaveOracle.setAssetSources([apyUSD], [discounted])` as the aave manager +
+`stableswap.updateAssetPegSource(146, 46, MMOracle(discounted))`, Root track, same shape
+as ref 412). `markets/hydration/index.ts` now carries the live sources for apyUSD and PRIME.
+The money-market price steps to the oracle's answer at enactment; the pool 146 peg walks
+there at its `maxPegUpdate` (40 perbill/block ≈ 0.16 %/day at ~2.2 s blocks).
