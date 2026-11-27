@@ -54,7 +54,6 @@ interface IAavePool {
         );
     function getConfiguration(address asset) external view returns (uint256);
     function getReserveData(address asset) external view returns (ReserveData memory);
-    function getReservesList() external view returns (address[] memory);
     function getReserveAddressById(uint16 id) external view returns (address);
     function getUserConfiguration(address user) external view returns (uint256);
     function getReserveNormalizedIncome(address asset) external view returns (uint256);

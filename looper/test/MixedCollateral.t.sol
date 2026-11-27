@@ -68,7 +68,7 @@ contract MixedCollateralTest is Fixture {
         }
 
         assertTrue(pos.isClosed());
-        assertEq(aDot.balanceOf(address(pos)), 500e10, "a paused reserve refuses the sweep, the gift stays");
+        assertEq(aDot.balanceOf(address(pos)), 500e10, "the close leaves the gift");
     }
 
     function test_close_should_submit_a_sliver_just_above_step_hf_with_a_tiny_gift() public {

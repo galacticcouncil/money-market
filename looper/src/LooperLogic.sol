@@ -381,7 +381,8 @@ library LooperLogic {
         return (P.Stall.TailUnfunded, Units.fromBase(d - target, pD, s.decD, Math.Rounding.Up));
     }
 
-    /// @dev Pays the current NFT holder, whoever opened the position.
+    /// @dev Pays the current NFT holder, whoever opened the position. Gift aTokens stay for the holder's `execute`:
+    /// walking every reserve does not fit the fill callback.
     function _finish(State storage s, IAavePool pool) internal returns (P.Stall, uint256) {
         address owner = IERC721(s.factory).ownerOf(s.tokenId);
         if (s.closing) {
@@ -391,7 +392,6 @@ library LooperLogic {
             _sweep(s.debt, owner);
             _sweep(s.coll, owner);
             _sweep(s.feeAsset, owner);
-            _sweepForeignATokens(s, pool, owner);
             s.principal = 0;
             s.closing = false;
             s.ladder = P.Ladder.None;
@@ -626,18 +626,6 @@ library LooperLogic {
     function _sweep(IERC20 token, address to) internal {
         uint256 b = token.balanceOf(address(this));
         if (b > 0) token.safeTransfer(to, b);
-    }
-
-    /// @dev Best effort: a gift whose reserve refuses the transfer must not block the close.
-    function _sweepForeignATokens(State storage s, IAavePool pool, address to) internal {
-        address[] memory reserves = pool.getReservesList();
-        for (uint256 i = 0; i < reserves.length; ++i) {
-            address a = pool.getReserveData(reserves[i]).aTokenAddress;
-            if (a == address(s.aColl) || a == address(0)) continue;
-            uint256 b = IERC20(a).balanceOf(address(this));
-            if (b == 0) continue;
-            try IERC20(a).transfer(to, b) {} catch {}
-        }
     }
 
     // ── helpers ──

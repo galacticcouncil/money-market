@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {Fixture} from "./helpers/Fixture.t.sol";
@@ -361,7 +362,7 @@ contract UnwindTest is Fixture {
         assertEq(prime.balanceOf(alice) - before, withdrawn + 5e6);
     }
 
-    function test_normalise_should_disable_a_gifted_foreign_atoken_before_sizing_and_close_should_sweep_it() public {
+    function test_normalise_should_disable_a_gifted_foreign_atoken_and_execute_should_take_it_after_close() public {
         topUp(alice, pos, 100e6);
         giftAToken(dot, aDot, address(pos), 10e10);
         assertTrue(pool.isCollateral(address(pos), address(dot)), "Aave auto-enabled the gift");
@@ -371,8 +372,11 @@ contract UnwindTest is Fixture {
         assertEq(c, pool.toBase(address(pos), address(prime), aPrime.balanceOf(address(pos))));
         ramp(pos);
         _close();
-        assertEq(aDot.balanceOf(alice), 10e10);
         assertTrue(pos.isClosed());
+        assertEq(aDot.balanceOf(address(pos)), 10e10, "the close leaves the gift");
+        vm.prank(alice);
+        pos.execute(address(aDot), 0, abi.encodeCall(IERC20.transfer, (alice, 10e10)));
+        assertEq(aDot.balanceOf(alice), 10e10);
     }
 
     function test_withdraw_should_exit_when_a_gifted_collateral_was_given_zero_ltv() public {
