@@ -4,6 +4,10 @@
 cache
 artifacts
 
+# Foundry build output + deploy records (any foundry project, any depth)
+out/
+broadcast/
+
 node_modules
 dist/
 build/
@@ -18,4 +22,13 @@ coverage
 .coverage_contracts
 typechain
 types
-deployments
+deployments/*
+!deployments/hydration
+!deployments/nice
+!deployments/lark
+!deployments/lark2
+!deployments/gigahdx
+!deployments/bil
+!deployments/robinhood
+# deployments/chopsticks is intentionally ignored — it's a disposable local fork.
+.propeller-bot.secret

@@ -17,8 +17,10 @@ export type eNetwork =
   | eHarmonyNetwork
   | eFantomNetwork
   | eOptimismNetwork
+  | eBaseNetwork
   | eTenderlyNetwork
-  | eBaseNetwork;
+  | eHydrationNetwork
+  | eRobinhoodNetwork;
 
 type eTenderlyNetwork = "tenderly";
 
@@ -75,6 +77,23 @@ export enum eHarmonyNetwork {
   testnet = "harmony-testnet",
 }
 
+export enum eHydrationNetwork {
+  hydration = "hydration",
+  nice = "nice",
+  zombie = "zombie",
+  lark = "lark",
+  lark2 = "lark2",
+  chopsticks = "chopsticks",
+  gigahdx = "gigahdx",
+  bil = "bil",
+}
+
+// Robinhood Chain (Arbitrum Orbit L2, chain id 4663). Not a money market:
+// only the HDX/USD CheckedOracle for the BandHook pools deploys here.
+export enum eRobinhoodNetwork {
+  robinhood = "robinhood",
+}
+
 export enum EthereumNetworkNames {
   kovan = "kovan",
   ropsten = "ropsten",
@@ -116,6 +135,7 @@ export enum eContractid {
   AToken = "AToken",
   MockAToken = "MockAToken",
   DelegationAwareAToken = "DelegationAwareAToken",
+  LockableAToken = "LockableAToken",
   MockStableDebtToken = "MockStableDebtToken",
   MockVariableDebtToken = "MockVariableDebtToken",
   AaveProtocolDataProvider = "AaveProtocolDataProvider",
@@ -528,7 +548,7 @@ export interface IBaseConfiguration {
   OracleQuoteCurrencyAddress: tEthereumAddress;
   ReservesConfig: SymbolMap<IReserveParams>;
   WrappedNativeTokenSymbol: string; // ex: WETH or WMATIC
-  IncentivesConfig: IncentivesConfig;
+  IncentivesConfig?: iParamsPerNetwork<SymbolMap<RewardsConfigInput[]>>;
   EModes: SymbolMap<EMode>;
   L2PoolEnabled?: iParamsPerNetwork<boolean>;
   StkAaveProxy?: iParamsPerNetwork<tEthereumAddress>;
@@ -538,6 +558,8 @@ export interface IBaseConfiguration {
     protocol: number;
   };
   RateStrategies: IStrategy;
+  USDOracleAdapter?: any;
+  OraclesAggregator?: any;
 }
 
 export interface ICommonConfiguration extends IBaseConfiguration {}
@@ -589,19 +611,20 @@ export enum AssetType {
 }
 
 export enum TransferStrategy {
+  PotRewardsStrategy,
   PullRewardsStrategy,
   StakedRewardsStrategy,
 }
 
 export interface RewardsConfigInput {
   emissionPerSecond: BigNumberish;
-  duration: number;
-  asset: string;
-  assetType: AssetType;
-  reward: string;
+  distributionEnd: BigNumberish;
+  reserve: string;
+  incentivizedToken: AssetType;
+  reward: tEthereumAddress;
   rewardOracle: string;
   transferStrategy: TransferStrategy;
-  transferStrategyParams: string;
+  emissionAdmin: tEthereumAddress;
 }
 
 export interface IncentivesConfig {

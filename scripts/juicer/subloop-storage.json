@@ -1,0 +1,586 @@
+{
+  "scope": "2026-09-23 local research baseline, not a deployed implementation. Freeze the actual release layout before launch.",
+  "format": 1,
+  "compiler": "0.8.22+commit.4fc1097e",
+  "source": "src/SubLoop.sol",
+  "contract": "SubLoop",
+  "storage": [
+    {
+      "label": "_initialized",
+      "slot": "0",
+      "offset": 0,
+      "type": {
+        "label": "uint8",
+        "encoding": "inplace",
+        "numberOfBytes": "1"
+      }
+    },
+    {
+      "label": "_initializing",
+      "slot": "0",
+      "offset": 1,
+      "type": {
+        "label": "bool",
+        "encoding": "inplace",
+        "numberOfBytes": "1"
+      }
+    },
+    {
+      "label": "__gap",
+      "slot": "1",
+      "offset": 0,
+      "type": {
+        "label": "uint256[50]",
+        "encoding": "inplace",
+        "numberOfBytes": "1600",
+        "base": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "__gap",
+      "slot": "51",
+      "offset": 0,
+      "type": {
+        "label": "uint256[50]",
+        "encoding": "inplace",
+        "numberOfBytes": "1600",
+        "base": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "_roles",
+      "slot": "101",
+      "offset": 0,
+      "type": {
+        "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+        "encoding": "mapping",
+        "numberOfBytes": "32",
+        "key": {
+          "label": "bytes32",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        },
+        "value": {
+          "label": "struct AccessControlUpgradeable.RoleData",
+          "encoding": "inplace",
+          "numberOfBytes": "64",
+          "members": [
+            {
+              "label": "members",
+              "slot": "0",
+              "offset": 0,
+              "type": {
+                "label": "mapping(address => bool)",
+                "encoding": "mapping",
+                "numberOfBytes": "32",
+                "key": {
+                  "label": "address",
+                  "encoding": "inplace",
+                  "numberOfBytes": "20"
+                },
+                "value": {
+                  "label": "bool",
+                  "encoding": "inplace",
+                  "numberOfBytes": "1"
+                }
+              }
+            },
+            {
+              "label": "adminRole",
+              "slot": "1",
+              "offset": 0,
+              "type": {
+                "label": "bytes32",
+                "encoding": "inplace",
+                "numberOfBytes": "32"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "__gap",
+      "slot": "102",
+      "offset": 0,
+      "type": {
+        "label": "uint256[49]",
+        "encoding": "inplace",
+        "numberOfBytes": "1568",
+        "base": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "__gap",
+      "slot": "151",
+      "offset": 0,
+      "type": {
+        "label": "uint256[50]",
+        "encoding": "inplace",
+        "numberOfBytes": "1600",
+        "base": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "__gap",
+      "slot": "201",
+      "offset": 0,
+      "type": {
+        "label": "uint256[50]",
+        "encoding": "inplace",
+        "numberOfBytes": "1600",
+        "base": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "_paused",
+      "slot": "251",
+      "offset": 0,
+      "type": {
+        "label": "bool",
+        "encoding": "inplace",
+        "numberOfBytes": "1"
+      }
+    },
+    {
+      "label": "__gap",
+      "slot": "252",
+      "offset": 0,
+      "type": {
+        "label": "uint256[49]",
+        "encoding": "inplace",
+        "numberOfBytes": "1568",
+        "base": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "_status",
+      "slot": "301",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "__gap",
+      "slot": "302",
+      "offset": 0,
+      "type": {
+        "label": "uint256[49]",
+        "encoding": "inplace",
+        "numberOfBytes": "1568",
+        "base": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "pool",
+      "slot": "351",
+      "offset": 0,
+      "type": {
+        "label": "contract IAavePool",
+        "encoding": "inplace",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "hollar",
+      "slot": "352",
+      "offset": 0,
+      "type": {
+        "label": "contract IERC20",
+        "encoding": "inplace",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "prime",
+      "slot": "353",
+      "offset": 0,
+      "type": {
+        "label": "contract IERC20",
+        "encoding": "inplace",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "primeAToken",
+      "slot": "354",
+      "offset": 0,
+      "type": {
+        "label": "contract IERC20",
+        "encoding": "inplace",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "harvester",
+      "slot": "355",
+      "offset": 0,
+      "type": {
+        "label": "address",
+        "encoding": "inplace",
+        "numberOfBytes": "20"
+      }
+    },
+    {
+      "label": "targetHf",
+      "slot": "356",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "deployHfFloor",
+      "slot": "357",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "deLeverTrigger",
+      "slot": "358",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "harvestThreshold",
+      "slot": "359",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "deployTranche",
+      "slot": "360",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "unwindTranche",
+      "slot": "361",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "hollarAssetId",
+      "slot": "362",
+      "offset": 0,
+      "type": {
+        "label": "uint32",
+        "encoding": "inplace",
+        "numberOfBytes": "4"
+      }
+    },
+    {
+      "label": "primeAssetId",
+      "slot": "362",
+      "offset": 4,
+      "type": {
+        "label": "uint32",
+        "encoding": "inplace",
+        "numberOfBytes": "4"
+      }
+    },
+    {
+      "label": "aPrimeAssetId",
+      "slot": "362",
+      "offset": 8,
+      "type": {
+        "label": "uint32",
+        "encoding": "inplace",
+        "numberOfBytes": "4"
+      }
+    },
+    {
+      "label": "primePoolId",
+      "slot": "362",
+      "offset": 12,
+      "type": {
+        "label": "uint32",
+        "encoding": "inplace",
+        "numberOfBytes": "4"
+      }
+    },
+    {
+      "label": "dcaSlippagePpm",
+      "slot": "362",
+      "offset": 16,
+      "type": {
+        "label": "uint32",
+        "encoding": "inplace",
+        "numberOfBytes": "4"
+      }
+    },
+    {
+      "label": "_sharesOf",
+      "slot": "363",
+      "offset": 0,
+      "type": {
+        "label": "mapping(address => uint256)",
+        "encoding": "mapping",
+        "numberOfBytes": "32",
+        "key": {
+          "label": "address",
+          "encoding": "inplace",
+          "numberOfBytes": "20"
+        },
+        "value": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "_totalShares",
+      "slot": "364",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "principalEquity",
+      "slot": "365",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "unwindTargetEquity",
+      "slot": "366",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "unwindRequested",
+      "slot": "367",
+      "offset": 0,
+      "type": {
+        "label": "mapping(address => uint256)",
+        "encoding": "mapping",
+        "numberOfBytes": "32",
+        "key": {
+          "label": "address",
+          "encoding": "inplace",
+          "numberOfBytes": "20"
+        },
+        "value": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "freedHollar",
+      "slot": "368",
+      "offset": 0,
+      "type": {
+        "label": "mapping(address => uint256)",
+        "encoding": "mapping",
+        "numberOfBytes": "32",
+        "key": {
+          "label": "address",
+          "encoding": "inplace",
+          "numberOfBytes": "20"
+        },
+        "value": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "reservedFreed",
+      "slot": "369",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "unwindOrderId",
+      "slot": "370",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "_unwinders",
+      "slot": "371",
+      "offset": 0,
+      "type": {
+        "label": "address[]",
+        "encoding": "dynamic_array",
+        "numberOfBytes": "32",
+        "base": {
+          "label": "address",
+          "encoding": "inplace",
+          "numberOfBytes": "20"
+        }
+      }
+    },
+    {
+      "label": "_isUnwinding",
+      "slot": "372",
+      "offset": 0,
+      "type": {
+        "label": "mapping(address => bool)",
+        "encoding": "mapping",
+        "numberOfBytes": "32",
+        "key": {
+          "label": "address",
+          "encoding": "inplace",
+          "numberOfBytes": "20"
+        },
+        "value": {
+          "label": "bool",
+          "encoding": "inplace",
+          "numberOfBytes": "1"
+        }
+      }
+    },
+    {
+      "label": "deleverDebtTarget",
+      "slot": "373",
+      "offset": 0,
+      "type": {
+        "label": "uint256",
+        "encoding": "inplace",
+        "numberOfBytes": "32"
+      }
+    },
+    {
+      "label": "emergencyPaused",
+      "slot": "374",
+      "offset": 0,
+      "type": {
+        "label": "bool",
+        "encoding": "inplace",
+        "numberOfBytes": "1"
+      }
+    },
+    {
+      "label": "unwindYieldAllowance",
+      "slot": "375",
+      "offset": 0,
+      "type": {
+        "label": "mapping(address => uint256)",
+        "encoding": "mapping",
+        "numberOfBytes": "32",
+        "key": {
+          "label": "address",
+          "encoding": "inplace",
+          "numberOfBytes": "20"
+        },
+        "value": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "unwindExecutionCost",
+      "slot": "376",
+      "offset": 0,
+      "type": {
+        "label": "mapping(address => uint256)",
+        "encoding": "mapping",
+        "numberOfBytes": "32",
+        "key": {
+          "label": "address",
+          "encoding": "inplace",
+          "numberOfBytes": "20"
+        },
+        "value": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    },
+    {
+      "label": "__gap",
+      "slot": "377",
+      "offset": 0,
+      "type": {
+        "label": "uint256[37]",
+        "encoding": "inplace",
+        "numberOfBytes": "1184",
+        "base": {
+          "label": "uint256",
+          "encoding": "inplace",
+          "numberOfBytes": "32"
+        }
+      }
+    }
+  ]
+}

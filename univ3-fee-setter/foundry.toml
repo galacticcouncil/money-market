@@ -1,0 +1,18 @@
+# Build and fork-test settings for UniswapV3FeeSetter, the contract that owns
+# the Hydration Uniswap v3 factory. Compiler pair matches bil-vault/.
+
+[profile.default]
+src = "src"
+test = "test"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.22"
+evm_version = "paris"
+optimizer = true
+remappings = [
+  "forge-std/=lib/forge-std/src/",
+  "@uniswap/v3-core/=lib/v3-core/",
+]
+
+[rpc_endpoints]
+hydration = "https://rpc.hydradx.cloud"
