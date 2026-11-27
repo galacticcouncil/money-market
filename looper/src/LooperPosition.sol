@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
@@ -19,7 +20,7 @@ import {Dispatch} from "./lib/Dispatch.sol";
 /// and it runs the next rung. Storage and entry points only; the logic lives in `LooperLogic`.
 /// The clone is also an ERC-4337 account: the holder, or the EntryPoint with the holder's signature, can
 /// `execute` any EVM call from it, except into the account itself, the dispatch precompile, the pool and the
-/// position's own tokens, and no credit delegation.
+/// position's own tokens, and no approval or credit delegation.
 contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
     error TargetNotAllowed(address target);
     error SelectorNotAllowed(bytes4 selector);
@@ -27,6 +28,12 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
 
     /// @dev Every Aave debt token has it; a delegation would let someone borrow against this position after a sale.
     bytes4 internal constant APPROVE_DELEGATION = bytes4(keccak256("approveDelegation(address,uint256)"));
+    /// @dev An approval outlives a sale too, and HOLLAR even honours one set on the HDX precompile. The holder moves
+    /// a gift out with a plain transfer instead.
+    bytes4 internal constant APPROVE = bytes4(keccak256("approve(address,uint256)"));
+    bytes4 internal constant INCREASE_ALLOWANCE = bytes4(keccak256("increaseAllowance(address,uint256)"));
+    bytes4 internal constant SET_APPROVAL_FOR_ALL = bytes4(keccak256("setApprovalForAll(address,bool)"));
+    bytes4 internal constant PERMIT = bytes4(keccak256("permit(address,address,uint256,uint256,uint8,bytes32,bytes32)"));
 
     IAavePool public immutable pool;
     /// @dev Zero means no EntryPoint: only the holder can execute. Hydration has none today.
@@ -64,7 +71,7 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
     }
 
     function close() external onlyOwner {
-        LooperLogic.close(s);
+        LooperLogic.close(s, pool);
     }
 
     function cancel(uint128 intentId) external onlyOwner {
@@ -95,7 +102,7 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
         bytes calldata data
     ) external returns (bytes4) {
         if (msg.sender != address(this) || owner_ != address(this)) revert WrongIntent();
-        LooperLogic.execute(s, intentId, assetIn, amountIn, assetOut, amountOut, data);
+        LooperLogic.execute(s, pool, intentId, assetIn, amountIn, assetOut, amountOut, data);
         return IIntentForward.execute.selector;
     }
 
@@ -254,13 +261,16 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
         return LooperLogic.aaveLeverage(pool);
     }
 
-    /// @notice Aave HF with an in-flight exit sliver counted back as collateral.
+    /// @notice Aave HF with an in-flight exit sliver counted back as collateral at the position's own LT.
+    /// Reads high like `nav` once a sliver comes back after a liquidation, until `resume`.
     function effectiveHealthFactor() external view returns (uint256) {
         return LooperLogic.effectiveHealthFactor(s, pool);
     }
 
-    /// @notice Equity in collateral units: own aToken + debt-asset cash − debt, plus an in-flight input whose
-    /// output has not landed yet. The fee budget is not part of it.
+    /// @notice Equity in collateral units: own aToken + debt-asset cash − debt, plus the part of an in-flight
+    /// input that has neither landed as output nor come back. The fee budget is not part of it.
+    /// After a liquidation while an exit sliver is out, it reads high by the seized amount once the sliver comes back,
+    /// until `resume`.
     function nav() public view returns (uint256) {
         return LooperLogic.nav(s, pool);
     }
@@ -286,7 +296,12 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
 
     function _checkCall(address target, bytes calldata data) internal view {
         _checkTarget(target);
-        if (data.length >= 4 && bytes4(data[:4]) == APPROVE_DELEGATION) revert SelectorNotAllowed(APPROVE_DELEGATION);
+        if (data.length < 4) return;
+        bytes4 sel = bytes4(data[:4]);
+        if (
+            sel == APPROVE_DELEGATION || sel == APPROVE || sel == INCREASE_ALLOWANCE || sel == SET_APPROVAL_FOR_ALL
+                || sel == PERMIT
+        ) revert SelectorNotAllowed(sel);
     }
 
     /// @dev Pool or token calls would move funds behind the ladder's books, and a self-call would pass the
@@ -298,6 +313,9 @@ contract LooperPosition is ILooperPosition, IIntentForward, ERC4337 {
                 || target == address(s.vDebt) || target == address(s.feeAsset) || target == _precompile(s.debtAssetId)
                 || target == _precompile(s.aCollAssetId) || target == _precompile(s.feeAssetId)
         ) revert TargetNotAllowed(target);
+        // an approved contract (Pool-Proxy-BIL, the GIGAHDX pool) reads an unlimited allowance and pulls HOLLAR with
+        // it; the position never approves, so any allowance marks one
+        if (IERC20(_precompile(0)).allowance(address(this), target) != 0) revert TargetNotAllowed(target);
     }
 
     function _precompile(uint32 assetId) internal pure returns (address) {

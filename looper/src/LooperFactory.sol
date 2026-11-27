@@ -27,6 +27,8 @@ contract LooperFactory is ILooperFactory, ERC721Enumerable {
     uint256 internal constant STEP_MARGIN = 0.05e18;
     /// @dev Matches the position's emergency unwind floor, below which no exit sliver is sized.
     uint256 internal constant MIN_STEP_HF = 1.01e18;
+    /// @dev Matches the position's slippage cap.
+    uint256 internal constant MAX_SLIPPAGE_BPS = 500;
 
     IAavePool public immutable pool;
     address public immutable implementation;
@@ -110,6 +112,8 @@ contract LooperFactory is ILooperFactory, ERC721Enumerable {
             !_idMatches(p.debt, p.debtAssetId) || !_idMatches(p.aCollateral, p.aCollateralAssetId)
                 || !_idMatches(p.feeAsset, p.feeAssetId)
         ) revert AssetIdMismatch();
+        // an asset also lives at its precompile, so distinct addresses can still be the same asset
+        if (p.feeAssetId == p.debtAssetId || p.feeAssetId == p.aCollateralAssetId) revert InvalidParams();
         uint256 cc = pool.getConfiguration(p.collateral);
         uint256 dc = pool.getConfiguration(p.debt);
         // bits: 56 active, 57 frozen, 58 borrowing enabled, 60 paused
@@ -123,7 +127,7 @@ contract LooperFactory is ILooperFactory, ERC721Enumerable {
             revert InvalidParams();
         }
         if (p.stepHf < MIN_STEP_HF || p.stepHf + STEP_MARGIN > p.minHf) revert InvalidParams();
-        if (p.slippageBps >= BPS) revert InvalidParams();
+        if (p.slippageBps > MAX_SLIPPAGE_BPS) revert InvalidParams();
         if (p.feeReserve == 0 || p.minIntentDebt == 0 || p.minIntentAToken == 0) revert InvalidParams();
         if (!_pricesNonZero(p)) revert InvalidParams();
         if (p.leverage <= WAD || p.leverage > maxLeverage(p.collateral, p.eMode, p.minHf)) revert LeverageTooHigh();

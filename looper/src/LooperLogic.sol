@@ -26,6 +26,8 @@ library LooperLogic {
     /// @dev Aave base units of oracle rounding tolerated between two Aave figures.
     uint256 internal constant TOL = 10;
     uint256 internal constant CAP_BPS = 9_000;
+    /// @dev The slippage stays with the position through an NFT sale and prices every rung after it.
+    uint256 internal constant MAX_SLIPPAGE_BPS = 500;
     uint256 internal constant EMERGENCY_STEP = 0.02e18;
     uint256 internal constant EMERGENCY_FLOOR = 1.01e18;
     /// @dev A failed dispatch burns its whole frame; the catch path still needs `CATCH_RESERVE` to record
@@ -108,7 +110,7 @@ library LooperLogic {
         s.stalled = P.Stall.None;
         s.closing = false;
         emit P.Deposited(amount);
-        _attempt(s);
+        _attempt(s, pool);
     }
 
     // ── owner ──
@@ -123,7 +125,7 @@ library LooperLogic {
         (uint256 pC,) = _prices(s, pool);
         if (amount >= s.aColl.balanceOf(address(this)) || Units.toBase(amount, pC, s.decC, Math.Rounding.Up) >= equity)
         {
-            _startClose(s);
+            _startClose(s, pool);
             return;
         }
         s.ladder = P.Ladder.Unwind;
@@ -131,14 +133,14 @@ library LooperLogic {
         s.stalled = P.Stall.None;
         s.request = amount;
         emit P.WithdrawRequested(amount);
-        _attempt(s);
+        _attempt(s, pool);
     }
 
-    function close(State storage s) external {
+    function close(State storage s, IAavePool pool) external {
         _tryFeeCurrency(s);
         _requireIdle(s);
-        if (isClosed(s)) revert P.NothingToDo();
-        _startClose(s);
+        if (isClosed(s) && !_holdsLoose(s)) revert P.NothingToDo();
+        _startClose(s, pool);
     }
 
     /// @notice Remove the live intent; success of `remove_intent` proves it was this position's.
@@ -169,7 +171,7 @@ library LooperLogic {
             uint256 out = _outDelta(s, pool, p);
             if (out >= p.reconcileOut) {
                 _settle(s, p, true, out);
-                _attempt(s);
+                _attempt(s, pool);
             } else {
                 _settle(s, p, false, 0);
             }
@@ -177,12 +179,12 @@ library LooperLogic {
         }
         if (s.stalled == P.Stall.None || s.ladder == P.Ladder.None) revert P.NothingToDo();
         s.stalled = P.Stall.None;
-        _attempt(s);
+        _attempt(s, pool);
     }
 
     function setSlippage(State storage s, uint16 bps) external {
         _tryFeeCurrency(s);
-        if (bps >= BPS) revert P.SlippageTooHigh();
+        if (bps > MAX_SLIPPAGE_BPS) revert P.SlippageTooHigh();
         s.slippageBps = bps;
     }
 
@@ -197,6 +199,7 @@ library LooperLogic {
 
     function execute(
         State storage s,
+        IAavePool pool,
         uint256 intentId,
         address assetIn,
         uint256 amountIn,
@@ -217,7 +220,7 @@ library LooperLogic {
                 || !_prefixOk(intentId, p)
         ) revert P.WrongIntent();
         _settle(s, p, true, amountOut);
-        _attempt(s);
+        _attempt(s, pool);
     }
 
     function step(State storage s, IAavePool pool) external returns (P.Stall, uint256) {
@@ -238,7 +241,10 @@ library LooperLogic {
         P.PendingIntent memory p = s.pending;
         if (p.kind != P.Kind.Exit || d == 0 || _outDelta(s, pool, p) >= p.reconcileOut) return hf;
         (uint256 pC,) = _prices(s, pool);
-        return Math.mulDiv(c + Units.toBase(p.amountIn, pC, s.decC, Math.Rounding.Down), lt * 1e14, d);
+        uint256 escrow = Units.sat(p.amountIn, _inDelta(s, pool, p));
+        // the sliver comes back as own collateral, so it counts at the own LT, not the blended one
+        (, uint256 own) = _lts(s, pool, lt * 1e14);
+        return (c * lt * 1e14 + Units.toBase(escrow, pC, s.decC, Math.Rounding.Down) * own) / d;
     }
 
     function nav(State storage s, IAavePool pool) public view returns (uint256) {
@@ -300,13 +306,13 @@ library LooperLogic {
 
     // ── unwind ──
 
-    function _startClose(State storage s) internal {
+    function _startClose(State storage s, IAavePool pool) internal {
         s.ladder = P.Ladder.Unwind;
         s.closing = true;
         s.stalled = P.Stall.None;
         s.request = type(uint256).max;
         emit P.WithdrawRequested(type(uint256).max);
-        _attempt(s);
+        _attempt(s, pool);
     }
 
     function _rungDown(State storage s, IAavePool pool) internal returns (P.Stall, uint256) {
@@ -317,17 +323,21 @@ library LooperLogic {
         (uint256 c, uint256 d,, uint256 lt,,) = pool.getUserAccountData(address(this));
         uint256 lt18 = lt * 1e14;
         (uint256 pC, uint256 pD) = _prices(s, pool);
-        uint256 target = closing ? 0 : _debtTarget(s, c, d, lt18, _deployHf(s, lt), pC);
+        uint256 target = closing ? 0 : _debtTarget(s, pool, c, d, lt18, _deployHf(s, lt), pC);
         if (!closing && d <= target + TOL) return _finish(s, pool);
 
-        uint256 hf = d == 0 ? type(uint256).max : Math.mulDiv(c, lt18, d);
+        // the same LT `_removable` sizes with, so just above stepHf the cap is never zero
+        (uint256 blended,) = _lts(s, pool, lt18);
+        uint256 hf = d == 0 ? type(uint256).max : Math.mulDiv(c, blended, d);
         uint256 slip = s.slippageBps;
         uint256 minProceeds = s.minIntentDebt;
-        // Above stepHf the cap never crosses it, even if that stalls; at or under it, emergency slivers that each
-        // raise HF.
+        // Above stepHf, read with the same 1 bps haircut LT, the cap never crosses it, even if that stalls; at or
+        // under it, emergency slivers that each raise HF. Those can stop just above stepHf with no room for a minimum
+        // sliver: the close then stalls TailUnfunded until a small price rise or debt asset sent in, then `resume`.
         uint256 stepHf = s.stepHf;
-        uint256 cap =
-            _cap(s, c, d, lt18, pC, hf > stepHf ? stepHf : Math.max(Units.sat(hf, EMERGENCY_STEP), EMERGENCY_FLOOR));
+        uint256 cap = _cap(
+            s, pool, c, d, lt18, pC, hf > stepHf ? stepHf : Math.max(Units.sat(hf, EMERGENCY_STEP), EMERGENCY_FLOOR)
+        );
         uint256 owedBase = closing ? Units.toBase(owed, pD, s.decD, Math.Rounding.Up) : d - target;
         if (cap == 0) {
             return (P.Stall.InsufficientHeadroom, Units.fromBase(owedBase, pD, s.decD, Math.Rounding.Up));
@@ -366,12 +376,13 @@ library LooperLogic {
             return left == 0 ? _finish(s, pool) : (P.Stall.TailUnfunded, left);
         }
         (uint256 c, uint256 d,, uint256 lt,,) = pool.getUserAccountData(address(this));
-        uint256 target = _debtTarget(s, c, d, lt * 1e14, _deployHf(s, lt), pC);
+        uint256 target = _debtTarget(s, pool, c, d, lt * 1e14, _deployHf(s, lt), pC);
         if (d <= target + TOL) return _finish(s, pool);
         return (P.Stall.TailUnfunded, Units.fromBase(d - target, pD, s.decD, Math.Rounding.Up));
     }
 
-    /// @dev Pays the current NFT holder, whoever opened the position.
+    /// @dev Pays the current NFT holder, whoever opened the position. Gift aTokens stay for the holder's `execute`:
+    /// walking every reserve does not fit the fill callback.
     function _finish(State storage s, IAavePool pool) internal returns (P.Stall, uint256) {
         address owner = IERC721(s.factory).ownerOf(s.tokenId);
         if (s.closing) {
@@ -381,7 +392,6 @@ library LooperLogic {
             _sweep(s.debt, owner);
             _sweep(s.coll, owner);
             _sweep(s.feeAsset, owner);
-            _sweepForeignATokens(s, pool, owner);
             s.principal = 0;
             s.closing = false;
             s.ladder = P.Ladder.None;
@@ -391,10 +401,10 @@ library LooperLogic {
         }
         (uint256 c, uint256 d,, uint256 lt,,) = pool.getUserAccountData(address(this));
         (uint256 pC, uint256 pD) = _prices(s, pool);
-        uint256 free = Units.sat(c, Math.mulDiv(d, _deployHf(s, lt), lt * 1e14, Math.Rounding.Up));
         uint256 request = s.request;
         uint256 payout = Math.min(
-            Math.min(request, Units.fromBase(free, pC, s.decC, Math.Rounding.Down)), s.aColl.balanceOf(address(this))
+            Math.min(request, _removable(s, pool, c, d, lt * 1e14, pC, _deployHf(s, lt))),
+            s.aColl.balanceOf(address(this))
         );
         // the equity `nav()` reports, so a partial withdraw leaves `pnl()` unchanged
         uint256 equity = Units.fromBase(_navBase(s, pool, pC, pD), pC, s.decC, Math.Rounding.Down);
@@ -406,24 +416,55 @@ library LooperLogic {
         return (P.Stall.None, 0);
     }
 
-    /// @dev The debt a position at `deployHf` carries when its equity is the current one less the request.
-    function _debtTarget(State storage s, uint256 c, uint256 d, uint256 lt18, uint256 deployHf, uint256 pC)
-        internal
-        view
-        returns (uint256)
-    {
-        uint256 keep = Units.sat(Units.sat(c, d), Units.toBase(s.request, pC, s.decC, Math.Rounding.Up));
-        return Math.mulDiv(keep, lt18, deployHf - lt18);
+    /// @dev The debt at which paying out the request leaves HF at `deployHf`. Selling or paying out own collateral
+    /// removes the own LT from the blended sum, so it matches `_removable` at the finish.
+    function _debtTarget(
+        State storage s,
+        IAavePool pool,
+        uint256 c,
+        uint256 d,
+        uint256 lt18,
+        uint256 deployHf,
+        uint256 pC
+    ) internal view returns (uint256) {
+        (uint256 blended, uint256 own) = _lts(s, pool, lt18);
+        uint256 rest = (d + Units.toBase(s.request, pC, s.decC, Math.Rounding.Up)) * own;
+        return Units.sat(c * blended, rest) / (deployHf - own);
     }
 
-    function _cap(State storage s, uint256 c, uint256 d, uint256 lt18, uint256 pC, uint256 floorHf)
+    function _cap(State storage s, IAavePool pool, uint256 c, uint256 d, uint256 lt18, uint256 pC, uint256 floorHf)
         internal
         view
         returns (uint256)
     {
-        return Units.fromBase(
-            Units.sat(c, Math.mulDiv(floorHf, d, lt18, Math.Rounding.Up)), pC, s.decC, Math.Rounding.Down
-        ) * CAP_BPS / BPS;
+        return _removable(s, pool, c, d, lt18, pC, floorHf) * CAP_BPS / BPS;
+    }
+
+    /// @dev Own collateral (token units) that can leave with HF staying at or above `floorHf`. Each unit removes the
+    /// own LT, not the blended one, so a lower-LT gift still enabled as collateral does not inflate it.
+    function _removable(
+        State storage s,
+        IAavePool pool,
+        uint256 c,
+        uint256 d,
+        uint256 lt18,
+        uint256 pC,
+        uint256 floorHf
+    ) internal view returns (uint256) {
+        (uint256 blended, uint256 own) = _lts(s, pool, lt18);
+        if (own == 0) return s.aColl.balanceOf(address(this));
+        return Units.fromBase(Units.sat(c * blended, floorHf * d) / own, pC, s.decC, Math.Rounding.Down);
+    }
+
+    /// @dev The blended LT less one bps when other collateral is mixed in (Aave floors it to whole bps after every
+    /// change), and the LT Aave applies to own collateral: its eMode category one while the reserve is in it.
+    function _lts(State storage s, IAavePool pool, uint256 lt18) internal view returns (uint256 blended, uint256 own) {
+        uint256 cfg = pool.getConfiguration(address(s.coll));
+        uint8 eMode = s.eMode;
+        own = eMode != 0 && (cfg >> 168) & 0xFF == eMode
+            ? uint256(pool.getEModeCategoryData(eMode).liquidationThreshold) * 1e14
+            : ((cfg >> 16) & 0xFFFF) * 1e14;
+        blended = lt18 == own ? lt18 : Units.sat(lt18, 1e14);
     }
 
     /// @dev Collateral that sells for `base` after slippage `slip`, rounded up.
@@ -484,6 +525,17 @@ library LooperLogic {
         return Units.rayToTokens(scaled, pool.getReserveNormalizedIncome(address(s.coll)));
     }
 
+    /// @dev How much of the input came back since submit, so a refund is not counted as balance and as escrow. Only
+    /// cleanup refunds, and only once the deadline passed; before that every inflow is a gift and stays counted.
+    /// Known gap: a liquidation while the input is out hides that much of the refund, so nav and effective HF read
+    /// high by the seized amount (at most the input) until `resume`. The EVM sees no liquidation to correct it.
+    function _inDelta(State storage s, IAavePool pool, P.PendingIntent memory p) internal view returns (uint256) {
+        if (block.timestamp * 1000 < p.deadline) return 0;
+        if (p.kind == P.Kind.Entry) return Units.sat(s.debt.balanceOf(address(this)), p.inSnap);
+        uint256 scaled = Units.sat(s.aColl.scaledBalanceOf(address(this)), p.inSnap);
+        return Units.rayToTokens(scaled, pool.getReserveNormalizedIncome(address(s.coll)));
+    }
+
     /// @dev The runtime id is `(submission_ms << 64) | counter`; only this submission's second passes.
     function _prefixOk(uint256 intentId, P.PendingIntent memory p) internal pure returns (bool) {
         return (intentId >> 64) / 1000 == p.submittedAt;
@@ -492,7 +544,8 @@ library LooperLogic {
     /// @dev Exactly one rung attempt through the position's own `step`, so a revert rolls back only the
     /// rung; whatever it raises becomes `stalled`. The reserve keeps enough gas to record the stall and
     /// acknowledge after a failed dispatch burned its frame.
-    function _attempt(State storage s) internal {
+    function _attempt(State storage s, IAavePool pool) internal {
+        if (s.ladder == P.Ladder.Unwind) _tryRepayCash(s, pool);
         uint256 g = gasleft();
         g = g > CATCH_RESERVE ? g - CATCH_RESERVE : 0;
         try P(address(this)).step{gas: g}() returns (P.Stall r, uint256 remainder) {
@@ -536,12 +589,22 @@ library LooperLogic {
             }
         }
         if (s.aColl.scaledBalanceOf(address(this)) > 0 && (cfg >> (2 * own + 1)) & 1 == 0) {
-            pool.setUserUseReserveAsCollateral(address(s.coll), true);
+            // Aave refuses the enable at LTV 0, and a refunded sliver must still be able to leave
+            try pool.setUserUseReserveAsCollateral(address(s.coll), true) {} catch {}
         }
         if (repayCash) {
             uint256 x = Math.min(s.debt.balanceOf(address(this)), s.vDebt.balanceOf(address(this)));
             if (x > 0) _repay(s, pool, x, x);
         }
+    }
+
+    /// @dev Cash repaid before an unwind rung, so a rung that reverts cannot roll the repay back. A refused repay is
+    /// left to the rung, which records the stall.
+    function _tryRepayCash(State storage s, IAavePool pool) internal {
+        uint256 x = Math.min(s.debt.balanceOf(address(this)), s.vDebt.balanceOf(address(this)));
+        if (x == 0) return;
+        _approve(s.debt, pool, x);
+        try pool.repay(address(s.debt), x, 2, address(this)) {} catch {}
     }
 
     function _borrow(State storage s, IAavePool pool, uint256 amount) internal {
@@ -565,18 +628,6 @@ library LooperLogic {
         if (b > 0) token.safeTransfer(to, b);
     }
 
-    /// @dev Best effort: a gift whose reserve refuses the transfer must not block the close.
-    function _sweepForeignATokens(State storage s, IAavePool pool, address to) internal {
-        address[] memory reserves = pool.getReservesList();
-        for (uint256 i = 0; i < reserves.length; ++i) {
-            address a = pool.getReserveData(reserves[i]).aTokenAddress;
-            if (a == address(s.aColl) || a == address(0)) continue;
-            uint256 b = IERC20(a).balanceOf(address(this));
-            if (b == 0) continue;
-            try IERC20(a).transfer(to, b) {} catch {}
-        }
-    }
-
     // ── helpers ──
 
     function _feeCurrency(State storage s) internal {
@@ -595,6 +646,8 @@ library LooperLogic {
     }
 
     /// @dev The eMode category's price source when it has one, the Aave oracle per asset otherwise.
+    /// Known gap: the category price stays in use after governance moves a leg out of the category, where Aave
+    /// switches to the leg's own price. Latent while no Hydration eMode category sets a price source.
     function _prices(State storage s, IAavePool pool) internal view returns (uint256 pC, uint256 pD) {
         IAaveOracle oracle = IAaveOracle(IPoolAddressesProvider(pool.ADDRESSES_PROVIDER()).getPriceOracle());
         uint8 eMode = s.eMode;
@@ -613,9 +666,10 @@ library LooperLogic {
             + Units.toBase(s.debt.balanceOf(address(this)), pD, s.decD, Math.Rounding.Down);
         P.PendingIntent memory p = s.pending;
         if (p.kind != P.Kind.None && _outDelta(s, pool, p) < p.reconcileOut) {
+            uint256 escrow = Units.sat(p.amountIn, _inDelta(s, pool, p));
             assets += p.kind == P.Kind.Entry
-                ? Units.toBase(p.amountIn, pD, s.decD, Math.Rounding.Down)
-                : Units.toBase(p.amountIn, pC, s.decC, Math.Rounding.Down);
+                ? Units.toBase(escrow, pD, s.decD, Math.Rounding.Down)
+                : Units.toBase(escrow, pC, s.decC, Math.Rounding.Down);
         }
         (, uint256 d,,,,) = pool.getUserAccountData(address(this));
         return Units.sat(assets, d);
@@ -623,5 +677,10 @@ library LooperLogic {
 
     function _requireIdle(State storage s) internal view {
         if (s.pending.kind != P.Kind.None || (s.ladder != P.Ladder.None && s.stalled == P.Stall.None)) revert P.Busy();
+    }
+
+    function _holdsLoose(State storage s) internal view returns (bool) {
+        return s.debt.balanceOf(address(this)) > 0 || s.coll.balanceOf(address(this)) > 0
+            || s.feeAsset.balanceOf(address(this)) > 0;
     }
 }
