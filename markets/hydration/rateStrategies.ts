@@ -66,6 +66,37 @@ export const rateStrategyDOT275: IInterestRateStrategyParams = {
   optimalStableToTotalDebtRatio: parseUnits("0.2", 27).toString(),
 };
 
+// ETH: 0 % base, 2.2 % slope1, 47.3 % slope2, 85 % optimal usage (max 49.5 %, same ceiling as
+// DOT and SOL). Replaces the original DOT strategy (0 / 7 / 300 @ 75 %) that ETH launched on.
+export const rateStrategyETH: IInterestRateStrategyParams = {
+  name: "rateStrategyETH",
+  optimalUsageRatio: parseUnits("0.85", 27).toString(),
+  baseVariableBorrowRate: "0",
+  variableRateSlope1: parseUnits("0.022", 27).toString(),
+  variableRateSlope2: parseUnits("0.473", 27).toString(),
+  stableRateSlope1: parseUnits("0.07", 27).toString(),
+  stableRateSlope2: parseUnits("3", 27).toString(),
+  baseStableRateOffset: parseUnits("0.02", 27).toString(),
+  stableRateExcessOffset: parseUnits("0.05", 27).toString(),
+  optimalStableToTotalDebtRatio: parseUnits("0.2", 27).toString(),
+};
+
+// SOL: 0 % base, 4.5 % slope1, 45 % slope2, 85 % optimal usage (max 49.5 %, same ceiling as DOT
+// and ETH), sized to keep the borrow rate under the jitoSOL staking APY (4.82 % at the time) up to
+// the kink. Replaces the original DOT strategy SOL launched on.
+export const rateStrategySOL: IInterestRateStrategyParams = {
+  name: "rateStrategySOL",
+  optimalUsageRatio: parseUnits("0.85", 27).toString(),
+  baseVariableBorrowRate: "0",
+  variableRateSlope1: parseUnits("0.045", 27).toString(),
+  variableRateSlope2: parseUnits("0.45", 27).toString(),
+  stableRateSlope1: parseUnits("0.07", 27).toString(),
+  stableRateSlope2: parseUnits("3", 27).toString(),
+  baseStableRateOffset: parseUnits("0.02", 27).toString(),
+  stableRateExcessOffset: parseUnits("0.05", 27).toString(),
+  optimalStableToTotalDebtRatio: parseUnits("0.2", 27).toString(),
+};
+
 export const rateStrategyPRIME: IInterestRateStrategyParams = {
   name: "rateStrategyPRIME",
   optimalUsageRatio: parseUnits("0.75", 27).toString(),
